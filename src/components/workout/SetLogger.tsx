@@ -1,0 +1,56 @@
+'use client'
+import { SetRow } from './SetRow'
+import type { ActiveExercise } from '@/types/database'
+import { Button } from '@/components/ui/Button'
+import { Plus, Check, MoreVertical } from 'lucide-react'
+import { useWorkoutStore } from '@/store/workout.store'
+
+interface SetLoggerProps {
+  exerciseIndex: number
+  exercise: ActiveExercise
+}
+
+export function SetLogger({ exerciseIndex, exercise }: SetLoggerProps) {
+  const { updateSet, markSetDone, addSet } = useWorkoutStore()
+
+  return (
+    <div className="bg-zinc-900/50 rounded-2xl overflow-hidden mb-6 border border-zinc-800">
+      {/* Header */}
+      <div className="p-4 flex items-center justify-between border-b border-zinc-800 bg-zinc-900/80">
+        <h3 className="font-bold text-lg text-brand font-sans">{exercise.exercise.name}</h3>
+        <button className="text-zinc-500 hover:text-white p-1">
+          <MoreVertical className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Table Headers */}
+      <div className="flex items-center gap-2 px-4 py-2 mt-2">
+        <span className="w-8 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Set</span>
+        <span className="w-16 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Prev</span>
+        <span className="flex-1 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-wider">kg</span>
+        <span className="flex-1 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Reps</span>
+        <span className="w-12 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-wider"><Check className="w-3 h-3 mx-auto"/></span>
+      </div>
+
+      {/* Rows */}
+      <div className="px-4 pb-4">
+        {exercise.sets.map((set, setIndex) => (
+          <SetRow 
+            key={set.id}
+            set={set}
+            onChange={(updates) => updateSet(exerciseIndex, setIndex, updates)}
+            onDone={() => markSetDone(exerciseIndex, setIndex)}
+          />
+        ))}
+        
+        {/* Add Set Button */}
+        <button 
+          onClick={() => addSet(exerciseIndex)}
+          className="w-full flex items-center justify-center gap-2 h-10 mt-3 text-sm font-bold text-brand bg-brand/10 hover:bg-brand/20 rounded-xl transition-colors"
+        >
+          <Plus className="w-4 h-4" /> Add Set
+        </button>
+      </div>
+    </div>
+  )
+}
