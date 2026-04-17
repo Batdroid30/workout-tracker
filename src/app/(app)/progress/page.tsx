@@ -1,6 +1,20 @@
 import { ChartMockup } from '@/components/ui/ChartMockup'
+import { auth } from '@/lib/auth'
+import { getWorkoutsSummary, getVolumeHistory } from '@/lib/data/workouts'
+import { redirect } from 'next/navigation'
 
-export default function ProgressPage() {
+export default async function ProgressPage() {
+  const session = await auth()
+  const userId = session?.user?.id as string
+  const { totalVolume } = await getWorkoutsSummary(userId)
+  const volumeHistory = await getVolumeHistory(userId)
+
+  // Map volumeHistory to the format expected by ChartMockup
+  const chartData = volumeHistory.map(item => ({
+    date: new Date(item.date).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+    value: item.volume
+  }))
+
   return (
     <div className="min-h-screen bg-black text-white p-4 pb-24">
       {/* Header */}
@@ -12,8 +26,7 @@ export default function ProgressPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold font-sans text-zinc-300">Volume Analysis</h2>
             <select className="bg-zinc-900 border border-zinc-800 text-[10px] uppercase font-bold text-zinc-400 px-3 py-2 rounded-lg focus:outline-none">
-              <option>Last 30 Days</option>
-              <option>Last 6 Months</option>
+              <option>Total Volume</option>
             </select>
           </div>
           
@@ -21,15 +34,19 @@ export default function ProgressPage() {
             <div className="flex justify-between items-end mb-8">
               <div>
                 <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Total Volume</p>
-                <p className="text-4xl font-bold font-mono text-white tracking-tighter">48,240 <span className="text-base text-zinc-600">kg</span></p>
+                <p className="text-4xl font-bold font-mono text-white tracking-tighter">
+                  {totalVolume.toLocaleString()} <span className="text-base text-zinc-600">kg</span>
+                </p>
               </div>
-              <div className="text-green-500 text-sm font-bold font-mono bg-green-500/10 border border-green-500/20 px-2 py-1 rounded-md">
-                +12%
-              </div>
+              {chartData.length > 1 && (
+                <div className="text-green-500 text-sm font-bold font-mono bg-green-500/10 border border-green-500/20 px-2 py-1 rounded-md">
+                  Real Data
+                </div>
+              )}
             </div>
             
             <div className="h-[200px] w-full">
-               <ChartMockup type="volume" />
+               <ChartMockup type="volume" data={chartData} />
             </div>
           </div>
         </section>
@@ -39,9 +56,7 @@ export default function ProgressPage() {
           <div className="flex items-center justify-between mb-4">
              <h2 className="text-lg font-bold font-sans text-zinc-300">Est. 1RM Tracking</h2>
              <select className="bg-zinc-900 border border-zinc-800 text-[10px] tracking-wider uppercase font-bold text-brand px-3 py-2 rounded-lg focus:outline-none max-w-[140px] truncate">
-              <option>Bench Press</option>
-              <option>Deadlift</option>
-              <option>Squat</option>
+              <option>Dropdown Placeholder</option>
             </select>
           </div>
           
@@ -49,7 +64,7 @@ export default function ProgressPage() {
              <div className="flex justify-between items-end mb-8">
               <div>
                 <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Current 1RM</p>
-                <p className="text-4xl font-bold font-mono text-brand tracking-tighter">105 <span className="text-base text-brand/50">kg</span></p>
+                <p className="text-4xl font-bold font-mono text-brand tracking-tighter">— <span className="text-base text-brand/50">kg</span></p>
               </div>
             </div>
             

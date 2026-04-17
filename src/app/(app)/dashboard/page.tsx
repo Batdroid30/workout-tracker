@@ -1,7 +1,15 @@
 import { Dumbbell, Plus } from 'lucide-react'
 import Link from 'next/link'
+import { auth } from '@/lib/auth'
+import { getWorkoutsSummary, getRecentWorkouts } from '@/lib/data/workouts'
+import { redirect } from 'next/navigation'
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const session = await auth()
+  const userId = session?.user?.id as string
+  const { totalWorkouts, totalVolume } = await getWorkoutsSummary(userId)
+  const recentWorkouts = await getRecentWorkouts(userId)
+
   return (
     <div className="min-h-screen bg-black text-white p-4 pb-24">
       {/* Header */}
@@ -11,19 +19,24 @@ export default function DashboardPage() {
           <p className="text-zinc-500 font-mono text-sm tracking-widest uppercase mt-1">This Week</p>
         </div>
         <div className="w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-800">
-          <span className="font-bold text-sm text-zinc-300">SM</span>
+          <span className="font-bold text-sm text-zinc-300">
+            {session?.user?.email?.[0].toUpperCase() || 'U'}
+          </span>
         </div>
       </div>
 
-      {/* Quick Summary Mock */}
+      {/* Summary */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
           <p className="text-zinc-500 text-xs font-bold tracking-widest uppercase mb-1">Workouts</p>
-          <p className="text-4xl font-bold font-mono text-white">4</p>
+          <p className="text-4xl font-bold font-mono text-white">{totalWorkouts}</p>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 relative overflow-hidden">
           <p className="text-zinc-500 text-xs font-bold tracking-widest uppercase mb-1">Volume</p>
-          <p className="text-4xl font-bold font-mono text-brand z-10 relative">12k <span className="text-base text-brand/50">kg</span></p>
+          <p className="text-4xl font-bold font-mono text-brand z-10 relative">
+            {totalVolume >= 1000 ? `${(totalVolume / 1000).toFixed(1)}k` : totalVolume}
+            <span className="text-base text-brand/50 ml-1">kg</span>
+          </p>
           <div className="absolute -right-4 -bottom-4 opacity-10">
             <Dumbbell className="w-20 h-20 text-brand" />
           </div>
@@ -33,31 +46,55 @@ export default function DashboardPage() {
       {/* Recent Workouts */}
       <div>
         <h2 className="text-lg font-bold mb-4 font-sans text-zinc-300">Recent Activity</h2>
-        
+
         <div className="space-y-4">
-          {/* Mock Workout Card */}
-          <Link href="/workout/test-id-123" className="block">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 active:scale-[0.98] transition-all hover:bg-zinc-800/80 cursor-pointer text-left">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-bold text-lg text-white font-sans">Pull Day</h3>
-                  <p className="text-xs text-zinc-500 font-mono mt-0.5">Today at 6:00 AM</p>
-                </div>
-                <div className="bg-brand/10 text-brand px-2 py-1 flex items-center justify-center rounded-lg text-xs font-bold font-mono border border-brand/20">
-                  1h 12m
-                </div>
-              </div>
-              
-              <div className="flex gap-4 text-sm font-mono text-zinc-400 mb-4">
-                <span className="text-white font-bold tracking-wide">3,240 kg</span>
-                <span className="flex items-center text-yellow-500"><span className="mr-1">🔥</span> 2 PRs</span>
-              </div>
-              
-              <div className="pt-3 border-t border-zinc-800/60 text-sm font-mono text-zinc-500 truncate leading-relaxed">
-                Deadlift, Pull-ups, Barbell Row, Lat Pulldown
-              </div>
+          {recentWorkouts.length === 0 ? (
+            <div className="bg-zinc-900/50 border border-dashed border-zinc-800 rounded-2xl p-8 text-center">
+              <p className="text-zinc-500 font-mono text-sm">No workouts yet. Start your first session!</p>
             </div>
-          </Link>
+          ) : (
+            recentWorkouts.map((workout: any) => {
+              console.log("workout", workout)
+              const exerciseNames = workout.workout_exercises
+                .map((we: any) => we.exercise.name)
+                .join(', ')
+
+              const workoutVolume = workout.workout_exercises.reduce((acc: number, we: any) => {
+                const weVolume = we.sets?.reduce((sAcc: number, set: any) => sAcc + (set.weight_kg * set.reps), 0) || 0
+                return acc + weVolume
+              }, 0)
+
+              return (
+                <Link href={`/workout/${workout.id}`} key={workout.id} className="block">
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 active:scale-[0.98] transition-all hover:bg-zinc-800/80 cursor-pointer text-left">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-bold text-lg text-white font-sans">{workout.title || 'Workout'}</h3>
+                        <p className="text-xs text-zinc-500 font-mono mt-0.5">
+                          {new Date(workout.started_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                        </p>
+                      </div>
+                      {workout.duration_seconds && (
+                        <div className="bg-brand/10 text-brand px-2 py-1 flex items-center justify-center rounded-lg text-xs font-bold font-mono border border-brand/20">
+                          {Math.floor(workout.duration_seconds / 60)}m
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-4 text-sm font-mono text-zinc-400 mb-4">
+                      <span className="text-white font-bold tracking-wide">
+                        {workoutVolume >= 1000 ? `${(workoutVolume / 1000).toFixed(1)}kg` : `${workoutVolume}kg`}
+                      </span>
+                    </div>
+
+                    <div className="pt-3 border-t border-zinc-800/60 text-sm font-mono text-zinc-500 truncate leading-relaxed">
+                      {exerciseNames}
+                    </div>
+                  </div>
+                </Link>
+              )
+            })
+          )}
         </div>
       </div>
 

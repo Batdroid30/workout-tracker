@@ -1,11 +1,17 @@
+import { auth } from '@/lib/auth'
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export async function proxy(request: NextRequest) {
+export default auth(async (req) => {
+  const { nextUrl } = req
+  const isLoggedIn = !!req.auth
+
+  // 1. Handle Supabase Session Refreshing
+  // We do this to keep the GoTrue session (used for data fetching) in sync with NextAuth
   let response = NextResponse.next({
     request: {
-      headers: request.headers,
+      headers: req.headers,
     },
   })
 
@@ -15,61 +21,50 @@ export async function proxy(request: NextRequest) {
     {
       cookies: {
         get(name: string) {
-          return request.cookies.get(name)?.value
+          return req.cookies.get(name)?.value
         },
         set(name: string, value: string, options: any) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
+          req.cookies.set({ name, value, ...options })
           response = NextResponse.next({
             request: {
-              headers: request.headers,
+              headers: req.headers,
             },
           })
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
+          response.cookies.set({ name, value, ...options })
         },
         remove(name: string, options: any) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+          req.cookies.set({ name, value: '', ...options })
           response = NextResponse.next({
             request: {
-              headers: request.headers,
+              headers: req.headers,
             },
           })
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+          response.cookies.set({ name, value: '', ...options })
         },
       },
     }
   )
 
-  // Refresh session on every request — keeps users logged in
-  const { data: { session } } = await supabase.auth.getSession()
+  // This refreshes the session if needed
+  await supabase.auth.getSession()
 
-  // Redirect unauthenticated users away from app pages
-  if (!session && request.nextUrl.pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/login', request.url))
+  // 2. Route Protection Logic
+  const isAuthPage = nextUrl.pathname === '/login' || nextUrl.pathname === '/signup'
+  const isAppPage = nextUrl.pathname.startsWith('/dashboard') || 
+                   nextUrl.pathname.startsWith('/exercises') || 
+                   nextUrl.pathname.startsWith('/workout') || 
+                   nextUrl.pathname.startsWith('/progress')
+
+  if (isAppPage && !isLoggedIn) {
+    return NextResponse.redirect(new URL('/login', req.url))
   }
 
-  // Redirect authenticated users away from auth pages
-  if (session && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  if (isAuthPage && isLoggedIn) {
+    return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
   return response
-}
+})
 
 export const config = {
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],

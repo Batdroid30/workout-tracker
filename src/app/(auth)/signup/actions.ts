@@ -1,7 +1,9 @@
 'use server'
 
 import { getSupabaseServer } from '@/lib/supabase/server'
+import { signIn } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import { AuthError } from 'next-auth'
 
 export async function signupUser(formData: FormData) {
   const email = formData.get('email') as string
@@ -17,16 +19,26 @@ export async function signupUser(formData: FormData) {
   }
 
   const supabase = await getSupabaseServer()
-  const { error } = await supabase.auth.signUp({
+  const { error: signUpError } = await supabase.auth.signUp({
     email,
     password,
   })
 
-  if (error) {
-    redirect('/signup?error=' + encodeURIComponent(error.message))
+  if (signUpError) {
+    redirect('/signup?error=' + encodeURIComponent(signUpError.message))
   }
 
-  // After signup, we might want to redirect to login with a special message
-  // Or straight to dashboard if auto session creation works.
-  redirect('/dashboard')
+  // After successful signup, sign in with NextAuth to create session
+  try {
+    await signIn('credentials', {
+      email,
+      password,
+      redirectTo: '/dashboard',
+    })
+  } catch (error) {
+    if (error instanceof AuthError) {
+      redirect('/login?error=Account created, please sign in')
+    }
+    throw error
+  }
 }

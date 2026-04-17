@@ -9,9 +9,10 @@ interface SetRowProps {
   prevSetText?: string
   onChange: (updates: Partial<ActiveSet>) => void
   onDone: () => void
+  onRemove: () => void
 }
 
-export function SetRow({ set, prevSetText = "-", onChange, onDone }: SetRowProps) {
+export function SetRow({ set, prevSetText = "-", onChange, onDone, onRemove }: SetRowProps) {
   return (
     <div className={cn(
       "flex items-center gap-2 py-2 transition-colors",

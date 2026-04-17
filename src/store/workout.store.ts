@@ -11,6 +11,8 @@ interface WorkoutStore {
   addSet: (exerciseIndex: number) => void
   updateSet: (exerciseIndex: number, setIndex: number, updates: Partial<ActiveSet>) => void
   markSetDone: (exerciseIndex: number, setIndex: number) => void
+  removeExercise: (exerciseIndex: number) => void
+  removeSet: (exerciseIndex: number, setIndex: number) => void
   finishWorkout: () => void
   discardWorkout: () => void
 }
@@ -29,17 +31,32 @@ export const useWorkoutStore = create<WorkoutStore>()(
         }
       }),
 
-      addExercise: (exercise) => set((state) => ({
-        activeWorkout: state.activeWorkout ? {
-          ...state.activeWorkout,
-          exercises: [...state.activeWorkout.exercises, {
-            workout_exercise_id: null,
-            exercise,
-            sets: [],
-            order_index: state.activeWorkout.exercises.length,
-          }]
-        } : null
-      })),
+      addExercise: (exercise) => set((state) => {
+        if (!state.activeWorkout) return state
+        
+        const newExercise: ActiveExercise = {
+          workout_exercise_id: null,
+          exercise,
+          sets: [{
+            id: crypto.randomUUID(),
+            set_number: 1,
+            weight_kg: 0,
+            reps: 0,
+            rpe: null,
+            is_warmup: false,
+            completed: false,
+            saved: false,
+          }],
+          order_index: state.activeWorkout.exercises.length,
+        }
+
+        return {
+          activeWorkout: {
+            ...state.activeWorkout,
+            exercises: [...state.activeWorkout.exercises, newExercise]
+          }
+        }
+      }),
 
       addSet: (exerciseIndex) => set((state) => {
         if (!state.activeWorkout) return state
@@ -81,9 +98,26 @@ export const useWorkoutStore = create<WorkoutStore>()(
         return { activeWorkout: { ...state.activeWorkout, exercises } }
       }),
 
-      finishWorkout: () => set({ activeWorkout: null }),
-      discardWorkout: () => set({ activeWorkout: null }),
-    }),
+  removeExercise: (exerciseIndex) => set((state) => ({
+    activeWorkout: state.activeWorkout ? {
+      ...state.activeWorkout,
+      exercises: state.activeWorkout.exercises.filter((_, i) => i !== exerciseIndex)
+    } : null
+  })),
+
+  removeSet: (exerciseIndex, setIndex) => set((state) => {
+    if (!state.activeWorkout) return state
+    const exercises = [...state.activeWorkout.exercises]
+    exercises[exerciseIndex] = {
+      ...exercises[exerciseIndex],
+      sets: exercises[exerciseIndex].sets.filter((_, i) => i !== setIndex)
+    }
+    return { activeWorkout: { ...state.activeWorkout, exercises } }
+  }),
+
+  finishWorkout: () => set({ activeWorkout: null }),
+  discardWorkout: () => set({ activeWorkout: null }),
+}),
     { name: 'active-workout' }     // localStorage key
   )
 )

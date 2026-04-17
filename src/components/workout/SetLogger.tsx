@@ -4,21 +4,34 @@ import type { ActiveExercise } from '@/types/database'
 import { Button } from '@/components/ui/Button'
 import { Plus, Check, MoreVertical } from 'lucide-react'
 import { useWorkoutStore } from '@/store/workout.store'
+import { useExerciseHistory } from '@/hooks/useExerciseHistory'
 
 interface SetLoggerProps {
   exerciseIndex: number
   exercise: ActiveExercise
+  onSetCompleted?: () => void
 }
 
-export function SetLogger({ exerciseIndex, exercise }: SetLoggerProps) {
-  const { updateSet, markSetDone, addSet } = useWorkoutStore()
+export function SetLogger({ exerciseIndex, exercise, onSetCompleted }: SetLoggerProps) {
+  const { updateSet, markSetDone, addSet, removeExercise, removeSet } = useWorkoutStore()
+  const { history } = useExerciseHistory(exercise.exercise.id)
 
   return (
     <div className="bg-zinc-900/50 rounded-2xl overflow-hidden mb-6 border border-zinc-800">
       {/* Header */}
       <div className="p-4 flex items-center justify-between border-b border-zinc-800 bg-zinc-900/80">
-        <h3 className="font-bold text-lg text-brand font-sans">{exercise.exercise.name}</h3>
-        <button className="text-zinc-500 hover:text-white p-1">
+        <div>
+          <h3 className="font-bold text-lg text-brand font-sans">{exercise.exercise.name}</h3>
+          <p className="text-xs text-zinc-500 font-mono uppercase tracking-wider">{exercise.exercise.muscle_group}</p>
+        </div>
+        <button 
+          onClick={() => {
+            if (confirm('Remove this exercise?')) {
+              removeExercise(exerciseIndex)
+            }
+          }}
+          className="text-zinc-500 hover:text-red-500 p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+        >
           <MoreVertical className="w-5 h-5" />
         </button>
       </div>
@@ -34,14 +47,27 @@ export function SetLogger({ exerciseIndex, exercise }: SetLoggerProps) {
 
       {/* Rows */}
       <div className="px-4 pb-4">
-        {exercise.sets.map((set, setIndex) => (
-          <SetRow 
-            key={set.id}
-            set={set}
-            onChange={(updates) => updateSet(exerciseIndex, setIndex, updates)}
-            onDone={() => markSetDone(exerciseIndex, setIndex)}
-          />
-        ))}
+        {exercise.sets.map((set, setIndex) => {
+          // Find the previous record for this set number in history
+          const prevRecord = history[setIndex]
+          const prevText = prevRecord 
+            ? `${prevRecord.weight_kg} × ${prevRecord.reps}`
+            : '-'
+
+          return (
+            <SetRow 
+              key={set.id}
+              set={set}
+              prevSetText={prevText}
+              onChange={(updates) => updateSet(exerciseIndex, setIndex, updates)}
+              onDone={() => {
+                markSetDone(exerciseIndex, setIndex)
+                onSetCompleted?.()
+              }}
+              onRemove={() => removeSet(exerciseIndex, setIndex)}
+            />
+          )
+        })}
         
         {/* Add Set Button */}
         <button 

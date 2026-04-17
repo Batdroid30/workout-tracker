@@ -1,7 +1,12 @@
 'use client'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 
-const volumeData = [
+interface ChartData {
+  date: string
+  value: number
+}
+
+const volumeMockData = [
   { date: 'Mon', value: 8000 },
   { date: 'Wed', value: 12000 },
   { date: 'Fri', value: 9500 },
@@ -9,7 +14,7 @@ const volumeData = [
   { date: 'Tue', value: 13500 },
 ]
 
-const e1rmData = [
+const e1rmMockData = [
   { date: 'Week 1', value: 90 },
   { date: 'Week 2', value: 95 },
   { date: 'Week 3', value: 95 },
@@ -17,13 +22,13 @@ const e1rmData = [
   { date: 'Week 5', value: 105 },
 ]
 
-export function ChartMockup({ type }: { type: 'volume' | '1rm' }) {
-  const data = type === 'volume' ? volumeData : e1rmData
+export function ChartMockup({ type, data }: { type: 'volume' | '1rm', data?: ChartData[] }) {
+  const chartData = data && data.length > 0 ? data : (type === 'volume' ? volumeMockData : e1rmMockData)
   const color = type === 'volume' ? '#ffffff' : '#2563eb' // White vs Brand Blue
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+      <LineChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
         <XAxis 
           dataKey="date" 
@@ -38,7 +43,7 @@ export function ChartMockup({ type }: { type: 'volume' | '1rm' }) {
           fontSize={10} 
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => type === 'volume' ? `${value/1000}k` : `${value}`}
+          tickFormatter={(value) => type === 'volume' ? (value >= 1000 ? `${value/1000}k` : `${value}`) : `${value}`}
         />
         <Tooltip 
           contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '12px', color: '#fff', fontWeight: 'bold' }}

@@ -1,0 +1,174 @@
+import { getSupabaseServer } from '@/lib/supabase/server'
+
+export async function getRecentWorkouts(userId: string) {
+  const supabase = await getSupabaseServer()
+  
+  const { data, error } = await supabase
+    .from('workouts')
+    .select(`
+      *,
+      workout_exercises (
+        exercise:exercises ( name ),
+        sets ( id )
+      )
+    `)
+    .eq('user_id', userId)
+    .order('started_at', { ascending: false })
+    .limit(5)
+
+  if (error) {
+    console.error('Failed to fetch recent workouts:', error.message)
+    return []
+  }
+  return data
+}
+
+export async function getWorkoutsSummary(userId: string) {
+  const supabase = await getSupabaseServer()
+  
+  // Get total workouts
+  const { count, error: countErr } = await supabase
+    .from('workouts')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+
+  if (countErr) {
+    console.error('Failed to count workouts:', countErr.message)
+    return { totalWorkouts: 0, totalVolume: 0 }
+  }
+    
+  // Get total volume for this user
+  // This is a simplified calculation, normally you'd use a view or RPC for large datasets
+  const { data: setsData, error: setsErr } = await supabase
+    .from('sets')
+    .select('weight_kg, reps, workout_exercises!inner(workouts!inner(user_id))')
+    .eq('workout_exercises.workouts.user_id', userId)
+
+  let totalVolume = 0
+  if (setsData && !setsErr) {
+    totalVolume = setsData.reduce((acc, set) => acc + ((set.weight_kg || 0) * (set.reps || 0)), 0)
+  }
+
+  return {
+    totalWorkouts: count || 0,
+    totalVolume
+  }
+}
+
+export async function getVolumeHistory(userId: string) {
+  const supabase = await getSupabaseServer()
+  
+  // Weekly volume rollup
+  // Note: ideally this should be a DB view or function for performance
+  const { data, error } = await supabase
+    .from('sets')
+    .select(`
+      weight_kg,
+      reps,
+      completed_at,
+      workout_exercises!inner(workouts!inner(user_id))
+    `)
+    .eq('workout_exercises.workouts.user_id', userId)
+    .order('completed_at', { ascending: true })
+
+  if (error || !data) return []
+
+  // Group by date (simplified to day for now)
+  const volumeByDate = data.reduce((acc: any, set: any) => {
+    const date = new Date(set.completed_at).toISOString().split('T')[0]
+    const volume = (set.weight_kg || 0) * (set.reps || 0)
+    acc[date] = (acc[date] || 0) + volume
+    return acc
+  }, {})
+
+  return Object.entries(volumeByDate).map(([date, volume]) => ({
+    date,
+    volume
+  }))
+}
+
+export async function getExercise1RMHistory(userId: string, exerciseId: string) {
+  const supabase = await getSupabaseServer()
+  
+  const { data, error } = await supabase
+    .from('sets')
+    .select(`
+      weight_kg,
+      reps,
+      completed_at,
+      workout_exercises!inner(exercise_id, workouts!inner(user_id))
+    `)
+    .eq('workout_exercises.workouts.user_id', userId)
+    .eq('workout_exercises.exercise_id', exerciseId)
+    .order('completed_at', { ascending: true })
+
+  if (error || !data) return []
+
+  // Calculate Epley e1RM for each set and take max per day
+  const best1RMByDate = data.reduce((acc: any, set: any) => {
+    const date = new Date(set.completed_at).toISOString().split('T')[0]
+    const e1rm = (set.weight_kg || 0) * (1 + (set.reps || 0) / 30)
+    if (!acc[date] || e1rm > acc[date]) {
+      acc[date] = e1rm
+    }
+    return acc
+  }, {})
+
+  return Object.entries(best1RMByDate).map(([date, value]) => ({
+    date,
+    value
+  }))
+}
+export async function saveActiveWorkout(userId: string, workout: any) {
+  const supabase = await getSupabaseServer()
+  
+  // 1. Create the workout record
+  const { data: workoutData, error: workoutErr } = await supabase
+    .from('workouts')
+    .insert({
+      user_id: userId,
+      title: workout.title,
+      started_at: workout.started_at,
+      completed_at: new Date().toISOString(),
+      duration_seconds: Math.floor((new Date().getTime() - new Date(workout.started_at).getTime()) / 1000)
+    })
+    .select()
+    .single()
+
+  if (workoutErr) throw workoutErr
+
+  // 2. Create workout_exercises and sets
+  for (const [exerciseIndex, ex] of workout.exercises.entries()) {
+    const { data: weData, error: weErr } = await supabase
+      .from('workout_exercises')
+      .insert({
+        workout_id: workoutData.id,
+        exercise_id: ex.exercise.id,
+        order_index: exerciseIndex
+      })
+      .select()
+      .single()
+
+    if (weErr) throw weErr
+
+    // Insert only completed sets
+    const completedSets = ex.sets.filter((s: any) => s.completed)
+    if (completedSets.length > 0) {
+      const { error: setsErr } = await supabase
+        .from('sets')
+        .insert(completedSets.map((s: any, setIndex: number) => ({
+          workout_exercise_id: weData.id,
+          set_number: setIndex + 1,
+          weight_kg: s.weight_kg,
+          reps: s.reps,
+          rpe: s.rpe,
+          is_warmup: s.is_warmup,
+          completed_at: new Date().toISOString()
+        })))
+
+      if (setsErr) throw setsErr
+    }
+  }
+
+  return workoutData
+}
