@@ -151,7 +151,7 @@ export async function saveActiveWorkout(userId: string, workout: any) {
 
     if (weErr) throw weErr
 
-    // Insert only completed sets
+    // Insert only completed sets (maintain data integrity)
     const completedSets = ex.sets.filter((s: any) => s.completed)
     if (completedSets.length > 0) {
       const { error: setsErr } = await supabase

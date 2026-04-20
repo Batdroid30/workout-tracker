@@ -11,6 +11,8 @@ interface WorkoutStore {
   addSet: (exerciseIndex: number) => void
   updateSet: (exerciseIndex: number, setIndex: number, updates: Partial<ActiveSet>) => void
   markSetDone: (exerciseIndex: number, setIndex: number) => void
+  completeAllSets: () => void
+  updateTitle: (title: string) => void
   removeExercise: (exerciseIndex: number) => void
   removeSet: (exerciseIndex: number, setIndex: number) => void
   finishWorkout: () => void
@@ -114,6 +116,19 @@ export const useWorkoutStore = create<WorkoutStore>()(
     }
     return { activeWorkout: { ...state.activeWorkout, exercises } }
   }),
+
+  completeAllSets: () => set((state) => {
+    if (!state.activeWorkout) return state
+    const exercises = state.activeWorkout.exercises.map(ex => ({
+      ...ex,
+      sets: ex.sets.map(s => (s.weight_kg > 0 || s.reps > 0) ? { ...s, completed: true } : s)
+    }))
+    return { activeWorkout: { ...state.activeWorkout, exercises } }
+  }),
+
+  updateTitle: (title) => set((state) => ({
+    activeWorkout: state.activeWorkout ? { ...state.activeWorkout, title } : null
+  })),
 
   finishWorkout: () => set({ activeWorkout: null }),
   discardWorkout: () => set({ activeWorkout: null }),

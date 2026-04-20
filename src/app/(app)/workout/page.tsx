@@ -12,7 +12,7 @@ import Link from 'next/link'
 
 export default function WorkoutPage() {
   const router = useRouter()
-  const { activeWorkout, startWorkout, finishWorkout, discardWorkout, addExercise } = useWorkoutStore()
+  const { activeWorkout, startWorkout, finishWorkout, discardWorkout, addExercise, updateTitle, completeAllSets } = useWorkoutStore()
   
   const handleDiscard = () => {
     if (confirm('Discard workout? All progress will be lost.')) {
@@ -27,6 +27,8 @@ export default function WorkoutPage() {
 
   const handleFinish = async () => {
     if (!activeWorkout) return
+    
+    // Check for empty workout
     if (activeWorkout.exercises.length === 0) {
       if (!confirm('This workout is empty. Discard?')) return
       finishWorkout()
@@ -34,11 +36,35 @@ export default function WorkoutPage() {
       return
     }
 
-    if (!confirm('Finish workout? All sets will be saved to your history.')) return
+    // Check for unchecked sets with data
+    const hasUncheckedSetsWithData = activeWorkout.exercises.some(ex => 
+      ex.sets.some(s => !s.completed && (s.weight_kg > 0 || s.reps > 0))
+    )
+
+    let finalWorkout = activeWorkout
+
+    if (hasUncheckedSetsWithData) {
+      if (confirm('You have unchecked sets with data. Would you like to mark them as complete and save them?')) {
+        // We need to use the updated state for the action
+        completeAllSets()
+        // Wait for store to update or just construct the final object here for the action
+        finalWorkout = {
+          ...activeWorkout,
+          exercises: activeWorkout.exercises.map(ex => ({
+            ...ex,
+            sets: ex.sets.map(s => (s.weight_kg > 0 || s.reps > 0) ? { ...s, completed: true } : s)
+          }))
+        }
+      } else if (!confirm('Finish anyway? Unchecked sets will NOT be saved.')) {
+        return
+      }
+    } else {
+      if (!confirm('Finish workout? All completed sets will be saved.')) return
+    }
 
     setIsFinishing(true)
     try {
-      const result = await finishWorkoutAction(activeWorkout)
+      const result = await finishWorkoutAction(finalWorkout)
       if (result.success) {
         finishWorkout()
         router.push('/dashboard')
@@ -69,11 +95,17 @@ export default function WorkoutPage() {
     <div className="pb-32 min-h-screen bg-black">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-black/90 backdrop-blur border-b border-zinc-900 p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-1 mr-4">
           <Link href="/dashboard" className="p-1 hover:bg-zinc-900 rounded-lg transition-colors">
             <ChevronLeft className="w-6 h-6 text-zinc-400" />
           </Link>
-          <h1 className="text-xl font-bold font-sans text-white">{activeWorkout.title}</h1>
+          <input 
+            type="text"
+            value={activeWorkout.title}
+            onChange={(e) => updateTitle(e.target.value)}
+            placeholder="Workout Title"
+            className="bg-transparent border-none text-xl font-bold font-sans text-white focus:ring-0 p-0 w-full placeholder:text-zinc-700 outline-none"
+          />
         </div>
         <button 
           onClick={handleFinish}

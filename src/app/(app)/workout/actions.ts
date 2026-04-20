@@ -11,6 +11,8 @@ export async function finishWorkoutAction(activeWorkout: any) {
   }
 
   try {
+    console.log('Saving workout for user:', session.user.id);
+    console.log('Workout data:', JSON.stringify(activeWorkout, null, 2));
     const result = await saveWorkoutData(session.user.id, activeWorkout)
     revalidatePath('/dashboard')
     revalidatePath('/progress')
