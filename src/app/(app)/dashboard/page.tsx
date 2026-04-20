@@ -54,13 +54,12 @@ export default async function DashboardPage() {
             </div>
           ) : (
             recentWorkouts.map((workout: any) => {
-              console.log("workout", workout)
               const exerciseNames = workout.workout_exercises
                 .map((we: any) => we.exercise.name)
                 .join(', ')
 
               const workoutVolume = workout.workout_exercises.reduce((acc: number, we: any) => {
-                const weVolume = we.sets?.reduce((sAcc: number, set: any) => sAcc + (set.weight_kg * set.reps), 0) || 0
+                const weVolume = we.sets?.reduce((sAcc: number, set: any) => sAcc + ((set.weight_kg || 0) * (set.reps || 0)), 0) || 0
                 return acc + weVolume
               }, 0)
 
@@ -83,7 +82,8 @@ export default async function DashboardPage() {
 
                     <div className="flex gap-4 text-sm font-mono text-zinc-400 mb-4">
                       <span className="text-white font-bold tracking-wide">
-                        {workoutVolume >= 1000 ? `${(workoutVolume / 1000).toFixed(1)}kg` : `${workoutVolume}kg`}
+                        {workoutVolume >= 1000 ? `${(workoutVolume / 1000).toFixed(1)}k` : workoutVolume}
+                        <span className="text-[10px] text-zinc-500 ml-0.5">kg</span>
                       </span>
                     </div>
 

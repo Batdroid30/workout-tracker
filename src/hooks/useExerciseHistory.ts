@@ -26,7 +26,7 @@ export function useExerciseHistory(exerciseId: string) {
           )
         `)
         .eq('workout_exercises.exercise_id', exerciseId)
-        .order('created_at', { ascending: false })
+        .order('completed_at', { ascending: false, foreignTable: 'workout_exercises.workouts' })
         .limit(10)
 
       if (!error && data) {

@@ -9,7 +9,7 @@ export async function getRecentWorkouts(userId: string) {
       *,
       workout_exercises (
         exercise:exercises ( name ),
-        sets ( id )
+        sets ( weight_kg, reps )
       )
     `)
     .eq('user_id', userId)
@@ -171,4 +171,44 @@ export async function saveActiveWorkout(userId: string, workout: any) {
   }
 
   return workoutData
+}
+
+export async function getWorkoutById(workoutId: string) {
+  const supabase = await getSupabaseServer()
+  
+  const { data, error } = await supabase
+    .from('workouts')
+    .select(`
+      id,
+      user_id,
+      title,
+      started_at,
+      completed_at,
+      duration_seconds,
+      workout_exercises (
+        id,
+        exercise_id,
+        order_index,
+        exercise:exercises ( id, name, muscle_group ),
+        sets ( 
+          id, 
+          set_number, 
+          weight_kg, 
+          reps, 
+          rpe, 
+          is_warmup 
+        )
+      )
+    `)
+    .order('order_index', { foreignTable: 'workout_exercises', ascending: true })
+    .order('set_number', { foreignTable: 'workout_exercises.sets', ascending: true })
+    .eq('id', workoutId)
+    .single()
+
+  if (error) {
+    console.error('Failed to fetch workout details:', error.message)
+    return null
+  }
+  
+  return data
 }

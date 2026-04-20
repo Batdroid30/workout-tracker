@@ -37,7 +37,11 @@ export async function getRecentSetsForExercise(exerciseId: string) {
   const { data, error } = await supabase
     .from('sets')
     .select(`
-      *,
+      id,
+      weight_kg,
+      reps,
+      completed_at,
+      set_number,
       workout_exercises!inner(
         exercise_id,
         workouts ( id, started_at )
