@@ -55,7 +55,7 @@ export async function getWorkoutsSummary(userId: string) {
   }
 }
 
-export async function getVolumeHistory(userId: string) {
+export async function getVolumeHistory(userId: string): Promise<{ date: string, volume: number }[]> {
   const supabase = await getSupabaseServer()
   
   // Weekly volume rollup
@@ -74,7 +74,7 @@ export async function getVolumeHistory(userId: string) {
   if (error || !data) return []
 
   // Group by date (simplified to day for now)
-  const volumeByDate = data.reduce((acc: any, set: any) => {
+  const volumeByDate = data.reduce((acc: Record<string, number>, set: any) => {
     const date = new Date(set.completed_at).toISOString().split('T')[0]
     const volume = (set.weight_kg || 0) * (set.reps || 0)
     acc[date] = (acc[date] || 0) + volume
@@ -87,7 +87,7 @@ export async function getVolumeHistory(userId: string) {
   }))
 }
 
-export async function getExercise1RMHistory(userId: string, exerciseId: string) {
+export async function getExercise1RMHistory(userId: string, exerciseId: string): Promise<{ date: string, value: number }[]> {
   const supabase = await getSupabaseServer()
   
   const { data, error } = await supabase
@@ -105,7 +105,7 @@ export async function getExercise1RMHistory(userId: string, exerciseId: string) 
   if (error || !data) return []
 
   // Calculate Epley e1RM for each set and take max per day
-  const best1RMByDate = data.reduce((acc: any, set: any) => {
+  const best1RMByDate = data.reduce((acc: Record<string, number>, set: any) => {
     const date = new Date(set.completed_at).toISOString().split('T')[0]
     const e1rm = (set.weight_kg || 0) * (1 + (set.reps || 0) / 30)
     if (!acc[date] || e1rm > acc[date]) {
