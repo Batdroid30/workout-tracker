@@ -8,6 +8,15 @@ export type MovementPattern = 'push' | 'pull' | 'hinge' | 'squat' | 'carry' | 'i
 export type PRType = 'best_weight' | 'best_volume' | 'best_1rm'
 export type ProgramGoal = 'strength' | 'hypertrophy' | 'powerbuilding' | 'endurance'
 
+export interface Profile {
+  id: string
+  email: string
+  first_name: string | null
+  last_name: string | null
+  avatar_url: string | null
+  updated_at: string
+}
+
 export interface Exercise {
   id: string
   name: string

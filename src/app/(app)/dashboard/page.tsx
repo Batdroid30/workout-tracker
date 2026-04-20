@@ -2,6 +2,7 @@ import { Dumbbell, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { getWorkoutsSummary, getRecentWorkouts } from '@/lib/data/workouts'
+import { getProfile } from '@/lib/data/profile'
 import { redirect } from 'next/navigation'
 
 export default async function DashboardPage() {
@@ -9,6 +10,7 @@ export default async function DashboardPage() {
   const userId = session?.user?.id as string
   const { totalWorkouts, totalVolume } = await getWorkoutsSummary(userId)
   const recentWorkouts = await getRecentWorkouts(userId)
+  const profile = await getProfile(userId)
 
   return (
     <div className="min-h-screen bg-black text-white p-4 pb-24">
@@ -18,11 +20,17 @@ export default async function DashboardPage() {
           <h1 className="text-3xl font-bold font-sans">Home</h1>
           <p className="text-zinc-500 font-mono text-sm tracking-widest uppercase mt-1">This Week</p>
         </div>
-        <div className="w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-800">
-          <span className="font-bold text-sm text-zinc-300">
-            {session?.user?.email?.[0].toUpperCase() || 'U'}
-          </span>
-        </div>
+        <Link href="/profile">
+          <div className="w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-800 hover:bg-zinc-800 transition-colors cursor-pointer overflow-hidden">
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <span className="font-bold text-sm text-zinc-300">
+                {session?.user?.email?.[0].toUpperCase() || 'U'}
+              </span>
+            )}
+          </div>
+        </Link>
       </div>
 
       {/* Summary */}
