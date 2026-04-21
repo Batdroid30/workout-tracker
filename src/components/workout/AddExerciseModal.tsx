@@ -1,23 +1,24 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Search, X, Check } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
 import { Exercise } from '@/types/database'
-import { getSupabaseClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/Button'
+import { useExercises } from '@/hooks/useExercises'
 
 const MUSCLE_GROUPS = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core']
 
+const MUSCLE_GROUP_CATEGORY_MAP: Record<string, string> = {
+  chest: 'Chest',
+  back: 'Back', lats: 'Back', traps: 'Back',
+  quads: 'Legs', hamstrings: 'Legs', glutes: 'Legs', calves: 'Legs',
+  shoulders: 'Shoulders',
+  biceps: 'Arms', triceps: 'Arms', forearms: 'Arms',
+  core: 'Core'
+}
+
 const mapDbMuscleGroupToCategory = (mg: string) => {
-  const normalized = mg.toLowerCase()
-  if (['chest'].includes(normalized)) return 'Chest'
-  if (['back', 'lats', 'traps'].includes(normalized)) return 'Back'
-  if (['quads', 'hamstrings', 'glutes', 'calves'].includes(normalized)) return 'Legs'
-  if (['shoulders'].includes(normalized)) return 'Shoulders'
-  if (['biceps', 'triceps', 'forearms'].includes(normalized)) return 'Arms'
-  if (['core'].includes(normalized)) return 'Core'
-  return 'Other'
+  return MUSCLE_GROUP_CATEGORY_MAP[mg.toLowerCase()] || 'Other'
 }
 
 interface AddExerciseModalProps {
@@ -27,29 +28,10 @@ interface AddExerciseModalProps {
 }
 
 export function AddExerciseModal({ isOpen, onClose, onSelect }: AddExerciseModalProps) {
-  const [exercises, setExercises] = useState<Exercise[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState('All')
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function fetchExercises() {
-      const supabase = getSupabaseClient()
-      const { data, error } = await supabase
-        .from('exercises')
-        .select('*')
-        .order('name', { ascending: true })
-      
-      if (!error && data) {
-        setExercises(data)
-      }
-      setLoading(false)
-    }
-
-    if (isOpen) {
-      fetchExercises()
-    }
-  }, [isOpen])
+  
+  const { exercises, loading, error } = useExercises(isOpen)
 
   const filteredExercises = useMemo(() => {
     return exercises.filter((ex) => {

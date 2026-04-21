@@ -1,4 +1,6 @@
 import { getSupabaseServer } from '@/lib/supabase/server'
+import { DatabaseError } from '@/lib/errors'
+import type { ActiveWorkout } from '@/types/database'
 
 export async function getRecentWorkouts(userId: string) {
   const supabase = await getSupabaseServer()
@@ -18,7 +20,7 @@ export async function getRecentWorkouts(userId: string) {
 
   if (error) {
     console.error('Failed to fetch recent workouts:', error.message)
-    return []
+    throw new DatabaseError('Failed to fetch recent workouts', error)
   }
   return data
 }
@@ -34,7 +36,7 @@ export async function getWorkoutsSummary(userId: string) {
 
   if (countErr) {
     console.error('Failed to count workouts:', countErr.message)
-    return { totalWorkouts: 0, totalVolume: 0 }
+    throw new DatabaseError('Failed to count workouts', countErr)
   }
     
   // Get total volume for this user
@@ -71,10 +73,11 @@ export async function getVolumeHistory(userId: string): Promise<{ date: string, 
     .eq('workout_exercises.workouts.user_id', userId)
     .order('completed_at', { ascending: true })
 
-  if (error || !data) return []
+  if (error) throw new DatabaseError('Failed to fetch volume history', error)
+  if (!data) return []
 
   // Group by date (simplified to day for now)
-  const volumeByDate = data.reduce((acc: Record<string, number>, set: any) => {
+  const volumeByDate = data.reduce((acc: Record<string, number>, set) => {
     const date = new Date(set.completed_at).toISOString().split('T')[0]
     const volume = (set.weight_kg || 0) * (set.reps || 0)
     acc[date] = (acc[date] || 0) + volume
@@ -102,10 +105,11 @@ export async function getExercise1RMHistory(userId: string, exerciseId: string):
     .eq('workout_exercises.exercise_id', exerciseId)
     .order('completed_at', { ascending: true })
 
-  if (error || !data) return []
+  if (error) throw new DatabaseError('Failed to fetch 1RM history', error)
+  if (!data) return []
 
   // Calculate Epley e1RM for each set and take max per day
-  const best1RMByDate = data.reduce((acc: Record<string, number>, set: any) => {
+  const best1RMByDate = data.reduce((acc: Record<string, number>, set) => {
     const date = new Date(set.completed_at).toISOString().split('T')[0]
     const e1rm = (set.weight_kg || 0) * (1 + (set.reps || 0) / 30)
     if (!acc[date] || e1rm > acc[date]) {
@@ -119,7 +123,7 @@ export async function getExercise1RMHistory(userId: string, exerciseId: string):
     value
   }))
 }
-export async function saveActiveWorkout(userId: string, workout: any) {
+export async function saveActiveWorkout(userId: string, workout: ActiveWorkout) {
   const supabase = await getSupabaseServer()
   
   // 1. Create the workout record
@@ -135,7 +139,7 @@ export async function saveActiveWorkout(userId: string, workout: any) {
     .select()
     .single()
 
-  if (workoutErr) throw workoutErr
+  if (workoutErr) throw new DatabaseError('Failed to create workout record', workoutErr)
 
   // 2. Create workout_exercises and sets
   for (const [exerciseIndex, ex] of workout.exercises.entries()) {
@@ -149,14 +153,14 @@ export async function saveActiveWorkout(userId: string, workout: any) {
       .select()
       .single()
 
-    if (weErr) throw weErr
+    if (weErr) throw new DatabaseError('Failed to create workout exercise', weErr)
 
     // Insert only completed sets (maintain data integrity)
-    const completedSets = ex.sets.filter((s: any) => s.completed)
+    const completedSets = ex.sets.filter((s) => s.completed)
     if (completedSets.length > 0) {
       const { error: setsErr } = await supabase
         .from('sets')
-        .insert(completedSets.map((s: any, setIndex: number) => ({
+        .insert(completedSets.map((s, setIndex: number) => ({
           workout_exercise_id: weData.id,
           set_number: setIndex + 1,
           weight_kg: s.weight_kg,
@@ -166,7 +170,7 @@ export async function saveActiveWorkout(userId: string, workout: any) {
           completed_at: new Date().toISOString()
         })))
 
-      if (setsErr) throw setsErr
+      if (setsErr) throw new DatabaseError('Failed to insert sets', setsErr)
     }
   }
 
@@ -207,7 +211,7 @@ export async function getWorkoutById(workoutId: string) {
 
   if (error) {
     console.error('Failed to fetch workout details:', error.message)
-    return null
+    throw new DatabaseError('Failed to fetch workout details', error)
   }
   
   return data
