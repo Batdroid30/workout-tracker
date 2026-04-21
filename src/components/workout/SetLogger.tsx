@@ -3,6 +3,7 @@ import { SetRow } from './SetRow'
 import type { ActiveExercise } from '@/types/database'
 import { Button } from '@/components/ui/Button'
 import { Plus, Check, MoreVertical } from 'lucide-react'
+import { useState } from 'react'
 import { useWorkoutStore } from '@/store/workout.store'
 import { useExerciseHistory } from '@/hooks/useExerciseHistory'
 
@@ -10,10 +11,12 @@ interface SetLoggerProps {
   exerciseIndex: number
   exercise: ActiveExercise
   onSetCompleted?: () => void
+  onReplaceExercise?: () => void
 }
 
-export function SetLogger({ exerciseIndex, exercise, onSetCompleted }: SetLoggerProps) {
-  const { updateSet, markSetDone, addSet, removeExercise, removeSet } = useWorkoutStore()
+export function SetLogger({ exerciseIndex, exercise, onSetCompleted, onReplaceExercise }: SetLoggerProps) {
+  const { updateSet, markSetDone, addSet, removeExercise, removeSet, moveExerciseUp, moveExerciseDown } = useWorkoutStore()
+  const [menuOpen, setMenuOpen] = useState(false)
   const { history } = useExerciseHistory(exercise.exercise.id)
 
   return (
@@ -24,16 +27,46 @@ export function SetLogger({ exerciseIndex, exercise, onSetCompleted }: SetLogger
           <h3 className="font-bold text-lg text-brand font-sans">{exercise.exercise.name}</h3>
           <p className="text-xs text-zinc-500 font-mono uppercase tracking-wider">{exercise.exercise.muscle_group}</p>
         </div>
-        <button 
-          onClick={() => {
-            if (confirm('Remove this exercise?')) {
-              removeExercise(exerciseIndex)
-            }
-          }}
-          className="text-zinc-500 hover:text-red-500 p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-        >
-          <MoreVertical className="w-5 h-5" />
-        </button>
+        <div className="relative">
+          <button 
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="text-zinc-500 hover:text-white p-2 hover:bg-zinc-800 rounded-lg transition-colors"
+          >
+            <MoreVertical className="w-5 h-5" />
+          </button>
+          
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-1 w-48 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl overflow-hidden z-20">
+              <button 
+                onClick={() => { onReplaceExercise?.(); setMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 text-sm font-bold text-white hover:bg-zinc-800 transition-colors"
+              >
+                Replace Exercise
+              </button>
+              <button 
+                onClick={() => { moveExerciseUp(exerciseIndex); setMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 text-sm font-bold text-white hover:bg-zinc-800 transition-colors"
+              >
+                Move Up
+              </button>
+              <button 
+                onClick={() => { moveExerciseDown(exerciseIndex); setMenuOpen(false); }}
+                className="w-full text-left px-4 py-3 text-sm font-bold text-white hover:bg-zinc-800 transition-colors border-b border-zinc-800"
+              >
+                Move Down
+              </button>
+              <button 
+                onClick={() => {
+                  if (confirm('Remove this exercise?')) removeExercise(exerciseIndex);
+                  setMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-500/10 transition-colors"
+              >
+                Remove Exercise
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Table Headers */}

@@ -20,7 +20,7 @@ export default function WorkoutPage() {
       router.push('/dashboard')
     }
   }
-  const [isAddingExercise, setIsAddingExercise] = useState(false)
+  const [addingExerciseMode, setAddingExerciseMode] = useState<{ mode: 'add' } | { mode: 'replace', index: number } | null>(null)
   const [showRestTimer, setShowRestTimer] = useState(false)
   const [restSeconds, setRestSeconds] = useState(90)
   const [isFinishing, setIsFinishing] = useState(false)
@@ -132,13 +132,14 @@ export default function WorkoutPage() {
               exerciseIndex={i} 
               exercise={ex} 
               onSetCompleted={() => setShowRestTimer(true)}
+              onReplaceExercise={() => setAddingExerciseMode({ mode: 'replace', index: i })}
             />
           ))
         )}
         
         <Button 
           variant="secondary" 
-          onClick={() => setIsAddingExercise(true)}
+          onClick={() => setAddingExerciseMode({ mode: 'add' })}
           className="border-dashed border-2 border-zinc-800 bg-transparent hover:bg-zinc-900 text-brand mt-4 w-full h-14"
         >
           <Plus className="w-5 h-5 mr-2" /> Add Exercise
@@ -160,11 +161,15 @@ export default function WorkoutPage() {
       )}
 
       <AddExerciseModal 
-        isOpen={isAddingExercise}
-        onClose={() => setIsAddingExercise(false)}
+        isOpen={addingExerciseMode !== null}
+        onClose={() => setAddingExerciseMode(null)}
         onSelect={(exercise) => {
-          addExercise(exercise)
-          setIsAddingExercise(false)
+          if (addingExerciseMode?.mode === 'replace') {
+            useWorkoutStore.getState().replaceExercise(addingExerciseMode.index, exercise)
+          } else {
+            addExercise(exercise)
+          }
+          setAddingExerciseMode(null)
         }}
       />
     </div>

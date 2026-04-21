@@ -7,7 +7,11 @@ interface WorkoutStore {
   
   // Actions
   startWorkout: (title?: string) => void
+  copyWorkout: (pastWorkout: any) => void
   addExercise: (exercise: Exercise) => void
+  replaceExercise: (exerciseIndex: number, newExercise: Exercise) => void
+  moveExerciseUp: (exerciseIndex: number) => void
+  moveExerciseDown: (exerciseIndex: number) => void
   addSet: (exerciseIndex: number) => void
   updateSet: (exerciseIndex: number, setIndex: number, updates: Partial<ActiveSet>) => void
   markSetDone: (exerciseIndex: number, setIndex: number) => void
@@ -30,6 +34,29 @@ export const useWorkoutStore = create<WorkoutStore>()(
           title,
           started_at: new Date(),
           exercises: [],
+        }
+      }),
+
+      copyWorkout: (pastWorkout) => set({
+        activeWorkout: {
+          id: null,
+          title: pastWorkout.title || 'Workout',
+          started_at: new Date(),
+          exercises: pastWorkout.workout_exercises.map((we: any, idx: number) => ({
+            workout_exercise_id: null,
+            exercise: we.exercise,
+            order_index: idx,
+            sets: we.sets.map((s: any) => ({
+              id: crypto.randomUUID(),
+              set_number: s.set_number,
+              weight_kg: s.weight_kg,
+              reps: s.reps,
+              rpe: s.rpe,
+              is_warmup: s.is_warmup,
+              completed: false, // Must do it again!
+              saved: false,
+            }))
+          }))
         }
       }),
 
@@ -58,6 +85,41 @@ export const useWorkoutStore = create<WorkoutStore>()(
             exercises: [...state.activeWorkout.exercises, newExercise]
           }
         }
+      }),
+
+      replaceExercise: (exerciseIndex, newExerciseDef) => set((state) => {
+        if (!state.activeWorkout) return state
+        const exercises = [...state.activeWorkout.exercises]
+        exercises[exerciseIndex] = {
+          ...exercises[exerciseIndex],
+          exercise: newExerciseDef,
+          // Keep sets, just change the underlying exercise
+        }
+        return { activeWorkout: { ...state.activeWorkout, exercises } }
+      }),
+
+      moveExerciseUp: (exerciseIndex) => set((state) => {
+        if (!state.activeWorkout || exerciseIndex === 0) return state
+        const exercises = [...state.activeWorkout.exercises]
+        const temp = exercises[exerciseIndex - 1]
+        exercises[exerciseIndex - 1] = exercises[exerciseIndex]
+        exercises[exerciseIndex] = temp
+        // update order_index
+        exercises[exerciseIndex - 1].order_index = exerciseIndex - 1
+        exercises[exerciseIndex].order_index = exerciseIndex
+        return { activeWorkout: { ...state.activeWorkout, exercises } }
+      }),
+
+      moveExerciseDown: (exerciseIndex) => set((state) => {
+        if (!state.activeWorkout || exerciseIndex === state.activeWorkout.exercises.length - 1) return state
+        const exercises = [...state.activeWorkout.exercises]
+        const temp = exercises[exerciseIndex + 1]
+        exercises[exerciseIndex + 1] = exercises[exerciseIndex]
+        exercises[exerciseIndex] = temp
+        // update order_index
+        exercises[exerciseIndex].order_index = exerciseIndex
+        exercises[exerciseIndex + 1].order_index = exerciseIndex + 1
+        return { activeWorkout: { ...state.activeWorkout, exercises } }
       }),
 
       addSet: (exerciseIndex) => set((state) => {

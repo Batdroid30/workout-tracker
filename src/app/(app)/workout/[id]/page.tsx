@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getWorkoutById } from '@/lib/data/workouts'
 import { notFound } from 'next/navigation'
 import { DeleteWorkoutButton } from '@/components/workout/DeleteWorkoutButton'
+import { DuplicateWorkoutButton } from '@/components/workout/DuplicateWorkoutButton'
 
 export default async function WorkoutHistoryDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -27,7 +28,10 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
           </Link>
           <h1 className="text-xl font-bold font-sans">Summary</h1>
         </div>
-        <DeleteWorkoutButton workoutId={workout.id} />
+        <div className="flex items-center gap-2">
+          <DuplicateWorkoutButton workout={workout} />
+          <DeleteWorkoutButton workoutId={workout.id} />
+        </div>
       </div>
 
       <div className="p-4 space-y-6 mt-2">
