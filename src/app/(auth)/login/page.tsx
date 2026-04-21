@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 import { loginUser } from './actions'
 
 type Props = {
@@ -27,7 +27,7 @@ export default async function LoginPage({ searchParams }: Props) {
         <Input type="password" name="password" placeholder="••••••••" required />
       </div>
       
-      <Button type="submit" className="mt-6 w-full">Sign In</Button>
+      <SubmitButton type="submit" className="mt-6 w-full" pendingText="Signing in...">Sign In</SubmitButton>
       
       <p className="text-center text-sm text-zinc-500 mt-4">
         Don't have an account?{' '}
