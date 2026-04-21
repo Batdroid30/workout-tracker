@@ -22,3 +22,23 @@ export async function finishWorkoutAction(activeWorkout: any) {
     return { success: false, error: error.message }
   }
 }
+
+import { deleteWorkout } from '@/lib/data/workouts'
+
+export async function deleteWorkoutAction(workoutId: string) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    throw new Error('User not authenticated')
+  }
+
+  try {
+    await deleteWorkout(workoutId, session.user.id)
+    revalidatePath('/dashboard')
+    revalidatePath('/progress')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Failed to delete workout:', error)
+    return { success: false, error: error.message }
+  }
+}
+

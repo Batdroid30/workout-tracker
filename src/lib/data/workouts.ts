@@ -216,3 +216,20 @@ export async function getWorkoutById(workoutId: string) {
   
   return data
 }
+
+export async function deleteWorkout(workoutId: string, userId: string): Promise<void> {
+  const supabase = await getSupabaseServer()
+
+  // Supabase RLS policies (or the user_id condition) ensures we only delete our own
+  const { error } = await supabase
+    .from('workouts')
+    .delete()
+    .eq('id', workoutId)
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Failed to delete workout:', error.message)
+    throw new DatabaseError('Failed to delete workout', error)
+  }
+}
+

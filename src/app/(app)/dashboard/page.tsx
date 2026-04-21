@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { getWorkoutsSummary, getRecentWorkouts } from '@/lib/data/workouts'
 import { getProfile } from '@/lib/data/profile'
 import { redirect } from 'next/navigation'
+import { DeleteWorkoutButton } from '@/components/workout/DeleteWorkoutButton'
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -81,11 +82,16 @@ export default async function DashboardPage() {
                           {new Date(workout.started_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                         </p>
                       </div>
-                      {workout.duration_seconds && (
-                        <div className="bg-brand/10 text-brand px-2 py-1 flex items-center justify-center rounded-lg text-xs font-bold font-mono border border-brand/20">
-                          {Math.floor(workout.duration_seconds / 60)}m
+                      <div className="flex items-center gap-2">
+                        {workout.duration_seconds && (
+                          <div className="bg-brand/10 text-brand px-2 py-1 flex items-center justify-center rounded-lg text-xs font-bold font-mono border border-brand/20">
+                            {Math.floor(workout.duration_seconds / 60)}m
+                          </div>
+                        )}
+                        <div className="-mr-2">
+                          <DeleteWorkoutButton workoutId={workout.id} />
                         </div>
-                      )}
+                      </div>
                     </div>
 
                     <div className="flex gap-4 text-sm font-mono text-zinc-400 mb-4">

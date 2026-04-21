@@ -29,7 +29,7 @@ export function SetRow({ set, prevSetText = "-", onChange, onDone, onRemove }: S
       </div>
 
       {/* Weight Stepper */}
-      <div className="flex-1 min-w-[90px]">
+      <div className="flex-1 min-w-[76px] sm:min-w-[90px]">
         <NumberStepper 
           value={set.weight_kg} 
           onChange={(val) => onChange({ weight_kg: val })}
@@ -38,7 +38,7 @@ export function SetRow({ set, prevSetText = "-", onChange, onDone, onRemove }: S
       </div>
 
       {/* Reps Stepper */}
-      <div className="flex-1 min-w-[90px]">
+      <div className="flex-1 min-w-[76px] sm:min-w-[90px]">
         <NumberStepper 
           value={set.reps} 
           onChange={(val) => onChange({ reps: val })}

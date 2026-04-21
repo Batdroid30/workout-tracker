@@ -2,6 +2,7 @@ import { ArrowLeft, Clock, Dumbbell, Trophy } from 'lucide-react'
 import Link from 'next/link'
 import { getWorkoutById } from '@/lib/data/workouts'
 import { notFound } from 'next/navigation'
+import { DeleteWorkoutButton } from '@/components/workout/DeleteWorkoutButton'
 
 export default async function WorkoutHistoryDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -19,11 +20,14 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Top Nav */}
-      <div className="sticky top-0 z-30 bg-black/90 backdrop-blur border-b border-zinc-900 p-4 flex items-center gap-3">
-        <Link href="/dashboard" className="p-2 -ml-2 rounded-full hover:bg-zinc-900 transition-colors">
-          <ArrowLeft className="w-5 h-5 text-zinc-400" />
-        </Link>
-        <h1 className="text-xl font-bold font-sans">Summary</h1>
+      <div className="sticky top-0 z-30 bg-black/90 backdrop-blur border-b border-zinc-900 p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard" className="p-2 -ml-2 rounded-full hover:bg-zinc-900 transition-colors">
+            <ArrowLeft className="w-5 h-5 text-zinc-400" />
+          </Link>
+          <h1 className="text-xl font-bold font-sans">Summary</h1>
+        </div>
+        <DeleteWorkoutButton workoutId={workout.id} />
       </div>
 
       <div className="p-4 space-y-6 mt-2">
