@@ -90,3 +90,73 @@ export async function deleteRoutine(routineId: string, userId: string) {
 
   if (error) throw new DatabaseError('Failed to delete routine', error)
 }
+
+export async function getRoutineById(routineId: string) {
+  const supabase = await getSupabaseServer()
+  
+  const { data, error } = await supabase
+    .from('routines')
+    .select(`
+      *,
+      routine_exercises (
+        id,
+        order_index,
+        target_sets,
+        target_reps,
+        exercise:exercises ( id, name, muscle_group )
+      )
+    `)
+    .eq('id', routineId)
+    .single()
+
+  if (error) throw new DatabaseError('Failed to fetch routine', error)
+  
+  // Sort the nested exercises by order_index
+  const sortedData = {
+    ...data,
+    routine_exercises: data.routine_exercises?.sort((a: any, b: any) => a.order_index - b.order_index) || []
+  }
+
+  return sortedData
+}
+
+export async function updateRoutine(routineId: string, userId: string, input: CreateRoutineInput) {
+  const supabase = await getSupabaseServer()
+  
+  // 1. Update routine title and notes
+  const { error: routineErr } = await supabase
+    .from('routines')
+    .update({
+      title: input.title,
+      notes: input.notes
+    })
+    .eq('id', routineId)
+    .eq('user_id', userId)
+
+  if (routineErr) throw new DatabaseError('Failed to update routine', routineErr)
+
+  // 2. Delete existing routine_exercises
+  const { error: delErr } = await supabase
+    .from('routine_exercises')
+    .delete()
+    .eq('routine_id', routineId)
+
+  if (delErr) throw new DatabaseError('Failed to delete old routine exercises', delErr)
+
+  // 3. Create new routine_exercises
+  if (input.exercises.length > 0) {
+    const routineExercises = input.exercises.map((ex, index) => ({
+      routine_id: routineId,
+      exercise_id: ex.exercise_id,
+      order_index: index,
+      target_sets: ex.target_sets,
+      target_reps: ex.target_reps
+    }))
+
+    const { error: exercisesErr } = await supabase
+      .from('routine_exercises')
+      .insert(routineExercises)
+
+    if (exercisesErr) throw new DatabaseError('Failed to add new routine exercises', exercisesErr)
+  }
+}

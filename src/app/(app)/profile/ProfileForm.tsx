@@ -134,16 +134,29 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
             </div>
           )}
         </Button>
-      </form>
+        {/* Actions */}
+        <div className="space-y-3 pt-6 border-t border-zinc-800">
+          <Button 
+            type="button" 
+            variant="secondary"
+            className="w-full h-12 bg-zinc-900 border border-zinc-800 text-white hover:bg-zinc-800"
+            onClick={() => {
+              window.location.href = '/api/export'
+            }}
+          >
+            Export Workout Data (CSV)
+          </Button>
 
-      <div className="pt-8 border-t border-zinc-900">
-        <button 
-          onClick={() => logoutAction()}
-          className="w-full flex items-center justify-center gap-2 text-red-500 font-bold hover:bg-red-500/5 py-4 rounded-xl transition-colors"
-        >
-          <LogOut className="w-5 h-5" /> Log Out
-        </button>
-      </div>
+          <Button 
+            type="button" 
+            variant="secondary" 
+            onClick={() => logoutAction()}
+            className="w-full h-12 bg-red-500/10 text-red-500 hover:bg-red-500/20 border-none"
+          >
+            <LogOut className="w-5 h-5 mr-2" /> Log Out
+          </Button>
+        </div>
+      </form>
     </div>
   )
 }

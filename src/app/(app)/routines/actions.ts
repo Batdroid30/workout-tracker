@@ -61,3 +61,14 @@ export async function updateRoutineExercisesAction(routineId: string, exercises:
 
   revalidatePath('/routines')
 }
+
+export async function updateRoutineDetailsAction(routineId: string, input: CreateRoutineInput) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error('Unauthorized')
+
+  const { updateRoutine } = await import('@/lib/data/routines')
+  await updateRoutine(routineId, session.user.id, input)
+  
+  revalidatePath('/routines')
+  revalidatePath('/dashboard')
+}

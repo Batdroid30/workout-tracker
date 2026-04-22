@@ -4,6 +4,9 @@ import { getWorkoutById } from '@/lib/data/workouts'
 import { notFound } from 'next/navigation'
 import { DeleteWorkoutButton } from '@/components/workout/DeleteWorkoutButton'
 import { DuplicateWorkoutButton } from '@/components/workout/DuplicateWorkoutButton'
+import { EditWorkoutMetaModal } from '@/components/workout/EditWorkoutMetaModal'
+import { EditSetModal } from '@/components/workout/EditSetModal'
+import { DeleteHistoricalExerciseButton } from '@/components/workout/DeleteHistoricalExerciseButton'
 
 export default async function WorkoutHistoryDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -36,12 +39,22 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
 
       <div className="p-4 space-y-6 mt-2">
         {/* Header summary */}
-        <div>
-          <h2 className="text-3xl font-bold font-sans">{workout.title || 'Workout'}</h2>
-          <p className="text-zinc-500 font-mono mt-1 text-sm tracking-wide">
-            {new Date(workout.started_at).toLocaleString([], { dateStyle: 'full', timeStyle: 'short' })}
-          </p>
-        </div>
+        <EditWorkoutMetaModal 
+          workoutId={workout.id} 
+          initialTitle={workout.title} 
+          initialDuration={workout.duration_seconds} 
+          initialNotes={workout.notes}
+        >
+          <div>
+            <h2 className="text-3xl font-bold font-sans pr-8">{workout.title || 'Workout'}</h2>
+            <p className="text-zinc-500 font-mono mt-1 text-sm tracking-wide">
+              {new Date(workout.started_at).toLocaleString([], { dateStyle: 'full', timeStyle: 'short' })}
+            </p>
+            {workout.notes && (
+              <p className="text-sm text-zinc-400 mt-2 italic">{workout.notes}</p>
+            )}
+          </div>
+        </EditWorkoutMetaModal>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex items-center gap-3">
@@ -80,12 +93,15 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
           {workout.workout_exercises.map((we: any) => (
             <div key={we.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
               <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-800/30">
-                <span className="font-bold text-white text-lg font-sans tracking-tight">
-                  {we.exercise.name}
-                </span>
-                <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded uppercase font-bold tracking-wider">
-                  {we.exercise.muscle_group}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-white text-lg font-sans tracking-tight">
+                    {we.exercise.name}
+                  </span>
+                  <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded uppercase font-bold tracking-wider">
+                    {we.exercise.muscle_group}
+                  </span>
+                </div>
+                <DeleteHistoricalExerciseButton workoutExerciseId={we.id} workoutId={workout.id} />
               </div>
               
               <div className="w-full">
@@ -97,7 +113,7 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
                 </div>
                 
                 {we.sets.map((set: any) => (
-                  <div key={set.id} className="flex text-sm py-4 px-4 items-center font-mono border-b border-zinc-800 last:border-0">
+                  <div key={set.id} className="flex text-sm py-4 px-4 items-center font-mono border-b border-zinc-800 last:border-0 group">
                     <div className="w-12 flex items-center">
                       <div className={`w-6 h-6 flex items-center justify-center rounded-md font-bold ${
                         set.is_warmup ? 'bg-orange-500/10 text-orange-500' : 'bg-zinc-800 text-zinc-400'
@@ -105,8 +121,16 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
                         {set.is_warmup ? 'W' : set.set_number}
                       </div>
                     </div>
-                    <div className="flex-1 text-center text-white font-bold">{set.weight_kg}</div>
-                    <div className="flex-1 text-center text-white font-bold">{set.reps}</div>
+                    <div className="flex-1 text-center text-white font-bold">
+                      <EditSetModal setId={set.id} initialWeight={set.weight_kg} initialReps={set.reps}>
+                        {set.weight_kg}
+                      </EditSetModal>
+                    </div>
+                    <div className="flex-1 text-center text-white font-bold">
+                      <EditSetModal setId={set.id} initialWeight={set.weight_kg} initialReps={set.reps}>
+                        {set.reps}
+                      </EditSetModal>
+                    </div>
                     <div className="w-12 flex justify-end">
                       {/* Trophy placeholder for PRs - logic could be added later */}
                       {/* <Trophy className="w-4 h-4 text-yellow-500" /> */}

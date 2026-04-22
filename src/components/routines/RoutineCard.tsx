@@ -41,10 +41,7 @@ export function RoutineCard({ routine }: RoutineCardProps) {
 
   const handleModify = () => {
     setMenuOpen(false)
-    dialog.alert({
-      title: 'Coming Soon',
-      description: 'Modify feature coming soon! You can delete and recreate for now.'
-    })
+    router.push(`/routines/${routine.id}/edit`)
   }
 
   const exerciseNames = routine.routine_exercises.map((re: any) => re.exercise?.name).join(', ')

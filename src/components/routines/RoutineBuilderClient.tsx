@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, ArrowLeft, Save, Trash2 } from 'lucide-react'
+import { Plus, ArrowLeft, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { AddExerciseModal } from '@/components/workout/AddExerciseModal'
-import { createRoutineAction } from '../actions'
+import { createRoutineAction, updateRoutineDetailsAction } from '@/app/(app)/routines/actions'
 import type { Exercise } from '@/types/database'
 import { NumberStepper } from '@/components/ui/NumberStepper'
 import { useDialog } from '@/providers/DialogProvider'
@@ -17,12 +17,30 @@ interface RoutineExerciseBuilder {
   target_reps: number
 }
 
-export function CreateRoutineClient({ userId }: { userId: string }) {
+interface RoutineBuilderProps {
+  userId: string
+  initialRoutine?: {
+    id: string
+    title: string
+    notes: string | null
+    routine_exercises: any[]
+  }
+}
+
+export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderProps) {
   const router = useRouter()
-  const [title, setTitle] = useState('New Routine')
-  const [notes, setNotes] = useState('')
-  const [exercises, setExercises] = useState<RoutineExerciseBuilder[]>([])
   const dialog = useDialog()
+  
+  const [title, setTitle] = useState(initialRoutine?.title || 'New Routine')
+  const [notes, setNotes] = useState(initialRoutine?.notes || '')
+  
+  const [exercises, setExercises] = useState<RoutineExerciseBuilder[]>(
+    initialRoutine?.routine_exercises.map(re => ({
+      exercise: re.exercise,
+      target_sets: re.target_sets,
+      target_reps: re.target_reps
+    })) || []
+  )
   
   const [isAddingExercise, setIsAddingExercise] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -50,7 +68,7 @@ export function CreateRoutineClient({ userId }: { userId: string }) {
 
     try {
       setIsSaving(true)
-      await createRoutineAction({
+      const payload = {
         title,
         notes,
         exercises: exercises.map(ex => ({
@@ -58,7 +76,14 @@ export function CreateRoutineClient({ userId }: { userId: string }) {
           target_sets: ex.target_sets,
           target_reps: ex.target_reps
         }))
-      })
+      }
+
+      if (initialRoutine) {
+        await updateRoutineDetailsAction(initialRoutine.id, payload)
+      } else {
+        await createRoutineAction(payload)
+      }
+      
       router.push('/routines')
     } catch (err) {
       console.error(err)
@@ -75,7 +100,7 @@ export function CreateRoutineClient({ userId }: { userId: string }) {
           <Link href="/routines" className="p-2 -ml-2 rounded-full hover:bg-zinc-900 transition-colors">
             <ArrowLeft className="w-5 h-5 text-zinc-400" />
           </Link>
-          <h1 className="text-xl font-bold font-sans">Build Routine</h1>
+          <h1 className="text-xl font-bold font-sans">{initialRoutine ? 'Edit Routine' : 'Build Routine'}</h1>
         </div>
         <Button 
           onClick={handleSave} 
