@@ -16,6 +16,30 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
     notFound()
   }
 
+  // Fetch PRs for this workout
+  const { getSupabaseServer } = await import('@/lib/supabase/server')
+  const supabase = await getSupabaseServer()
+  
+  // Get all set IDs in this workout
+  const setIds = workout.workout_exercises.flatMap((we: any) => we.sets?.map((s: any) => s.id) || [])
+  
+  // Fetch PRs that belong to these sets
+  const { data: prs } = await supabase
+    .from('personal_records')
+    .select('pr_type, set_id')
+    .in('set_id', setIds)
+
+  // Map of set_id -> array of pr_types
+  const prMap = new Map<string, string[]>()
+  if (prs) {
+    prs.forEach(pr => {
+      if (pr.set_id) {
+        const existing = prMap.get(pr.set_id) || []
+        prMap.set(pr.set_id, [...existing, pr.pr_type])
+      }
+    })
+  }
+
   const workoutVolume = workout.workout_exercises.reduce((acc: number, we: any) => {
     const weVolume = we.sets?.reduce((sAcc: number, set: any) => sAcc + (set.weight_kg * set.reps), 0) || 0
     return acc + weVolume
@@ -131,9 +155,12 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
                         {set.reps}
                       </EditSetModal>
                     </div>
-                    <div className="w-12 flex justify-end">
-                      {/* Trophy placeholder for PRs - logic could be added later */}
-                      {/* <Trophy className="w-4 h-4 text-yellow-500" /> */}
+                    <div className="w-12 flex justify-end items-center">
+                      {prMap.has(set.id) && (
+                        <div title={`PR: ${prMap.get(set.id)?.join(', ')}`}>
+                          <Trophy className="w-4 h-4 text-yellow-500 fill-yellow-500/20" />
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

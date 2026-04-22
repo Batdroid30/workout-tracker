@@ -14,9 +14,14 @@ export async function finishWorkoutAction(activeWorkout: any) {
     console.log('Saving workout for user:', session.user.id);
     console.log('Workout data:', JSON.stringify(activeWorkout, null, 2));
     const result = await saveWorkoutData(session.user.id, activeWorkout)
+    
+    // Evaluate PRs
+    const { evaluateAndSavePRs } = await import('@/lib/data/stats')
+    const prs = await evaluateAndSavePRs(session.user.id, result.id)
+
     revalidatePath('/dashboard')
     revalidatePath('/progress')
-    return { success: true, workoutId: result.id }
+    return { success: true, workoutId: result.id, prs }
   } catch (error: any) {
     console.error('Failed to finish workout:', error)
     return { success: false, error: error.message }

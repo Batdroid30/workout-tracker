@@ -112,6 +112,20 @@ export default function WorkoutPage() {
       const result = await finishWorkoutAction(finalWorkout)
       if (result.success) {
         finishWorkout()
+        
+        // Show PRs if any
+        if (result.prs && result.prs.length > 0) {
+          const prMessages = result.prs.map((pr: any) => {
+            const prName = pr.prType === 'best_weight' ? 'Best Weight' : pr.prType === 'best_1rm' ? 'Best Est. 1RM' : 'Best Volume'
+            return `• ${pr.exerciseName}: ${prName} (${pr.newValue})`
+          }).join('\n')
+          
+          await dialog.alert({
+            title: 'New Personal Records!',
+            description: `You broke ${result.prs.length} PR(s):\n${prMessages}`
+          })
+        }
+        
         router.push('/dashboard')
       } else {
         dialog.alert({ title: 'Error', description: 'Failed to save workout: ' + result.error })
