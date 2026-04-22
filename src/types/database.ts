@@ -111,4 +111,24 @@ export interface ActiveWorkout {
   title: string
   started_at: Date
   exercises: ActiveExercise[]
+  routine_id?: string
+  has_routine_been_modified?: boolean
+}
+
+export interface Routine {
+  id: string
+  user_id: string
+  title: string
+  notes: string | null
+  created_at: string
+}
+
+export interface RoutineExercise {
+  id: string
+  routine_id: string
+  exercise_id: string
+  order_index: number
+  target_sets: number
+  target_reps: number
+  exercise?: Exercise           // populated via JOIN
 }

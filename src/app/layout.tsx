@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Space_Mono } from "next/font/google";
 import "./globals.css";
+import { DialogProvider } from "@/providers/DialogProvider";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -44,7 +45,9 @@ export default function RootLayout({
       className={`${dmSans.variable} ${spaceMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col bg-black text-white font-sans selection:bg-brand selection:text-white">
-        {children}
+        <DialogProvider>
+          {children}
+        </DialogProvider>
       </body>
     </html>
   );

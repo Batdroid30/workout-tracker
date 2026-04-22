@@ -6,9 +6,9 @@ import { cn } from '@/lib/utils'
 
 const tabs = [
   { href: '/dashboard', icon: Home,       label: 'Home' },
+  { href: '/routines',  icon: List,       label: 'Routines' },
   { href: '/workout',   icon: Dumbbell,   label: 'Workout' },
   { href: '/progress',  icon: TrendingUp, label: 'Progress' },
-  { href: '/exercises', icon: List,       label: 'Exercises' },
   { href: '/profile',   icon: User,       label: 'Profile' },
 ]
 

@@ -7,6 +7,7 @@ interface WorkoutStore {
   
   // Actions
   startWorkout: (title?: string) => void
+  startRoutine: (routine: any) => void
   copyWorkout: (pastWorkout: any) => void
   addExercise: (exercise: Exercise) => void
   replaceExercise: (exerciseIndex: number, newExercise: Exercise) => void
@@ -34,6 +35,37 @@ export const useWorkoutStore = create<WorkoutStore>()(
           title,
           started_at: new Date(),
           exercises: [],
+        }
+      }),
+
+      startRoutine: (routine) => set({
+        activeWorkout: {
+          id: null,
+          title: routine.title,
+          routine_id: routine.id,
+          has_routine_been_modified: false,
+          started_at: new Date(),
+          exercises: routine.routine_exercises.map((re: any, idx: number) => {
+            const sets = []
+            for (let i = 0; i < re.target_sets; i++) {
+              sets.push({
+                id: crypto.randomUUID(),
+                set_number: i + 1,
+                weight_kg: 0,
+                reps: re.target_reps,
+                rpe: null,
+                is_warmup: false,
+                completed: false,
+                saved: false,
+              })
+            }
+            return {
+              workout_exercise_id: null,
+              exercise: re.exercise,
+              order_index: idx,
+              sets
+            }
+          })
         }
       }),
 
@@ -82,7 +114,8 @@ export const useWorkoutStore = create<WorkoutStore>()(
         return {
           activeWorkout: {
             ...state.activeWorkout,
-            exercises: [...state.activeWorkout.exercises, newExercise]
+            exercises: [...state.activeWorkout.exercises, newExercise],
+            has_routine_been_modified: state.activeWorkout.routine_id ? true : false
           }
         }
       }),
@@ -95,7 +128,13 @@ export const useWorkoutStore = create<WorkoutStore>()(
           exercise: newExerciseDef,
           // Keep sets, just change the underlying exercise
         }
-        return { activeWorkout: { ...state.activeWorkout, exercises } }
+        return { 
+          activeWorkout: { 
+            ...state.activeWorkout, 
+            exercises,
+            has_routine_been_modified: state.activeWorkout.routine_id ? true : false
+          } 
+        }
       }),
 
       moveExerciseUp: (exerciseIndex) => set((state) => {
@@ -107,7 +146,13 @@ export const useWorkoutStore = create<WorkoutStore>()(
         // update order_index
         exercises[exerciseIndex - 1].order_index = exerciseIndex - 1
         exercises[exerciseIndex].order_index = exerciseIndex
-        return { activeWorkout: { ...state.activeWorkout, exercises } }
+        return { 
+          activeWorkout: { 
+            ...state.activeWorkout, 
+            exercises,
+            has_routine_been_modified: state.activeWorkout.routine_id ? true : false
+          } 
+        }
       }),
 
       moveExerciseDown: (exerciseIndex) => set((state) => {
@@ -119,7 +164,13 @@ export const useWorkoutStore = create<WorkoutStore>()(
         // update order_index
         exercises[exerciseIndex].order_index = exerciseIndex
         exercises[exerciseIndex + 1].order_index = exerciseIndex + 1
-        return { activeWorkout: { ...state.activeWorkout, exercises } }
+        return { 
+          activeWorkout: { 
+            ...state.activeWorkout, 
+            exercises,
+            has_routine_been_modified: state.activeWorkout.routine_id ? true : false
+          } 
+        }
       }),
 
       addSet: (exerciseIndex) => set((state) => {
@@ -165,7 +216,8 @@ export const useWorkoutStore = create<WorkoutStore>()(
   removeExercise: (exerciseIndex) => set((state) => ({
     activeWorkout: state.activeWorkout ? {
       ...state.activeWorkout,
-      exercises: state.activeWorkout.exercises.filter((_, i) => i !== exerciseIndex)
+      exercises: state.activeWorkout.exercises.filter((_, i) => i !== exerciseIndex),
+      has_routine_been_modified: state.activeWorkout.routine_id ? true : false
     } : null
   })),
 

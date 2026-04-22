@@ -5,6 +5,7 @@ import { Profile } from '@/types/database'
 import { Camera, LogOut, Save, User } from 'lucide-react'
 import { updateProfileAction, uploadAvatarAction, logoutAction } from './actions'
 import { Button } from '@/components/ui/Button'
+import { useDialog } from '@/providers/DialogProvider'
 
 interface ProfileFormProps {
   profile: Profile | null
@@ -18,6 +19,7 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const dialog = useDialog()
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,9 +30,9 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
 
     const result = await updateProfileAction(formData)
     if (result.success) {
-      alert('Profile updated!')
+      dialog.alert({ title: 'Success', description: 'Profile updated!' })
     } else {
-      alert('Error: ' + result.error)
+      dialog.alert({ title: 'Error', description: result.error || 'Failed to update profile' })
     }
     setIsSaving(false)
   }
@@ -48,10 +50,10 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
         if (result.success) {
           setAvatarUrl(result.url || '')
         } else {
-          alert('Upload failed: ' + result.error)
+          dialog.alert({ title: 'Error', description: result.error || 'Upload failed' })
         }
       } catch (error: any) {
-        alert('Upload failed: ' + error.message)
+        dialog.alert({ title: 'Error', description: error.message || 'Upload failed' })
       } finally {
         setIsUploading(false)
       }

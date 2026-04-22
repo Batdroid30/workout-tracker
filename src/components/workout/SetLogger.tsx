@@ -6,6 +6,7 @@ import { Plus, Check, MoreVertical } from 'lucide-react'
 import { useState } from 'react'
 import { useWorkoutStore } from '@/store/workout.store'
 import { useExerciseHistory } from '@/hooks/useExerciseHistory'
+import { useDialog } from '@/providers/DialogProvider'
 
 interface SetLoggerProps {
   exerciseIndex: number
@@ -17,6 +18,7 @@ interface SetLoggerProps {
 export function SetLogger({ exerciseIndex, exercise, onSetCompleted, onReplaceExercise }: SetLoggerProps) {
   const { updateSet, markSetDone, addSet, removeExercise, removeSet, moveExerciseUp, moveExerciseDown } = useWorkoutStore()
   const [menuOpen, setMenuOpen] = useState(false)
+  const dialog = useDialog()
   const { history } = useExerciseHistory(exercise.exercise.id)
 
   return (
@@ -56,9 +58,15 @@ export function SetLogger({ exerciseIndex, exercise, onSetCompleted, onReplaceEx
                 Move Down
               </button>
               <button 
-                onClick={() => {
-                  if (confirm('Remove this exercise?')) removeExercise(exerciseIndex);
+                onClick={async () => {
                   setMenuOpen(false);
+                  const confirmed = await dialog.confirm({
+                    title: 'Remove Exercise',
+                    description: 'Are you sure you want to remove this exercise from the workout?',
+                    danger: true,
+                    confirmText: 'Remove'
+                  });
+                  if (confirmed) removeExercise(exerciseIndex);
                 }}
                 className="w-full text-left px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-500/10 transition-colors"
               >

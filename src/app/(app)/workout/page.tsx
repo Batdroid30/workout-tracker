@@ -7,15 +7,25 @@ import { Plus, Play, ChevronLeft } from 'lucide-react'
 import { AddExerciseModal } from '@/components/workout/AddExerciseModal'
 import { RestTimer } from '@/components/workout/RestTimer'
 import { finishWorkoutAction } from './actions'
+import { updateRoutineExercisesAction } from '@/app/(app)/routines/actions'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useDialog } from '@/providers/DialogProvider'
 
 export default function WorkoutPage() {
   const router = useRouter()
   const { activeWorkout, startWorkout, finishWorkout, discardWorkout, addExercise, updateTitle, completeAllSets } = useWorkoutStore()
+  const dialog = useDialog()
   
-  const handleDiscard = () => {
-    if (confirm('Discard workout? All progress will be lost.')) {
+  const handleDiscard = async () => {
+    const confirmed = await dialog.confirm({
+      title: 'Discard Workout',
+      description: 'Are you sure you want to discard this workout? All progress will be lost.',
+      danger: true,
+      confirmText: 'Discard'
+    })
+    
+    if (confirmed) {
       discardWorkout()
       router.push('/dashboard')
     }
@@ -30,8 +40,14 @@ export default function WorkoutPage() {
     
     // Check for empty workout
     if (activeWorkout.exercises.length === 0) {
-      if (!confirm('This workout is empty. Discard?')) return
-      finishWorkout()
+      const confirmedEmpty = await dialog.confirm({
+        title: 'Empty Workout',
+        description: 'This workout is empty. Do you want to discard it?',
+        danger: true,
+        confirmText: 'Discard'
+      })
+      if (!confirmedEmpty) return
+      discardWorkout()
       router.push('/dashboard')
       return
     }
@@ -44,10 +60,14 @@ export default function WorkoutPage() {
     let finalWorkout = activeWorkout
 
     if (hasUncheckedSetsWithData) {
-      if (confirm('You have unchecked sets with data. Would you like to mark them as complete and save them?')) {
-        // We need to use the updated state for the action
+      const completeThem = await dialog.confirm({
+        title: 'Unchecked Sets',
+        description: 'You have unchecked sets with data. Would you like to mark them as complete and save them?',
+        confirmText: 'Mark Complete'
+      })
+      
+      if (completeThem) {
         completeAllSets()
-        // Wait for store to update or just construct the final object here for the action
         finalWorkout = {
           ...activeWorkout,
           exercises: activeWorkout.exercises.map(ex => ({
@@ -55,24 +75,49 @@ export default function WorkoutPage() {
             sets: ex.sets.map(s => (s.weight_kg > 0 || s.reps > 0) ? { ...s, completed: true } : s)
           }))
         }
-      } else if (!confirm('Finish anyway? Unchecked sets will NOT be saved.')) {
-        return
+      } else {
+        const finishAnyway = await dialog.confirm({
+          title: 'Finish Anyway?',
+          description: 'Are you sure you want to finish? Unchecked sets will NOT be saved.',
+          confirmText: 'Finish',
+          danger: true
+        })
+        if (!finishAnyway) return
       }
     } else {
-      if (!confirm('Finish workout? All completed sets will be saved.')) return
+      const finishIt = await dialog.confirm({
+        title: 'Finish Workout',
+        description: 'Great job! Finish this workout and save to your log?',
+        confirmText: 'Finish Workout'
+      })
+      if (!finishIt) return
     }
 
     setIsFinishing(true)
     try {
+      // 1. Check if routine needs syncing
+      if (finalWorkout.routine_id && finalWorkout.has_routine_been_modified) {
+        const syncRoutine = await dialog.confirm({
+          title: 'Update Routine?',
+          description: `You modified the exercises in this routine. Would you like to permanently update the saved routine template to match these new exercises and target sets?`,
+          confirmText: 'Update Routine'
+        })
+        
+        if (syncRoutine) {
+          await updateRoutineExercisesAction(finalWorkout.routine_id, finalWorkout.exercises)
+        }
+      }
+
+      // 2. Save the workout
       const result = await finishWorkoutAction(finalWorkout)
       if (result.success) {
         finishWorkout()
         router.push('/dashboard')
       } else {
-        alert('Failed to save workout: ' + result.error)
+        dialog.alert({ title: 'Error', description: 'Failed to save workout: ' + result.error })
       }
     } catch (err) {
-      alert('An unexpected error occurred.')
+      dialog.alert({ title: 'Error', description: 'An unexpected error occurred.' })
     } finally {
       setIsFinishing(false)
     }
