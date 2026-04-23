@@ -50,7 +50,7 @@ export function ProgressionLineChart({ data, color = '#3b82f6', formatType = 'nu
           contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '12px', color: '#fff', fontWeight: 'bold' }}
           itemStyle={{ color: '#fff', fontFamily: 'monospace' }}
           cursor={{ stroke: '#3f3f46' }}
-          formatter={(value: number) => [formatValue(value), 'Value']}
+          formatter={(value: any) => [formatValue(Number(value)), 'Value']}
         />
         <Line 
           type="monotone" 

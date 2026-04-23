@@ -26,7 +26,7 @@ export function WeeklyMuscleRadarChart({ data }: { data: MuscleGroupData[] }) {
         <Tooltip 
           contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '12px', color: '#fff', fontWeight: 'bold' }}
           itemStyle={{ color: '#3b82f6', fontWeight: 'bold' }}
-          formatter={(value: number) => [`${value} sets`, 'Volume']}
+          formatter={(value: any) => [`${Number(value)} sets`, 'Volume']}
         />
         <Radar name="Muscle Sets" dataKey="A" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.4} />
       </RadarChart>
