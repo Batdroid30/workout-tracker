@@ -189,6 +189,7 @@ export async function getWorkoutById(workoutId: string) {
       started_at,
       completed_at,
       duration_seconds,
+      notes,
       workout_exercises (
         id,
         exercise_id,
