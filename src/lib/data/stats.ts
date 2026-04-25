@@ -41,9 +41,9 @@ export async function evaluateAndSavePRs(userId: string, workoutId: string): Pro
     .select('*')
     .eq('user_id', userId)
 
-  const prMap = new Map<string, number>() // key: `${exerciseId}_${prType}`, value: current_record_value
+  const prMap = new Map<string, number>() // key: `${exerciseId}|${prType}`, value: current_record_value
   existingPRs?.forEach(pr => {
-    prMap.set(`${pr.exercise_id}_${pr.pr_type}`, Number(pr.value))
+    prMap.set(`${pr.exercise_id}|${pr.pr_type}`, Number(pr.value))
   })
 
   const newPRsToUpsert: any[] = []
@@ -73,7 +73,7 @@ export async function evaluateAndSavePRs(userId: string, workoutId: string): Pro
       ]
 
       for (const check of checks) {
-        const key = `${exerciseId}_${check.type}`
+        const key = `${exerciseId}|${check.type}`
         const currentRecord = prMap.get(key) || 0
 
         if (check.value > currentRecord) {
@@ -112,6 +112,106 @@ export async function evaluateAndSavePRs(userId: string, workoutId: string): Pro
   }
 
   return brokenPRs
+}
+
+export async function evaluateAndSaveAllPRs(userId: string): Promise<void> {
+  const supabase = await getSupabaseServer()
+
+  // 1. Fetch ALL sets for this user, ordered by completion date
+  const { data: allSets, error } = await supabase
+    .from('sets')
+    .select(`
+      id,
+      weight_kg,
+      reps,
+      is_warmup,
+      completed_at,
+      workout_exercises!inner (
+        exercise_id,
+        workouts!inner (
+          user_id,
+          started_at
+        )
+      )
+    `)
+    .eq('workout_exercises.workouts.user_id', userId)
+    .order('completed_at', { ascending: true })
+
+  if (error) throw new Error(`Failed to fetch sets for PR recalculation: ${error.message}`)
+  if (!allSets || allSets.length === 0) return
+
+  const prMap = new Map<string, { value: number, set_id: string, achieved_at: string, reps: number }>()
+
+  // 2. Process all sets chronologically to find the best for each exercise and type
+  for (const set of allSets) {
+    if (set.is_warmup || !set.weight_kg || !set.reps) continue
+
+    const weight = Number(set.weight_kg)
+    const reps = Number(set.reps)
+    const volume = weight * reps
+    const est1RM = weight * (1 + reps / 30) // Manual calc to avoid dependency in this loop
+    
+    const we = Array.isArray(set.workout_exercises) ? set.workout_exercises[0] : (set.workout_exercises as any)
+    if (!we) continue
+    
+    const exerciseId = we.exercise_id
+    const workout = Array.isArray(we.workouts) ? we.workouts[0] : (we.workouts as any)
+    const achievedAt = workout?.started_at || set.completed_at
+
+    const checks = [
+      { type: 'best_weight' as PRType, value: weight },
+      { type: 'best_volume' as PRType, value: volume },
+      { type: 'best_1rm' as PRType, value: est1RM }
+    ]
+
+    for (const check of checks) {
+      const key = `${exerciseId}|${check.type}`
+      const currentBest = prMap.get(key)
+
+      if (!currentBest || check.value > currentBest.value) {
+        prMap.set(key, {
+          value: check.value,
+          set_id: set.id,
+          achieved_at: achievedAt,
+          reps: reps
+        })
+      }
+    }
+  }
+
+  // 3. Fetch existing PRs to get their IDs for upserting
+  const { data: existingPRs } = await supabase
+    .from('personal_records')
+    .select('id, exercise_id, pr_type')
+    .eq('user_id', userId)
+
+  const existingPRMap = new Map<string, string>()
+  existingPRs?.forEach(pr => {
+    existingPRMap.set(`${pr.exercise_id}|${pr.pr_type}`, pr.id)
+  })
+
+  // 4. Prepare data for upsert
+  const newPRsToUpsert = Array.from(prMap.entries()).map(([key, data]) => {
+    const [exercise_id, pr_type] = key.split('|')
+    const existingId = existingPRMap.get(key)
+    
+    return {
+      ...(existingId ? { id: existingId } : {}),
+      user_id: userId,
+      exercise_id,
+      pr_type,
+      value: data.value,
+      reps: data.reps,
+      set_id: data.set_id,
+      achieved_at: data.achieved_at
+    }
+  })
+
+  // 5. Save to DB
+  if (newPRsToUpsert.length > 0) {
+    const { error: upsertErr } = await supabase.from('personal_records').upsert(newPRsToUpsert)
+    if (upsertErr) throw new Error(`Failed to save PRs: ${upsertErr.message}`)
+  }
 }
 
 export async function getExerciseProgression(userId: string, exerciseId: string) {

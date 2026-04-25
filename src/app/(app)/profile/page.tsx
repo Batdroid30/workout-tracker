@@ -13,6 +13,7 @@ import { getExercises } from '@/lib/data/exercises'
 import { DeleteWorkoutButton } from '@/components/workout/DeleteWorkoutButton'
 import { Trophy, User } from 'lucide-react'
 import Link from 'next/link'
+import { ClearDataButton } from '@/components/profile/ClearDataButton'
 
 type Tab = 'stats' | 'history' | 'exercises' | 'account'
 
@@ -128,6 +129,10 @@ async function HistoryTab({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-3">
+      <div className="flex justify-end pb-2">
+        <ClearDataButton />
+      </div>
+
       {workouts.map((workout: any) => {
         const exerciseNames = workout.workout_exercises.map((we: any) => we.exercise.name).join(' · ')
         const workoutVolume = workout.workout_exercises.reduce((acc: number, we: any) => {

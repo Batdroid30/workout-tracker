@@ -45,21 +45,25 @@ export default auth(async (req) => {
     }
   )
 
-  // This refreshes the session if needed
-  await supabase.auth.getSession()
+  // 1. Get both sessions
+  const nextAuthSession = req.auth
+  const { data: { session: supabaseSession } } = await supabase.auth.getSession()
+  
+  const isAuthenticated = !!nextAuthSession && !!supabaseSession
 
   // 2. Route Protection Logic
   const isAuthPage = nextUrl.pathname === '/login' || nextUrl.pathname === '/signup'
-  const isAppPage = nextUrl.pathname.startsWith('/dashboard') || 
-                   nextUrl.pathname.startsWith('/exercises') || 
-                   nextUrl.pathname.startsWith('/workout') || 
-                   nextUrl.pathname.startsWith('/progress')
+  const isPublicFile = nextUrl.pathname.includes('.')
 
-  if (isAppPage && !isLoggedIn) {
-    return NextResponse.redirect(new URL('/login', req.url))
+  // If not authenticated and trying to access a protected page
+  if (!isAuthenticated && !isAuthPage && !isPublicFile) {
+    const loginUrl = new URL('/login', req.url)
+    // Add the current path as a redirect param if needed
+    return NextResponse.redirect(loginUrl)
   }
 
-  if (isAuthPage && isLoggedIn) {
+  // If authenticated and trying to access login/signup
+  if (isAuthenticated && isAuthPage) {
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
