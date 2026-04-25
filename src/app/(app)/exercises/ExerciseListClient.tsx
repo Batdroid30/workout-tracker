@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Search } from 'lucide-react'
+import { Search, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { Exercise } from '@/types/database'
 
@@ -50,7 +50,7 @@ export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseList
         {!hideTitle && (
           <div>
             <p className="text-[10px] font-black tracking-[0.2em] uppercase text-[#4a5568] mb-0.5">Library</p>
-            <h1 className="text-2xl font-black italic uppercase tracking-tight text-white">Exercises</h1>
+            <h1 className="text-xl font-black uppercase tracking-tight text-white">Exercises</h1>
           </div>
         )}
 
@@ -98,6 +98,7 @@ export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseList
                       {ex.muscle_group}{ex.equipment ? ` · ${ex.equipment}` : ''}
                     </p>
                   </div>
+                  <ChevronRight className="w-4 h-4 text-[#334155] shrink-0" />
                 </div>
               </Link>
             ))

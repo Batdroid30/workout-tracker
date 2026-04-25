@@ -41,7 +41,7 @@ export async function InsightsSection({
   const [weeks, recentPRs, mostImproved, streak, neglectedMuscles, stalledMovements, badges] =
     await Promise.all([
       getWeeklyTrainingSummary(userId),
-      getRecentPRs(userId, 30),
+      getRecentPRs(userId, 60),
       getMostImprovedExercises(userId),
       getTrainingStreak(userId),
       getNeglectedMuscles(userId),
@@ -60,6 +60,9 @@ export async function InsightsSection({
       {/* Deload — highest priority, shown first when active */}
       {fatigue.shouldSuggest && <DeloadCard assessment={fatigue} />}
 
+      {/* Recent PRs — high-value, shown near the top */}
+      <RecentPRsCard prs={recentPRs} />
+
       {/* Weekly goal — always visible */}
       <WeeklyGoalCard
         thisWeekCount={weeklySummary.thisWeekCount}
@@ -77,9 +80,6 @@ export async function InsightsSection({
 
       {/* Training streak */}
       <TrainingStreakCard streak={streak} />
-
-      {/* Recent PRs */}
-      <RecentPRsCard prs={recentPRs} />
 
       {/* Most improved */}
       <MostImprovedCard exercises={mostImproved} />

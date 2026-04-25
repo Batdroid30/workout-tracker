@@ -17,7 +17,10 @@ export function BottomNav() {
   return (
     <div className="fixed bottom-0 left-0 right-0 h-[65px] bg-[#020617]/90 backdrop-blur-xl border-t border-[#334155] pb-safe z-40 px-4 flex items-center justify-around font-sans shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
       {tabs.map((tab) => {
-        const isActive = pathname.startsWith(tab.href)
+        // /workout should only be active for the live session page, not history logs (/workout/123)
+        const isActive = tab.href === '/workout'
+          ? pathname === '/workout'
+          : pathname.startsWith(tab.href)
         const Icon = tab.icon
         return (
           <Link

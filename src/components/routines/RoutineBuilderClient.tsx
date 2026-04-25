@@ -95,19 +95,14 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
   return (
     <div className="max-w-md mx-auto w-full pb-32 bg-[#070d1f] min-h-screen">
       {/* Top Nav */}
-      <div className="sticky top-0 z-30 bg-[#070d1f]/95 backdrop-blur border-b border-[#334155] px-4 py-4 flex items-center justify-between">
+      <div className="sticky top-0 z-30 bg-[#070d1f]/95 backdrop-blur border-b border-[#334155] px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/routines" className="p-1.5 hover:bg-[#151b2d] rounded-lg transition-colors">
             <ArrowLeft className="w-5 h-5 text-[#adb4ce]" />
           </Link>
-          <div>
-            <p className="text-[10px] font-black tracking-[0.2em] uppercase text-[#4a5568] leading-none mb-0.5">
-              {initialRoutine ? 'Editing' : 'New'}
-            </p>
-            <h1 className="text-lg font-black italic uppercase tracking-tight text-white">
-              {initialRoutine ? 'Edit Routine' : 'Build Routine'}
-            </h1>
-          </div>
+          <h1 className="text-sm font-black uppercase tracking-widest text-white">
+            {initialRoutine ? 'Edit Routine' : 'Build Routine'}
+          </h1>
         </div>
         <Button
           onClick={handleSave}

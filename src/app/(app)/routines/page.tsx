@@ -21,7 +21,7 @@ export default async function RoutinesPage() {
       {/* Header */}
       <div className="sticky top-0 z-30 bg-[#070d1f]/95 backdrop-blur border-b border-[#334155] px-4 py-4">
         <p className="text-[10px] font-black tracking-[0.2em] uppercase text-[#4a5568] mb-0.5">Your Templates</p>
-        <h1 className="text-2xl font-black italic uppercase tracking-tight text-white">Routines</h1>
+        <h1 className="text-xl font-black uppercase tracking-tight text-white">Routines</h1>
       </div>
 
       <div className="p-4 space-y-4">
