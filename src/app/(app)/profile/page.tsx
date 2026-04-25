@@ -10,6 +10,9 @@ import { ExerciseListClient } from '@/app/(app)/exercises/ExerciseListClient'
 import { getWorkoutsSummary, getVolumeHistory, getAllWorkouts } from '@/lib/data/workouts'
 import { getWeeklyMuscleGroupStats } from '@/lib/data/stats'
 import { getExercises } from '@/lib/data/exercises'
+import { getWeeklyTrainingSummary, getMostImprovedExercises, deriveWeeklySummary } from '@/lib/data/insights'
+import { WeeklySummaryCard } from '@/components/dashboard/WeeklySummaryCard'
+import { MostImprovedCard }  from '@/components/dashboard/MostImprovedCard'
 import { DeleteWorkoutButton } from '@/components/workout/DeleteWorkoutButton'
 import { Trophy, User, Upload } from 'lucide-react'
 import Link from 'next/link'
@@ -68,9 +71,15 @@ export default async function ProfilePage({
 }
 
 async function StatsTab({ userId }: { userId: string }) {
-  const { totalVolume } = await getWorkoutsSummary(userId)
-  const volumeHistory = await getVolumeHistory(userId)
-  const radarData = await getWeeklyMuscleGroupStats(userId)
+  const [{ totalVolume }, volumeHistory, radarData, weeks, mostImproved] = await Promise.all([
+    getWorkoutsSummary(userId),
+    getVolumeHistory(userId),
+    getWeeklyMuscleGroupStats(userId),
+    getWeeklyTrainingSummary(userId),
+    getMostImprovedExercises(userId),
+  ])
+
+  const weeklySummary = deriveWeeklySummary(weeks)
 
   const chartData = volumeHistory.map((item) => ({
     date: new Date(item.date).toLocaleDateString([], { month: 'short', day: 'numeric' }),
@@ -79,6 +88,12 @@ async function StatsTab({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-6">
+      {/* Quick insight cards */}
+      <section className="space-y-3">
+        <WeeklySummaryCard data={weeklySummary} />
+        <MostImprovedCard exercises={mostImproved} />
+      </section>
+
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-black uppercase tracking-[0.15em] text-[#adb4ce]">Weekly Muscle Focus</h2>
