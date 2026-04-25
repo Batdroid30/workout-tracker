@@ -4,14 +4,14 @@ import type { ActiveWorkout } from '@/types/database'
 
 export async function getRecentWorkouts(userId: string) {
   const supabase = await getSupabaseServer()
-  
+
   const { data, error } = await supabase
     .from('workouts')
     .select(`
       *,
       workout_exercises (
         exercise:exercises ( name ),
-        sets ( weight_kg, reps )
+        sets ( id, weight_kg, reps )
       )
     `)
     .eq('user_id', userId)
@@ -22,7 +22,70 @@ export async function getRecentWorkouts(userId: string) {
     console.error('Failed to fetch recent workouts:', error.message)
     throw new DatabaseError('Failed to fetch recent workouts', error)
   }
-  return data
+
+  // Attach PR count per workout by looking up which set_ids currently hold a PR
+  const allSetIds = data.flatMap((w: any) =>
+    w.workout_exercises.flatMap((we: any) => we.sets.map((s: any) => s.id))
+  )
+
+  let prsBySetId: Record<string, number> = {}
+  if (allSetIds.length > 0) {
+    const { data: prs } = await supabase
+      .from('personal_records')
+      .select('set_id')
+      .in('set_id', allSetIds)
+    prs?.forEach((pr: any) => {
+      if (pr.set_id) prsBySetId[pr.set_id] = (prsBySetId[pr.set_id] || 0) + 1
+    })
+  }
+
+  return data.map((workout: any) => {
+    const setIds = workout.workout_exercises.flatMap((we: any) => we.sets.map((s: any) => s.id))
+    const prCount = setIds.reduce((sum: number, sid: string) => sum + (prsBySetId[sid] || 0), 0)
+    return { ...workout, prCount }
+  })
+}
+
+export async function getAllWorkouts(userId: string) {
+  const supabase = await getSupabaseServer()
+
+  const { data, error } = await supabase
+    .from('workouts')
+    .select(`
+      *,
+      workout_exercises (
+        exercise:exercises ( name ),
+        sets ( id, weight_kg, reps )
+      )
+    `)
+    .eq('user_id', userId)
+    .order('started_at', { ascending: false })
+
+  if (error) {
+    console.error('Failed to fetch workout history:', error.message)
+    throw new DatabaseError('Failed to fetch workout history', error)
+  }
+
+  const allSetIds = data.flatMap((w: any) =>
+    w.workout_exercises.flatMap((we: any) => we.sets.map((s: any) => s.id))
+  )
+
+  let prsBySetId: Record<string, number> = {}
+  if (allSetIds.length > 0) {
+    const { data: prs } = await supabase
+      .from('personal_records')
+      .select('set_id')
+      .in('set_id', allSetIds)
+    prs?.forEach((pr: any) => {
+      if (pr.set_id) prsBySetId[pr.set_id] = (prsBySetId[pr.set_id] || 0) + 1
+    })
+  }
+
+  return data.map((workout: any) => {
+    const setIds = workout.workout_exercises.flatMap((we: any) => we.sets.map((s: any) => s.id))
+    const prCount = setIds.reduce((sum: number, sid: string) => sum + (prsBySetId[sid] || 0), 0)
+    return { ...workout, prCount }
+  })
 }
 
 export async function getWorkoutsSummary(userId: string) {

@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
-import { DM_Sans, Space_Mono } from "next/font/google";
+import { Space_Grotesk, Lexend } from "next/font/google";
 import "./globals.css";
 import { DialogProvider } from "@/providers/DialogProvider";
 
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
-const spaceMono = Space_Mono({
-  variable: "--font-space-mono",
+const lexend = Lexend({
+  variable: "--font-lexend",
   subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: ["300", "400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#070d1f",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -42,9 +42,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${spaceMono.variable} h-full antialiased dark`}
+      className={`${spaceGrotesk.variable} ${lexend.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col bg-black text-white font-sans selection:bg-brand selection:text-white">
+      <body className="min-h-full flex flex-col bg-[#070d1f] text-[#dce1fb] font-sans selection:bg-[#CCFF00] selection:text-[#020617]">
         <DialogProvider>
           {children}
         </DialogProvider>

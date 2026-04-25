@@ -24,19 +24,13 @@ export function SetRow({ set, prevSetText = "-", onChange, onDone, onRemove }: S
   const handleTouchMove = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return
     const diff = e.touches[0].clientX - touchStartX.current
-    if (diff < 0) {
-      setSwipeOffset(Math.max(diff, -60))
-    } else {
-      setSwipeOffset(0)
-    }
+    if (diff < 0) setSwipeOffset(Math.max(diff, -60))
+    else setSwipeOffset(0)
   }
 
   const handleTouchEnd = () => {
-    if (swipeOffset < -30) {
-      setSwipeOffset(-60)
-    } else {
-      setSwipeOffset(0)
-    }
+    if (swipeOffset < -30) setSwipeOffset(-60)
+    else setSwipeOffset(0)
     touchStartX.current = null
   }
 
@@ -46,21 +40,21 @@ export function SetRow({ set, prevSetText = "-", onChange, onDone, onRemove }: S
   }
 
   return (
-    <div className="relative group overflow-hidden rounded-xl">
-      {/* Background Delete Button */}
-      <div className="absolute inset-y-0 right-0 w-[60px] bg-red-500/20 flex items-center justify-end rounded-xl">
-        <button 
+    <div className="relative group overflow-hidden rounded-lg mb-1">
+      {/* Background Delete */}
+      <div className="absolute inset-y-0 right-0 w-[60px] bg-red-500/10 flex items-center justify-end rounded-lg">
+        <button
           onClick={onRemove}
-          className="w-full h-full flex items-center justify-center text-red-500 hover:bg-red-500/30 transition-colors rounded-r-xl"
+          className="w-full h-full flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors rounded-r-lg"
         >
-          <Trash2 className="w-5 h-5" />
+          <Trash2 className="w-4 h-4" />
         </button>
       </div>
 
-      <div 
+      <div
         className={cn(
-          "relative bg-black transition-transform duration-200",
-          swipeOffset === 0 && "group-hover:-translate-x-[60px]" // Desktop hover fallback
+          "relative bg-[#070d1f] transition-transform duration-200",
+          swipeOffset === 0 && "group-hover:-translate-x-[60px]"
         )}
         style={{ transform: `translateX(${swipeOffset}px)` }}
         onTouchStart={handleTouchStart}
@@ -69,48 +63,53 @@ export function SetRow({ set, prevSetText = "-", onChange, onDone, onRemove }: S
       >
         <div className={cn(
           "flex items-center gap-2 py-2",
-          set.completed ? "opacity-40 grayscale" : "opacity-100"
+          set.completed ? "opacity-40" : "opacity-100"
         )}>
           {/* Set Number */}
-      <div className="w-8 shrink-0 flex flex-col items-center justify-center">
-        <span className="font-bold text-sm text-zinc-500 bg-zinc-900 rounded-md w-6 h-6 flex items-center justify-center">{set.set_number}</span>
-      </div>
+          <div className="w-8 shrink-0 flex items-center justify-center">
+            <span className={cn(
+              "font-black text-xs w-6 h-6 flex items-center justify-center rounded",
+              set.is_warmup ? "bg-orange-500/10 text-orange-400" : "bg-[#151b2d] text-[#adb4ce]"
+            )}>
+              {set.is_warmup ? 'W' : set.set_number}
+            </span>
+          </div>
 
-      {/* Ghost text / Previous Set */}
-      <div className="w-16 shrink-0 flex justify-center text-xs font-mono text-zinc-500">
-        {prevSetText}
-      </div>
+          {/* Previous */}
+          <div className="w-16 shrink-0 flex justify-center text-[11px] font-body text-[#4a5568]">
+            {prevSetText}
+          </div>
 
-      {/* Weight Stepper */}
-      <div className="flex-1 min-w-[76px] sm:min-w-[90px]">
-        <NumberStepper 
-          value={set.weight_kg} 
-          onChange={(val) => onChange({ weight_kg: val })}
-          step={2.5}
-        />
-      </div>
+          {/* Weight */}
+          <div className="flex-1 min-w-[76px]">
+            <NumberStepper
+              value={set.weight_kg}
+              onChange={(val) => onChange({ weight_kg: val })}
+              step={2.5}
+            />
+          </div>
 
-      {/* Reps Stepper */}
-      <div className="flex-1 min-w-[76px] sm:min-w-[90px]">
-        <NumberStepper 
-          value={set.reps} 
-          onChange={(val) => onChange({ reps: val })}
-          step={1}
-        />
-      </div>
+          {/* Reps */}
+          <div className="flex-1 min-w-[76px]">
+            <NumberStepper
+              value={set.reps}
+              onChange={(val) => onChange({ reps: val })}
+              step={1}
+            />
+          </div>
 
-      {/* Done Checkmark */}
-      <button 
-        onClick={handleDoneClick}
-        className={cn(
-          "w-12 h-12 shrink-0 rounded-xl flex items-center justify-center transition-all active:scale-95",
-          set.completed 
-            ? "bg-green-500/20 text-green-500" 
-            : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
-        )}
-      >
-        <Check className="w-6 h-6" />
-      </button>
+          {/* Done */}
+          <button
+            onClick={handleDoneClick}
+            className={cn(
+              "w-12 h-10 shrink-0 rounded-lg flex items-center justify-center transition-all active:scale-95 font-black text-xs uppercase tracking-wider border",
+              set.completed
+                ? "bg-[#CCFF00] text-[#020617] border-[#CCFF00]"
+                : "bg-[#151b2d] text-[#334155] border-[#334155] hover:border-[#CCFF00]/50 hover:text-[#CCFF00]/50"
+            )}
+          >
+            {set.completed ? <Check className="w-4 h-4" strokeWidth={3} /> : <Check className="w-4 h-4" />}
+          </button>
         </div>
       </div>
     </div>
