@@ -1,10 +1,12 @@
 import { Dumbbell, Plus, Trophy, Zap } from 'lucide-react'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { auth } from '@/lib/auth'
 import { getWorkoutsSummary, getRecentWorkouts } from '@/lib/data/workouts'
 import { getProfile } from '@/lib/data/profile'
 import { redirect } from 'next/navigation'
 import { DeleteWorkoutButton } from '@/components/workout/DeleteWorkoutButton'
+import { InsightsSection } from '@/components/dashboard/InsightsSection'
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -50,6 +52,16 @@ export default async function DashboardPage() {
             <Dumbbell className="w-16 h-16 text-[#CCFF00]" />
           </div>
         </div>
+      </div>
+
+      {/* Insights — deload check, weekly summary, streak, PRs, most improved */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xs font-bold tracking-[0.2em] uppercase text-[#4a5568]">Insights</h2>
+        </div>
+        <Suspense fallback={<InsightsSkeleton />}>
+          <InsightsSection userId={userId} />
+        </Suspense>
       </div>
 
       {/* Recent Workouts */}
@@ -129,6 +141,19 @@ export default async function DashboardPage() {
           </button>
         </Link>
       </div>
+    </div>
+  )
+}
+
+function InsightsSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[1, 2].map(i => (
+        <div key={i} className="glass-panel border border-[#334155] rounded-xl p-4 animate-pulse">
+          <div className="h-3 w-24 bg-[#1e293b] rounded mb-3" />
+          <div className="h-8 w-32 bg-[#1e293b] rounded" />
+        </div>
+      ))}
     </div>
   )
 }
