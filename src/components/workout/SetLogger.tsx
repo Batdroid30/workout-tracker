@@ -114,7 +114,12 @@ export function SetLogger({ exerciseIndex, exercise, onSetCompleted, onReplaceEx
               set={set}
               prevSetText={prevText}
               onChange={(updates) => updateSet(exerciseIndex, setIndex, updates)}
-              onDone={() => { markSetDone(exerciseIndex, setIndex); onSetCompleted?.() }}
+              onDone={() => {
+                const wasCompleted = exercise.sets[setIndex].completed
+                markSetDone(exerciseIndex, setIndex)
+                // Only trigger rest timer when completing a set, not when unticking
+                if (!wasCompleted) onSetCompleted?.()
+              }}
               onRemove={() => removeSet(exerciseIndex, setIndex)}
             />
           )

@@ -209,7 +209,9 @@ export const useWorkoutStore = create<WorkoutStore>()(
       markSetDone: (exerciseIndex, setIndex) => set((state) => {
         if (!state.activeWorkout) return state
         const exercises = [...state.activeWorkout.exercises]
-        exercises[exerciseIndex].sets[setIndex].completed = true
+        // Toggle — tapping ✓ on a completed set reopens it for editing
+        exercises[exerciseIndex].sets[setIndex].completed =
+          !exercises[exerciseIndex].sets[setIndex].completed
         return { activeWorkout: { ...state.activeWorkout, exercises } }
       }),
 
