@@ -61,26 +61,26 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     <DialogContext.Provider value={{ confirm, alert }}>
       {children}
       {isOpen && options && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold text-white mb-2">{options.title}</h3>
-            <p className="text-zinc-400 mb-6 text-sm">{options.description}</p>
-            
-            <div className="flex gap-3 justify-end">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0 bg-[#020617]/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0c1324] border border-[#334155] p-6 rounded-2xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 slide-in-from-bottom-4 duration-200">
+            <h3 className="text-base font-black uppercase tracking-tight text-white mb-1.5">{options.title}</h3>
+            <p className="text-[#4a5568] mb-6 text-sm font-body leading-relaxed">{options.description}</p>
+
+            <div className="flex gap-2 justify-end">
               {type === 'confirm' && (
-                <button 
+                <button
                   onClick={handleCancel}
-                  className="px-4 py-2 text-sm font-bold text-zinc-400 hover:bg-zinc-800 rounded-xl transition-colors"
+                  className="px-4 py-2.5 text-xs font-black text-[#adb4ce] hover:bg-[#151b2d] rounded-xl transition-colors uppercase tracking-widest"
                 >
                   {options.cancelText || 'Cancel'}
                 </button>
               )}
-              <button 
+              <button
                 onClick={handleConfirm}
-                className={`px-4 py-2 text-sm font-bold rounded-xl transition-colors ${
-                  options.danger 
-                    ? 'bg-red-500 hover:bg-red-600 text-white' 
-                    : 'bg-brand hover:bg-brand-hover text-white'
+                className={`px-5 py-2.5 text-xs font-black rounded-xl transition-colors uppercase tracking-widest ${
+                  options.danger
+                    ? 'bg-red-500 hover:bg-red-600 text-white'
+                    : 'bg-[#CCFF00] hover:bg-[#abd600] text-[#020617]'
                 }`}
               >
                 {options.confirmText || 'OK'}

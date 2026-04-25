@@ -112,20 +112,6 @@ export default function WorkoutPage() {
       const result = await finishWorkoutAction(finalWorkout)
       if (result.success) {
         finishWorkout()
-        
-        // Show PRs if any
-        if (result.prs && result.prs.length > 0) {
-          const prMessages = result.prs.map((pr: any) => {
-            const prName = pr.prType === 'best_weight' ? 'Best Weight' : pr.prType === 'best_1rm' ? 'Best Est. 1RM' : 'Best Volume'
-            return `• ${pr.exerciseName}: ${prName} (${pr.newValue})`
-          }).join('\n')
-          
-          await dialog.alert({
-            title: 'New Personal Records!',
-            description: `You broke ${result.prs.length} PR(s):\n${prMessages}`
-          })
-        }
-        
         router.push('/dashboard')
       } else {
         dialog.alert({ title: 'Error', description: 'Failed to save workout: ' + result.error })
@@ -139,37 +125,37 @@ export default function WorkoutPage() {
 
   if (!activeWorkout) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-80px)] p-4 text-center bg-black text-white">
-        <div className="w-20 h-20 bg-brand/10 border border-brand/20 rounded-full flex items-center justify-center mb-6">
-          <Play className="w-8 h-8 text-brand ml-1" />
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-80px)] p-4 text-center bg-[#070d1f]">
+        <div className="w-20 h-20 bg-[#CCFF00]/10 border border-[#CCFF00]/20 rounded-xl flex items-center justify-center mb-6">
+          <Play className="w-8 h-8 text-[#CCFF00] ml-1" />
         </div>
-        <h1 className="text-3xl font-bold font-sans mb-2">Ready to lift?</h1>
-        <p className="text-zinc-500 mb-8 max-w-sm text-lg">Start a blank workout or choose a routine to crush your goals today.</p>
-        <Button onClick={() => startWorkout('Blank Workout')} className="max-w-xs h-14 text-lg">Start Blank Workout</Button>
+        <h1 className="text-3xl font-black uppercase tracking-tight text-white mb-2">Ready to lift?</h1>
+        <p className="text-[#4a5568] mb-8 max-w-sm font-body">Start a blank workout or choose a routine to crush your goals today.</p>
+        <Button onClick={() => startWorkout('Blank Workout')} className="max-w-xs h-14 text-base">Start Blank Workout</Button>
       </div>
     )
   }
 
   return (
-    <div className="pb-32 min-h-screen bg-black">
+    <div className="pb-32 min-h-screen bg-[#070d1f]">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-black/90 backdrop-blur border-b border-zinc-900 p-4 flex items-center justify-between">
+      <div className="sticky top-0 z-30 bg-[#070d1f]/95 backdrop-blur border-b border-[#334155] px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1 mr-4">
-          <Link href="/dashboard" className="p-1 hover:bg-zinc-900 rounded-lg transition-colors">
-            <ChevronLeft className="w-6 h-6 text-zinc-400" />
+          <Link href="/dashboard" className="p-1 hover:bg-[#151b2d] rounded-lg transition-colors">
+            <ChevronLeft className="w-6 h-6 text-[#adb4ce]" />
           </Link>
-          <input 
+          <input
             type="text"
             value={activeWorkout.title}
             onChange={(e) => updateTitle(e.target.value)}
-            placeholder="Workout Title"
-            className="bg-transparent border-none text-xl font-bold font-sans text-white focus:ring-0 p-0 w-full placeholder:text-zinc-700 outline-none"
+            placeholder="Session Title"
+            className="bg-transparent border-none text-base font-black uppercase tracking-tight text-white focus:ring-0 p-0 w-full placeholder:text-[#334155] outline-none"
           />
         </div>
-        <button 
+        <button
           onClick={handleFinish}
           disabled={isFinishing}
-          className="text-sm font-bold text-brand bg-brand/10 px-4 py-2 justify-center flex items-center rounded-lg active:scale-95 transition-transform disabled:opacity-50"
+          className="text-[10px] font-black text-[#020617] bg-[#CCFF00] px-4 py-2 rounded-lg active:scale-95 transition-transform disabled:opacity-50 uppercase tracking-widest hover:bg-[#abd600]"
         >
           {isFinishing ? 'Saving...' : 'Finish'}
         </button>
@@ -177,36 +163,36 @@ export default function WorkoutPage() {
 
       <div className="p-4 space-y-2">
         {activeWorkout.exercises.length === 0 ? (
-          <div className="text-center py-20 border-2 border-dashed border-zinc-900 rounded-3xl">
-            <div className="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Plus className="w-8 h-8 text-zinc-700" />
+          <div className="text-center py-20 border border-dashed border-[#1e293b] rounded-xl mt-4">
+            <div className="w-14 h-14 bg-[#151b2d] rounded-xl flex items-center justify-center mx-auto mb-4">
+              <Plus className="w-7 h-7 text-[#334155]" />
             </div>
-            <h2 className="text-zinc-400 font-bold mb-1">Your workout is empty</h2>
-            <p className="text-zinc-600 text-sm">Add an exercise to start tracking.</p>
+            <h2 className="text-[#adb4ce] font-black uppercase tracking-wide text-sm mb-1">Workout is empty</h2>
+            <p className="text-[#334155] text-xs font-body">Add an exercise to start tracking.</p>
           </div>
         ) : (
           activeWorkout.exercises.map((ex, i) => (
-            <SetLogger 
-              key={ex.exercise.id || i} 
-              exerciseIndex={i} 
-              exercise={ex} 
+            <SetLogger
+              key={ex.exercise.id || i}
+              exerciseIndex={i}
+              exercise={ex}
               onSetCompleted={() => setShowRestTimer(true)}
               onReplaceExercise={() => setAddingExerciseMode({ mode: 'replace', index: i })}
             />
           ))
         )}
-        
-        <Button 
-          variant="secondary" 
+
+        <Button
+          variant="secondary"
           onClick={() => setAddingExerciseMode({ mode: 'add' })}
-          className="border-dashed border-2 border-zinc-800 bg-transparent hover:bg-zinc-900 text-brand mt-4 w-full h-14"
+          className="border border-dashed border-[#334155] bg-transparent hover:bg-[#151b2d] text-[#CCFF00] mt-4 w-full h-12 text-xs"
         >
-          <Plus className="w-5 h-5 mr-2" /> Add Exercise
+          <Plus className="w-4 h-4 mr-2" /> Add Exercise
         </Button>
 
-        <button 
+        <button
           onClick={handleDiscard}
-          className="w-full h-12 mt-8 text-sm font-bold text-red-500 hover:bg-red-500/5 rounded-xl transition-colors"
+          className="w-full h-10 mt-6 text-xs font-black text-red-500/60 hover:text-red-400 hover:bg-red-500/5 rounded-xl transition-colors uppercase tracking-widest"
         >
           Discard Workout
         </button>
