@@ -13,6 +13,7 @@ import { getExercises } from '@/lib/data/exercises'
 import { getWeeklyTrainingSummary, getMostImprovedExercises, deriveWeeklySummary } from '@/lib/data/insights'
 import { WeeklySummaryCard } from '@/components/dashboard/WeeklySummaryCard'
 import { MostImprovedCard }  from '@/components/dashboard/MostImprovedCard'
+import { MilestonesCard }    from '@/components/dashboard/MilestonesCard'
 import { DeleteWorkoutButton } from '@/components/workout/DeleteWorkoutButton'
 import { Trophy, User, Upload } from 'lucide-react'
 import Link from 'next/link'
@@ -92,6 +93,7 @@ async function StatsTab({ userId }: { userId: string }) {
       <section className="space-y-3">
         <WeeklySummaryCard data={weeklySummary} />
         <MostImprovedCard exercises={mostImproved} />
+        <MilestonesCard totalVolume={totalVolume} />
       </section>
 
       <section>

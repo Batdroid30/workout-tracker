@@ -5,6 +5,17 @@ import type { PRType } from '@/types/database'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export interface NeglectedMuscle {
+  muscleGroup: string
+  daysSinceLastTrained: number
+}
+
+export interface StalledMovement {
+  exerciseName: string
+  currentBest: number   // e1RM kg in recent 3-week window
+  previousBest: number  // e1RM kg in prior 3-week window
+}
+
 export interface RecentPR {
   exerciseName: string
   muscleGroup: string
@@ -276,6 +287,142 @@ export async function getMostImprovedExercises(userId: string): Promise<Improved
     }))
     .filter(ex => ex.improvementPct >= 5)
     .sort((a, b) => b.improvementPct - a.improvementPct)
+    .slice(0, 3)
+}
+
+/**
+ * Returns muscle groups trained in the last 28 days but not in the last 10 days.
+ * Only flags muscles the user normally trains — ignores untouched groups entirely.
+ */
+export async function getNeglectedMuscles(userId: string): Promise<NeglectedMuscle[]> {
+  const supabase = await getSupabaseServer()
+
+  const twentyEightDaysAgo = new Date(Date.now() - 28 * 86400000)
+
+  const { data, error } = await supabase
+    .from('workout_exercises')
+    .select(`
+      exercise:exercises ( muscle_group ),
+      workouts!inner ( user_id, started_at )
+    `)
+    .eq('workouts.user_id', userId)
+    .gte('workouts.started_at', twentyEightDaysAgo.toISOString())
+
+  if (error) throw new DatabaseError('Failed to fetch muscle group data', error)
+  if (!data || data.length === 0) return []
+
+  // Track most recent session date per muscle group
+  const lastTrainedMap: Record<string, number> = {}
+
+  data.forEach((we: any) => {
+    const workout  = Array.isArray(we.workouts)  ? we.workouts[0]  : we.workouts
+    const exercise = Array.isArray(we.exercise)  ? we.exercise[0]  : we.exercise
+    if (!exercise?.muscle_group || !workout?.started_at) return
+
+    const ts    = new Date(workout.started_at).getTime()
+    const group = exercise.muscle_group as string
+
+    if (!lastTrainedMap[group] || ts > lastTrainedMap[group]) {
+      lastTrainedMap[group] = ts
+    }
+  })
+
+  const now = Date.now()
+
+  return Object.entries(lastTrainedMap)
+    .map(([muscleGroup, lastTs]) => ({
+      muscleGroup,
+      daysSinceLastTrained: Math.floor((now - lastTs) / 86400000),
+    }))
+    .filter(m => m.daysSinceLastTrained >= 10)
+    .sort((a, b) => b.daysSinceLastTrained - a.daysSinceLastTrained)
+}
+
+/**
+ * Identifies exercises that have stalled: less than 3% e1RM improvement
+ * comparing the last 3 weeks against the 3 weeks prior.
+ * Requires at least 2 sessions in each window to avoid noise.
+ */
+export async function getStalledMovements(userId: string): Promise<StalledMovement[]> {
+  const supabase = await getSupabaseServer()
+
+  const sixWeeksAgo    = new Date(Date.now() - 42 * 86400000)
+  const threeWeeksAgoMs = Date.now() - 21 * 86400000
+
+  const { data, error } = await supabase
+    .from('sets')
+    .select(`
+      weight_kg,
+      reps,
+      is_warmup,
+      completed_at,
+      workout_exercises!inner (
+        exercise:exercises ( name ),
+        workouts!inner ( user_id, started_at )
+      )
+    `)
+    .eq('workout_exercises.workouts.user_id', userId)
+    .gte('completed_at', sixWeeksAgo.toISOString())
+    .eq('is_warmup', false)
+
+  if (error) throw new DatabaseError('Failed to fetch sets for stall analysis', error)
+  if (!data || data.length === 0) return []
+
+  const exerciseMap: Record<string, {
+    recentBest: number
+    previousBest: number
+    recentDates: Set<string>
+    previousDates: Set<string>
+  }> = {}
+
+  data.forEach((set: any) => {
+    if (!set.weight_kg || !set.reps) return
+
+    const we       = Array.isArray(set.workout_exercises) ? set.workout_exercises[0] : set.workout_exercises
+    const exercise = Array.isArray(we?.exercise)          ? we.exercise[0]            : we?.exercise
+    const workout  = Array.isArray(we?.workouts)          ? we.workouts[0]            : we?.workouts
+    if (!exercise?.name || !workout?.started_at) return
+
+    const key      = exercise.name as string
+    const e1rm     = calculateEpley1RM(Number(set.weight_kg), Number(set.reps))
+    const setMs    = new Date(set.completed_at).getTime()
+    const dateStr  = workout.started_at.split('T')[0] as string
+    const isRecent = setMs >= threeWeeksAgoMs
+
+    if (!exerciseMap[key]) {
+      exerciseMap[key] = { recentBest: 0, previousBest: 0, recentDates: new Set(), previousDates: new Set() }
+    }
+
+    const ex = exerciseMap[key]
+    if (isRecent) {
+      if (e1rm > ex.recentBest) ex.recentBest = e1rm
+      ex.recentDates.add(dateStr)
+    } else {
+      if (e1rm > ex.previousBest) ex.previousBest = e1rm
+      ex.previousDates.add(dateStr)
+    }
+  })
+
+  return Object.entries(exerciseMap)
+    .filter(([_, ex]) =>
+      ex.previousBest > 0 &&
+      ex.recentBest   > 0 &&
+      ex.recentDates.size   >= 2 &&
+      ex.previousDates.size >= 2 &&
+      // Less than 3% improvement = stalled
+      (ex.recentBest - ex.previousBest) / ex.previousBest < 0.03
+    )
+    .map(([name, ex]) => ({
+      exerciseName: name,
+      currentBest:  Math.round(ex.recentBest  * 10) / 10,
+      previousBest: Math.round(ex.previousBest * 10) / 10,
+    }))
+    .sort((a, b) => {
+      // Regressions first, then stagnation
+      const aChange = (a.currentBest - a.previousBest) / a.previousBest
+      const bChange = (b.currentBest - b.previousBest) / b.previousBest
+      return aChange - bChange
+    })
     .slice(0, 3)
 }
 

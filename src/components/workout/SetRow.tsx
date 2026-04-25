@@ -111,6 +111,32 @@ export function SetRow({ set, prevSetText = "-", onChange, onDone, onRemove }: S
             {set.completed ? <Check className="w-4 h-4" strokeWidth={3} /> : <Check className="w-4 h-4" />}
           </button>
         </div>
+
+        {/* RPE row — non-warmup sets only */}
+        {!set.is_warmup && (
+          <div className={cn(
+            "flex items-center justify-between px-1 pb-2",
+            set.completed && "opacity-40"
+          )}>
+            <span className="text-[9px] font-black text-[#334155] uppercase tracking-widest">RPE</span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => onChange({ rpe: Math.max(6, (set.rpe ?? 7) - 0.5) })}
+                className="w-6 h-6 flex items-center justify-center text-[#4a5568] hover:text-[#adb4ce] font-black transition-colors"
+              >−</button>
+              <span className={cn(
+                "text-xs font-black w-8 text-center",
+                set.rpe !== null ? "text-[#adb4ce]" : "text-[#334155]"
+              )}>
+                {set.rpe !== null ? set.rpe : '—'}
+              </span>
+              <button
+                onClick={() => onChange({ rpe: Math.min(10, (set.rpe ?? 7) + 0.5) })}
+                className="w-6 h-6 flex items-center justify-center text-[#4a5568] hover:text-[#adb4ce] font-black transition-colors"
+              >+</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
