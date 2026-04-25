@@ -46,14 +46,17 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
   }, 0)
 
   return (
-    <div className="min-h-screen bg-black text-white pb-24">
+    <div className="min-h-screen bg-[#070d1f] text-[#dce1fb] pb-24">
       {/* Top Nav */}
-      <div className="sticky top-0 z-30 bg-black/90 backdrop-blur border-b border-zinc-900 p-4 flex items-center justify-between">
+      <div className="sticky top-0 z-30 bg-[#070d1f]/95 backdrop-blur border-b border-[#334155] px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="p-2 -ml-2 rounded-full hover:bg-zinc-900 transition-colors">
-            <ArrowLeft className="w-5 h-5 text-zinc-400" />
+          <Link href="/profile?tab=history" className="p-1.5 hover:bg-[#151b2d] rounded-lg transition-colors">
+            <ArrowLeft className="w-5 h-5 text-[#adb4ce]" />
           </Link>
-          <h1 className="text-xl font-bold font-sans">Summary</h1>
+          <div>
+            <p className="text-[10px] font-black tracking-[0.2em] uppercase text-[#4a5568] leading-none mb-0.5">Workout</p>
+            <h1 className="text-lg font-black italic uppercase tracking-tight text-white">Summary</h1>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <DuplicateWorkoutButton workout={workout} />
@@ -61,104 +64,103 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
         </div>
       </div>
 
-      <div className="p-4 space-y-6 mt-2">
+      <div className="p-4 space-y-5 mt-1">
         {/* Header summary */}
-        <EditWorkoutMetaModal 
-          workoutId={workout.id} 
-          initialTitle={workout.title} 
-          initialDuration={workout.duration_seconds} 
+        <EditWorkoutMetaModal
+          workoutId={workout.id}
+          initialTitle={workout.title}
+          initialDuration={workout.duration_seconds}
           initialNotes={workout.notes}
         >
-          <div>
-            <h2 className="text-3xl font-bold font-sans pr-8">{workout.title || 'Workout'}</h2>
-            <p className="text-zinc-500 font-mono mt-1 text-sm tracking-wide">
+          <div className="glass-panel border border-[#334155] rounded-xl p-4">
+            <h2 className="text-2xl font-black uppercase tracking-tight text-white pr-8">{workout.title || 'Workout'}</h2>
+            <p className="text-[11px] text-[#4a5568] font-body mt-1 tracking-wide">
               {new Date(workout.started_at).toLocaleString([], { dateStyle: 'full', timeStyle: 'short' })}
             </p>
             {workout.notes && (
-              <p className="text-sm text-zinc-400 mt-2 italic">{workout.notes}</p>
+              <p className="text-sm text-[#adb4ce] font-body mt-2">{workout.notes}</p>
             )}
           </div>
         </EditWorkoutMetaModal>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex items-center gap-3">
-            <div className="bg-brand/10 p-2.5 rounded-lg border border-brand/20">
-              <Clock className="w-5 h-5 text-brand" />
+          <div className="glass-panel p-4 rounded-xl border border-[#334155] flex items-center gap-3">
+            <div className="bg-[#CCFF00]/10 p-2.5 rounded-lg border border-[#CCFF00]/20 shrink-0">
+              <Clock className="w-4 h-4 text-[#CCFF00]" />
             </div>
             <div>
-              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Duration</p>
-              <p className="text-lg font-bold font-mono mt-0.5">
+              <p className="text-[9px] text-[#4a5568] font-black uppercase tracking-[0.15em]">Duration</p>
+              <p className="text-xl font-black text-white mt-0.5 tracking-tight">
                 {workout.duration_seconds ? (
                   <>
                     {Math.floor(workout.duration_seconds / 3600) > 0 && `${Math.floor(workout.duration_seconds / 3600)}h `}
-                    {Math.floor((workout.duration_seconds % 3600) / 60)}m
+                    {Math.floor((workout.duration_seconds % 3600) / 60)}<span className="text-xs text-[#4a5568] ml-0.5">m</span>
                   </>
-                ) : '0m'}
+                ) : <span>0<span className="text-xs text-[#4a5568] ml-0.5">m</span></span>}
               </p>
             </div>
           </div>
-          <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex items-center gap-3">
-            <div className="bg-purple-500/10 p-2.5 rounded-lg border border-purple-500/20">
-              <Dumbbell className="w-5 h-5 text-purple-500" />
+          <div className="glass-panel p-4 rounded-xl border border-[#334155] flex items-center gap-3">
+            <div className="bg-[#CCFF00]/10 p-2.5 rounded-lg border border-[#CCFF00]/20 shrink-0">
+              <Dumbbell className="w-4 h-4 text-[#CCFF00]" />
             </div>
             <div>
-              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Volume</p>
-              <p className="text-lg font-bold font-mono mt-0.5">
-                {workoutVolume >= 1000 ? `${(workoutVolume / 1000).toFixed(1)}k` : workoutVolume} kg
+              <p className="text-[9px] text-[#4a5568] font-black uppercase tracking-[0.15em]">Volume</p>
+              <p className="text-xl font-black text-white mt-0.5 tracking-tight">
+                {workoutVolume >= 1000 ? `${(workoutVolume / 1000).toFixed(1)}k` : workoutVolume}
+                <span className="text-xs text-[#4a5568] ml-0.5">kg</span>
               </p>
             </div>
           </div>
         </div>
 
         {/* Exercises */}
-        <div className="space-y-6">
-          <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-2 mt-8">Exercises Log</h3>
-          
+        <div className="space-y-4">
+          <h3 className="text-xs font-black text-[#adb4ce] uppercase tracking-[0.15em]">Exercises Log</h3>
+
           {workout.workout_exercises.map((we: any) => (
-            <div key={we.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-              <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-800/30">
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-white text-lg font-sans tracking-tight">
+            <div key={we.id} className="glass-panel border border-[#334155] rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#334155] flex items-center justify-between bg-[#0c1324]">
+                <div>
+                  <span className="font-black text-[#CCFF00] text-base uppercase tracking-tight">
                     {we.exercise.name}
                   </span>
-                  <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded uppercase font-bold tracking-wider">
-                    {we.exercise.muscle_group}
-                  </span>
+                  <p className="text-[10px] text-[#4a5568] uppercase tracking-[0.15em] mt-0.5">{we.exercise.muscle_group}</p>
                 </div>
                 <DeleteHistoricalExerciseButton workoutExerciseId={we.id} workoutId={workout.id} />
               </div>
-              
+
               <div className="w-full">
-                <div className="flex text-xs font-bold text-zinc-500 uppercase tracking-wider py-3 px-4 bg-zinc-900 border-b border-zinc-800">
-                  <div className="w-12">Set</div>
+                <div className="flex text-[9px] font-black text-[#334155] uppercase tracking-widest py-2 px-4 border-b border-[#1e293b]">
+                  <div className="w-10">Set</div>
                   <div className="flex-1 text-center">kg</div>
                   <div className="flex-1 text-center">Reps</div>
-                  <div className="w-12 text-right">PR</div>
+                  <div className="w-10 text-right">PR</div>
                 </div>
-                
+
                 {we.sets.map((set: any) => (
-                  <div key={set.id} className="flex text-sm py-4 px-4 items-center font-mono border-b border-zinc-800 last:border-0 group">
-                    <div className="w-12 flex items-center">
-                      <div className={`w-6 h-6 flex items-center justify-center rounded-md font-bold ${
-                        set.is_warmup ? 'bg-orange-500/10 text-orange-500' : 'bg-zinc-800 text-zinc-400'
+                  <div key={set.id} className="flex text-sm py-3 px-4 items-center border-b border-[#1e293b] last:border-0">
+                    <div className="w-10 flex items-center">
+                      <div className={`w-6 h-6 flex items-center justify-center rounded-lg text-[11px] font-black ${
+                        set.is_warmup ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' : 'bg-[#151b2d] text-[#4a5568] border border-[#334155]'
                       }`}>
                         {set.is_warmup ? 'W' : set.set_number}
                       </div>
                     </div>
-                    <div className="flex-1 text-center text-white font-bold">
+                    <div className="flex-1 text-center text-white font-black">
                       <EditSetModal setId={set.id} initialWeight={set.weight_kg} initialReps={set.reps}>
                         {set.weight_kg}
                       </EditSetModal>
                     </div>
-                    <div className="flex-1 text-center text-white font-bold">
+                    <div className="flex-1 text-center text-white font-black">
                       <EditSetModal setId={set.id} initialWeight={set.weight_kg} initialReps={set.reps}>
                         {set.reps}
                       </EditSetModal>
                     </div>
-                    <div className="w-12 flex justify-end items-center">
+                    <div className="w-10 flex justify-end items-center">
                       {prMap.has(set.id) && (
-                        <div title={`PR: ${prMap.get(set.id)?.join(', ')}`}>
-                          <Trophy className="w-4 h-4 text-yellow-500 fill-yellow-500/20" />
+                        <div title={`PR: ${prMap.get(set.id)?.join(', ')}`} className="bg-[#CCFF00]/10 p-1 rounded-lg border border-[#CCFF00]/20">
+                          <Trophy className="w-3 h-3 text-[#CCFF00]" />
                         </div>
                       )}
                     </div>

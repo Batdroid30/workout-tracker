@@ -39,11 +39,11 @@ export function NumberStepper({ value, onChange, step = 1, min = 0, max = 999 }:
   }
 
   return (
-    <div className="flex items-center h-12 bg-zinc-950 rounded-xl overflow-hidden border border-zinc-800 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
-      <input 
-        type="text" 
+    <div className="flex items-center h-12 bg-[#0c1324] rounded-xl overflow-hidden border border-[#334155] focus-within:border-[#CCFF00]/50 transition-all">
+      <input
+        type="text"
         inputMode="decimal"
-        className="flex-1 w-full bg-transparent text-center font-mono font-bold text-lg text-white focus:outline-none px-2"
+        className="flex-1 w-full bg-transparent text-center font-black text-lg text-white focus:outline-none px-2"
         value={localStr}
         onChange={(e) => setLocalStr(e.target.value)}
         onBlur={handleBlur}

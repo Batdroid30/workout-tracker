@@ -18,19 +18,25 @@ export function RestTimer({ seconds = 90, onSkip }: { seconds?: number, onSkip: 
   if (timeLeft <= 0) return null
 
   return (
-    <div className="fixed bottom-[60px] left-0 right-0 bg-zinc-900 border-t border-zinc-800 p-4 z-40">
+    <div className="fixed bottom-[72px] left-0 right-0 bg-[#070d1f]/95 backdrop-blur border-t border-[#334155] px-4 py-3 z-40">
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2 text-brand">
-          <Timer className="w-5 h-5 animate-pulse" />
-          <span className="font-mono font-bold text-xl">{mins}:{secs < 10 ? '0' : ''}{secs}</span>
+        <div className="flex items-center gap-2">
+          <Timer className="w-4 h-4 text-[#CCFF00] animate-pulse" />
+          <span className="font-black text-xl text-white tracking-tighter tabular-nums">
+            {mins}:{secs < 10 ? '0' : ''}{secs}
+          </span>
+          <span className="text-[10px] font-black text-[#4a5568] uppercase tracking-widest">Rest</span>
         </div>
-        <button onClick={onSkip} className="h-8 w-8 flex items-center justify-center bg-zinc-800 rounded-full text-zinc-400 active:scale-95">
-          <X className="w-4 h-4" />
+        <button
+          onClick={onSkip}
+          className="h-7 px-3 flex items-center gap-1 bg-[#151b2d] border border-[#334155] rounded-lg text-[#adb4ce] hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors active:scale-95"
+        >
+          <X className="w-3 h-3" /> Skip
         </button>
       </div>
-      <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-        <div 
-          className="h-full bg-brand transition-all duration-1000 ease-linear"
+      <div className="h-1 bg-[#151b2d] rounded-full overflow-hidden">
+        <div
+          className="h-full bg-[#CCFF00] transition-all duration-1000 ease-linear"
           style={{ width: `${progress}%` }}
         />
       </div>

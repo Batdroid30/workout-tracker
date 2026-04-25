@@ -93,99 +93,105 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
   }
 
   return (
-    <div className="max-w-md mx-auto w-full pb-32">
+    <div className="max-w-md mx-auto w-full pb-32 bg-[#070d1f] min-h-screen">
       {/* Top Nav */}
-      <div className="sticky top-0 z-30 bg-black/90 backdrop-blur border-b border-zinc-900 p-4 flex items-center justify-between">
+      <div className="sticky top-0 z-30 bg-[#070d1f]/95 backdrop-blur border-b border-[#334155] px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/routines" className="p-2 -ml-2 rounded-full hover:bg-zinc-900 transition-colors">
-            <ArrowLeft className="w-5 h-5 text-zinc-400" />
+          <Link href="/routines" className="p-1.5 hover:bg-[#151b2d] rounded-lg transition-colors">
+            <ArrowLeft className="w-5 h-5 text-[#adb4ce]" />
           </Link>
-          <h1 className="text-xl font-bold font-sans">{initialRoutine ? 'Edit Routine' : 'Build Routine'}</h1>
+          <div>
+            <p className="text-[10px] font-black tracking-[0.2em] uppercase text-[#4a5568] leading-none mb-0.5">
+              {initialRoutine ? 'Editing' : 'New'}
+            </p>
+            <h1 className="text-lg font-black italic uppercase tracking-tight text-white">
+              {initialRoutine ? 'Edit Routine' : 'Build Routine'}
+            </h1>
+          </div>
         </div>
-        <Button 
-          onClick={handleSave} 
+        <Button
+          onClick={handleSave}
           disabled={isSaving || exercises.length === 0}
-          className="h-9 px-4 text-sm"
+          className="h-9 px-5 text-xs"
         >
           {isSaving ? 'Saving...' : 'Save'}
         </Button>
       </div>
 
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-5">
         {/* Basic Info */}
-        <div className="space-y-4 bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800">
+        <div className="glass-panel border border-[#334155] rounded-xl p-4 space-y-4">
           <div>
-            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Routine Title</label>
-            <input 
-              type="text" 
+            <label className="block text-[10px] font-black text-[#adb4ce] uppercase tracking-[0.15em] mb-2">Routine Title</label>
+            <input
+              type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-brand"
+              className="w-full bg-[#070d1f] border border-[#334155] rounded-xl px-4 py-3 text-white font-black focus:outline-none focus:border-[#CCFF00]/50 transition-colors uppercase tracking-tight"
               placeholder="e.g. Push Day, Upper Body"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Notes (Optional)</label>
-            <textarea 
+            <label className="block text-[10px] font-black text-[#adb4ce] uppercase tracking-[0.15em] mb-2">Notes <span className="text-[#4a5568] normal-case font-body">(optional)</span></label>
+            <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-brand resize-none h-20"
+              className="w-full bg-[#070d1f] border border-[#334155] rounded-xl px-4 py-3 text-[#dce1fb] text-sm font-body focus:outline-none focus:border-[#CCFF00]/50 resize-none h-20 transition-colors placeholder:text-[#334155]"
               placeholder="e.g. Focus on slow eccentrics..."
             />
           </div>
         </div>
 
         {/* Exercises List */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-white text-lg">Exercises</h3>
-          
+        <div className="space-y-3">
+          <h3 className="text-xs font-black text-[#adb4ce] uppercase tracking-[0.15em]">Exercises</h3>
+
           {exercises.map((ex, i) => (
-            <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-              <div className="p-4 bg-zinc-900/80 border-b border-zinc-800 flex justify-between items-center">
+            <div key={i} className="glass-panel border border-[#334155] rounded-xl overflow-hidden">
+              <div className="px-4 py-3 bg-[#0c1324] border-b border-[#334155] flex justify-between items-center">
                 <div>
-                  <h4 className="font-bold text-brand">{ex.exercise.name}</h4>
-                  <p className="text-xs text-zinc-500 font-mono uppercase tracking-wider">{ex.exercise.muscle_group}</p>
+                  <h4 className="font-black text-[#CCFF00] uppercase tracking-tight text-sm">{ex.exercise.name}</h4>
+                  <p className="text-[10px] text-[#4a5568] uppercase tracking-[0.15em] mt-0.5">{ex.exercise.muscle_group}</p>
                 </div>
-                <button 
+                <button
                   onClick={() => handleRemoveExercise(i)}
-                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                  className="p-1.5 text-red-500/60 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                 >
-                  <Trash2 className="w-5 h-5" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-              
+
               <div className="p-4 flex gap-4">
                 <div className="flex-1">
-                  <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 text-center">Target Sets</label>
-                  <NumberStepper 
-                    value={ex.target_sets} 
-                    onChange={val => handleUpdateExercise(i, { target_sets: val })} 
-                    step={1} 
+                  <label className="block text-[9px] font-black text-[#4a5568] uppercase tracking-widest mb-2 text-center">Target Sets</label>
+                  <NumberStepper
+                    value={ex.target_sets}
+                    onChange={val => handleUpdateExercise(i, { target_sets: val })}
+                    step={1}
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 text-center">Target Reps</label>
-                  <NumberStepper 
-                    value={ex.target_reps} 
-                    onChange={val => handleUpdateExercise(i, { target_reps: val })} 
-                    step={1} 
+                  <label className="block text-[9px] font-black text-[#4a5568] uppercase tracking-widest mb-2 text-center">Target Reps</label>
+                  <NumberStepper
+                    value={ex.target_reps}
+                    onChange={val => handleUpdateExercise(i, { target_reps: val })}
+                    step={1}
                   />
                 </div>
               </div>
             </div>
           ))}
 
-          <Button 
-            variant="secondary" 
+          <button
             onClick={() => setIsAddingExercise(true)}
-            className="w-full h-14 border-2 border-dashed border-zinc-800 bg-transparent text-brand hover:bg-zinc-900"
+            className="w-full h-12 flex items-center justify-center gap-2 border border-dashed border-[#334155] rounded-xl text-[#CCFF00] font-black hover:bg-[#151b2d] transition-colors text-xs uppercase tracking-widest"
           >
-            <Plus className="w-5 h-5 mr-2" /> Add Exercise
-          </Button>
+            <Plus className="w-4 h-4" /> Add Exercise
+          </button>
         </div>
       </div>
 
-      <AddExerciseModal 
+      <AddExerciseModal
         isOpen={isAddingExercise}
         onClose={() => setIsAddingExercise(false)}
         onSelect={handleAddExercise}

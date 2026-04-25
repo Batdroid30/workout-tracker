@@ -1,7 +1,6 @@
 'use client'
 import { SetRow } from './SetRow'
 import type { ActiveExercise } from '@/types/database'
-import { Button } from '@/components/ui/Button'
 import { Plus, Check, MoreVertical } from 'lucide-react'
 import { useState } from 'react'
 import { useWorkoutStore } from '@/store/workout.store'
@@ -22,53 +21,33 @@ export function SetLogger({ exerciseIndex, exercise, onSetCompleted, onReplaceEx
   const { history } = useExerciseHistory(exercise.exercise.id)
 
   return (
-    <div className="bg-zinc-900/50 rounded-2xl overflow-hidden mb-6 border border-zinc-800">
+    <div className="glass-panel rounded-xl overflow-hidden mb-4 border border-[#334155]">
       {/* Header */}
-      <div className="p-4 flex items-center justify-between border-b border-zinc-800 bg-zinc-900/80">
+      <div className="px-4 py-3 flex items-center justify-between border-b border-[#334155] bg-[#0c1324]">
         <div>
-          <h3 className="font-bold text-lg text-brand font-sans">{exercise.exercise.name}</h3>
-          <p className="text-xs text-zinc-500 font-mono uppercase tracking-wider">{exercise.exercise.muscle_group}</p>
+          <h3 className="font-black text-base text-[#CCFF00] uppercase tracking-tight">{exercise.exercise.name}</h3>
+          <p className="text-[10px] text-[#4a5568] uppercase tracking-[0.15em] mt-0.5">{exercise.exercise.muscle_group}</p>
         </div>
         <div className="relative">
-          <button 
+          <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="text-zinc-500 hover:text-white p-2 hover:bg-zinc-800 rounded-lg transition-colors"
+            className="text-[#4a5568] hover:text-[#adb4ce] p-2 hover:bg-[#151b2d] rounded-lg transition-colors"
           >
             <MoreVertical className="w-5 h-5" />
           </button>
-          
+
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 w-48 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl overflow-hidden z-20">
-              <button 
-                onClick={() => { onReplaceExercise?.(); setMenuOpen(false); }}
-                className="w-full text-left px-4 py-3 text-sm font-bold text-white hover:bg-zinc-800 transition-colors"
-              >
-                Replace Exercise
-              </button>
-              <button 
-                onClick={() => { moveExerciseUp(exerciseIndex); setMenuOpen(false); }}
-                className="w-full text-left px-4 py-3 text-sm font-bold text-white hover:bg-zinc-800 transition-colors"
-              >
-                Move Up
-              </button>
-              <button 
-                onClick={() => { moveExerciseDown(exerciseIndex); setMenuOpen(false); }}
-                className="w-full text-left px-4 py-3 text-sm font-bold text-white hover:bg-zinc-800 transition-colors border-b border-zinc-800"
-              >
-                Move Down
-              </button>
-              <button 
+            <div className="absolute right-0 top-full mt-1 w-48 bg-[#0c1324] border border-[#334155] rounded-xl shadow-xl overflow-hidden z-20">
+              <button onClick={() => { onReplaceExercise?.(); setMenuOpen(false) }} className="w-full text-left px-4 py-3 text-sm font-bold text-[#dce1fb] hover:bg-[#151b2d] transition-colors">Replace Exercise</button>
+              <button onClick={() => { moveExerciseUp(exerciseIndex); setMenuOpen(false) }} className="w-full text-left px-4 py-3 text-sm font-bold text-[#dce1fb] hover:bg-[#151b2d] transition-colors">Move Up</button>
+              <button onClick={() => { moveExerciseDown(exerciseIndex); setMenuOpen(false) }} className="w-full text-left px-4 py-3 text-sm font-bold text-[#dce1fb] hover:bg-[#151b2d] transition-colors border-b border-[#334155]">Move Down</button>
+              <button
                 onClick={async () => {
-                  setMenuOpen(false);
-                  const confirmed = await dialog.confirm({
-                    title: 'Remove Exercise',
-                    description: 'Are you sure you want to remove this exercise from the workout?',
-                    danger: true,
-                    confirmText: 'Remove'
-                  });
-                  if (confirmed) removeExercise(exerciseIndex);
+                  setMenuOpen(false)
+                  const confirmed = await dialog.confirm({ title: 'Remove Exercise', description: 'Remove this exercise from the workout?', danger: true, confirmText: 'Remove' })
+                  if (confirmed) removeExercise(exerciseIndex)
                 }}
-                className="w-full text-left px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-500/10 transition-colors"
+                className="w-full text-left px-4 py-3 text-sm font-bold text-red-400 hover:bg-red-500/10 transition-colors"
               >
                 Remove Exercise
               </button>
@@ -77,45 +56,38 @@ export function SetLogger({ exerciseIndex, exercise, onSetCompleted, onReplaceEx
         </div>
       </div>
 
-      {/* Table Headers */}
-      <div className="flex items-center gap-2 px-4 py-2 mt-2">
-        <span className="w-8 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Set</span>
-        <span className="w-16 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Prev</span>
-        <span className="flex-1 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-wider">kg</span>
-        <span className="flex-1 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Reps</span>
-        <span className="w-12 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-wider"><Check className="w-3 h-3 mx-auto"/></span>
+      {/* Column Headers */}
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-[#1e293b]">
+        <span className="w-8 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest">Set</span>
+        <span className="w-16 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest">Prev</span>
+        <span className="flex-1 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest">kg</span>
+        <span className="flex-1 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest">Reps</span>
+        <span className="w-12 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest"><Check className="w-3 h-3 mx-auto" /></span>
       </div>
 
       {/* Rows */}
-      <div className="px-4 pb-4">
+      <div className="px-4 py-3">
         {exercise.sets.map((set, setIndex) => {
-          // Find the previous record for this set number in history
           const prevRecord = history[setIndex]
-          const prevText = prevRecord 
-            ? `${prevRecord.weight_kg} × ${prevRecord.reps}`
-            : '-'
+          const prevText = prevRecord ? `${prevRecord.weight_kg}×${prevRecord.reps}` : '-'
 
           return (
-            <SetRow 
+            <SetRow
               key={set.id}
               set={set}
               prevSetText={prevText}
               onChange={(updates) => updateSet(exerciseIndex, setIndex, updates)}
-              onDone={() => {
-                markSetDone(exerciseIndex, setIndex)
-                onSetCompleted?.()
-              }}
+              onDone={() => { markSetDone(exerciseIndex, setIndex); onSetCompleted?.() }}
               onRemove={() => removeSet(exerciseIndex, setIndex)}
             />
           )
         })}
-        
-        {/* Add Set Button */}
-        <button 
+
+        <button
           onClick={() => addSet(exerciseIndex)}
-          className="w-full flex items-center justify-center gap-2 h-10 mt-3 text-sm font-bold text-brand bg-brand/10 hover:bg-brand/20 rounded-xl transition-colors"
+          className="w-full flex items-center justify-center gap-2 h-9 mt-2 text-[11px] font-black text-[#CCFF00] bg-[#CCFF00]/5 hover:bg-[#CCFF00]/10 rounded-lg transition-colors border border-[#CCFF00]/10 hover:border-[#CCFF00]/20 uppercase tracking-widest"
         >
-          <Plus className="w-4 h-4" /> Add Set
+          <Plus className="w-3.5 h-3.5" /> Add Set
         </button>
       </div>
     </div>

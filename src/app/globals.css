@@ -1,16 +1,31 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-space-mono), ui-monospace, SFMono-Regular, monospace;
-  
-  --color-brand: #2563eb; /* A HEVY-like electric blue */
-  --color-brand-hover: #1d4ed8;
-  
-  --color-background: #000000;
-  --color-foreground: #ffffff;
-  
-  --color-zinc-850: #1f1f22; /* Custom slightly lighter dark for cards */
+  --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-lexend), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-space-grotesk), ui-monospace, monospace;
+
+  /* Lime accent */
+  --color-brand: #CCFF00;
+  --color-brand-hover: #abd600;
+  --color-brand-dim: #c3f400;
+  --color-on-brand: #020617;
+
+  /* Surfaces */
+  --color-background: #070d1f;
+  --color-surface: #0c1324;
+  --color-surface-low: #151b2d;
+  --color-surface-mid: #191f31;
+  --color-surface-high: #23293c;
+  --color-surface-highest: #2e3447;
+
+  /* Text */
+  --color-foreground: #dce1fb;
+  --color-muted: #adb4ce;
+  --color-subtle: #c4c9ac;
+
+  /* Borders */
+  --color-border: #334155;
 }
 
 :root {
@@ -20,9 +35,33 @@
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
+  font-family: var(--font-body);
 }
 
-/* Base resets for inputs on mobile so they don't look weird */
+/* Glass panel utility */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid #334155;
+}
+
+/* Lime glow for primary CTAs */
+.glow-lime {
+  box-shadow: 0 0 20px rgba(204, 255, 0, 0.25);
+}
+
+/* Subtle dot grid background */
+.radar-grid {
+  background-image: radial-gradient(circle, #334155 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #0c1324; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+/* Suppress number input spinners */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
