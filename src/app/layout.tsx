@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Lexend } from "next/font/google";
 import "./globals.css";
 import { DialogProvider } from "@/providers/DialogProvider";
+import { ToastProvider } from "@/providers/ToastProvider";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -46,7 +47,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[#070d1f] text-[#dce1fb] font-sans selection:bg-[#CCFF00] selection:text-[#020617]">
         <DialogProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </DialogProvider>
       </body>
     </html>

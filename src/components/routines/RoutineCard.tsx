@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useWorkoutStore } from '@/store/workout.store'
 import { deleteRoutineAction } from '@/app/(app)/routines/actions'
 import { useDialog } from '@/providers/DialogProvider'
+import { useToast } from '@/providers/ToastProvider'
 
 interface RoutineCardProps {
   routine: any
@@ -14,9 +15,11 @@ interface RoutineCardProps {
 export function RoutineCard({ routine }: RoutineCardProps) {
   const router = useRouter()
   const startRoutine = useWorkoutStore(state => state.startRoutine)
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuOpen,  setMenuOpen]  = useState(false)
+  const [deleted,   setDeleted]   = useState(false)
   const [isPending, startTransition] = useTransition()
   const dialog = useDialog()
+  const toast  = useToast()
 
   const handleStartRoutine = () => {
     startRoutine(routine)
@@ -29,9 +32,22 @@ export function RoutineCard({ routine }: RoutineCardProps) {
       title: 'Delete Routine',
       description: 'Are you sure you want to delete this routine? This action cannot be undone.',
       danger: true,
-      confirmText: 'Delete'
+      confirmText: 'Delete',
     })
-    if (confirmed) startTransition(() => { deleteRoutineAction(routine.id) })
+    if (!confirmed) return
+
+    // Optimistic — vanish immediately
+    setDeleted(true)
+
+    startTransition(async () => {
+      try {
+        await deleteRoutineAction(routine.id)
+        toast.success(`"${routine.title}" deleted`)
+      } catch {
+        setDeleted(false)
+        toast.error('Failed to delete routine')
+      }
+    })
   }
 
   const handleModify = () => {
@@ -40,6 +56,9 @@ export function RoutineCard({ routine }: RoutineCardProps) {
   }
 
   const exerciseNames = routine.routine_exercises.map((re: any) => re.exercise?.name).join(' · ')
+
+  // Optimistic delete — collapse away with a fade+scale before server confirms
+  if (deleted) return null
 
   return (
     <div className="glass-panel border border-[#334155] hover:border-[#CCFF00]/30 rounded-xl p-4 transition-colors">

@@ -34,12 +34,12 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
   return (
     <div className="min-h-screen bg-[#070d1f] text-[#dce1fb] pb-24">
       {/* Top Nav */}
-      <div className="sticky top-0 z-30 bg-[#070d1f]/90 backdrop-blur border-b border-[#1e293b] p-4 flex items-center gap-3">
-        <Link href="/exercises" className="p-2 -ml-2 rounded-lg hover:bg-[#0c1324] transition-colors">
-          <ArrowLeft className="w-5 h-5 text-[#4a5568]" />
+      <div className="sticky top-0 z-30 bg-[#070d1f]/95 backdrop-blur border-b border-[#334155] px-4 py-3 flex items-center gap-3">
+        <Link href="/exercises" className="p-1.5 hover:bg-[#151b2d] rounded-lg transition-colors">
+          <ArrowLeft className="w-5 h-5 text-[#adb4ce]" />
         </Link>
         <div>
-          <h1 className="text-xl font-black uppercase tracking-tight text-white">{exercise.name}</h1>
+          <h1 className="text-sm font-black uppercase tracking-widest text-white leading-tight">{exercise.name}</h1>
           <p className="text-[10px] text-[#4a5568] font-black uppercase tracking-widest mt-0.5">
             {exercise.muscle_group}
           </p>

@@ -15,6 +15,7 @@ export interface Profile {
   last_name: string | null
   avatar_url: string | null
   rest_timer_seconds: number
+  weekly_goal_sessions: number
   updated_at: string
 }
 

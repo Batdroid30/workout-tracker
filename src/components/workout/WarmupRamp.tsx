@@ -29,14 +29,13 @@ export function WarmupRamp({ workingWeight }: WarmupRampProps) {
       <div className="flex items-center gap-1">
         {sets.map((s, i) => (
           <div key={i} className="flex items-center gap-1">
-            <span className="text-[11px] font-black text-[#4a5568]">{s.weight}</span>
+            <span className="text-[11px] font-black text-[#4a5568]">{s.weight}<span className="text-[9px] text-[#334155]">kg</span></span>
             <span className="text-[9px] text-[#334155]">×{s.reps}</span>
             {i < sets.length - 1 && (
               <span className="text-[#1e293b] mx-1 text-xs">›</span>
             )}
           </div>
         ))}
-        <span className="text-[9px] text-[#334155] ml-1">kg</span>
       </div>
     </div>
   )

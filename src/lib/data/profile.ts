@@ -37,6 +37,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     last_name: user.user_metadata?.last_name || null,
     avatar_url: user.user_metadata?.avatar_url || null,
     rest_timer_seconds: 90,
+    weekly_goal_sessions: 3,
     updated_at: user.updated_at || new Date().toISOString()
   }
 }

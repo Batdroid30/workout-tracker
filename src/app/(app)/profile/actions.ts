@@ -74,6 +74,24 @@ export async function logoutAction() {
   await signOut({ redirectTo: '/login' })
 }
 
+export async function updateWeeklyGoalAction(sessions: number) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error('Not authenticated')
+
+  const clamped = Math.max(1, Math.min(14, sessions))
+  const supabase = await getSupabaseServer()
+
+  await supabase
+    .from('profiles')
+    .upsert(
+      { id: session.user.id, weekly_goal_sessions: clamped, updated_at: new Date().toISOString() },
+      { onConflict: 'id' }
+    )
+
+  revalidatePath('/dashboard')
+  revalidatePath('/profile')
+}
+
 export async function clearAllWorkoutDataAction() {
   const session = await auth()
   if (!session?.user?.id) throw new Error('Not authenticated')
