@@ -60,7 +60,7 @@ export default async function DashboardPage() {
           <h2 className="text-xs font-bold tracking-[0.2em] uppercase text-[#4a5568]">Insights</h2>
         </div>
         <Suspense fallback={<InsightsSkeleton />}>
-          <InsightsSection userId={userId} />
+          <InsightsSection userId={userId} totalVolume={totalVolume} />
         </Suspense>
       </div>
 

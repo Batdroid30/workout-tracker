@@ -122,9 +122,12 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
             <div key={we.id} className="glass-panel border border-[#334155] rounded-xl overflow-hidden">
               <div className="px-4 py-3 border-b border-[#334155] flex items-center justify-between bg-[#0c1324]">
                 <div>
-                  <span className="font-black text-[#CCFF00] text-base uppercase tracking-tight">
+                  <Link
+                    href={`/exercises/${we.exercise.id}`}
+                    className="font-black text-[#CCFF00] text-base uppercase tracking-tight hover:underline underline-offset-2"
+                  >
                     {we.exercise.name}
-                  </span>
+                  </Link>
                   <p className="text-[10px] text-[#4a5568] uppercase tracking-[0.15em] mt-0.5">{we.exercise.muscle_group}</p>
                 </div>
                 <DeleteHistoricalExerciseButton workoutExerciseId={we.id} workoutId={workout.id} />
