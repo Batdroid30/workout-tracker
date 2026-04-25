@@ -41,9 +41,9 @@ export async function evaluateAndSavePRs(userId: string, workoutId: string): Pro
     .select('*')
     .eq('user_id', userId)
 
-  const prMap = new Map<string, number>() // key: `${exerciseId}_${prType}`, value: current_record_value
+  const prMap = new Map<string, number>() // key: `${exerciseId}|${prType}`, value: current_record_value
   existingPRs?.forEach(pr => {
-    prMap.set(`${pr.exercise_id}_${pr.pr_type}`, Number(pr.value))
+    prMap.set(`${pr.exercise_id}|${pr.pr_type}`, Number(pr.value))
   })
 
   const newPRsToUpsert: any[] = []
@@ -73,7 +73,7 @@ export async function evaluateAndSavePRs(userId: string, workoutId: string): Pro
       ]
 
       for (const check of checks) {
-        const key = `${exerciseId}_${check.type}`
+        const key = `${exerciseId}|${check.type}`
         const currentRecord = prMap.get(key) || 0
 
         if (check.value > currentRecord) {
@@ -149,10 +149,11 @@ export async function evaluateAndSaveAllPRs(userId: string): Promise<void> {
     const weight = Number(set.weight_kg)
     const reps = Number(set.reps)
     const volume = weight * reps
-    const est1RM = calculate1RM(weight, reps)
+    const est1RM = weight * (1 + reps / 30) // Manual calc to avoid dependency in this loop
+
     const we = Array.isArray(set.workout_exercises) ? set.workout_exercises[0] : (set.workout_exercises as any)
     if (!we) continue
-    
+
     const exerciseId = we.exercise_id
     const workout = Array.isArray(we.workouts) ? we.workouts[0] : (we.workouts as any)
     const achievedAt = workout?.started_at || set.completed_at
@@ -164,7 +165,7 @@ export async function evaluateAndSaveAllPRs(userId: string): Promise<void> {
     ]
 
     for (const check of checks) {
-      const key = `${exerciseId}_${check.type}`
+      const key = `${exerciseId}|${check.type}`
       const currentBest = prMap.get(key)
 
       if (!currentBest || check.value > currentBest.value) {
@@ -178,10 +179,24 @@ export async function evaluateAndSaveAllPRs(userId: string): Promise<void> {
     }
   }
 
-  // 3. Prepare data for upsert
+  // 3. Fetch existing PRs to get their IDs for upserting
+  const { data: existingPRs } = await supabase
+    .from('personal_records')
+    .select('id, exercise_id, pr_type')
+    .eq('user_id', userId)
+
+  const existingPRMap = new Map<string, string>()
+  existingPRs?.forEach(pr => {
+    existingPRMap.set(`${pr.exercise_id}|${pr.pr_type}`, pr.id)
+  })
+
+  // 4. Prepare data for upsert
   const newPRsToUpsert = Array.from(prMap.entries()).map(([key, data]) => {
-    const [exercise_id, pr_type] = key.split('_')
+    const [exercise_id, pr_type] = key.split('|')
+    const existingId = existingPRMap.get(key)
+
     return {
+      ...(existingId ? { id: existingId } : {}),
       user_id: userId,
       exercise_id,
       pr_type,
@@ -192,18 +207,16 @@ export async function evaluateAndSaveAllPRs(userId: string): Promise<void> {
     }
   })
 
-  // 4. Save to DB
+  // 5. Save to DB
   if (newPRsToUpsert.length > 0) {
-    const { error: upsertErr } = await supabase.from('personal_records').upsert(newPRsToUpsert, {
-      onConflict: 'user_id,exercise_id,pr_type'
-    })
+    const { error: upsertErr } = await supabase.from('personal_records').upsert(newPRsToUpsert)
     if (upsertErr) throw new Error(`Failed to save PRs: ${upsertErr.message}`)
   }
 }
 
 export async function getExerciseProgression(userId: string, exerciseId: string) {
   const supabase = await getSupabaseServer()
-  
+
   // Fetch PRs for this exercise
   const { data: prs } = await supabase
     .from('personal_records')
@@ -234,7 +247,7 @@ export async function getExerciseProgression(userId: string, exerciseId: string)
     let best1 = 0
     let vol = 0
     const dateStr = new Date(w.started_at).toISOString().split('T')[0]
-    
+
     // @ts-ignore
     w.workout_exercises.forEach(we => {
       // @ts-ignore
@@ -268,11 +281,11 @@ export async function getExerciseProgression(userId: string, exerciseId: string)
 
 export async function getWeeklyMuscleGroupStats(userId: string) {
   const supabase = await getSupabaseServer()
-  
+
   // Last 7 days
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-  
+
   const { data: workouts } = await supabase
     .from('workouts')
     .select(`
@@ -294,7 +307,7 @@ export async function getWeeklyMuscleGroupStats(userId: string) {
       const group = we.exercise?.muscle_group
       // @ts-ignore
       const validSets = we.sets?.filter(s => !s.is_warmup).length || 0
-      
+
       if (group && validSets > 0) {
         muscleCounts[group] = (muscleCounts[group] || 0) + validSets
       }

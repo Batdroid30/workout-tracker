@@ -18,15 +18,13 @@ export async function importHevyCSVAction(formData: FormData) {
   try {
     const csvText = await file.text()
     const rows = parseHevyCSV(csvText)
-    
+
     if (rows.length === 0) {
       return { success: false, error: 'Empty or invalid CSV file' }
     }
 
     const results = await importWorkoutsFromHevy(session.user.id, rows)
-    
-    // Evaluate PRs for all imported data
-    // This might be slow for many workouts, but necessary
+
     const { evaluateAndSaveAllPRs } = await import('@/lib/data/stats')
     await evaluateAndSaveAllPRs(session.user.id)
 
@@ -34,10 +32,10 @@ export async function importHevyCSVAction(formData: FormData) {
     revalidatePath('/progress')
     revalidatePath('/profile')
 
-    return { 
-      success: true, 
-      count: results.workoutsImported, 
-      errors: results.errors 
+    return {
+      success: true,
+      count: results.workoutsImported,
+      errors: results.errors
     }
   } catch (error: any) {
     console.error('Import failed:', error)

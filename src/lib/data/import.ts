@@ -1,6 +1,6 @@
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
-import type { Exercise, MuscleGroup, MovementPattern } from '@/types/database'
+import type { MuscleGroup, MovementPattern } from '@/types/database'
 
 export interface HevyRow {
   title: string
@@ -32,7 +32,6 @@ export function parseHevyCSV(csvText: string): HevyRow[] {
     const currentLine = lines[i]
     if (!currentLine.trim()) continue
 
-    // Basic CSV split that handles quotes
     const values: string[] = []
     let current = ''
     let inQuotes = false
@@ -57,9 +56,39 @@ export function parseHevyCSV(csvText: string): HevyRow[] {
   return rows
 }
 
+function guessExerciseMetrics(name: string): { muscle: MuscleGroup, pattern: MovementPattern } {
+  const n = name.toLowerCase()
+
+  if (n.includes('bench') || n.includes('chest press') || n.includes('pushup')) return { muscle: 'chest', pattern: 'push' }
+  if (n.includes('fly')) return { muscle: 'chest', pattern: 'isolation' }
+  if (n.includes('dip')) return { muscle: 'chest', pattern: 'push' }
+
+  if (n.includes('pullup') || n.includes('chinup') || n.includes('lat pulldown')) return { muscle: 'back', pattern: 'pull' }
+  if (n.includes('row')) return { muscle: 'back', pattern: 'pull' }
+  if (n.includes('deadlift') && !n.includes('rdl') && !n.includes('romanian')) return { muscle: 'back', pattern: 'hinge' }
+  if (n.includes('rdl') || n.includes('romanian')) return { muscle: 'hamstrings', pattern: 'hinge' }
+
+  if (n.includes('squat') || n.includes('leg press') || n.includes('lunge')) return { muscle: 'quads', pattern: 'squat' }
+  if (n.includes('leg curl')) return { muscle: 'hamstrings', pattern: 'isolation' }
+  if (n.includes('leg extension')) return { muscle: 'quads', pattern: 'isolation' }
+  if (n.includes('calf')) return { muscle: 'calves', pattern: 'isolation' }
+
+  if (n.includes('overhead press') || n.includes('shoulder press') || n.includes('military press')) return { muscle: 'shoulders', pattern: 'push' }
+  if (n.includes('lateral raise') || n.includes('front raise') || n.includes('face pull')) return { muscle: 'shoulders', pattern: 'isolation' }
+
+  if (n.includes('curl')) return { muscle: 'biceps', pattern: 'isolation' }
+  if (n.includes('tricep') || n.includes('skull') || n.includes('extension')) {
+    if (n.includes('leg')) return { muscle: 'quads', pattern: 'isolation' } // Handle leg extension
+    return { muscle: 'triceps', pattern: 'isolation' }
+  }
+
+  if (n.includes('plank') || n.includes('crunch') || n.includes('leg raise') || n.includes('sit up') || n.includes('ab ')) return { muscle: 'core', pattern: 'isolation' }
+
+  return { muscle: 'core', pattern: 'isolation' } // Fallback
+}
+
 async function findOrCreateExercise(supabase: any, userId: string, name: string): Promise<string> {
-  // 1. Try to find exact match in global exercises or user's custom exercises
-  const { data: existing, error } = await supabase
+  const { data: existing } = await supabase
     .from('exercises')
     .select('id')
     .ilike('name', name)
@@ -68,13 +97,14 @@ async function findOrCreateExercise(supabase: any, userId: string, name: string)
 
   if (existing) return existing.id
 
-  // 2. Create new exercise
+  const { muscle, pattern } = guessExerciseMetrics(name)
+
   const { data: newEx, error: createErr } = await supabase
     .from('exercises')
     .insert({
       name,
-      muscle_group: 'core', // Default
-      movement_pattern: 'isolation', // Default
+      muscle_group: muscle,
+      movement_pattern: pattern,
       is_custom: true,
       created_by: userId
     })
@@ -87,8 +117,7 @@ async function findOrCreateExercise(supabase: any, userId: string, name: string)
 
 export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
   const supabase = await getSupabaseServer()
-  
-  // Group rows by workout (title + start_time)
+
   const workoutsMap = new Map<string, HevyRow[]>()
   rows.forEach(row => {
     const key = `${row.title}-${row.start_time}`
@@ -98,15 +127,13 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
 
   const results = {
     workoutsImported: 0,
-    exercisesCreated: 0,
     errors: [] as string[]
   }
 
   for (const [key, workoutRows] of workoutsMap.entries()) {
     try {
       const firstRow = workoutRows[0]
-      
-      // 1. Create Workout
+
       const { data: workout, error: workoutErr } = await supabase
         .from('workouts')
         .insert({
@@ -123,7 +150,6 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
 
       if (workoutErr) throw workoutErr
 
-      // Group by exercise within workout
       const exerciseMap = new Map<string, HevyRow[]>()
       workoutRows.forEach(row => {
         if (!exerciseMap.has(row.exercise_title)) exerciseMap.set(row.exercise_title, [])
@@ -133,8 +159,7 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
       let orderIndex = 0
       for (const [exerciseName, setRows] of exerciseMap.entries()) {
         const exerciseId = await findOrCreateExercise(supabase, userId, exerciseName)
-        
-        // 2. Create Workout Exercise
+
         const { data: we, error: weErr } = await supabase
           .from('workout_exercises')
           .insert({
@@ -148,13 +173,11 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
 
         if (weErr) throw weErr
 
-        // 3. Create Sets
         const setsToInsert = setRows.map((sr, idx) => {
-          // Hevy provides weight_kg or weight_lbs
           let weight = 0
           if (sr.weight_kg) weight = parseFloat(sr.weight_kg)
-          else if (sr.weight_lbs) weight = parseFloat(sr.weight_lbs) * 0.453592 // Convert to kg
-          
+          else if (sr.weight_lbs) weight = parseFloat(sr.weight_lbs) * 0.453592
+
           return {
             workout_exercise_id: we.id,
             set_number: parseInt(sr.set_index) || (idx + 1),
@@ -166,10 +189,7 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
           }
         })
 
-        const { error: setsErr } = await supabase
-          .from('sets')
-          .insert(setsToInsert)
-
+        const { error: setsErr } = await supabase.from('sets').insert(setsToInsert)
         if (setsErr) throw setsErr
       }
 
