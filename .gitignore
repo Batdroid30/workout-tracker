@@ -41,3 +41,9 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+.claude
+.gemini
+CLAUDE.md
+GEMINI.md
+PLAN.md
+AGENTS.md
