@@ -14,6 +14,7 @@ export interface Profile {
   first_name: string | null
   last_name: string | null
   avatar_url: string | null
+  rest_timer_seconds: number
   updated_at: string
 }
 
