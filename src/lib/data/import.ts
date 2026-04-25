@@ -58,32 +58,32 @@ export function parseHevyCSV(csvText: string): HevyRow[] {
 
 function guessExerciseMetrics(name: string): { muscle: MuscleGroup, pattern: MovementPattern } {
   const n = name.toLowerCase()
-  
+
   if (n.includes('bench') || n.includes('chest press') || n.includes('pushup')) return { muscle: 'chest', pattern: 'push' }
   if (n.includes('fly')) return { muscle: 'chest', pattern: 'isolation' }
   if (n.includes('dip')) return { muscle: 'chest', pattern: 'push' }
-  
+
   if (n.includes('pullup') || n.includes('chinup') || n.includes('lat pulldown')) return { muscle: 'back', pattern: 'pull' }
   if (n.includes('row')) return { muscle: 'back', pattern: 'pull' }
   if (n.includes('deadlift') && !n.includes('rdl') && !n.includes('romanian')) return { muscle: 'back', pattern: 'hinge' }
   if (n.includes('rdl') || n.includes('romanian')) return { muscle: 'hamstrings', pattern: 'hinge' }
-  
+
   if (n.includes('squat') || n.includes('leg press') || n.includes('lunge')) return { muscle: 'quads', pattern: 'squat' }
   if (n.includes('leg curl')) return { muscle: 'hamstrings', pattern: 'isolation' }
   if (n.includes('leg extension')) return { muscle: 'quads', pattern: 'isolation' }
   if (n.includes('calf')) return { muscle: 'calves', pattern: 'isolation' }
-  
+
   if (n.includes('overhead press') || n.includes('shoulder press') || n.includes('military press')) return { muscle: 'shoulders', pattern: 'push' }
   if (n.includes('lateral raise') || n.includes('front raise') || n.includes('face pull')) return { muscle: 'shoulders', pattern: 'isolation' }
-  
+
   if (n.includes('curl')) return { muscle: 'biceps', pattern: 'isolation' }
   if (n.includes('tricep') || n.includes('skull') || n.includes('extension')) {
     if (n.includes('leg')) return { muscle: 'quads', pattern: 'isolation' } // Handle leg extension
     return { muscle: 'triceps', pattern: 'isolation' }
   }
-  
+
   if (n.includes('plank') || n.includes('crunch') || n.includes('leg raise') || n.includes('sit up') || n.includes('ab ')) return { muscle: 'core', pattern: 'isolation' }
-  
+
   return { muscle: 'core', pattern: 'isolation' } // Fallback
 }
 
@@ -117,7 +117,7 @@ async function findOrCreateExercise(supabase: any, userId: string, name: string)
 
 export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
   const supabase = await getSupabaseServer()
-  
+
   const workoutsMap = new Map<string, HevyRow[]>()
   rows.forEach(row => {
     const key = `${row.title}-${row.start_time}`
@@ -133,7 +133,7 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
   for (const [key, workoutRows] of workoutsMap.entries()) {
     try {
       const firstRow = workoutRows[0]
-      
+
       const { data: workout, error: workoutErr } = await supabase
         .from('workouts')
         .insert({
@@ -159,7 +159,7 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
       let orderIndex = 0
       for (const [exerciseName, setRows] of exerciseMap.entries()) {
         const exerciseId = await findOrCreateExercise(supabase, userId, exerciseName)
-        
+
         const { data: we, error: weErr } = await supabase
           .from('workout_exercises')
           .insert({
@@ -177,7 +177,7 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
           let weight = 0
           if (sr.weight_kg) weight = parseFloat(sr.weight_kg)
           else if (sr.weight_lbs) weight = parseFloat(sr.weight_lbs) * 0.453592
-          
+
           return {
             workout_exercise_id: we.id,
             set_number: parseInt(sr.set_index) || (idx + 1),

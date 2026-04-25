@@ -150,10 +150,10 @@ export async function evaluateAndSaveAllPRs(userId: string): Promise<void> {
     const reps = Number(set.reps)
     const volume = weight * reps
     const est1RM = weight * (1 + reps / 30) // Manual calc to avoid dependency in this loop
-    
+
     const we = Array.isArray(set.workout_exercises) ? set.workout_exercises[0] : (set.workout_exercises as any)
     if (!we) continue
-    
+
     const exerciseId = we.exercise_id
     const workout = Array.isArray(we.workouts) ? we.workouts[0] : (we.workouts as any)
     const achievedAt = workout?.started_at || set.completed_at
@@ -194,7 +194,7 @@ export async function evaluateAndSaveAllPRs(userId: string): Promise<void> {
   const newPRsToUpsert = Array.from(prMap.entries()).map(([key, data]) => {
     const [exercise_id, pr_type] = key.split('|')
     const existingId = existingPRMap.get(key)
-    
+
     return {
       ...(existingId ? { id: existingId } : {}),
       user_id: userId,
@@ -216,7 +216,7 @@ export async function evaluateAndSaveAllPRs(userId: string): Promise<void> {
 
 export async function getExerciseProgression(userId: string, exerciseId: string) {
   const supabase = await getSupabaseServer()
-  
+
   // Fetch PRs for this exercise
   const { data: prs } = await supabase
     .from('personal_records')
@@ -247,7 +247,7 @@ export async function getExerciseProgression(userId: string, exerciseId: string)
     let best1 = 0
     let vol = 0
     const dateStr = new Date(w.started_at).toISOString().split('T')[0]
-    
+
     // @ts-ignore
     w.workout_exercises.forEach(we => {
       // @ts-ignore
@@ -281,11 +281,11 @@ export async function getExerciseProgression(userId: string, exerciseId: string)
 
 export async function getWeeklyMuscleGroupStats(userId: string) {
   const supabase = await getSupabaseServer()
-  
+
   // Last 7 days
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-  
+
   const { data: workouts } = await supabase
     .from('workouts')
     .select(`
@@ -307,7 +307,7 @@ export async function getWeeklyMuscleGroupStats(userId: string) {
       const group = we.exercise?.muscle_group
       // @ts-ignore
       const validSets = we.sets?.filter(s => !s.is_warmup).length || 0
-      
+
       if (group && validSets > 0) {
         muscleCounts[group] = (muscleCounts[group] || 0) + validSets
       }

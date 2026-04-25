@@ -94,7 +94,7 @@ export default function ImportPage() {
         {!isUploading && !result && (
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-              <label 
+              <label
                 htmlFor="csv-upload"
                 className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-[#334155] rounded-xl cursor-pointer hover:bg-[#CCFF00]/5 hover:border-[#CCFF00]/30 transition-all group"
               >
@@ -105,10 +105,10 @@ export default function ImportPage() {
                   </p>
                   <p className="text-[10px] text-[#4a5568] uppercase font-black tracking-widest">Hevy CSV export file</p>
                 </div>
-                <input 
-                  id="csv-upload" 
-                  type="file" 
-                  className="hidden" 
+                <input
+                  id="csv-upload"
+                  type="file"
+                  className="hidden"
                   accept=".csv"
                   onChange={handleFileChange}
                 />
@@ -121,7 +121,7 @@ export default function ImportPage() {
                     <p className="text-xs font-black text-white truncate uppercase tracking-tight">{file.name}</p>
                     <p className="text-[10px] text-[#4a5568] font-bold">{(file.size / 1024).toFixed(1)} KB</p>
                   </div>
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setFile(null)}
                     className="text-[10px] font-black uppercase tracking-widest text-[#4a5568] hover:text-white transition-colors"
@@ -159,7 +159,7 @@ export default function ImportPage() {
 
             <div className="space-y-2">
               <div className="h-2 w-full bg-[#0c1324] border border-[#334155] rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-[#CCFF00] transition-all duration-500 ease-out"
                   style={{ width: `${progress}%` }}
                 />

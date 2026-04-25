@@ -11,7 +11,7 @@ import { getWorkoutsSummary, getVolumeHistory, getAllWorkouts } from '@/lib/data
 import { getWeeklyMuscleGroupStats } from '@/lib/data/stats'
 import { getExercises } from '@/lib/data/exercises'
 import { DeleteWorkoutButton } from '@/components/workout/DeleteWorkoutButton'
-import { Trophy, User } from 'lucide-react'
+import { Trophy, User, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { ClearDataButton } from '@/components/profile/ClearDataButton'
 
@@ -57,10 +57,10 @@ export default async function ProfilePage({
 
       <div className="px-4">
         <Suspense fallback={<div className="text-[#334155] text-xs font-black uppercase tracking-widest text-center mt-12">Loading...</div>}>
-          {tab === 'stats'     && <StatsTab userId={userId} />}
-          {tab === 'history'   && <HistoryTab userId={userId} />}
+          {tab === 'stats' && <StatsTab userId={userId} />}
+          {tab === 'history' && <HistoryTab userId={userId} />}
           {tab === 'exercises' && <ExercisesTab />}
-          {tab === 'account'   && <ProfileForm profile={profile} userEmail={session.user.email || ''} />}
+          {tab === 'account' && <ProfileForm profile={profile} userEmail={session.user.email || ''} />}
         </Suspense>
       </div>
     </div>

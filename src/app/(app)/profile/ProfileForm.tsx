@@ -154,7 +154,7 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
             href="/profile/import"
             className="w-full h-11 flex items-center justify-center gap-2 glass-panel border border-[#334155] hover:border-[#CCFF00]/20 rounded-xl text-xs font-black text-[#adb4ce] hover:text-white uppercase tracking-widest transition-colors"
           >
-            <Upload className="w-4 h-4 text-[#CCFF00]" /> Import logs (Hevy CSV)
+            <Upload className="w-4 h-4 text-[#CCFF00]" /> Import logs (CSV)
           </Link>
 
           <button
