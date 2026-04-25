@@ -14,8 +14,8 @@ import { getWeeklyTrainingSummary, getMostImprovedExercises, deriveWeeklySummary
 import { WeeklySummaryCard } from '@/components/dashboard/WeeklySummaryCard'
 import { MostImprovedCard }  from '@/components/dashboard/MostImprovedCard'
 import { MilestonesCard }    from '@/components/dashboard/MilestonesCard'
-import { DeleteWorkoutButton } from '@/components/workout/DeleteWorkoutButton'
-import { Trophy, User, Upload } from 'lucide-react'
+import { WorkoutHistoryList } from '@/components/workout/WorkoutHistoryList'
+import { User, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { ClearDataButton } from '@/components/profile/ClearDataButton'
 
@@ -60,7 +60,7 @@ export default async function ProfilePage({
       </div>
 
       <div className="px-4">
-        <Suspense fallback={<div className="text-[#334155] text-xs font-black uppercase tracking-widest text-center mt-12">Loading...</div>}>
+        <Suspense fallback={<ProfileTabSkeleton tab={tab} />}>
           {tab === 'stats' && <StatsTab userId={userId} />}
           {tab === 'history' && <HistoryTab userId={userId} />}
           {tab === 'exercises' && <ExercisesTab />}
@@ -136,61 +136,12 @@ async function StatsTab({ userId }: { userId: string }) {
 async function HistoryTab({ userId }: { userId: string }) {
   const workouts = await getAllWorkouts(userId)
 
-  if (workouts.length === 0) {
-    return (
-      <div className="glass-panel border border-dashed border-[#334155] rounded-xl p-8 text-center">
-        <p className="text-[#4a5568] text-sm font-body">No workouts yet. Start your first session!</p>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-3">
       <div className="flex justify-end pb-2">
         <ClearDataButton />
       </div>
-
-      {workouts.map((workout: any) => {
-        const exerciseNames = workout.workout_exercises.map((we: any) => we.exercise.name).join(' · ')
-        const workoutVolume = workout.workout_exercises.reduce((acc: number, we: any) => {
-          return acc + (we.sets?.reduce((s: number, set: any) => s + ((set.weight_kg || 0) * (set.reps || 0)), 0) || 0)
-        }, 0)
-
-        return (
-          <Link href={`/workout/${workout.id}`} key={workout.id} className="block">
-            <div className="glass-panel border border-[#334155] hover:border-[#CCFF00]/30 rounded-xl p-4 active:scale-[0.98] transition-all cursor-pointer">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="font-black text-sm text-white uppercase tracking-tight">{workout.title || 'Workout'}</h3>
-                  <p className="text-[11px] text-[#4a5568] font-body mt-0.5">
-                    {new Date(workout.started_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {workout.prCount > 0 && (
-                    <div className="bg-[#CCFF00]/10 text-[#CCFF00] px-2 py-1 flex items-center gap-1 rounded-lg text-[10px] font-black border border-[#CCFF00]/20 uppercase">
-                      <Trophy className="w-3 h-3" /><span>{workout.prCount}</span>
-                    </div>
-                  )}
-                  {workout.duration_seconds && (
-                    <div className="bg-[#151b2d] text-[#adb4ce] px-2 py-1 rounded-lg text-[10px] font-bold border border-[#334155]">
-                      {Math.floor(workout.duration_seconds / 60)}m
-                    </div>
-                  )}
-                  <div className="-mr-1"><DeleteWorkoutButton workoutId={workout.id} /></div>
-                </div>
-              </div>
-              <span className="text-white font-black text-lg tracking-tight">
-                {workoutVolume >= 1000 ? `${(workoutVolume / 1000).toFixed(1)}k` : workoutVolume}
-                <span className="text-[11px] text-[#4a5568] ml-0.5 font-bold">kg</span>
-              </span>
-              <div className="mt-2 pt-2 border-t border-[#1e293b] text-[11px] font-body text-[#4a5568] truncate">
-                {exerciseNames}
-              </div>
-            </div>
-          </Link>
-        )
-      })}
+      <WorkoutHistoryList workouts={workouts as any} />
     </div>
   )
 }
@@ -200,6 +151,68 @@ async function ExercisesTab() {
   return (
     <div className="-mx-4">
       <ExerciseListClient initialExercises={exercises} hideTitle />
+    </div>
+  )
+}
+
+// ─── Content-shaped loading skeleton per tab ──────────────────────────────────
+
+function ProfileTabSkeleton({ tab }: { tab: Tab }) {
+  if (tab === 'history') {
+    return (
+      <div className="space-y-3 animate-pulse">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="glass-panel border border-[#334155] rounded-xl p-4">
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <div className="h-3.5 w-28 bg-[#1e293b] rounded mb-2" />
+                <div className="h-2.5 w-20 bg-[#1e293b] rounded" />
+              </div>
+              <div className="h-6 w-12 bg-[#1e293b] rounded-lg" />
+            </div>
+            <div className="h-5 w-16 bg-[#1e293b] rounded mb-3" />
+            <div className="h-px w-full bg-[#1e293b] mb-2" />
+            <div className="h-2.5 w-48 bg-[#1e293b] rounded" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (tab === 'stats') {
+    return (
+      <div className="space-y-6 animate-pulse">
+        {/* Summary cards */}
+        <div className="space-y-3">
+          {[1, 2].map(i => (
+            <div key={i} className="glass-panel border border-[#334155] rounded-xl p-4">
+              <div className="h-2.5 w-24 bg-[#1e293b] rounded mb-3" />
+              <div className="grid grid-cols-3 gap-3">
+                {[1, 2, 3].map(j => (
+                  <div key={j} className="bg-[#0c1324] rounded-xl p-3">
+                    <div className="h-2 w-10 bg-[#1e293b] rounded mb-2" />
+                    <div className="h-5 w-8 bg-[#1e293b] rounded" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Chart */}
+        <div className="glass-panel border border-[#334155] rounded-xl p-4">
+          <div className="h-2.5 w-28 bg-[#1e293b] rounded mb-4" />
+          <div className="h-[180px] w-full bg-[#0c1324] rounded-lg" />
+        </div>
+      </div>
+    )
+  }
+
+  // account / exercises — minimal single-line pulse
+  return (
+    <div className="space-y-3 animate-pulse">
+      {[1, 2, 3].map(i => (
+        <div key={i} className="glass-panel border border-[#334155] rounded-xl p-4 h-14" />
+      ))}
     </div>
   )
 }

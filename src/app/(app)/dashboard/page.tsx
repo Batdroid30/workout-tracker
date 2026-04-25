@@ -1,11 +1,10 @@
-import { Dumbbell, Plus, Trophy, Zap } from 'lucide-react'
+import { Dumbbell, Plus, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { auth } from '@/lib/auth'
 import { getWorkoutsSummary, getRecentWorkouts } from '@/lib/data/workouts'
 import { getProfile } from '@/lib/data/profile'
-import { redirect } from 'next/navigation'
-import { DeleteWorkoutButton } from '@/components/workout/DeleteWorkoutButton'
+import { WorkoutHistoryList } from '@/components/workout/WorkoutHistoryList'
 import { InsightsSection } from '@/components/dashboard/InsightsSection'
 
 export default async function DashboardPage() {
@@ -76,67 +75,7 @@ export default async function DashboardPage() {
           <h2 className="text-xs font-bold tracking-[0.2em] uppercase text-[#4a5568]">Recent Activity</h2>
           <Zap className="w-4 h-4 text-[#CCFF00]" />
         </div>
-
-        <div className="space-y-3">
-          {recentWorkouts.length === 0 ? (
-            <div className="glass-panel border border-dashed border-[#334155] rounded-xl p-8 text-center">
-              <p className="text-[#4a5568] text-sm font-body tracking-wide">No workouts yet. Start your first session!</p>
-            </div>
-          ) : (
-            recentWorkouts.map((workout: any) => {
-              const exerciseNames = workout.workout_exercises
-                .map((we: any) => we.exercise.name)
-                .join(' · ')
-
-              const workoutVolume = workout.workout_exercises.reduce((acc: number, we: any) => {
-                const weVolume = we.sets?.reduce((sAcc: number, set: any) => sAcc + ((set.weight_kg || 0) * (set.reps || 0)), 0) || 0
-                return acc + weVolume
-              }, 0)
-
-              return (
-                <Link href={`/workout/${workout.id}`} key={workout.id} className="block">
-                  <div className="glass-panel border border-[#334155] hover:border-[#CCFF00]/30 rounded-xl p-4 active:scale-[0.98] transition-all cursor-pointer">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-black text-base text-white uppercase tracking-tight">{workout.title || 'Workout'}</h3>
-                        <p className="text-[11px] text-[#4a5568] font-body mt-0.5 tracking-wide">
-                          {new Date(workout.started_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {workout.prCount > 0 && (
-                          <div className="bg-[#CCFF00]/10 text-[#CCFF00] px-2 py-1 flex items-center gap-1 rounded-lg text-[10px] font-black border border-[#CCFF00]/20 uppercase tracking-wider">
-                            <Trophy className="w-3 h-3" />
-                            <span>{workout.prCount}</span>
-                          </div>
-                        )}
-                        {workout.duration_seconds && (
-                          <div className="bg-[#151b2d] text-[#adb4ce] px-2 py-1 flex items-center justify-center rounded-lg text-[10px] font-bold border border-[#334155] tracking-wide">
-                            {Math.floor(workout.duration_seconds / 60)}m
-                          </div>
-                        )}
-                        <div className="-mr-1">
-                          <DeleteWorkoutButton workoutId={workout.id} />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-white font-black text-lg tracking-tight">
-                        {workoutVolume >= 1000 ? `${(workoutVolume / 1000).toFixed(1)}k` : workoutVolume}
-                        <span className="text-[11px] text-[#4a5568] ml-0.5 font-bold">kg</span>
-                      </span>
-                    </div>
-
-                    <div className="pt-3 border-t border-[#1e293b] text-[11px] font-body text-[#4a5568] truncate tracking-wide">
-                      {exerciseNames}
-                    </div>
-                  </div>
-                </Link>
-              )
-            })
-          )}
-        </div>
+        <WorkoutHistoryList workouts={recentWorkouts as any} />
       </div>
 
       {/* FAB */}
@@ -151,15 +90,61 @@ export default async function DashboardPage() {
   )
 }
 
+// ─── Content-shaped skeleton for InsightsSection ─────────────────────────────
+// Mirrors the shape of the first 4 visible cards so the layout doesn't jump.
+
 function InsightsSkeleton() {
   return (
-    <div className="space-y-3">
-      {[1, 2].map(i => (
-        <div key={i} className="glass-panel border border-[#334155] rounded-xl p-4 animate-pulse">
-          <div className="h-3 w-24 bg-[#1e293b] rounded mb-3" />
-          <div className="h-8 w-32 bg-[#1e293b] rounded" />
+    <div className="space-y-3 animate-pulse">
+      {/* RecentPRsCard shape */}
+      <div className="glass-panel border border-[#334155] rounded-xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="h-2.5 w-20 bg-[#1e293b] rounded" />
+          <div className="h-5 w-14 bg-[#1e293b] rounded-lg" />
         </div>
-      ))}
+        <div className="space-y-2">
+          {[1, 2].map(i => (
+            <div key={i} className="flex items-center gap-3 py-1.5">
+              <div className="w-6 h-6 rounded bg-[#1e293b] shrink-0" />
+              <div className="flex-1 h-3 bg-[#1e293b] rounded" />
+              <div className="h-3 w-12 bg-[#1e293b] rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* WeeklyGoalCard shape */}
+      <div className="glass-panel border border-[#334155] rounded-xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="h-2.5 w-24 bg-[#1e293b] rounded" />
+          <div className="h-5 w-10 bg-[#1e293b] rounded-lg" />
+        </div>
+        <div className="h-2 w-full bg-[#1e293b] rounded-full" />
+      </div>
+
+      {/* WeeklySummaryCard shape */}
+      <div className="glass-panel border border-[#334155] rounded-xl p-4">
+        <div className="h-2.5 w-28 bg-[#1e293b] rounded mb-3" />
+        <div className="grid grid-cols-3 gap-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-[#0c1324] rounded-xl p-3">
+              <div className="h-2 w-10 bg-[#1e293b] rounded mb-2" />
+              <div className="h-5 w-8 bg-[#1e293b] rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* TrainingStreakCard shape */}
+      <div className="glass-panel border border-[#334155] rounded-xl p-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#1e293b] shrink-0" />
+          <div className="flex-1">
+            <div className="h-2.5 w-16 bg-[#1e293b] rounded mb-2" />
+            <div className="h-4 w-24 bg-[#1e293b] rounded" />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

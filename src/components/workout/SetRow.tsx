@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useCallback } from 'react'
 import { Check, Trash2, X } from 'lucide-react'
 import type { ActiveSet } from '@/types/database'
 import { cn } from '@/lib/utils'
@@ -29,6 +29,17 @@ function StepBtn({ onClick, children }: { onClick: () => void; children: React.R
 // ─── Active set ───────────────────────────────────────────────────────────────
 
 function ActiveSetRow({ set, prevSetText, onChange, onDone, onRemove }: SetRowProps) {
+  const [ticked, setTicked] = useState(false)
+
+  const handleDone = useCallback(() => {
+    // Trigger scale-pulse animation, then fire onDone after the peak
+    setTicked(true)
+    setTimeout(() => {
+      setTicked(false)
+      onDone()
+    }, 180)
+  }, [onDone])
+
   return (
     <div className="mb-2">
       {/* Main row */}
@@ -76,10 +87,15 @@ function ActiveSetRow({ set, prevSetText, onChange, onDone, onRemove }: SetRowPr
           className="flex-1 h-10 bg-[#0c1324] border border-[#334155] rounded-lg text-center font-black text-base text-white placeholder:text-[#334155] focus:outline-none focus:border-[#CCFF00]/50 transition-colors"
         />
 
-        {/* Done button */}
+        {/* Done button — scale-pulse animation on tap */}
         <button
-          onClick={onDone}
-          className="w-10 h-10 shrink-0 rounded-lg flex items-center justify-center bg-[#151b2d] text-[#334155] border border-[#334155] hover:border-[#CCFF00]/50 hover:text-[#CCFF00]/60 active:scale-95 transition-all"
+          onClick={handleDone}
+          className={cn(
+            'w-10 h-10 shrink-0 rounded-lg flex items-center justify-center border transition-all duration-150',
+            ticked
+              ? 'bg-[#CCFF00] border-[#CCFF00] text-[#020617] scale-110'
+              : 'bg-[#151b2d] border-[#334155] text-[#334155] hover:border-[#CCFF00]/50 hover:text-[#CCFF00]/60 active:scale-95',
+          )}
         >
           <Check className="w-4 h-4" />
         </button>
