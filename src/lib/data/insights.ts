@@ -426,6 +426,106 @@ export async function getStalledMovements(userId: string): Promise<StalledMoveme
     .slice(0, 3)
 }
 
+// ─── Next Workout Suggestion ──────────────────────────────────────────────────
+
+export interface NextWorkoutSuggestion {
+  focus: string           // e.g. "Pull Day"
+  muscleGroups: string[]  // top muscles to target
+  reason: string          // human-readable explanation
+}
+
+const PUSH_MUSCLES = new Set(['chest', 'shoulders', 'triceps'])
+const PULL_MUSCLES = new Set(['back', 'lats', 'traps', 'biceps', 'forearms'])
+const LEG_MUSCLES  = new Set(['quads', 'hamstrings', 'glutes', 'calves'])
+
+function workoutFocusFor(muscleGroup: string): string {
+  if (PUSH_MUSCLES.has(muscleGroup)) return 'Push Day'
+  if (PULL_MUSCLES.has(muscleGroup)) return 'Pull Day'
+  if (LEG_MUSCLES.has(muscleGroup))  return 'Leg Day'
+  return `${muscleGroup.charAt(0).toUpperCase()}${muscleGroup.slice(1)} Workout`
+}
+
+/**
+ * Derives the recommended next workout focus from neglected muscle groups.
+ * Returns null when the user has no neglected muscles (everything trained recently).
+ */
+export function deriveNextWorkoutSuggestion(
+  neglectedMuscles: NeglectedMuscle[],
+): NextWorkoutSuggestion | null {
+  if (neglectedMuscles.length === 0) return null
+
+  const top = neglectedMuscles[0]
+  const focus = workoutFocusFor(top.muscleGroup)
+
+  // Include all neglected muscles that share the same workout focus
+  const relatedMuscles = neglectedMuscles
+    .filter(m => workoutFocusFor(m.muscleGroup) === focus)
+    .slice(0, 3)
+    .map(m => m.muscleGroup)
+
+  return {
+    focus,
+    muscleGroups: relatedMuscles,
+    reason: `${top.muscleGroup.charAt(0).toUpperCase()}${top.muscleGroup.slice(1)} last trained ${top.daysSinceLastTrained} days ago`,
+  }
+}
+
+// ─── Coach Tips ───────────────────────────────────────────────────────────────
+
+/**
+ * Generates up to 3 context-aware coaching tips from existing insight data.
+ * Pure computation — no additional DB queries needed.
+ */
+export function deriveCoachTips(
+  weeklySummary: WeeklySummary,
+  streak: TrainingStreak,
+  neglectedMuscles: NeglectedMuscle[],
+  stalledMovements: StalledMovement[],
+): string[] {
+  const tips: string[] = []
+
+  // Volume trend
+  if (weeklySummary.volumeChangePct !== null) {
+    if (weeklySummary.volumeChangePct <= -20) {
+      tips.push(`Volume dropped ${Math.abs(weeklySummary.volumeChangePct)}% this week. Try adding one extra set per exercise to get back on track.`)
+    } else if (weeklySummary.volumeChangePct >= 30) {
+      tips.push(`Volume jumped +${weeklySummary.volumeChangePct}% this week. Great effort — make sure sleep and protein are dialled in to absorb it.`)
+    }
+  }
+
+  // Streak advice
+  if (streak.currentStreak >= 10) {
+    tips.push(`${streak.currentStreak} weeks straight — elite consistency. Schedule a deload week soon to let your nervous system recover.`)
+  } else if (streak.currentStreak === 0 && streak.longestStreak > 0) {
+    tips.push('Time to restart the streak. Even one session this week breaks the inertia.')
+  }
+
+  // Neglect
+  if (neglectedMuscles.length >= 2) {
+    const names = neglectedMuscles.slice(0, 2).map(m => m.muscleGroup).join(' and ')
+    tips.push(`${names.charAt(0).toUpperCase()}${names.slice(1)} are being undertrained. Muscle imbalances limit your compound lift potential.`)
+  }
+
+  // Plateau
+  if (stalledMovements.length > 0) {
+    const stalled = stalledMovements[0]
+    tips.push(`${stalled.exerciseName} has plateaued. Switch rep range — try 5×5 if you've been doing 3×10, or add a pause rep.`)
+  }
+
+  // Fallback general tips
+  const fallbacks = [
+    'Progressive overload is the only law. Add weight or reps to at least one set each week.',
+    'Track your RPE — it tells the coach whether you are recovering or accumulating fatigue.',
+    'Consistency beats intensity. Showing up every week matters more than any single session.',
+  ]
+  for (const tip of fallbacks) {
+    if (tips.length >= 3) break
+    tips.push(tip)
+  }
+
+  return tips.slice(0, 3)
+}
+
 /**
  * Computes current and longest training streaks (unit: weeks).
  * A week counts if it contains ≥1 workout.

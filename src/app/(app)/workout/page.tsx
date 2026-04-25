@@ -7,11 +7,13 @@ import { Plus, Play, ChevronLeft, Timer, X } from 'lucide-react'
 import { useRestTimerDuration } from '@/hooks/useRestTimerDuration'
 import { AddExerciseModal } from '@/components/workout/AddExerciseModal'
 import { RestTimer } from '@/components/workout/RestTimer'
+import { PRCelebration } from '@/components/workout/PRCelebration'
 import { finishWorkoutAction } from './actions'
 import { updateRoutineExercisesAction } from '@/app/(app)/routines/actions'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useDialog } from '@/providers/DialogProvider'
+import type { PREvaluationResult } from '@/lib/data/stats'
 
 export default function WorkoutPage() {
   const router = useRouter()
@@ -36,6 +38,7 @@ export default function WorkoutPage() {
   const [restTimerKey,     setRestTimerKey]     = useState(0)
   const [showDurationPicker, setShowDurationPicker] = useState(false)
   const [isFinishing,      setIsFinishing]      = useState(false)
+  const [celebrationPRs,   setCelebrationPRs]   = useState<PREvaluationResult[] | null>(null)
   const { seconds: restSeconds, updateSeconds: setRestSeconds } = useRestTimerDuration()
 
   const handleFinish = async () => {
@@ -115,7 +118,12 @@ export default function WorkoutPage() {
       const result = await finishWorkoutAction(finalWorkout)
       if (result.success) {
         finishWorkout()
-        router.push('/dashboard')
+        // Show PR celebration before navigating away
+        if (result.prs && result.prs.length > 0) {
+          setCelebrationPRs(result.prs)
+        } else {
+          router.push('/dashboard')
+        }
       } else {
         dialog.alert({ title: 'Error', description: 'Failed to save workout: ' + result.error })
       }
@@ -246,6 +254,17 @@ export default function WorkoutPage() {
           setAddingExerciseMode(null)
         }}
       />
+
+      {/* PR Celebration overlay */}
+      {celebrationPRs && (
+        <PRCelebration
+          prs={celebrationPRs}
+          onClose={() => {
+            setCelebrationPRs(null)
+            router.push('/dashboard')
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -12,6 +12,7 @@ export default async function DashboardPage() {
   const session = await auth()
   const userId = session?.user?.id as string
   const { totalWorkouts, totalVolume } = await getWorkoutsSummary(userId)
+
   const recentWorkouts = await getRecentWorkouts(userId)
   const profile = await getProfile(userId)
 
@@ -60,7 +61,12 @@ export default async function DashboardPage() {
           <h2 className="text-xs font-bold tracking-[0.2em] uppercase text-[#4a5568]">Insights</h2>
         </div>
         <Suspense fallback={<InsightsSkeleton />}>
-          <InsightsSection userId={userId} totalVolume={totalVolume} />
+          <InsightsSection
+            userId={userId}
+            totalVolume={totalVolume}
+            totalWorkouts={totalWorkouts}
+            weeklyGoalSessions={profile?.weekly_goal_sessions ?? 3}
+          />
         </Suspense>
       </div>
 
