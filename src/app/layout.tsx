@@ -18,12 +18,29 @@ const lexend = Lexend({
 
 export const metadata: Metadata = {
   title: "Lifts",
-  description: "Track your workouts, PRs, and progress",
+  description: "Track your lifts, PRs, and progress. Engineered for athletes.",
   manifest: "/manifest.json",
+  // ── Icons ──────────────────────────────────────────────────────────────────
+  // favicon-32 → browser tab
+  // apple-icon → iOS "Add to Home Screen" bookmark
+  // icon-192   → Android PWA install prompt
+  icons: {
+    icon:             [{ url: "/icons/favicon-32.png",    sizes: "32x32",   type: "image/png" }],
+    apple:            [{ url: "/icons/apple-icon-180.png", sizes: "180x180", type: "image/png" }],
+    shortcut:         [{ url: "/icons/favicon-32.png" }],
+  },
+  // ── iOS PWA behaviour ──────────────────────────────────────────────────────
   appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Lifts",
+    capable:         true,
+    statusBarStyle:  "black-translucent",
+    title:           "Lifts",
+    startupImage:    "/icons/icon-512.png",
+  },
+  // ── Open Graph (share previews) ───────────────────────────────────────────
+  openGraph: {
+    title:       "Lifts — Workout Tracker",
+    description: "Track your lifts, PRs, and progress.",
+    images:      [{ url: "/icons/icon-512.png" }],
   },
 };
 

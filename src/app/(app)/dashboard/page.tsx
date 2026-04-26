@@ -18,11 +18,17 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#070d1f] text-[#dce1fb] p-4 pb-28">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8 pt-6">
-        <div>
-          <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#4a5568] mb-1">Activity Report</p>
-          <h1 className="text-3xl font-black uppercase tracking-tight text-white">Weekly Overview</h1>
-        </div>
+      <div className="flex items-center justify-between mb-8 pt-4">
+        {/* App logo — links to root */}
+        <img
+          src="/icons/icon-512.png"
+          alt="Lifts"
+          width={52}
+          height={52}
+          className="rounded-xl"
+        />
+
+        {/* Profile avatar */}
         <Link href="/profile">
           <div className="w-10 h-10 rounded-full border-2 border-[#CCFF00] overflow-hidden bg-[#0c1324] flex items-center justify-center">
             {profile?.avatar_url ? (
