@@ -86,6 +86,20 @@ export async function updateWeeklyGoalAction(sessions: number) {
   revalidatePath('/profile')
 }
 
+export async function refreshCacheAction() {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error('Not authenticated')
+
+  const userId = session.user.id
+
+  bustEverything(userId)
+  revalidatePath('/dashboard')
+  revalidatePath('/profile')
+  revalidatePath('/progress')
+
+  return { success: true }
+}
+
 export async function clearAllWorkoutDataAction() {
   const session = await auth()
   if (!session?.user?.id) throw new Error('Not authenticated')

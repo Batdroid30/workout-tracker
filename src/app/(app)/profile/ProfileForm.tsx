@@ -2,9 +2,9 @@
 
 import { useState, useRef } from 'react'
 import { Profile } from '@/types/database'
-import { Camera, LogOut, Save, User, Upload } from 'lucide-react'
+import { Camera, LogOut, RefreshCw, Save, User, Upload } from 'lucide-react'
 import Link from 'next/link'
-import { updateProfileAction, uploadAvatarAction, logoutAction } from './actions'
+import { updateProfileAction, uploadAvatarAction, logoutAction, refreshCacheAction } from './actions'
 import { Button } from '@/components/ui/Button'
 import { useDialog } from '@/providers/DialogProvider'
 
@@ -19,6 +19,7 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '')
   const [isSaving, setIsSaving] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dialog = useDialog()
 
@@ -156,6 +157,21 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
           >
             <Upload className="w-4 h-4 text-[#CCFF00]" /> Import logs (CSV)
           </Link>
+
+          <button
+            type="button"
+            disabled={isRefreshing}
+            onClick={async () => {
+              setIsRefreshing(true)
+              await refreshCacheAction()
+              setIsRefreshing(false)
+              window.location.reload()
+            }}
+            className="w-full h-11 flex items-center justify-center gap-2 glass-panel border border-[#334155] hover:border-[#CCFF00]/20 rounded-xl text-xs font-black text-[#adb4ce] hover:text-white uppercase tracking-widest transition-colors disabled:opacity-40"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+          </button>
 
           <button
             type="button"
