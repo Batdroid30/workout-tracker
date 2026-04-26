@@ -22,16 +22,28 @@ export async function importHevyCSVAction(formData: FormData) {
     if (rows.length === 0) return { success: false, error: 'Empty or invalid CSV file' }
 
     const results = await importWorkoutsFromHevy(userId, rows)
-    await evaluateAndSaveAllPRs(userId)
+    return { success: true, count: results.workoutsImported, errors: results.errors }
+  } catch (error: any) {
+    console.error('Import failed:', error)
+    return { success: false, error: error.message }
+  }
+}
 
+export async function recalculatePRsAfterImportAction() {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error('User not authenticated')
+
+  const userId = session.user.id
+
+  try {
+    await evaluateAndSaveAllPRs(userId)
     bustAfterImport(userId)
     revalidatePath('/dashboard')
     revalidatePath('/progress')
     revalidatePath('/profile')
-
-    return { success: true, count: results.workoutsImported, errors: results.errors }
+    return { success: true }
   } catch (error: any) {
-    console.error('Import failed:', error)
+    console.error('PR recalculation failed:', error)
     return { success: false, error: error.message }
   }
 }

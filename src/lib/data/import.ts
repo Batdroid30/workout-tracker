@@ -160,37 +160,47 @@ function guessExerciseMetrics(name: string): { muscle: MuscleGroup; pattern: Mov
   return { muscle: 'back', pattern: 'pull' }
 }
 
-async function findOrCreateExercise(supabase: any, userId: string, name: string): Promise<string> {
-  const { data: existing } = await supabase
+async function bulkResolveExercises(
+  supabase: any,
+  userId: string,
+  names: string[],
+): Promise<Map<string, string>> {
+  const lookup = new Map<string, string>() // lowercase name → id
+
+  const { data: existing, error } = await supabase
     .from('exercises')
-    .select('id')
-    .ilike('name', name)
-    .limit(1)
-    .maybeSingle()
+    .select('id, name')
+  if (error) throw new DatabaseError('Failed to fetch exercises', error)
 
-  if (existing) return existing.id
+  existing?.forEach((ex: { id: string; name: string }) => {
+    lookup.set(ex.name.toLowerCase(), ex.id)
+  })
 
-  const { muscle, pattern } = guessExerciseMetrics(name)
+  const missing = [...new Set(names)].filter(n => !lookup.has(n.toLowerCase()))
+  if (missing.length === 0) return lookup
 
-  const { data: newEx, error: createErr } = await supabase
+  const toCreate = missing.map(name => {
+    const { muscle, pattern } = guessExerciseMetrics(name)
+    return { name, muscle_group: muscle, movement_pattern: pattern, is_custom: true, created_by: userId }
+  })
+
+  const { data: created, error: createErr } = await supabase
     .from('exercises')
-    .insert({
-      name,
-      muscle_group: muscle,
-      movement_pattern: pattern,
-      is_custom: true,
-      created_by: userId
-    })
-    .select('id')
-    .single()
+    .insert(toCreate)
+    .select('id, name')
+  if (createErr) throw new DatabaseError('Failed to create exercises', createErr)
 
-  if (createErr) throw new DatabaseError(`Failed to create exercise: ${name}`, createErr)
-  return newEx.id
+  created?.forEach((ex: { id: string; name: string }) => {
+    lookup.set(ex.name.toLowerCase(), ex.id)
+  })
+
+  return lookup
 }
 
 export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
   const supabase = await getSupabaseServer()
 
+  // Group rows by workout
   const workoutsMap = new Map<string, HevyRow[]>()
   rows.forEach(row => {
     const key = `${row.title}-${row.start_time}`
@@ -198,10 +208,11 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
     workoutsMap.get(key)!.push(row)
   })
 
-  const results = {
-    workoutsImported: 0,
-    errors: [] as string[]
-  }
+  // Resolve all exercises in 1-2 DB calls instead of one per exercise per workout
+  const allExerciseNames = rows.map(r => r.exercise_title).filter(Boolean)
+  const exerciseLookup = await bulkResolveExercises(supabase, userId, allExerciseNames)
+
+  const results = { workoutsImported: 0, errors: [] as string[] }
 
   for (const [key, workoutRows] of workoutsMap.entries()) {
     try {
@@ -216,41 +227,51 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
           started_at: firstRow.start_time,
           completed_at: firstRow.end_time || null,
           duration_seconds: parseInt(firstRow.duration_seconds) || null,
-          created_at: firstRow.start_time
+          created_at: firstRow.start_time,
         })
-        .select()
+        .select('id, started_at, completed_at')
         .single()
 
       if (workoutErr) throw workoutErr
 
+      // Group by exercise within this workout
       const exerciseMap = new Map<string, HevyRow[]>()
       workoutRows.forEach(row => {
         if (!exerciseMap.has(row.exercise_title)) exerciseMap.set(row.exercise_title, [])
         exerciseMap.get(row.exercise_title)!.push(row)
       })
 
+      // Build workout_exercises batch
       let orderIndex = 0
+      const weBatch: object[] = []
+      const weSetData: HevyRow[][] = []
+
       for (const [exerciseName, setRows] of exerciseMap.entries()) {
-        const exerciseId = await findOrCreateExercise(supabase, userId, exerciseName)
+        const exerciseId = exerciseLookup.get(exerciseName.toLowerCase())
+        if (!exerciseId) continue
+        weBatch.push({
+          workout_id: workout.id,
+          exercise_id: exerciseId,
+          order_index: orderIndex++,
+          notes: setRows[0].exercise_notes || null,
+        })
+        weSetData.push(setRows)
+      }
 
-        const { data: we, error: weErr } = await supabase
-          .from('workout_exercises')
-          .insert({
-            workout_id: workout.id,
-            exercise_id: exerciseId,
-            order_index: orderIndex++,
-            notes: setRows[0].exercise_notes || null
-          })
-          .select()
-          .single()
+      if (weBatch.length === 0) { results.workoutsImported++; continue }
 
-        if (weErr) throw weErr
+      const { data: insertedWEs, error: weErr } = await supabase
+        .from('workout_exercises')
+        .insert(weBatch)
+        .select('id')
+      if (weErr) throw weErr
 
-        const setsToInsert = setRows.map((sr, idx) => {
+      // Build all sets for this workout in one batch
+      const allSets = insertedWEs.flatMap((we: { id: string }, i: number) => {
+        return weSetData[i].map((sr, idx) => {
           let weight = 0
           if (sr.weight_kg) weight = parseFloat(sr.weight_kg)
           else if (sr.weight_lbs) weight = parseFloat(sr.weight_lbs) * 0.453592
-
           return {
             workout_exercise_id: we.id,
             set_number: parseInt(sr.set_index) || (idx + 1),
@@ -258,11 +279,13 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
             reps: parseInt(sr.reps) || 0,
             rpe: parseFloat(sr.rpe) || null,
             is_warmup: sr.set_type === 'warmup',
-            completed_at: workout.completed_at || workout.started_at
+            completed_at: workout.completed_at || workout.started_at,
           }
         })
+      })
 
-        const { error: setsErr } = await supabase.from('sets').insert(setsToInsert)
+      if (allSets.length > 0) {
+        const { error: setsErr } = await supabase.from('sets').insert(allSets)
         if (setsErr) throw setsErr
       }
 

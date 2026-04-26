@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { importHevyCSVAction } from './actions'
+import { importHevyCSVAction, recalculatePRsAfterImportAction } from './actions'
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 
 const IMPORT_PHASES = [
   { threshold: 15, message: 'Parsing CSV data...' },
   { threshold: 40, message: 'Matching exercises...' },
-  { threshold: 75, message: 'Importing workouts...' },
+  { threshold: 68, message: 'Importing workouts...' },
   { threshold: 95, message: 'Recalculating PRs...' },
   { threshold: 100, message: 'Finalizing...' },
 ]
@@ -68,12 +68,28 @@ export default function ImportPage() {
     formData.append('file', file)
 
     try {
-      const res = await importHevyCSVAction(formData)
-      setResult(res)
-      if (res.success) {
-        setFile(null)
-        setProgress(100)
+      // Phase 1: import workout data
+      const importRes = await importHevyCSVAction(formData)
+
+      if (!importRes.success) {
+        setResult(importRes)
+        return
       }
+
+      // Phase 2: recalculate PRs (separate request so production timeouts don't combine both)
+      setProgress(72)
+      const prRes = await recalculatePRsAfterImportAction()
+
+      setFile(null)
+      setProgress(100)
+      setResult({
+        success: true,
+        count: importRes.count,
+        errors: [
+          ...(importRes.errors ?? []),
+          ...(!prRes.success ? ['PR recalculation failed — your personal records may not be up to date'] : []),
+        ],
+      })
     } catch (error: any) {
       setResult({ success: false, error: 'An unexpected error occurred' })
     } finally {
