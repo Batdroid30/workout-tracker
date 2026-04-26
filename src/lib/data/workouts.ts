@@ -256,7 +256,7 @@ export const getWorkoutById = async (workoutId: string, userId: string) => {
 
       return data
     },
-    [`workout-detail`, workoutId],
+    [`workout-detail`, workoutId, userId],
     { revalidate: false, tags: [TAGS.workoutDetail(workoutId), TAGS.workouts(userId)] },
   )(workoutId)
 }

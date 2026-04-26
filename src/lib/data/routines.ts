@@ -71,7 +71,7 @@ export const getRoutineById = async (routineId: string, userId: string) => {
         ) ?? [],
       }
     },
-    [`routine-detail`, routineId],
+    [`routine-detail`, routineId, userId],
     { revalidate: false, tags: [TAGS.routineDetail(routineId), TAGS.routines(userId)] },
   )(routineId)
 }
