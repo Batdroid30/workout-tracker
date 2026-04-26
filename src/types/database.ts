@@ -106,6 +106,7 @@ export interface ActiveExercise {
   exercise: Exercise
   sets: ActiveSet[]
   order_index: number
+  rest_seconds?: number   // per-exercise rest override (null = use global default)
 }
 
 export interface ActiveWorkout {

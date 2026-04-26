@@ -57,7 +57,7 @@ export function AddExerciseModal({ isOpen, onClose, onSelect }: AddExerciseModal
         </div>
         <button
           onClick={onClose}
-          className="p-1.5 hover:bg-[#151b2d] rounded-lg transition-colors text-[#adb4ce]"
+          className="p-2.5 hover:bg-[#151b2d] rounded-lg transition-colors text-[#adb4ce]"
         >
           <X className="w-5 h-5" />
         </button>

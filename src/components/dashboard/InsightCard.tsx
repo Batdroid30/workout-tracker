@@ -48,7 +48,7 @@ export function InsightCard({ title, icon, variant = 'neutral', dismissKey, chil
         {dismissKey && (
           <button
             onClick={handleDismiss}
-            className="text-[#334155] hover:text-[#4a5568] transition-colors p-1 -mr-1 rounded-lg"
+            className="text-[#334155] hover:text-[#4a5568] transition-colors p-2.5 -mr-2 -mt-1 rounded-lg"
             aria-label="Dismiss"
           >
             <X className="w-3.5 h-3.5" />

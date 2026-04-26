@@ -8,17 +8,28 @@ import { cn } from '@/lib/utils'
 
 type ToastType = 'success' | 'error' | 'info'
 
+interface ToastAction {
+  label: string
+  onClick: () => void
+}
+
 interface Toast {
   id: string
   type: ToastType
   message: string
   duration: number
+  action?: ToastAction
+}
+
+interface ToastOptions {
+  duration?: number
+  action?: ToastAction
 }
 
 interface ToastContextType {
-  success: (message: string, duration?: number) => void
-  error:   (message: string, duration?: number) => void
-  info:    (message: string, duration?: number) => void
+  success: (message: string, options?: ToastOptions) => void
+  error:   (message: string, options?: ToastOptions) => void
+  info:    (message: string, options?: ToastOptions) => void
   dismiss: (id: string) => void
 }
 
@@ -54,18 +65,15 @@ interface ToastItemProps {
 function ToastItem({ toast, onDismiss }: ToastItemProps) {
   const [visible, setVisible] = useState(false)
 
-  // Animate in on mount
   useEffect(() => {
-    // Small delay lets the element be inserted before the transition starts
     const show = requestAnimationFrame(() => setVisible(true))
     return () => cancelAnimationFrame(show)
   }, [])
 
-  // Auto-dismiss
   useEffect(() => {
     const timer = setTimeout(() => {
       setVisible(false)
-      setTimeout(() => onDismiss(toast.id), 300) // wait for slide-out
+      setTimeout(() => onDismiss(toast.id), 300)
     }, toast.duration)
     return () => clearTimeout(timer)
   }, [toast.id, toast.duration, onDismiss])
@@ -75,22 +83,37 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
     setTimeout(() => onDismiss(toast.id), 300)
   }
 
+  const handleAction = () => {
+    toast.action?.onClick()
+    handleDismiss()
+  }
+
   return (
     <div
       className={cn(
         'flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl',
         'transition-all duration-300 ease-out',
         TOAST_STYLES[toast.type],
-        visible
-          ? 'opacity-100 translate-y-0'
-          : 'opacity-0 translate-y-4',
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4',
       )}
     >
       {TOAST_ICONS[toast.type]}
+
       <p className="flex-1 text-sm font-bold text-[#dce1fb] leading-snug">{toast.message}</p>
+
+      {/* Inline action button (e.g. "Undo") */}
+      {toast.action && (
+        <button
+          onClick={handleAction}
+          className="shrink-0 text-xs font-black text-[#CCFF00] uppercase tracking-widest hover:text-[#abd600] transition-colors px-1"
+        >
+          {toast.action.label}
+        </button>
+      )}
+
       <button
         onClick={handleDismiss}
-        className="shrink-0 text-[#4a5568] hover:text-[#adb4ce] transition-colors ml-1"
+        className="shrink-0 text-[#4a5568] hover:text-[#adb4ce] transition-colors"
         aria-label="Dismiss"
       >
         <X className="w-3.5 h-3.5" />
@@ -105,9 +128,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const counterRef = useRef(0)
 
-  const add = useCallback((type: ToastType, message: string, duration = 3500) => {
+  const add = useCallback((type: ToastType, message: string, options: ToastOptions = {}) => {
     const id = `toast-${++counterRef.current}`
-    setToasts(prev => [...prev, { id, type, message, duration }])
+    setToasts(prev => [...prev, {
+      id,
+      type,
+      message,
+      duration: options.duration ?? 3500,
+      action: options.action,
+    }])
   }, [])
 
   const dismiss = useCallback((id: string) => {
@@ -115,9 +144,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const value: ToastContextType = {
-    success: (msg, dur) => add('success', msg, dur),
-    error:   (msg, dur) => add('error',   msg, dur),
-    info:    (msg, dur) => add('info',    msg, dur),
+    success: (msg, opts) => add('success', msg, opts),
+    error:   (msg, opts) => add('error',   msg, opts),
+    info:    (msg, opts) => add('info',    msg, opts),
     dismiss,
   }
 
@@ -125,7 +154,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
 
-      {/* Toast container — sits above bottom nav (h-16 = 64px) */}
       {toasts.length > 0 && (
         <div
           aria-live="polite"

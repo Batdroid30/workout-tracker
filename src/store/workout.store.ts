@@ -4,20 +4,22 @@ import type { ActiveWorkout, ActiveExercise, ActiveSet, Exercise } from '@/types
 
 interface WorkoutStore {
   activeWorkout: ActiveWorkout | null
-  
+
   // Actions
   startWorkout: (title?: string) => void
   startRoutine: (routine: any) => void
   copyWorkout: (pastWorkout: any) => void
-  addExercise: (exercise: Exercise) => void
+  addExercise: (exercise: Exercise, restSeconds?: number) => void
   replaceExercise: (exerciseIndex: number, newExercise: Exercise) => void
   moveExerciseUp: (exerciseIndex: number) => void
   moveExerciseDown: (exerciseIndex: number) => void
   addSet: (exerciseIndex: number) => void
+  addWarmupSet: (exerciseIndex: number, weight?: number, reps?: number) => void
   updateSet: (exerciseIndex: number, setIndex: number, updates: Partial<ActiveSet>) => void
   markSetDone: (exerciseIndex: number, setIndex: number) => void
   completeAllSets: () => void
   updateTitle: (title: string) => void
+  updateExerciseRestSeconds: (exerciseIndex: number, seconds: number) => void
   removeExercise: (exerciseIndex: number) => void
   removeSet: (exerciseIndex: number, setIndex: number) => void
   finishWorkout: () => void
@@ -92,9 +94,9 @@ export const useWorkoutStore = create<WorkoutStore>()(
         }
       }),
 
-      addExercise: (exercise) => set((state) => {
+      addExercise: (exercise, restSeconds?) => set((state) => {
         if (!state.activeWorkout) return state
-        
+
         const newExercise: ActiveExercise = {
           workout_exercise_id: null,
           exercise,
@@ -109,6 +111,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
             saved: false,
           }],
           order_index: state.activeWorkout.exercises.length,
+          rest_seconds: restSeconds,
         }
 
         return {
@@ -196,6 +199,26 @@ export const useWorkoutStore = create<WorkoutStore>()(
         return { activeWorkout: { ...state.activeWorkout, exercises } }
       }),
 
+      addWarmupSet: (exerciseIndex, weight = 0, reps = 0) => set((state) => {
+        if (!state.activeWorkout) return state
+        const exercises = [...state.activeWorkout.exercises]
+        const exercise = exercises[exerciseIndex]
+        exercises[exerciseIndex] = {
+          ...exercise,
+          sets: [...exercise.sets, {
+            id: crypto.randomUUID(),
+            set_number: exercise.sets.length + 1,
+            weight_kg: weight,
+            reps,
+            rpe: null,
+            is_warmup: true,
+            completed: false,
+            saved: false,
+          }]
+        }
+        return { activeWorkout: { ...state.activeWorkout, exercises } }
+      }),
+
       updateSet: (exerciseIndex, setIndex, updates) => set((state) => {
         if (!state.activeWorkout) return state
         const exercises = [...state.activeWorkout.exercises]
@@ -245,6 +268,13 @@ export const useWorkoutStore = create<WorkoutStore>()(
   updateTitle: (title) => set((state) => ({
     activeWorkout: state.activeWorkout ? { ...state.activeWorkout, title } : null
   })),
+
+  updateExerciseRestSeconds: (exerciseIndex, seconds) => set((state) => {
+    if (!state.activeWorkout) return state
+    const exercises = [...state.activeWorkout.exercises]
+    exercises[exerciseIndex] = { ...exercises[exerciseIndex], rest_seconds: seconds }
+    return { activeWorkout: { ...state.activeWorkout, exercises } }
+  }),
 
   finishWorkout: () => set({ activeWorkout: null }),
   discardWorkout: () => set({ activeWorkout: null }),

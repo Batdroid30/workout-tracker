@@ -1,9 +1,10 @@
 'use client'
 
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { Check, Trash2, X } from 'lucide-react'
 import type { ActiveSet } from '@/types/database'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/providers/ToastProvider'
 
 interface SetRowProps {
   set: ActiveSet
@@ -13,26 +14,70 @@ interface SetRowProps {
   onRemove: () => void
 }
 
-// ─── Atom: stepper ±strip button ─────────────────────────────────────────────
-
-function StepBtn({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-9 h-full flex items-center justify-center text-[#4a5568] hover:text-[#CCFF00] hover:bg-[#CCFF00]/5 active:scale-95 transition-colors font-black text-base shrink-0"
-    >
-      {children}
-    </button>
-  )
-}
-
 // ─── Active set ───────────────────────────────────────────────────────────────
+//
+// Layout:
+//   Row 1: [badge] [prev] [weight input] [reps input] [✓]
+//   Row 2: [RPE input ·············] [trash]    ← non-warmup only
+//          (warmup: just [trash] right-aligned)
+//
+// Decimal-safe: weight uses local string state so typing "27." doesn't
+// get sanitised to "27" mid-entry. Value is committed to the store onBlur
+// and whenever the string represents a complete valid number.
 
 function ActiveSetRow({ set, prevSetText, onChange, onDone, onRemove }: SetRowProps) {
-  const [ticked, setTicked] = useState(false)
+  // ── Local string state for weight (fixes decimal mid-entry bug) ──────────
+  const [weightStr, setWeightStr] = useState(() =>
+    set.weight_kg > 0 ? String(set.weight_kg) : ''
+  )
+  const [rpeStr, setRpeStr] = useState(() =>
+    set.rpe !== null ? String(set.rpe) : ''
+  )
+  const weightFocused = useRef(false)
+  const rpeFocused    = useRef(false)
 
+  // Sync from store when the input is not focused
+  // (handles pre-fill from addSet / addWarmupSet)
+  useEffect(() => {
+    if (!weightFocused.current) {
+      setWeightStr(set.weight_kg > 0 ? String(set.weight_kg) : '')
+    }
+  }, [set.weight_kg])
+
+  useEffect(() => {
+    if (!rpeFocused.current) {
+      setRpeStr(set.rpe !== null ? String(set.rpe) : '')
+    }
+  }, [set.rpe])
+
+  // ── Undo-delete pattern ──────────────────────────────────────────────────
+  const [pendingDelete, setPendingDelete] = useState(false)
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const toast = useToast()
+
+  const handleRemove = useCallback(() => {
+    setPendingDelete(true)
+    undoTimerRef.current = setTimeout(() => onRemove(), 4000)
+    toast.info('Set removed', {
+      duration: 4000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+          setPendingDelete(false)
+        },
+      },
+    })
+  }, [onRemove, toast])
+
+  // Clear pending timer on unmount
+  useEffect(() => () => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+  }, [])
+
+  // ── Done button with lime flash ──────────────────────────────────────────
+  const [ticked, setTicked] = useState(false)
   const handleDone = useCallback(() => {
-    // Trigger scale-pulse animation, then fire onDone after the peak
     setTicked(true)
     setTimeout(() => {
       setTicked(false)
@@ -40,12 +85,21 @@ function ActiveSetRow({ set, prevSetText, onChange, onDone, onRemove }: SetRowPr
     }, 180)
   }, [onDone])
 
+  // ── Shared input style ───────────────────────────────────────────────────
+  // min-w-0 overrides the browser default min-width:auto on flex items,
+  // allowing inputs to shrink below their intrinsic size on narrow screens.
+  const inputBase =
+    'flex-1 min-w-0 h-10 bg-[#0c1324] border border-[#334155] rounded-lg text-center font-black text-base text-white placeholder:text-[#334155] focus:outline-none focus:border-[#CCFF00]/50 transition-colors'
+
   return (
-    <div className="mb-2">
-      {/* Main row */}
+    <div className={cn(
+      'overflow-hidden transition-all duration-300',
+      pendingDelete ? 'max-h-0 opacity-0 mb-0' : 'max-h-48 opacity-100 mb-1.5',
+    )}>
+      {/* ── Row 1: [set# + prev stacked] · weight · reps · ✓ ──────────── */}
       <div className="flex items-center gap-2 py-1.5">
-        {/* Set badge */}
-        <div className="w-8 shrink-0 flex items-center justify-center">
+        {/* Set badge + prev text — stacked in one column to save horizontal space */}
+        <div className="w-14 shrink-0 flex flex-col items-center gap-0.5">
           <span className={cn(
             'font-black text-xs w-6 h-6 flex items-center justify-center rounded',
             set.is_warmup
@@ -54,40 +108,50 @@ function ActiveSetRow({ set, prevSetText, onChange, onDone, onRemove }: SetRowPr
           )}>
             {set.is_warmup ? 'W' : set.set_number}
           </span>
+          <span className="text-[9px] font-body text-[#334155] leading-none tabular-nums">
+            {prevSetText}
+          </span>
         </div>
 
-        {/* Previous */}
-        <div className="w-14 shrink-0 text-center text-[11px] font-body text-[#4a5568]">
-          {prevSetText}
-        </div>
-
-        {/* Weight input */}
+        {/* Weight — decimal-safe via local string state, min-w-0 allows flex shrink */}
         <input
           type="text"
           inputMode="decimal"
-          value={set.weight_kg > 0 ? set.weight_kg : ''}
+          value={weightStr}
           placeholder="0"
+          className={inputBase}
+          onFocus={() => { weightFocused.current = true }}
           onChange={e => {
-            const v = parseFloat(e.target.value)
-            onChange({ weight_kg: isNaN(v) ? 0 : v })
+            const str = e.target.value
+            setWeightStr(str)
+            // Don't commit while mid-decimal (e.g. "27.")
+            if (str === '' || str === '.') { onChange({ weight_kg: 0 }); return }
+            const v = parseFloat(str)
+            if (!isNaN(v) && !str.endsWith('.')) onChange({ weight_kg: v })
           }}
-          className="flex-1 h-10 bg-[#0c1324] border border-[#334155] rounded-lg text-center font-black text-base text-white placeholder:text-[#334155] focus:outline-none focus:border-[#CCFF00]/50 transition-colors"
+          onBlur={e => {
+            weightFocused.current = false
+            const v = parseFloat(e.target.value)
+            const safe = isNaN(v) ? 0 : v
+            onChange({ weight_kg: safe })
+            setWeightStr(safe > 0 ? String(safe) : '')
+          }}
         />
 
-        {/* Reps input */}
+        {/* Reps — integers only, min-w-0 allows flex shrink */}
         <input
           type="text"
           inputMode="numeric"
-          value={set.reps > 0 ? set.reps : ''}
+          value={set.reps > 0 ? String(set.reps) : ''}
           placeholder="0"
+          className={inputBase}
           onChange={e => {
             const v = parseInt(e.target.value, 10)
             onChange({ reps: isNaN(v) ? 0 : v })
           }}
-          className="flex-1 h-10 bg-[#0c1324] border border-[#334155] rounded-lg text-center font-black text-base text-white placeholder:text-[#334155] focus:outline-none focus:border-[#CCFF00]/50 transition-colors"
         />
 
-        {/* Done button — scale-pulse animation on tap */}
+        {/* Done — lime flash on tap */}
         <button
           onClick={handleDone}
           className={cn(
@@ -101,64 +165,60 @@ function ActiveSetRow({ set, prevSetText, onChange, onDone, onRemove }: SetRowPr
         </button>
       </div>
 
-      {/* Stepper strip */}
-      <div className="space-y-1.5 pb-1">
-        {/* Weight + reps steppers */}
-        <div className="flex gap-2">
-          <div className="flex-1 flex items-center h-9 bg-[#0c1324] border border-[#334155] rounded-lg overflow-hidden">
-            <StepBtn onClick={() => onChange({ weight_kg: Math.max(0, set.weight_kg - 2.5) })}>−</StepBtn>
-            <span className="flex-1 text-center text-[11px] font-black text-[#adb4ce] tabular-nums pointer-events-none">
-              {set.weight_kg > 0 ? `${set.weight_kg} kg` : '— kg'}
-            </span>
-            <StepBtn onClick={() => onChange({ weight_kg: Math.round((set.weight_kg + 2.5) * 10) / 10 })}>+</StepBtn>
-          </div>
-
-          <div className="flex-1 flex items-center h-9 bg-[#0c1324] border border-[#334155] rounded-lg overflow-hidden">
-            <StepBtn onClick={() => onChange({ reps: Math.max(0, set.reps - 1) })}>−</StepBtn>
-            <span className="flex-1 text-center text-[11px] font-black text-[#adb4ce] tabular-nums pointer-events-none">
-              {set.reps > 0 ? `${set.reps} reps` : '— reps'}
-            </span>
-            <StepBtn onClick={() => onChange({ reps: set.reps + 1 })}>+</StepBtn>
-          </div>
+      {/* ── Row 2: RPE + delete (non-warmup) ────────────────────────────── */}
+      {!set.is_warmup && (
+        <div className="flex items-center gap-2 pb-1.5">
+          <input
+            type="text"
+            inputMode="decimal"
+            value={rpeStr}
+            placeholder="RPE · 1–10"
+            className="flex-1 h-9 bg-[#0c1324] border border-[#334155] rounded-lg text-center font-black text-sm text-[#adb4ce] placeholder:text-[#4a5568] placeholder:font-body placeholder:text-[11px] placeholder:tracking-wide focus:outline-none focus:border-[#CCFF00]/30 transition-colors"
+            onFocus={() => { rpeFocused.current = true }}
+            onChange={e => {
+              const str = e.target.value
+              setRpeStr(str)
+              if (str === '') { onChange({ rpe: null }); return }
+              const v = parseFloat(str)
+              if (!isNaN(v) && !str.endsWith('.') && v >= 1 && v <= 10) onChange({ rpe: v })
+            }}
+            onBlur={e => {
+              rpeFocused.current = false
+              const str = e.target.value
+              if (str === '') { onChange({ rpe: null }); setRpeStr(''); return }
+              const v = parseFloat(str)
+              if (isNaN(v) || v < 1 || v > 10) {
+                // Out of range — clear silently
+                onChange({ rpe: null })
+                setRpeStr('')
+              } else {
+                onChange({ rpe: v })
+                setRpeStr(String(v))
+              }
+            }}
+          />
+          <button
+            onClick={handleRemove}
+            className="w-9 h-9 shrink-0 flex items-center justify-center bg-[#0c1324] border border-[#334155] rounded-lg text-[#4a5568] hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/5 transition-colors"
+            aria-label="Remove set"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
+      )}
 
-        {/* RPE + delete (non-warmup) */}
-        {!set.is_warmup && (
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex items-center h-9 bg-[#0c1324] border border-[#334155] rounded-lg overflow-hidden">
-              <StepBtn onClick={() => onChange({ rpe: Math.max(6, (set.rpe ?? 7) - 0.5) })}>−</StepBtn>
-              <span className={cn(
-                'flex-1 text-center text-[11px] font-black tabular-nums pointer-events-none',
-                set.rpe !== null ? 'text-[#adb4ce]' : 'text-[#334155]',
-              )}>
-                {set.rpe !== null ? `RPE ${set.rpe}` : 'RPE —'}
-              </span>
-              <StepBtn onClick={() => onChange({ rpe: Math.min(10, (set.rpe ?? 7) + 0.5) })}>+</StepBtn>
-            </div>
-
-            <button
-              onClick={onRemove}
-              className="w-9 h-9 shrink-0 flex items-center justify-center bg-[#0c1324] border border-[#334155] rounded-lg text-[#4a5568] hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/5 transition-colors"
-              aria-label="Remove set"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-
-        {/* Warmup: delete only */}
-        {set.is_warmup && (
-          <div className="flex justify-end">
-            <button
-              onClick={onRemove}
-              className="w-9 h-9 flex items-center justify-center bg-[#0c1324] border border-[#334155] rounded-lg text-[#4a5568] hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/5 transition-colors"
-              aria-label="Remove set"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-      </div>
+      {/* ── Row 2: delete only (warmup) ─────────────────────────────────── */}
+      {set.is_warmup && (
+        <div className="flex justify-end pb-1.5">
+          <button
+            onClick={handleRemove}
+            className="w-9 h-9 flex items-center justify-center bg-[#0c1324] border border-[#334155] rounded-lg text-[#4a5568] hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/5 transition-colors"
+            aria-label="Remove set"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -172,7 +232,31 @@ interface CompletedSetRowProps {
 }
 
 function CompletedSetRow({ set, onDone, onRemove }: CompletedSetRowProps) {
-  // Swipe-to-delete (touch only — no hover translate on desktop)
+  // ── Undo-delete pattern ──────────────────────────────────────────────────
+  const [pendingDelete, setPendingDelete] = useState(false)
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const toast = useToast()
+
+  const handleRemove = useCallback(() => {
+    setPendingDelete(true)
+    undoTimerRef.current = setTimeout(() => onRemove(), 4000)
+    toast.info('Set removed', {
+      duration: 4000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+          setPendingDelete(false)
+        },
+      },
+    })
+  }, [onRemove, toast])
+
+  useEffect(() => () => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+  }, [])
+
+  // Swipe-to-delete (touch only)
   const [swipeOffset, setSwipeOffset] = useState(0)
   const touchStartX = useRef<number | null>(null)
 
@@ -194,11 +278,15 @@ function CompletedSetRow({ set, onDone, onRemove }: CompletedSetRowProps) {
   }
 
   return (
+    <div className={cn(
+      'overflow-hidden transition-all duration-300',
+      pendingDelete ? 'max-h-0 opacity-0' : 'max-h-32 opacity-100',
+    )}>
     <div className="relative group overflow-hidden rounded-lg mb-1">
       {/* Swipe delete background */}
       <div className="absolute inset-y-0 right-0 w-16 bg-red-500/10 flex items-center justify-center rounded-r-lg">
         <button
-          onClick={onRemove}
+          onClick={handleRemove}
           className="w-full h-full flex items-center justify-center text-red-400"
         >
           <Trash2 className="w-4 h-4" />
@@ -213,7 +301,7 @@ function CompletedSetRow({ set, onDone, onRemove }: CompletedSetRowProps) {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Tap ✓ to untick and reopen */}
+        {/* Tap ✓ to untick */}
         <button
           onClick={onDone}
           className="w-8 shrink-0 flex items-center justify-center active:scale-90 transition-transform"
@@ -242,15 +330,16 @@ function CompletedSetRow({ set, onDone, onRemove }: CompletedSetRowProps) {
           )}
         </span>
 
-        {/* Desktop-only delete — fades in on hover, no translate */}
+        {/* Desktop-only delete — fades in on hover */}
         <button
-          onClick={onRemove}
+          onClick={handleRemove}
           className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-[#334155] opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-500/5 transition-all"
           aria-label="Remove set"
         >
           <X className="w-3 h-3" />
         </button>
       </div>
+    </div>
     </div>
   )
 }
