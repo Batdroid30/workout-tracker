@@ -207,11 +207,12 @@ export default function WorkoutPage() {
       <AddExerciseModal
         isOpen={addingExerciseMode !== null}
         onClose={() => setAddingExerciseMode(null)}
-        onSelect={(exercise) => {
+        onConfirm={(selected) => {
           if (addingExerciseMode?.mode === 'replace') {
-            useWorkoutStore.getState().replaceExercise(addingExerciseMode.index, exercise)
+            // Replace only accepts one exercise — use the first selection
+            useWorkoutStore.getState().replaceExercise(addingExerciseMode.index, selected[0])
           } else {
-            addExercise(exercise)
+            selected.forEach(ex => addExercise(ex))
           }
           setAddingExerciseMode(null)
         }}

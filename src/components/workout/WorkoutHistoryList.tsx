@@ -23,6 +23,27 @@ interface WorkoutHistoryListProps {
   workouts: WorkoutItem[]
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Formats a workout date string into a human-readable label.
+ *
+ * Uses a pinned locale ('en-GB') so the server and client always produce the
+ * same string — avoiding React hydration mismatches from locale differences
+ * between the Node.js runtime and the user's browser.
+ *
+ * Output example: "18 Apr 2026, 14:30"
+ */
+function formatWorkoutDate(isoString: string): string {
+  return new Date(isoString).toLocaleString('en-GB', {
+    day:    '2-digit',
+    month:  'short',
+    year:   'numeric',
+    hour:   '2-digit',
+    minute: '2-digit',
+  })
+}
+
 // ─── Single optimistic card ───────────────────────────────────────────────────
 
 function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
@@ -72,7 +93,7 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
           <div>
             <h3 className="font-black text-sm text-white uppercase tracking-tight">{workout.title || 'Workout'}</h3>
             <p className="text-[11px] text-[#4a5568] font-body mt-0.5">
-              {new Date(workout.started_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+              {formatWorkoutDate(workout.started_at)}
             </p>
           </div>
           <div className="flex items-center gap-2">
