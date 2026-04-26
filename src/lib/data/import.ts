@@ -197,104 +197,132 @@ async function bulkResolveExercises(
   return lookup
 }
 
+// Supabase's PostgREST has a practical limit around 1000 rows per request.
+// Chunking at 500 gives headroom for wide rows (many columns).
+const INSERT_CHUNK_SIZE = 500
+
+async function insertInChunks<T extends object>(
+  supabase: any,
+  table: string,
+  rows: T[],
+): Promise<{ data: { id: string }[]; error: any }> {
+  const allData: { id: string }[] = []
+  for (let i = 0; i < rows.length; i += INSERT_CHUNK_SIZE) {
+    const chunk = rows.slice(i, i + INSERT_CHUNK_SIZE)
+    const { data, error } = await supabase.from(table).insert(chunk).select('id')
+    if (error) return { data: [], error }
+    allData.push(...(data ?? []))
+  }
+  return { data: allData, error: null }
+}
+
 export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
   const supabase = await getSupabaseServer()
 
-  // Group rows by workout
+  // ── Step 1: group CSV rows by workout ────────────────────────────────────────
+  const workoutEntries: Array<{ key: string; firstRow: HevyRow; allRows: HevyRow[] }> = []
   const workoutsMap = new Map<string, HevyRow[]>()
   rows.forEach(row => {
     const key = `${row.title}-${row.start_time}`
-    if (!workoutsMap.has(key)) workoutsMap.set(key, [])
+    if (!workoutsMap.has(key)) {
+      workoutsMap.set(key, [])
+      workoutEntries.push({ key, firstRow: row, allRows: workoutsMap.get(key)! })
+    }
     workoutsMap.get(key)!.push(row)
   })
 
-  // Resolve all exercises in 1-2 DB calls instead of one per exercise per workout
+  // ── Step 2: resolve exercises (2 DB calls total) ──────────────────────────────
   const allExerciseNames = rows.map(r => r.exercise_title).filter(Boolean)
   const exerciseLookup = await bulkResolveExercises(supabase, userId, allExerciseNames)
 
-  const results = { workoutsImported: 0, errors: [] as string[] }
+  // ── Step 3: batch insert ALL workouts in one call ────────────────────────────
+  const workoutsToInsert = workoutEntries.map(({ firstRow }) => ({
+    user_id: userId,
+    title: firstRow.title,
+    notes: firstRow.description || null,
+    started_at: firstRow.start_time,
+    completed_at: firstRow.end_time || null,
+    duration_seconds: parseInt(firstRow.duration_seconds) || null,
+    created_at: firstRow.start_time,
+  }))
 
-  for (const [key, workoutRows] of workoutsMap.entries()) {
-    try {
-      const firstRow = workoutRows[0]
+  const { data: insertedWorkouts, error: workoutsErr } = await supabase
+    .from('workouts')
+    .insert(workoutsToInsert)
+    .select('id, started_at, completed_at')
 
-      const { data: workout, error: workoutErr } = await supabase
-        .from('workouts')
-        .insert({
-          user_id: userId,
-          title: firstRow.title,
-          notes: firstRow.description || null,
-          started_at: firstRow.start_time,
-          completed_at: firstRow.end_time || null,
-          duration_seconds: parseInt(firstRow.duration_seconds) || null,
-          created_at: firstRow.start_time,
-        })
-        .select('id, started_at, completed_at')
-        .single()
+  if (workoutsErr) throw new DatabaseError('Failed to insert workouts', workoutsErr)
 
-      if (workoutErr) throw workoutErr
+  // ── Step 4: build all workout_exercises rows (in insertion-order) ─────────────
+  // insertedWorkouts[i] corresponds to workoutEntries[i] — Postgres returns rows
+  // in the order they were supplied to INSERT.
+  type WEMeta = { setRows: HevyRow[]; weIndex: number }
+  const weBatch: object[] = []
+  const weMeta: WEMeta[] = []
 
-      // Group by exercise within this workout
-      const exerciseMap = new Map<string, HevyRow[]>()
-      workoutRows.forEach(row => {
-        if (!exerciseMap.has(row.exercise_title)) exerciseMap.set(row.exercise_title, [])
-        exerciseMap.get(row.exercise_title)!.push(row)
+  workoutEntries.forEach(({ allRows }, wIdx) => {
+    const workout = insertedWorkouts[wIdx]
+    if (!workout) return
+
+    const exerciseMap = new Map<string, HevyRow[]>()
+    allRows.forEach(row => {
+      if (!exerciseMap.has(row.exercise_title)) exerciseMap.set(row.exercise_title, [])
+      exerciseMap.get(row.exercise_title)!.push(row)
+    })
+
+    let orderIndex = 0
+    for (const [exerciseName, setRows] of exerciseMap.entries()) {
+      const exerciseId = exerciseLookup.get(exerciseName.toLowerCase())
+      if (!exerciseId) continue
+      weMeta.push({ setRows, weIndex: weBatch.length })
+      weBatch.push({
+        workout_id: workout.id,
+        exercise_id: exerciseId,
+        order_index: orderIndex++,
+        notes: setRows[0].exercise_notes || null,
       })
-
-      // Build workout_exercises batch
-      let orderIndex = 0
-      const weBatch: object[] = []
-      const weSetData: HevyRow[][] = []
-
-      for (const [exerciseName, setRows] of exerciseMap.entries()) {
-        const exerciseId = exerciseLookup.get(exerciseName.toLowerCase())
-        if (!exerciseId) continue
-        weBatch.push({
-          workout_id: workout.id,
-          exercise_id: exerciseId,
-          order_index: orderIndex++,
-          notes: setRows[0].exercise_notes || null,
-        })
-        weSetData.push(setRows)
-      }
-
-      if (weBatch.length === 0) { results.workoutsImported++; continue }
-
-      const { data: insertedWEs, error: weErr } = await supabase
-        .from('workout_exercises')
-        .insert(weBatch)
-        .select('id')
-      if (weErr) throw weErr
-
-      // Build all sets for this workout in one batch
-      const allSets = insertedWEs.flatMap((we: { id: string }, i: number) => {
-        return weSetData[i].map((sr, idx) => {
-          let weight = 0
-          if (sr.weight_kg) weight = parseFloat(sr.weight_kg)
-          else if (sr.weight_lbs) weight = parseFloat(sr.weight_lbs) * 0.453592
-          return {
-            workout_exercise_id: we.id,
-            set_number: parseInt(sr.set_index) || (idx + 1),
-            weight_kg: weight,
-            reps: parseInt(sr.reps) || 0,
-            rpe: parseFloat(sr.rpe) || null,
-            is_warmup: sr.set_type === 'warmup',
-            completed_at: workout.completed_at || workout.started_at,
-          }
-        })
-      })
-
-      if (allSets.length > 0) {
-        const { error: setsErr } = await supabase.from('sets').insert(allSets)
-        if (setsErr) throw setsErr
-      }
-
-      results.workoutsImported++
-    } catch (err: any) {
-      console.error(`Failed to import workout ${key}:`, err)
-      results.errors.push(`Workout "${key}": ${err.message}`)
     }
+  })
+
+  // ── Step 5: batch insert ALL workout_exercises ────────────────────────────────
+  const { data: insertedWEs, error: weErr } = await insertInChunks(supabase, 'workout_exercises', weBatch as object[])
+  if (weErr) throw new DatabaseError('Failed to insert workout exercises', weErr)
+
+  // ── Step 6: build all sets rows ───────────────────────────────────────────────
+  const allSets: object[] = []
+  weMeta.forEach(({ setRows, weIndex }) => {
+    const we = insertedWEs[weIndex]
+    if (!we) return
+
+    // Determine the completed_at for these sets from the parent workout.
+    // We stored workouts in the same index order as weBatch entries are derived from workoutEntries.
+    // Walk back via the weBatch entry's workout_id to find the right workout.
+    const weBatchEntry = weBatch[weIndex] as { workout_id: string }
+    const parentWorkout = insertedWorkouts.find((w: { id: string }) => w.id === weBatchEntry.workout_id) as
+      | { id: string; started_at: string; completed_at: string | null }
+      | undefined
+
+    setRows.forEach((sr, idx) => {
+      let weight = 0
+      if (sr.weight_kg) weight = parseFloat(sr.weight_kg)
+      else if (sr.weight_lbs) weight = parseFloat(sr.weight_lbs) * 0.453592
+      allSets.push({
+        workout_exercise_id: we.id,
+        set_number: parseInt(sr.set_index) || (idx + 1),
+        weight_kg: weight,
+        reps: parseInt(sr.reps) || 0,
+        rpe: parseFloat(sr.rpe) || null,
+        is_warmup: sr.set_type === 'warmup',
+        completed_at: parentWorkout?.completed_at ?? parentWorkout?.started_at ?? sr.start_time,
+      })
+    })
+  })
+
+  // ── Step 7: batch insert ALL sets ────────────────────────────────────────────
+  if (allSets.length > 0) {
+    const { error: setsErr } = await insertInChunks(supabase, 'sets', allSets as object[])
+    if (setsErr) throw new DatabaseError('Failed to insert sets', setsErr)
   }
 
-  return results
+  return { workoutsImported: insertedWorkouts.length, errors: [] as string[] }
 }
