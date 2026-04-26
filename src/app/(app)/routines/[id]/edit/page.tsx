@@ -15,7 +15,7 @@ export default async function EditRoutinePage({ params }: { params: Promise<{ id
   const { id } = await params
   
   try {
-    const routine = await getRoutineById(id)
+    const routine = await getRoutineById(id, session.user.id)
     if (routine.user_id !== session.user.id) {
       redirect('/routines')
     }

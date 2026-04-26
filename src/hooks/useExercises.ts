@@ -1,51 +1,41 @@
-import { useState, useEffect } from 'react'
-import { Exercise } from '@/types/database'
+import useSWR from 'swr'
 import { getSupabaseClient } from '@/lib/supabase/client'
-import { DatabaseError } from '@/lib/errors'
+import type { Exercise } from '@/types/database'
 
-export function useExercises(enabled: boolean = true) {
-  const [exercises, setExercises] = useState<Exercise[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+const fetchExercises = async (): Promise<Exercise[]> => {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('exercises')
+    .select('*')
+    .order('name', { ascending: true })
 
-  useEffect(() => {
-    if (!enabled) return
+  if (error) throw error
+  return data ?? []
+}
 
-    let isMounted = true
+/**
+ * Fetches the full exercise catalogue with SWR caching.
+ *
+ * - First call: fetches from Supabase, caches in memory.
+ * - Subsequent calls (same session): returns cached data instantly, no DB hit.
+ * - Re-validates in the background when the window regains focus (SWR default).
+ * - `enabled = false` skips the fetch entirely (e.g. picker not yet open).
+ */
+export function useExercises(enabled = true) {
+  const { data, error, isLoading } = useSWR<Exercise[]>(
+    enabled ? 'exercises' : null,
+    fetchExercises,
+    {
+      // Don't re-fetch on every focus — exercise list changes rarely
+      revalidateOnFocus: false,
+      // Keep stale data while revalidating so the list never flickers
+      keepPreviousData: true,
+    },
+  )
 
-    async function fetchExercises() {
-      setLoading(true)
-      setError(null)
-      try {
-        const supabase = getSupabaseClient()
-        const { data, error: dbError } = await supabase
-          .from('exercises')
-          .select('*')
-          .order('name', { ascending: true })
-        
-        if (dbError) throw new DatabaseError('Failed to fetch exercises', dbError)
-        
-        if (isMounted && data) {
-          setExercises(data)
-        }
-      } catch (err) {
-        console.error('Failed to fetch exercises:', err)
-        if (isMounted) {
-          setError(err instanceof Error ? err : new Error('Failed to fetch exercises'))
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    fetchExercises()
-
-    return () => {
-      isMounted = false
-    }
-  }, [enabled])
-
-  return { exercises, loading, error }
+  return {
+    exercises: data ?? [],
+    loading:   isLoading,
+    error:     error ?? null,
+  }
 }
