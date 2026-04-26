@@ -24,7 +24,7 @@ export function CoachTipCard({ tips }: CoachTipCardProps) {
         {tips.length > 1 && (
           <button
             onClick={advance}
-            className="shrink-0 mt-0.5 text-[#334155] hover:text-[#CCFF00] transition-colors p-1 rounded-lg hover:bg-[#CCFF00]/5"
+            className="shrink-0 text-[#334155] hover:text-[#CCFF00] transition-colors p-2.5 rounded-lg hover:bg-[#CCFF00]/5 -mr-1.5 -my-0.5"
             aria-label="Next tip"
           >
             <ChevronRight className="w-4 h-4" />

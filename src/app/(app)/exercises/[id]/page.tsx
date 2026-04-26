@@ -35,7 +35,7 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
     <div className="min-h-screen bg-[#070d1f] text-[#dce1fb] pb-24">
       {/* Top Nav */}
       <div className="sticky top-0 z-30 bg-[#070d1f]/95 backdrop-blur border-b border-[#334155] px-4 py-3 flex items-center gap-3">
-        <Link href="/exercises" className="p-1.5 hover:bg-[#151b2d] rounded-lg transition-colors">
+        <Link href="/exercises" className="p-2.5 hover:bg-[#151b2d] rounded-lg transition-colors">
           <ArrowLeft className="w-5 h-5 text-[#adb4ce]" />
         </Link>
         <div>

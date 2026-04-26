@@ -120,9 +120,16 @@ export async function getWorkoutsSummary(userId: string) {
   }
 }
 
-export async function getVolumeHistory(userId: string): Promise<{ date: string, volume: number }[]> {
+export async function getVolumeHistory(
+  userId: string,
+  weeks = 8,
+): Promise<{ date: string, volume: number }[]> {
   const supabase = await getSupabaseServer()
-  
+
+  // Limit to the requested window so the chart doesn't fetch unbounded data
+  const since = new Date()
+  since.setDate(since.getDate() - weeks * 7)
+
   // Weekly volume rollup
   // Note: ideally this should be a DB view or function for performance
   const { data, error } = await supabase
@@ -134,6 +141,7 @@ export async function getVolumeHistory(userId: string): Promise<{ date: string, 
       workout_exercises!inner(workouts!inner(user_id))
     `)
     .eq('workout_exercises.workouts.user_id', userId)
+    .gte('completed_at', since.toISOString())
     .order('completed_at', { ascending: true })
 
   if (error) throw new DatabaseError('Failed to fetch volume history', error)

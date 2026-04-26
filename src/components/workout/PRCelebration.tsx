@@ -69,7 +69,7 @@ export function PRCelebration({ prs, onClose }: PRCelebrationProps) {
         {/* Close */}
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 text-[#334155] hover:text-white transition-colors p-1.5 rounded-lg hover:bg-[#151b2d]"
+          className="absolute top-3 right-3 text-[#334155] hover:text-white transition-colors p-2.5 rounded-lg hover:bg-[#151b2d]"
         >
           <X className="w-4 h-4" />
         </button>

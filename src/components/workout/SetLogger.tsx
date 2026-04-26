@@ -3,31 +3,89 @@
 import { SetRow }               from './SetRow'
 import { WarmupRamp }           from './WarmupRamp'
 import { PlateCalculator }      from './PlateCalculator'
+import { RestTimer }            from './RestTimer'
 import type { ActiveExercise }  from '@/types/database'
-import { Plus, Check, MoreVertical, Calculator } from 'lucide-react'
-import { useState } from 'react'
+import { Plus, Check, MoreVertical, Calculator, Timer, X } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
 import { useWorkoutStore }      from '@/store/workout.store'
 import { useExerciseHistory }   from '@/hooks/useExerciseHistory'
 import { useOverloadSuggestion } from '@/hooks/useOverloadSuggestion'
 import { useDialog }            from '@/providers/DialogProvider'
+import { getSupabaseClient }    from '@/lib/supabase/client'
+import { upsertExercisePreference } from '@/lib/data/exercise-preferences'
+
+const DEFAULT_REST = 90
 
 interface SetLoggerProps {
   exerciseIndex: number
   exercise: ActiveExercise
-  onSetCompleted?: () => void
   onReplaceExercise?: () => void
 }
 
-export function SetLogger({ exerciseIndex, exercise, onSetCompleted, onReplaceExercise }: SetLoggerProps) {
-  const { updateSet, markSetDone, addSet, removeExercise, removeSet, moveExerciseUp, moveExerciseDown } = useWorkoutStore()
-  const [menuOpen,     setMenuOpen]     = useState(false)
-  const [plateCalcOpen, setPlateCalcOpen] = useState(false)
-  const dialog  = useDialog()
+export function SetLogger({ exerciseIndex, exercise, onReplaceExercise }: SetLoggerProps) {
+  const { updateSet, markSetDone, addSet, addWarmupSet, removeExercise, removeSet, moveExerciseUp, moveExerciseDown, updateExerciseRestSeconds } = useWorkoutStore()
+  const [menuOpen,          setMenuOpen]          = useState(false)
+  const [plateCalcOpen,     setPlateCalcOpen]     = useState(false)
+  const [showRestTimer,     setShowRestTimer]      = useState(false)
+  const [restTimerKey,      setRestTimerKey]       = useState(0)
+  const [showDurationPicker, setShowDurationPicker] = useState(false)
+  const dialog = useDialog()
+
   const { history }    = useExerciseHistory(exercise.exercise.id)
   const { suggestion, lastWeight, lastReps } = useOverloadSuggestion(exercise.exercise.id)
 
+  // ── Per-exercise rest seconds ─────────────────────────────────────────────
+  // Initial value: from store (persisted in localStorage) or hard default
+  const [restSeconds, setRestSeconds] = useState<number>(exercise.rest_seconds ?? DEFAULT_REST)
+
+  // On first render only: if store has no preference, check DB for a saved one
+  useEffect(() => {
+    if (exercise.rest_seconds !== undefined) return  // already hydrated
+    let cancelled = false
+
+    async function loadFromDb() {
+      const supabase = getSupabaseClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || cancelled) return
+
+      const { data } = await supabase
+        .from('user_exercise_preferences')
+        .select('rest_seconds')
+        .eq('user_id', user.id)
+        .eq('exercise_id', exercise.exercise.id)
+        .single()
+
+      if (cancelled || !data) return
+
+      setRestSeconds(data.rest_seconds)
+      updateExerciseRestSeconds(exerciseIndex, data.rest_seconds)
+    }
+
+    loadFromDb()
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exercise.exercise.id])
+
+  const handleRestSecondsChange = useCallback((seconds: number) => {
+    setRestSeconds(seconds)
+    updateExerciseRestSeconds(exerciseIndex, seconds)
+    // Fire-and-forget — UI is already updated optimistically
+    upsertExercisePreference(exercise.exercise.id, seconds)
+    setShowDurationPicker(false)
+  }, [exerciseIndex, exercise.exercise.id, updateExerciseRestSeconds])
+
+  const handleSetCompleted = useCallback(() => {
+    setRestTimerKey(k => k + 1)
+    setShowRestTimer(true)
+  }, [])
+
   // Working weight = first non-warmup set with a weight entered
   const workingWeight = exercise.sets.find(s => !s.is_warmup && s.weight_kg > 0)?.weight_kg ?? 0
+
+  // ── Rest timer label helper ───────────────────────────────────────────────
+  const restLabel = restSeconds >= 60
+    ? `${Math.floor(restSeconds / 60)}:${String(restSeconds % 60).padStart(2, '0')}`
+    : `${restSeconds}s`
 
   return (
     <div className="glass-panel rounded-xl overflow-hidden mb-4 border border-[#334155]">
@@ -38,6 +96,16 @@ export function SetLogger({ exerciseIndex, exercise, onSetCompleted, onReplaceEx
           <p className="text-[10px] text-[#4a5568] uppercase tracking-[0.15em] mt-0.5">{exercise.exercise.muscle_group}</p>
         </div>
         <div className="flex items-center gap-1">
+          {/* Per-exercise rest timer pill */}
+          <button
+            onClick={() => setShowDurationPicker(true)}
+            className="flex items-center gap-1 h-7 px-2.5 bg-[#151b2d] border border-[#334155] rounded-lg hover:border-[#CCFF00]/40 transition-colors"
+            aria-label="Set rest timer duration"
+          >
+            <Timer className="w-3 h-3 text-[#4a5568]" />
+            <span className="text-[10px] font-black text-[#adb4ce] tabular-nums">{restLabel}</span>
+          </button>
+
           {/* Plate calculator trigger */}
           <button
             onClick={() => setPlateCalcOpen(true)}
@@ -90,16 +158,18 @@ export function SetLogger({ exerciseIndex, exercise, onSetCompleted, onReplaceEx
         </div>
       )}
 
-      {/* Warmup ramp — shown when working weight is entered */}
-      <WarmupRamp workingWeight={workingWeight} />
+      {/* Warmup ramp — shown when working weight is entered; tappable to add sets */}
+      <WarmupRamp
+        workingWeight={workingWeight}
+        onAddSet={(weight, reps) => addWarmupSet(exerciseIndex, weight, reps)}
+      />
 
-      {/* Column Headers */}
+      {/* Column Headers — mirrors SetRow row-1 layout exactly */}
       <div className="flex items-center gap-2 px-4 py-2 border-b border-[#1e293b]">
-        <span className="w-8 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest">Set</span>
-        <span className="w-16 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest">Prev</span>
+        <span className="w-14 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest">Set · Prev</span>
         <span className="flex-1 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest">kg</span>
         <span className="flex-1 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest">Reps</span>
-        <span className="w-12 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest"><Check className="w-3 h-3 mx-auto" /></span>
+        <span className="w-10 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest"><Check className="w-3 h-3 mx-auto" /></span>
       </div>
 
       {/* Rows */}
@@ -118,19 +188,30 @@ export function SetLogger({ exerciseIndex, exercise, onSetCompleted, onReplaceEx
                 const wasCompleted = exercise.sets[setIndex].completed
                 markSetDone(exerciseIndex, setIndex)
                 // Only trigger rest timer when completing a set, not when unticking
-                if (!wasCompleted) onSetCompleted?.()
+                if (!wasCompleted) handleSetCompleted()
               }}
               onRemove={() => removeSet(exerciseIndex, setIndex)}
             />
           )
         })}
 
-        <button
-          onClick={() => addSet(exerciseIndex)}
-          className="w-full flex items-center justify-center gap-2 h-9 mt-2 text-[11px] font-black text-[#CCFF00] bg-[#CCFF00]/5 hover:bg-[#CCFF00]/10 rounded-lg transition-colors border border-[#CCFF00]/10 hover:border-[#CCFF00]/20 uppercase tracking-widest"
-        >
-          <Plus className="w-3.5 h-3.5" /> Add Set
-        </button>
+        <div className="flex gap-2 mt-2">
+          {/* Add Warmup — secondary, left */}
+          <button
+            onClick={() => addWarmupSet(exerciseIndex)}
+            className="flex-1 flex items-center justify-center gap-1.5 h-9 text-[11px] font-black text-orange-400 bg-orange-500/5 hover:bg-orange-500/10 rounded-lg transition-colors border border-orange-500/20 hover:border-orange-500/30 uppercase tracking-widest"
+          >
+            <Plus className="w-3 h-3" /> Warmup
+          </button>
+
+          {/* Add Working Set — primary, right */}
+          <button
+            onClick={() => addSet(exerciseIndex)}
+            className="flex-1 flex items-center justify-center gap-1.5 h-9 text-[11px] font-black text-[#CCFF00] bg-[#CCFF00]/5 hover:bg-[#CCFF00]/10 rounded-lg transition-colors border border-[#CCFF00]/10 hover:border-[#CCFF00]/20 uppercase tracking-widest"
+          >
+            <Plus className="w-3 h-3" /> Add Set
+          </button>
+        </div>
       </div>
 
       {/* Plate calculator modal */}
@@ -139,6 +220,105 @@ export function SetLogger({ exerciseIndex, exercise, onSetCompleted, onReplaceEx
         onClose={() => setPlateCalcOpen(false)}
         initialWeight={workingWeight || 100}
       />
+
+      {/* Per-exercise rest timer */}
+      {showRestTimer && (
+        <RestTimer
+          key={restTimerKey}
+          seconds={restSeconds}
+          onSkip={() => setShowRestTimer(false)}
+          onComplete={() => setShowRestTimer(false)}
+        />
+      )}
+
+      {/* Rest duration picker */}
+      {showDurationPicker && (
+        <RestDurationPicker
+          current={restSeconds}
+          onChange={handleRestSecondsChange}
+          onClose={() => setShowDurationPicker(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── Rest Duration Picker ─────────────────────────────────────────────────────
+
+const PRESETS = [
+  { label: '30s',  seconds: 30  },
+  { label: '1m',   seconds: 60  },
+  { label: '1:30', seconds: 90  },
+  { label: '2m',   seconds: 120 },
+  { label: '3m',   seconds: 180 },
+  { label: '5m',   seconds: 300 },
+] as const
+
+interface RestDurationPickerProps {
+  current: number
+  onChange: (seconds: number) => void
+  onClose: () => void
+}
+
+function RestDurationPicker({ current, onChange, onClose }: RestDurationPickerProps) {
+  const [custom, setCustom] = useState('')
+
+  const handleCustomSubmit = () => {
+    const parsed = parseInt(custom, 10)
+    if (!isNaN(parsed) && parsed >= 10) onChange(parsed)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full bg-[#0c1324] border-t border-[#334155] rounded-t-2xl p-5 pb-8">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <Timer className="w-4 h-4 text-[#CCFF00]" />
+            <h2 className="text-sm font-black uppercase tracking-widest text-white">Rest Duration</h2>
+          </div>
+          <button onClick={onClose} className="text-[#4a5568] hover:text-white p-2.5 rounded-lg transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Preset grid */}
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          {PRESETS.map(p => (
+            <button
+              key={p.seconds}
+              onClick={() => onChange(p.seconds)}
+              className={`py-3 rounded-xl font-black text-sm transition-all active:scale-95 border ${
+                current === p.seconds
+                  ? 'bg-[#CCFF00] text-[#020617] border-[#CCFF00]'
+                  : 'bg-[#151b2d] text-[#adb4ce] border-[#334155] hover:border-[#CCFF00]/40'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Custom input */}
+        <div className="flex gap-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="Custom (seconds)"
+            value={custom}
+            onChange={e => setCustom(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleCustomSubmit()}
+            className="flex-1 h-11 bg-[#151b2d] border border-[#334155] rounded-xl px-4 text-sm font-black text-white placeholder:text-[#334155] focus:outline-none focus:border-[#CCFF00]/50"
+          />
+          <button
+            onClick={handleCustomSubmit}
+            className="h-11 px-5 bg-[#CCFF00] text-[#020617] font-black text-sm rounded-xl active:scale-95 transition-transform hover:bg-[#abd600]"
+          >
+            Set
+          </button>
+        </div>
+        <p className="text-[10px] text-[#334155] font-body mt-2">Saved per exercise — next time you add this exercise, this duration will pre-fill.</p>
+      </div>
     </div>
   )
 }

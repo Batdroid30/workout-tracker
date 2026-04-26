@@ -8,12 +8,10 @@ import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
 import { WeeklyMuscleRadarChart } from '@/components/ui/WeeklyMuscleRadarChart'
 import { ExerciseListClient } from '@/app/(app)/exercises/ExerciseListClient'
 import { getWorkoutsSummary, getVolumeHistory, getAllWorkouts } from '@/lib/data/workouts'
-import { getWeeklyMuscleGroupStats } from '@/lib/data/stats'
+import { getWeeklyMuscleGroupStats, getTopPersonalRecords } from '@/lib/data/stats'
 import { getExercises } from '@/lib/data/exercises'
-import { getWeeklyTrainingSummary, getMostImprovedExercises, deriveWeeklySummary } from '@/lib/data/insights'
-import { WeeklySummaryCard } from '@/components/dashboard/WeeklySummaryCard'
-import { MostImprovedCard }  from '@/components/dashboard/MostImprovedCard'
 import { MilestonesCard }    from '@/components/dashboard/MilestonesCard'
+import { TopPRsTable }       from '@/components/profile/TopPRsTable'
 import { WorkoutHistoryList } from '@/components/workout/WorkoutHistoryList'
 import { User, Upload } from 'lucide-react'
 import Link from 'next/link'
@@ -72,15 +70,13 @@ export default async function ProfilePage({
 }
 
 async function StatsTab({ userId }: { userId: string }) {
-  const [{ totalVolume }, volumeHistory, radarData, weeks, mostImproved] = await Promise.all([
+  // 12-week chart — separate from the 8-week dashboard chart
+  const [{ totalVolume }, volumeHistory, radarData, topPRs] = await Promise.all([
     getWorkoutsSummary(userId),
-    getVolumeHistory(userId),
+    getVolumeHistory(userId, 12),
     getWeeklyMuscleGroupStats(userId),
-    getWeeklyTrainingSummary(userId),
-    getMostImprovedExercises(userId),
+    getTopPersonalRecords(userId),
   ])
-
-  const weeklySummary = deriveWeeklySummary(weeks)
 
   const chartData = volumeHistory.map((item) => ({
     date: new Date(item.date).toLocaleDateString([], { month: 'short', day: 'numeric' }),
@@ -89,17 +85,52 @@ async function StatsTab({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Quick insight cards */}
-      <section className="space-y-3">
-        <WeeklySummaryCard data={weeklySummary} />
-        <MostImprovedCard exercises={mostImproved} />
-        <MilestonesCard totalVolume={totalVolume} />
-      </section>
 
+      {/* Top PRs — unique to this page, not on dashboard */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-black uppercase tracking-[0.15em] text-[#adb4ce]">Weekly Muscle Focus</h2>
-          <span className="bg-[#CCFF00]/10 text-[9px] uppercase font-black text-[#CCFF00] px-3 py-1 rounded-lg border border-[#CCFF00]/20 tracking-widest">
+          <h2 className="text-xs font-black uppercase tracking-[0.15em] text-[#adb4ce]">Personal Records</h2>
+          <span className="text-[9px] font-black uppercase tracking-widest text-[#CCFF00] bg-[#CCFF00]/10 border border-[#CCFF00]/20 px-2.5 py-1 rounded-lg">
+            All-Time
+          </span>
+        </div>
+        <TopPRsTable prs={topPRs} />
+      </section>
+
+      {/* Volume chart — 12 weeks, unique depth vs dashboard 8-week */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-black uppercase tracking-[0.15em] text-[#adb4ce]">Volume Trend</h2>
+          <span className="text-[9px] font-black uppercase tracking-widest text-[#CCFF00] bg-[#CCFF00]/10 border border-[#CCFF00]/20 px-2.5 py-1 rounded-lg">
+            12 Weeks
+          </span>
+        </div>
+        <div className="glass-panel border border-[#334155] rounded-xl p-4">
+          <div className="flex items-baseline gap-2 mb-4">
+            <p className="text-3xl font-black text-white tracking-tighter">
+              {totalVolume >= 1_000_000
+                ? `${(totalVolume / 1_000_000).toFixed(2)}M`
+                : totalVolume >= 1_000
+                ? `${(totalVolume / 1_000).toFixed(1)}k`
+                : totalVolume}
+            </p>
+            <span className="text-sm text-[#334155] font-black">kg total</span>
+          </div>
+          {chartData.length > 1 ? (
+            <div className="h-[180px] w-full">
+              <ProgressionLineChart data={chartData} color="#CCFF00" formatType="volume" />
+            </div>
+          ) : (
+            <p className="text-[11px] text-[#334155] font-body text-center py-8">Log more workouts to see your trend.</p>
+          )}
+        </div>
+      </section>
+
+      {/* Muscle focus radar */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-black uppercase tracking-[0.15em] text-[#adb4ce]">Muscle Focus</h2>
+          <span className="text-[9px] font-black uppercase tracking-widest text-[#CCFF00] bg-[#CCFF00]/10 border border-[#CCFF00]/20 px-2.5 py-1 rounded-lg">
             Last 7 Days
           </span>
         </div>
@@ -107,28 +138,18 @@ async function StatsTab({ userId }: { userId: string }) {
           <div className="h-[240px] w-full">
             <WeeklyMuscleRadarChart data={radarData} />
           </div>
-          <p className="text-[11px] text-[#4a5568] font-body mt-2 text-center">
+          <p className="text-[11px] text-[#4a5568] font-body mt-2 text-center tracking-wide">
             Distribution of working sets across muscle groups.
           </p>
         </div>
       </section>
 
+      {/* Milestones — lifetime tonnage progress */}
       <section>
-        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-[#adb4ce] mb-3">Volume Analysis</h2>
-        <div className="glass-panel border border-[#334155] rounded-xl p-4">
-          <div className="flex justify-between items-end mb-6">
-            <div>
-              <p className="text-[9px] text-[#4a5568] font-black uppercase tracking-[0.15em] mb-1">Total Volume</p>
-              <p className="text-4xl font-black text-white tracking-tighter">
-                {totalVolume.toLocaleString()} <span className="text-base text-[#334155]">kg</span>
-              </p>
-            </div>
-          </div>
-          <div className="h-[180px] w-full">
-            <ProgressionLineChart data={chartData} color="#CCFF00" formatType="volume" />
-          </div>
-        </div>
+        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-[#adb4ce] mb-3">Tonnage Milestones</h2>
+        <MilestonesCard totalVolume={totalVolume} />
       </section>
+
     </div>
   )
 }

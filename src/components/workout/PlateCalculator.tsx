@@ -73,7 +73,7 @@ export function PlateCalculator({ isOpen, onClose, initialWeight = 100 }: PlateC
             <Calculator className="w-4 h-4 text-[#CCFF00]" />
             <h2 className="text-sm font-black uppercase tracking-widest text-white">Plate Calculator</h2>
           </div>
-          <button onClick={onClose} className="text-[#4a5568] hover:text-white p-1 rounded-lg transition-colors">
+          <button onClick={onClose} className="text-[#4a5568] hover:text-white p-2.5 rounded-lg transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
