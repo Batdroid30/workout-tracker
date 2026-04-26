@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache'
-import { getSupabaseServer } from '@/lib/supabase/server'
+import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { TAGS } from '@/lib/cache'
 import type { PRType, PRCheckResult } from '@/types/database'
 
@@ -34,7 +34,7 @@ function calculate1RM(weight: number, reps: number): number {
 export const getExerciseProgression = async (userId: string, exerciseId: string) => {
   return unstable_cache(
     async (uid: string, exId: string) => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const { data: prs } = await supabase
         .from('personal_records')
@@ -88,7 +88,7 @@ export const getExerciseProgression = async (userId: string, exerciseId: string)
 export const getTopPersonalRecords = async (userId: string): Promise<TopPR[]> => {
   return unstable_cache(
     async (uid: string): Promise<TopPR[]> => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const { data, error } = await supabase
         .from('personal_records')
@@ -142,7 +142,7 @@ export const getTopPersonalRecords = async (userId: string): Promise<TopPR[]> =>
 export const getWeeklyMuscleGroupStats = async (userId: string) => {
   return unstable_cache(
     async (uid: string) => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)

@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache'
-import { getSupabaseServer } from '@/lib/supabase/server'
+import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { calculateEpley1RM, type WeekSummary } from '@/lib/algorithms'
 import { TAGS } from '@/lib/cache'
@@ -64,7 +64,7 @@ function getMondayOf(date: Date): string {
 export const getWeeklyTrainingSummary = async (userId: string): Promise<WeekSummary[]> => {
   return unstable_cache(
     async (uid: string): Promise<WeekSummary[]> => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const eightWeeksAgo = new Date()
       eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 56)
@@ -131,7 +131,7 @@ export const getWeeklyTrainingSummary = async (userId: string): Promise<WeekSumm
 export const getRecentPRs = async (userId: string, days = 30): Promise<RecentPR[]> => {
   return unstable_cache(
     async (uid: string, d: number): Promise<RecentPR[]> => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const since = new Date()
       since.setDate(since.getDate() - d)
@@ -165,7 +165,7 @@ export const getRecentPRs = async (userId: string, days = 30): Promise<RecentPR[
 export const getMostImprovedExercises = async (userId: string): Promise<ImprovedExercise[]> => {
   return unstable_cache(
     async (uid: string): Promise<ImprovedExercise[]> => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const ninetyDaysAgo = new Date()
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
@@ -223,7 +223,7 @@ export const getMostImprovedExercises = async (userId: string): Promise<Improved
 export const getNeglectedMuscles = async (userId: string): Promise<NeglectedMuscle[]> => {
   return unstable_cache(
     async (uid: string): Promise<NeglectedMuscle[]> => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const twentyEightDaysAgo = new Date(Date.now() - 28 * 86400000)
 
@@ -260,7 +260,7 @@ export const getNeglectedMuscles = async (userId: string): Promise<NeglectedMusc
 export const getStalledMovements = async (userId: string): Promise<StalledMovement[]> => {
   return unstable_cache(
     async (uid: string): Promise<StalledMovement[]> => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const sixWeeksAgo     = new Date(Date.now() - 42 * 86400000)
       const threeWeeksAgoMs = Date.now() - 21 * 86400000
@@ -326,7 +326,7 @@ export const getStalledMovements = async (userId: string): Promise<StalledMoveme
 export const getTrainingStreak = async (userId: string): Promise<TrainingStreak> => {
   return unstable_cache(
     async (uid: string): Promise<TrainingStreak> => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const { data, error } = await supabase
         .from('workouts')

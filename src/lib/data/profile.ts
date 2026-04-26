@@ -1,12 +1,12 @@
 import { unstable_cache } from 'next/cache'
-import { getSupabaseServer } from '@/lib/supabase/server'
+import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { TAGS } from '@/lib/cache'
 import type { Profile } from '@/types/database'
 
 export const getProfile = async (userId: string): Promise<Profile | null> => {
   return unstable_cache(
     async (uid: string): Promise<Profile | null> => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -17,7 +17,7 @@ export const getProfile = async (userId: string): Promise<Profile | null> => {
       if (!profileError && profileData) return profileData
 
       // Fallback: synthesise from the auth session user
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(uid)
 
       if (userError || !user) {
         console.error('Error fetching user from auth:', userError?.message)

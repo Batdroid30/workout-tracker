@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache'
-import { getSupabaseServer } from '@/lib/supabase/server'
+import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { TAGS } from '@/lib/cache'
 import type { Exercise } from '@/types/database'
 
@@ -7,7 +7,7 @@ import type { Exercise } from '@/types/database'
 // exercise is created or its metadata is updated.
 export const getExercises = unstable_cache(
   async (): Promise<Exercise[]> => {
-    const supabase = await getSupabaseServer()
+    const supabase = getSupabaseAdmin()
     const { data, error } = await supabase
       .from('exercises')
       .select('*')
@@ -26,7 +26,7 @@ export const getExercises = unstable_cache(
 export const getExerciseById = async (id: string): Promise<Exercise | null> => {
   return unstable_cache(
     async (exerciseId: string): Promise<Exercise | null> => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
       const { data, error } = await supabase
         .from('exercises')
         .select('*')

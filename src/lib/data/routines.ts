@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache'
-import { getSupabaseServer } from '@/lib/supabase/server'
+import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { TAGS } from '@/lib/cache'
 
@@ -8,7 +8,7 @@ import { TAGS } from '@/lib/cache'
 export const getRoutines = async (userId: string) => {
   return unstable_cache(
     async (uid: string) => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const { data, error } = await supabase
         .from('routines')
@@ -45,7 +45,7 @@ export const getRoutines = async (userId: string) => {
 export const getRoutineById = async (routineId: string, userId: string) => {
   return unstable_cache(
     async (rId: string) => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const { data, error } = await supabase
         .from('routines')

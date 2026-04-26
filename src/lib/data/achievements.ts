@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache'
-import { getSupabaseServer } from '@/lib/supabase/server'
+import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { TAGS } from '@/lib/cache'
 
@@ -62,7 +62,7 @@ export const getBadges = async (
 ): Promise<Badge[]> => {
   return unstable_cache(
     async (uid: string, vol: number, wks: number): Promise<Badge[]> => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const [prResult, workoutResult] = await Promise.all([
         supabase.from('personal_records').select('id', { count: 'exact', head: true }).eq('user_id', uid),

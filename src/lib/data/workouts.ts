@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache'
-import { getSupabaseServer } from '@/lib/supabase/server'
+import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { TAGS } from '@/lib/cache'
 import type { ActiveWorkout } from '@/types/database'
@@ -9,7 +9,7 @@ import type { ActiveWorkout } from '@/types/database'
 export const getRecentWorkouts = async (userId: string) => {
   return unstable_cache(
     async (uid: string) => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const { data, error } = await supabase
         .from('workouts')
@@ -58,7 +58,7 @@ export const getRecentWorkouts = async (userId: string) => {
 export const getAllWorkouts = async (userId: string) => {
   return unstable_cache(
     async (uid: string) => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const { data, error } = await supabase
         .from('workouts')
@@ -106,7 +106,7 @@ export const getAllWorkouts = async (userId: string) => {
 export const getWorkoutsSummary = async (userId: string) => {
   return unstable_cache(
     async (uid: string) => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const { count, error: countErr } = await supabase
         .from('workouts')
@@ -144,7 +144,7 @@ export const getVolumeHistory = async (
 ): Promise<{ date: string; volume: number }[]> => {
   return unstable_cache(
     async (uid: string, w: number) => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const since = new Date()
       since.setDate(since.getDate() - w * 7)
@@ -183,7 +183,7 @@ export const getExercise1RMHistory = async (
 ): Promise<{ date: string; value: number }[]> => {
   return unstable_cache(
     async (uid: string, exId: string) => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const { data, error } = await supabase
         .from('sets')
@@ -217,7 +217,7 @@ export const getExercise1RMHistory = async (
 export const getWorkoutById = async (workoutId: string, userId: string) => {
   return unstable_cache(
     async (wId: string) => {
-      const supabase = await getSupabaseServer()
+      const supabase = getSupabaseAdmin()
 
       const { data, error } = await supabase
         .from('workouts')
