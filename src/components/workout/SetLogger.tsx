@@ -5,7 +5,8 @@ import { WarmupRamp }           from './WarmupRamp'
 import { PlateCalculator }      from './PlateCalculator'
 import { RestTimer }            from './RestTimer'
 import type { ActiveExercise }  from '@/types/database'
-import { Plus, Check, MoreVertical, Calculator, Timer, X } from 'lucide-react'
+import { Plus, Check, MoreVertical, Calculator, Timer } from 'lucide-react'
+import { BottomSheet } from '@/components/ui/BottomSheet'
 import { useState, useEffect, useCallback } from 'react'
 import { useWorkoutStore }      from '@/store/workout.store'
 import { useExerciseHistory }   from '@/hooks/useExerciseHistory'
@@ -232,20 +233,20 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise }: SetLog
       )}
 
       {/* Rest duration picker */}
-      {showDurationPicker && (
-        <RestDurationPicker
-          current={restSeconds}
-          onChange={handleRestSecondsChange}
-          onClose={() => setShowDurationPicker(false)}
-        />
-      )}
+      <RestDurationPicker
+        isOpen={showDurationPicker}
+        current={restSeconds}
+        onChange={handleRestSecondsChange}
+        onClose={() => setShowDurationPicker(false)}
+      />
     </div>
   )
 }
 
 // ─── Rest Duration Picker ─────────────────────────────────────────────────────
+// Uses the shared BottomSheet component so the overlay pattern stays DRY.
 
-const PRESETS = [
+const REST_PRESETS = [
   { label: '30s',  seconds: 30  },
   { label: '1m',   seconds: 60  },
   { label: '1:30', seconds: 90  },
@@ -255,12 +256,13 @@ const PRESETS = [
 ] as const
 
 interface RestDurationPickerProps {
+  isOpen: boolean
   current: number
   onChange: (seconds: number) => void
   onClose: () => void
 }
 
-function RestDurationPicker({ current, onChange, onClose }: RestDurationPickerProps) {
+function RestDurationPicker({ isOpen, current, onChange, onClose }: RestDurationPickerProps) {
   const [custom, setCustom] = useState('')
 
   const handleCustomSubmit = () => {
@@ -269,56 +271,50 @@ function RestDurationPicker({ current, onChange, onClose }: RestDurationPickerPr
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full bg-[#0c1324] border-t border-[#334155] rounded-t-2xl p-5 pb-8">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <Timer className="w-4 h-4 text-[#CCFF00]" />
-            <h2 className="text-sm font-black uppercase tracking-widest text-white">Rest Duration</h2>
-          </div>
-          <button onClick={onClose} className="text-[#4a5568] hover:text-white p-2.5 rounded-lg transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Preset grid */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          {PRESETS.map(p => (
-            <button
-              key={p.seconds}
-              onClick={() => onChange(p.seconds)}
-              className={`py-3 rounded-xl font-black text-sm transition-all active:scale-95 border ${
-                current === p.seconds
-                  ? 'bg-[#CCFF00] text-[#020617] border-[#CCFF00]'
-                  : 'bg-[#151b2d] text-[#adb4ce] border-[#334155] hover:border-[#CCFF00]/40'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Custom input */}
-        <div className="flex gap-2">
-          <input
-            type="number"
-            inputMode="numeric"
-            placeholder="Custom (seconds)"
-            value={custom}
-            onChange={e => setCustom(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleCustomSubmit()}
-            className="flex-1 h-11 bg-[#151b2d] border border-[#334155] rounded-xl px-4 text-sm font-black text-white placeholder:text-[#334155] focus:outline-none focus:border-[#CCFF00]/50"
-          />
+    <BottomSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Rest Duration"
+      icon={<Timer className="w-4 h-4 text-[#CCFF00]" />}
+    >
+      {/* Preset grid */}
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        {REST_PRESETS.map(p => (
           <button
-            onClick={handleCustomSubmit}
-            className="h-11 px-5 bg-[#CCFF00] text-[#020617] font-black text-sm rounded-xl active:scale-95 transition-transform hover:bg-[#abd600]"
+            key={p.seconds}
+            onClick={() => onChange(p.seconds)}
+            className={`py-3 rounded-xl font-black text-sm transition-all active:scale-95 border ${
+              current === p.seconds
+                ? 'bg-[#CCFF00] text-[#020617] border-[#CCFF00]'
+                : 'bg-[#151b2d] text-[#adb4ce] border-[#334155] hover:border-[#CCFF00]/40'
+            }`}
           >
-            Set
+            {p.label}
           </button>
-        </div>
-        <p className="text-[10px] text-[#334155] font-body mt-2">Saved per exercise — next time you add this exercise, this duration will pre-fill.</p>
+        ))}
       </div>
-    </div>
+
+      {/* Custom input */}
+      <div className="flex gap-2">
+        <input
+          type="number"
+          inputMode="numeric"
+          placeholder="Custom (seconds)"
+          value={custom}
+          onChange={e => setCustom(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleCustomSubmit()}
+          className="flex-1 h-11 bg-[#151b2d] border border-[#334155] rounded-xl px-4 text-sm font-black text-white placeholder:text-[#334155] focus:outline-none focus:border-[#CCFF00]/50"
+        />
+        <button
+          onClick={handleCustomSubmit}
+          className="h-11 px-5 bg-[#CCFF00] text-[#020617] font-black text-sm rounded-xl active:scale-95 transition-transform hover:bg-[#abd600]"
+        >
+          Set
+        </button>
+      </div>
+      <p className="text-[10px] text-[#334155] font-body mt-2">
+        Saved per exercise — pre-fills next time you log this exercise.
+      </p>
+    </BottomSheet>
   )
 }
