@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Trophy } from 'lucide-react'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
+import { ExerciseMetaEditor } from '@/components/exercises/ExerciseMetaEditor'
 
 export default async function ExerciseDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -38,11 +39,18 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
         <Link href="/exercises" className="p-2.5 hover:bg-[#151b2d] rounded-lg transition-colors">
           <ArrowLeft className="w-5 h-5 text-[#adb4ce]" />
         </Link>
-        <div>
-          <h1 className="text-sm font-black uppercase tracking-widest text-white leading-tight">{exercise.name}</h1>
-          <p className="text-[10px] text-[#4a5568] font-black uppercase tracking-widest mt-0.5">
-            {exercise.muscle_group}
-          </p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-sm font-black uppercase tracking-widest text-white leading-tight truncate">{exercise.name}</h1>
+          <div className="flex items-center gap-1 mt-0.5">
+            <p className="text-[10px] text-[#4a5568] font-black uppercase tracking-widest">
+              {exercise.muscle_group} · {exercise.movement_pattern}
+            </p>
+            <ExerciseMetaEditor
+              exerciseId={exercise.id}
+              currentMuscleGroup={exercise.muscle_group}
+              currentMovementPattern={exercise.movement_pattern}
+            />
+          </div>
         </div>
       </div>
 
