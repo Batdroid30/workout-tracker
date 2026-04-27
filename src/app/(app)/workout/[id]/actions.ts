@@ -2,8 +2,7 @@
 
 import { auth } from '@/lib/auth'
 import { getSupabaseServer } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
-import { bustWorkoutDetail, bustAfterWorkout } from '@/lib/cache'
+import { revalidateAll } from '@/lib/cache'
 
 export async function updateWorkoutMetaAction(
   workoutId: string,
@@ -25,10 +24,7 @@ export async function updateWorkoutMetaAction(
 
   if (error) throw new Error(error.message)
 
-  bustWorkoutDetail(userId, workoutId)
-  revalidatePath(`/workout/${workoutId}`)
-  revalidatePath('/dashboard')
-  revalidatePath('/progress')
+  revalidateAll()
 }
 
 export async function updateHistoricalSetAction(
@@ -39,7 +35,6 @@ export async function updateHistoricalSetAction(
   const session = await auth()
   if (!session?.user?.id) throw new Error('Unauthorized')
 
-  const userId   = session.user.id
   const supabase = await getSupabaseServer()
 
   const { error } = await supabase
@@ -49,17 +44,13 @@ export async function updateHistoricalSetAction(
 
   if (error) throw new Error(error.message)
 
-  // Updating a set may shift PRs and insight metrics
-  bustAfterWorkout(userId)
-  revalidatePath('/dashboard')
-  revalidatePath('/progress')
+  revalidateAll()
 }
 
 export async function deleteHistoricalExerciseAction(workoutExerciseId: string) {
   const session = await auth()
   if (!session?.user?.id) throw new Error('Unauthorized')
 
-  const userId   = session.user.id
   const supabase = await getSupabaseServer()
 
   const { error } = await supabase
@@ -69,7 +60,5 @@ export async function deleteHistoricalExerciseAction(workoutExerciseId: string) 
 
   if (error) throw new Error(error.message)
 
-  bustAfterWorkout(userId)
-  revalidatePath('/dashboard')
-  revalidatePath('/progress')
+  revalidateAll()
 }

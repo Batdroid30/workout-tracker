@@ -1,48 +1,35 @@
-import { unstable_cache } from 'next/cache'
+import { cache } from 'react'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
-import { TAGS } from '@/lib/cache'
 import type { Exercise } from '@/types/database'
 
-// Global exercise list — shared across all users, busted only when an
-// exercise is created or its metadata is updated.
-export const getExercises = unstable_cache(
-  async (): Promise<Exercise[]> => {
-    const supabase = getSupabaseAdmin()
-    const { data, error } = await supabase
-      .from('exercises')
-      .select('*')
-      .order('name', { ascending: true })
+export const getExercises = cache(async (): Promise<Exercise[]> => {
+  const supabase = getSupabaseAdmin()
+  const { data, error } = await supabase
+    .from('exercises')
+    .select('*')
+    .order('name', { ascending: true })
 
-    if (error) {
-      console.error('Failed to fetch exercises:', error)
-      return []
-    }
-    return data
-  },
-  ['exercises'],
-  { revalidate: false, tags: [TAGS.exercises()] },
-)
+  if (error) {
+    console.error('Failed to fetch exercises:', error)
+    return []
+  }
+  return data
+})
 
-export const getExerciseById = async (id: string): Promise<Exercise | null> => {
-  return unstable_cache(
-    async (exerciseId: string): Promise<Exercise | null> => {
-      const supabase = getSupabaseAdmin()
-      const { data, error } = await supabase
-        .from('exercises')
-        .select('*')
-        .eq('id', exerciseId)
-        .single()
+export const getExerciseById = cache(async (id: string): Promise<Exercise | null> => {
+  const supabase = getSupabaseAdmin()
+  const { data, error } = await supabase
+    .from('exercises')
+    .select('*')
+    .eq('id', id)
+    .single()
 
-      if (error) {
-        console.error(`Failed to fetch exercise ${exerciseId}:`, error)
-        return null
-      }
-      return data
-    },
-    [`exercise-${id}`],
-    { revalidate: false, tags: [TAGS.exercises()] },
-  )(id)
-}
+  if (error) {
+    console.error(`Failed to fetch exercise ${id}:`, error)
+    return null
+  }
+  return data
+})
 
 // Not cached: relies on the user's Supabase session for RLS and is only
 // used inside SetLogger (client hook) where SWR handles caching.

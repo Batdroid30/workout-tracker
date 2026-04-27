@@ -1,6 +1,5 @@
-import { unstable_cache } from 'next/cache'
+import { cache } from 'react'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
-import { TAGS } from '@/lib/cache'
 import type { PRType, PRCheckResult } from '@/types/database'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -31,156 +30,138 @@ function calculate1RM(weight: number, reps: number): number {
 
 // ── Cached read functions ─────────────────────────────────────────────────────
 
-export const getExerciseProgression = async (userId: string, exerciseId: string) => {
-  return unstable_cache(
-    async (uid: string, exId: string) => {
-      const supabase = getSupabaseAdmin()
+export const getExerciseProgression = cache(async (userId: string, exerciseId: string) => {
+  const supabase = getSupabaseAdmin()
 
-      const { data: prs } = await supabase
-        .from('personal_records')
-        .select('*')
-        .eq('user_id', uid)
-        .eq('exercise_id', exId)
+  const { data: prs } = await supabase
+    .from('personal_records')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('exercise_id', exerciseId)
 
-      const { data: workouts } = await supabase
-        .from('workouts')
-        .select(`
-          started_at,
-          workout_exercises!inner (
-            exercise_id,
-            sets ( weight_kg, reps, is_warmup )
-          )
-        `)
-        .eq('user_id', uid)
-        .eq('workout_exercises.exercise_id', exId)
-        .order('started_at', { ascending: true })
+  const { data: workouts } = await supabase
+    .from('workouts')
+    .select(`
+      started_at,
+      workout_exercises!inner (
+        exercise_id,
+        sets ( weight_kg, reps, is_warmup )
+      )
+    `)
+    .eq('user_id', userId)
+    .eq('workout_exercises.exercise_id', exerciseId)
+    .order('started_at', { ascending: true })
 
-      const progressionData: { date: string; maxWeight: number; best1RM: number; volume: number }[] = []
+  const progressionData: { date: string; maxWeight: number; best1RM: number; volume: number }[] = []
 
-      workouts?.forEach(w => {
-        let maxW = 0, best1 = 0, vol = 0
-        const dateStr = new Date(w.started_at).toISOString().split('T')[0]
-        // @ts-ignore
-        w.workout_exercises.forEach(we => {
-          // @ts-ignore
-          we.sets.forEach(s => {
-            if (!s.is_warmup && s.weight_kg && s.reps) {
-              const wgt = Number(s.weight_kg), reps = Number(s.reps)
-              if (wgt > maxW) maxW = wgt
-              const e1rm = calculate1RM(wgt, reps)
-              if (e1rm > best1) best1 = e1rm
-              vol += wgt * reps
-            }
-          })
-        })
-        if (maxW > 0 || best1 > 0) {
-          progressionData.push({ date: dateStr, maxWeight: maxW, best1RM: Math.round(best1), volume: vol })
+  workouts?.forEach(w => {
+    let maxW = 0, best1 = 0, vol = 0
+    const dateStr = new Date(w.started_at).toISOString().split('T')[0]
+    // @ts-ignore
+    w.workout_exercises.forEach(we => {
+      // @ts-ignore
+      we.sets.forEach(s => {
+        if (!s.is_warmup && s.weight_kg && s.reps) {
+          const wgt = Number(s.weight_kg), reps = Number(s.reps)
+          if (wgt > maxW) maxW = wgt
+          const e1rm = calculate1RM(wgt, reps)
+          if (e1rm > best1) best1 = e1rm
+          vol += wgt * reps
         }
       })
+    })
+    if (maxW > 0 || best1 > 0) {
+      progressionData.push({ date: dateStr, maxWeight: maxW, best1RM: Math.round(best1), volume: vol })
+    }
+  })
 
-      return { prs: prs || [], progression: progressionData }
-    },
-    [`exercise-progression`, userId, exerciseId],
-    { revalidate: false, tags: [TAGS.prs(userId)] },
-  )(userId, exerciseId)
-}
+  return { prs: prs || [], progression: progressionData }
+})
 
-export const getTopPersonalRecords = async (userId: string): Promise<TopPR[]> => {
-  return unstable_cache(
-    async (uid: string): Promise<TopPR[]> => {
-      const supabase = getSupabaseAdmin()
+export const getTopPersonalRecords = cache(async (userId: string): Promise<TopPR[]> => {
+  const supabase = getSupabaseAdmin()
 
-      const { data, error } = await supabase
-        .from('personal_records')
-        .select(`
-          exercise_id,
-          pr_type,
-          value,
-          reps,
-          achieved_at,
-          exercise:exercises ( id, name, muscle_group )
-        `)
-        .eq('user_id', uid)
-        .in('pr_type', ['best_weight', 'best_1rm'])
+  const { data, error } = await supabase
+    .from('personal_records')
+    .select(`
+      exercise_id,
+      pr_type,
+      value,
+      reps,
+      achieved_at,
+      exercise:exercises ( id, name, muscle_group )
+    `)
+    .eq('user_id', userId)
+    .in('pr_type', ['best_weight', 'best_1rm'])
 
-      if (error) { console.error('Failed to fetch top PRs:', error.message); return [] }
-      if (!data || data.length === 0) return []
+  if (error) { console.error('Failed to fetch top PRs:', error.message); return [] }
+  if (!data || data.length === 0) return []
 
-      const map = new Map<string, TopPR>()
-      for (const row of data) {
-        const ex = row.exercise as any
-        if (!ex) continue
-        const existing = map.get(row.exercise_id) ?? {
-          exerciseId: row.exercise_id,
-          exerciseName: ex.name,
-          muscleGroup: ex.muscle_group,
-          bestWeight: null,
-          bestWeightReps: null,
-          best1RM: null,
-          achievedAt: row.achieved_at,
-        }
-        if (row.pr_type === 'best_weight') {
-          existing.bestWeight = Number(row.value)
-          existing.bestWeightReps = row.reps ? Number(row.reps) : null
-        }
-        if (row.pr_type === 'best_1rm') existing.best1RM = Number(row.value)
-        if (row.achieved_at && (!existing.achievedAt || row.achieved_at > existing.achievedAt)) {
-          existing.achievedAt = row.achieved_at
-        }
-        map.set(row.exercise_id, existing)
-      }
+  const map = new Map<string, TopPR>()
+  for (const row of data) {
+    const ex = row.exercise as any
+    if (!ex) continue
+    const existing = map.get(row.exercise_id) ?? {
+      exerciseId: row.exercise_id,
+      exerciseName: ex.name,
+      muscleGroup: ex.muscle_group,
+      bestWeight: null,
+      bestWeightReps: null,
+      best1RM: null,
+      achievedAt: row.achieved_at,
+    }
+    if (row.pr_type === 'best_weight') {
+      existing.bestWeight = Number(row.value)
+      existing.bestWeightReps = row.reps ? Number(row.reps) : null
+    }
+    if (row.pr_type === 'best_1rm') existing.best1RM = Number(row.value)
+    if (row.achieved_at && (!existing.achievedAt || row.achieved_at > existing.achievedAt)) {
+      existing.achievedAt = row.achieved_at
+    }
+    map.set(row.exercise_id, existing)
+  }
 
-      return Array.from(map.values())
-        .sort((a, b) => (b.best1RM ?? 0) - (a.best1RM ?? 0))
-        .slice(0, 15)
-    },
-    [`top-prs`, userId],
-    { revalidate: false, tags: [TAGS.prs(userId)] },
-  )(userId)
-}
+  return Array.from(map.values())
+    .sort((a, b) => (b.best1RM ?? 0) - (a.best1RM ?? 0))
+    .slice(0, 15)
+})
 
-export const getWeeklyMuscleGroupStats = async (userId: string) => {
-  return unstable_cache(
-    async (uid: string) => {
-      const supabase = getSupabaseAdmin()
+export const getWeeklyMuscleGroupStats = cache(async (userId: string) => {
+  const supabase = getSupabaseAdmin()
 
-      const sevenDaysAgo = new Date()
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+  const sevenDaysAgo = new Date()
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-      const { data: workouts } = await supabase
-        .from('workouts')
-        .select(`
-          started_at,
-          workout_exercises (
-            exercise:exercises ( muscle_group ),
-            sets ( id, is_warmup )
-          )
-        `)
-        .eq('user_id', uid)
-        .gte('started_at', sevenDaysAgo.toISOString())
+  const { data: workouts } = await supabase
+    .from('workouts')
+    .select(`
+      started_at,
+      workout_exercises (
+        exercise:exercises ( muscle_group ),
+        sets ( id, is_warmup )
+      )
+    `)
+    .eq('user_id', userId)
+    .gte('started_at', sevenDaysAgo.toISOString())
 
-      const muscleCounts: Record<string, number> = {}
-      workouts?.forEach(w => {
-        // @ts-ignore
-        w.workout_exercises.forEach(we => {
-          // @ts-ignore
-          const group = we.exercise?.muscle_group
-          // @ts-ignore
-          const validSets = we.sets?.filter(s => !s.is_warmup).length || 0
-          if (group && validSets > 0) muscleCounts[group] = (muscleCounts[group] || 0) + validSets
-        })
-      })
+  const muscleCounts: Record<string, number> = {}
+  workouts?.forEach(w => {
+    // @ts-ignore
+    w.workout_exercises.forEach(we => {
+      // @ts-ignore
+      const group = we.exercise?.muscle_group
+      // @ts-ignore
+      const validSets = we.sets?.filter(s => !s.is_warmup).length || 0
+      if (group && validSets > 0) muscleCounts[group] = (muscleCounts[group] || 0) + validSets
+    })
+  })
 
-      return Object.keys(muscleCounts).map(group => ({
-        subject: group.toUpperCase(),
-        A: muscleCounts[group],
-        fullMark: Math.max(10, ...Object.values(muscleCounts)),
-      }))
-    },
-    [`muscle-group-stats`, userId],
-    { revalidate: false, tags: [TAGS.insights(userId)] },
-  )(userId)
-}
+  return Object.keys(muscleCounts).map(group => ({
+    subject: group.toUpperCase(),
+    A: muscleCounts[group],
+    fullMark: Math.max(10, ...Object.values(muscleCounts)),
+  }))
+})
 
 // ── Write functions (never cached) ────────────────────────────────────────────
 

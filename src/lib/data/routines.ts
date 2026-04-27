@@ -1,80 +1,67 @@
-import { unstable_cache } from 'next/cache'
+import { cache } from 'react'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
-import { TAGS } from '@/lib/cache'
 
 // ── Read functions (cached) ───────────────────────────────────────────────────
 
-export const getRoutines = async (userId: string) => {
-  return unstable_cache(
-    async (uid: string) => {
-      const supabase = getSupabaseAdmin()
+export const getRoutines = cache(async (userId: string) => {
+  const supabase = getSupabaseAdmin()
 
-      const { data, error } = await supabase
-        .from('routines')
-        .select(`
-          *,
-          routine_exercises (
-            id,
-            order_index,
-            target_sets,
-            target_reps,
-            exercise:exercises ( id, name, muscle_group )
-          )
-        `)
-        .eq('user_id', uid)
-        .order('created_at', { ascending: false })
+  const { data, error } = await supabase
+    .from('routines')
+    .select(`
+      *,
+      routine_exercises (
+        id,
+        order_index,
+        target_sets,
+        target_reps,
+        exercise:exercises ( id, name, muscle_group )
+      )
+    `)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
 
-      if (error) {
-        console.error('Failed to fetch routines:', error.message)
-        throw new DatabaseError('Failed to fetch routines', error)
-      }
+  if (error) {
+    console.error('Failed to fetch routines:', error.message)
+    throw new DatabaseError('Failed to fetch routines', error)
+  }
 
-      return (data ?? []).map(routine => ({
-        ...routine,
-        routine_exercises: routine.routine_exercises?.sort(
-          (a: any, b: any) => a.order_index - b.order_index,
-        ) ?? [],
-      }))
-    },
-    [`routines`, userId],
-    { revalidate: false, tags: [TAGS.routines(userId)] },
-  )(userId)
-}
+  return (data ?? []).map(routine => ({
+    ...routine,
+    routine_exercises: routine.routine_exercises?.sort(
+      (a: any, b: any) => a.order_index - b.order_index,
+    ) ?? [],
+  }))
+})
 
-export const getRoutineById = async (routineId: string, userId: string) => {
-  return unstable_cache(
-    async (rId: string) => {
-      const supabase = getSupabaseAdmin()
+export const getRoutineById = cache(async (routineId: string, userId: string) => {
+  const supabase = getSupabaseAdmin()
 
-      const { data, error } = await supabase
-        .from('routines')
-        .select(`
-          *,
-          routine_exercises (
-            id,
-            order_index,
-            target_sets,
-            target_reps,
-            exercise:exercises ( id, name, muscle_group )
-          )
-        `)
-        .eq('id', rId)
-        .single()
+  const { data, error } = await supabase
+    .from('routines')
+    .select(`
+      *,
+      routine_exercises (
+        id,
+        order_index,
+        target_sets,
+        target_reps,
+        exercise:exercises ( id, name, muscle_group )
+      )
+    `)
+    .eq('id', routineId)
+    .single()
 
-      if (error) throw new DatabaseError('Failed to fetch routine', error)
+  if (error) throw new DatabaseError('Failed to fetch routine', error)
 
-      return {
-        ...data,
-        routine_exercises: data.routine_exercises?.sort(
-          (a: any, b: any) => a.order_index - b.order_index,
-        ) ?? [],
-      }
-    },
-    [`routine-detail`, routineId, userId],
-    { revalidate: false, tags: [TAGS.routineDetail(routineId), TAGS.routines(userId)] },
-  )(routineId)
-}
+  return {
+    ...data,
+    routine_exercises: data.routine_exercises?.sort(
+      (a: any, b: any) => a.order_index - b.order_index,
+    ) ?? [],
+  }
+})
 
 // ── Write functions (never cached) ───────────────────────────────────────────
 

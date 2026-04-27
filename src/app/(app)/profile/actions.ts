@@ -3,9 +3,8 @@
 import { auth, signOut } from '@/lib/auth'
 import { updateProfile as updateProfileData } from '@/lib/data/profile'
 import { evaluateAndSaveAllPRs } from '@/lib/data/stats'
-import { revalidatePath } from 'next/cache'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
-import { bustProfile, bustEverything } from '@/lib/cache'
+import { revalidateAll } from '@/lib/cache'
 
 export async function updateProfileAction(formData: FormData) {
   const session = await auth()
@@ -18,9 +17,7 @@ export async function updateProfileAction(formData: FormData) {
       first_name: formData.get('firstName') as string,
       last_name:  formData.get('lastName')  as string,
     })
-    bustProfile(userId)
-    revalidatePath('/profile')
-    revalidatePath('/dashboard')
+    revalidateAll()
     return { success: true }
   } catch (error: any) {
     console.error('Error updating profile:', error)
@@ -52,9 +49,7 @@ export async function uploadAvatarAction(base64Image: string, fileName: string) 
     const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
     await updateProfileData(userId, { avatar_url: publicUrl })
 
-    bustProfile(userId)
-    revalidatePath('/profile')
-    revalidatePath('/dashboard')
+    revalidateAll()
 
     return { success: true, url: publicUrl }
   } catch (error: any) {
@@ -82,21 +77,14 @@ export async function updateWeeklyGoalAction(sessions: number) {
       { onConflict: 'id' },
     )
 
-  bustProfile(userId)
-  revalidatePath('/dashboard')
-  revalidatePath('/profile')
+  revalidateAll()
 }
 
 export async function refreshCacheAction() {
   const session = await auth()
   if (!session?.user?.id) throw new Error('Not authenticated')
 
-  const userId = session.user.id
-
-  bustEverything(userId)
-  revalidatePath('/dashboard')
-  revalidatePath('/profile')
-  revalidatePath('/progress')
+  revalidateAll()
 
   return { success: true }
 }
@@ -109,10 +97,7 @@ export async function recalculatePRsAction() {
 
   try {
     await evaluateAndSaveAllPRs(userId)
-    bustEverything(userId)
-    revalidatePath('/dashboard')
-    revalidatePath('/profile')
-    revalidatePath('/progress')
+    revalidateAll()
     return { success: true }
   } catch (error: any) {
     console.error('Error recalculating PRs:', error)
@@ -146,10 +131,7 @@ export async function clearAllWorkoutDataAction() {
 
     await supabase.from('exercises').delete().eq('is_custom', true).eq('created_by', userId)
 
-    bustEverything(userId)
-    revalidatePath('/profile')
-    revalidatePath('/dashboard')
-    revalidatePath('/progress')
+    revalidateAll()
 
     return { success: true }
   } catch (error: any) {

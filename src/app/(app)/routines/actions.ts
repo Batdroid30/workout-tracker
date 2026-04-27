@@ -3,8 +3,7 @@
 import { auth } from '@/lib/auth'
 import { createRoutine, deleteRoutine, updateRoutine, CreateRoutineInput } from '@/lib/data/routines'
 import { getSupabaseServer } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
-import { bustRoutines } from '@/lib/cache'
+import { revalidateAll } from '@/lib/cache'
 
 export async function createRoutineAction(input: CreateRoutineInput) {
   const session = await auth()
@@ -13,9 +12,7 @@ export async function createRoutineAction(input: CreateRoutineInput) {
   const userId  = session.user.id
   const routine = await createRoutine(userId, input)
 
-  bustRoutines(userId)
-  revalidatePath('/routines')
-  revalidatePath('/dashboard')
+  revalidateAll()
 
   return routine
 }
@@ -27,9 +24,7 @@ export async function deleteRoutineAction(routineId: string) {
   const userId = session.user.id
   await deleteRoutine(routineId, userId)
 
-  bustRoutines(userId, routineId)
-  revalidatePath('/routines')
-  revalidatePath('/dashboard')
+  revalidateAll()
 }
 
 export async function updateRoutineExercisesAction(routineId: string, exercises: any[]) {
@@ -59,8 +54,7 @@ export async function updateRoutineExercisesAction(routineId: string, exercises:
     if (insError) throw new Error(insError.message)
   }
 
-  bustRoutines(userId, routineId)
-  revalidatePath('/routines')
+  revalidateAll()
 }
 
 export async function updateRoutineDetailsAction(routineId: string, input: CreateRoutineInput) {
@@ -70,7 +64,5 @@ export async function updateRoutineDetailsAction(routineId: string, input: Creat
   const userId = session.user.id
   await updateRoutine(routineId, userId, input)
 
-  bustRoutines(userId, routineId)
-  revalidatePath('/routines')
-  revalidatePath('/dashboard')
+  revalidateAll()
 }

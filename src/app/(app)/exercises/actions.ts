@@ -1,10 +1,9 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { auth } from '@/lib/auth'
 import { DatabaseError } from '@/lib/errors'
-import { bustExercises } from '@/lib/cache'
+import { revalidateAll } from '@/lib/cache'
 import type { MuscleGroup, MovementPattern } from '@/types/database'
 
 interface UpdateExerciseMetaParams {
@@ -32,9 +31,7 @@ export async function updateExerciseAction(
 
   if (error) throw new DatabaseError(`Failed to update exercise: ${error.message}`, error)
 
-  bustExercises()
-  revalidatePath(`/exercises/${id}`)
-  revalidatePath('/exercises')
+  revalidateAll()
 
   return { success: true }
 }

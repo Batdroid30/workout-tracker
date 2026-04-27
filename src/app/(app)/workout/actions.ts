@@ -3,8 +3,7 @@
 import { auth } from '@/lib/auth'
 import { saveActiveWorkout, deleteWorkout } from '@/lib/data/workouts'
 import { evaluateAndSavePRs } from '@/lib/data/stats'
-import { revalidatePath } from 'next/cache'
-import { bustAfterWorkout } from '@/lib/cache'
+import { revalidateAll } from '@/lib/cache'
 
 export async function finishWorkoutAction(activeWorkout: any) {
   const session = await auth()
@@ -16,9 +15,7 @@ export async function finishWorkoutAction(activeWorkout: any) {
     const { workout, savedSets } = await saveActiveWorkout(userId, activeWorkout)
     const prs = await evaluateAndSavePRs(userId, workout.id, workout.started_at, savedSets)
 
-    bustAfterWorkout(userId)
-    revalidatePath('/dashboard')
-    revalidatePath('/progress')
+    revalidateAll()
 
     return { success: true, workoutId: workout.id, prs }
   } catch (error: any) {
@@ -36,9 +33,7 @@ export async function deleteWorkoutAction(workoutId: string) {
   try {
     await deleteWorkout(workoutId, userId)
 
-    bustAfterWorkout(userId)
-    revalidatePath('/dashboard')
-    revalidatePath('/progress')
+    revalidateAll()
 
     return { success: true }
   } catch (error: any) {

@@ -3,8 +3,7 @@
 import { auth } from '@/lib/auth'
 import { parseHevyCSV, importWorkoutsFromHevy } from '@/lib/data/import'
 import { evaluateAndSaveAllPRs } from '@/lib/data/stats'
-import { revalidatePath } from 'next/cache'
-import { bustAfterImport } from '@/lib/cache'
+import { revalidateAll } from '@/lib/cache'
 
 export async function importHevyCSVAction(formData: FormData) {
   const session = await auth()
@@ -37,10 +36,7 @@ export async function recalculatePRsAfterImportAction() {
 
   try {
     await evaluateAndSaveAllPRs(userId)
-    bustAfterImport(userId)
-    revalidatePath('/dashboard')
-    revalidatePath('/progress')
-    revalidatePath('/profile')
+    revalidateAll()
     return { success: true }
   } catch (error: any) {
     console.error('PR recalculation failed:', error)
