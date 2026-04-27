@@ -261,7 +261,7 @@ export const getWorkoutById = async (workoutId: string, userId: string) => {
 // ── Write functions (never cached) ────────────────────────────────────────────
 
 export interface SavedSetForPR {
-  id: string | null  // null until we can reliably read back DB-assigned IDs
+  id: string
   exerciseId: string
   exerciseName: string
   weight_kg: number
@@ -271,7 +271,11 @@ export interface SavedSetForPR {
 }
 
 export async function saveActiveWorkout(userId: string, workout: ActiveWorkout) {
-  const supabase = await getSupabaseServer()
+  // Use admin client for all operations in this function.
+  // Auth is already verified by the calling server action via auth().
+  // Admin client bypasses RLS, which is necessary to reliably SELECT back
+  // the DB-assigned IDs of rows we just inserted in the same request.
+  const supabase = getSupabaseAdmin()
 
   const { data: workoutData, error: workoutErr } = await supabase
     .from('workouts')
@@ -306,32 +310,34 @@ export async function saveActiveWorkout(userId: string, workout: ActiveWorkout) 
 
     const completedSets = ex.sets.filter(s => s.completed)
     if (completedSets.length > 0) {
-      const { error: setsErr } = await supabase.from('sets').insert(
-        completedSets.map((s, setIndex: number) => ({
-          workout_exercise_id: weData.id,
-          set_number: setIndex + 1,
-          weight_kg: s.weight_kg,
-          reps: s.reps,
-          rpe: s.rpe,
-          is_warmup: s.is_warmup,
-          completed_at: new Date().toISOString(),
-        })),
-      )
+      const { data: setsData, error: setsErr } = await supabase
+        .from('sets')
+        .insert(
+          completedSets.map((s, setIndex: number) => ({
+            workout_exercise_id: weData.id,
+            set_number: setIndex + 1,
+            weight_kg: s.weight_kg,
+            reps: s.reps,
+            rpe: s.rpe,
+            is_warmup: s.is_warmup,
+            completed_at: new Date().toISOString(),
+          })),
+        )
+        .select('id, weight_kg, reps, is_warmup, set_number')
 
       if (setsErr) throw new DatabaseError('Failed to insert sets', setsErr)
 
-      // Build from local data — avoids a SELECT that may be blocked by RLS
-      completedSets.forEach((s, setIndex) => {
+      for (const dbSet of setsData ?? []) {
         savedSets.push({
-          id: null,
+          id: dbSet.id,
           exerciseId: ex.exercise.id,
           exerciseName: ex.exercise.name,
-          weight_kg: s.weight_kg,
-          reps: s.reps,
-          is_warmup: s.is_warmup,
-          set_number: setIndex + 1,
+          weight_kg: dbSet.weight_kg,
+          reps: dbSet.reps,
+          is_warmup: dbSet.is_warmup,
+          set_number: dbSet.set_number,
         })
-      })
+      }
     }
   }
 

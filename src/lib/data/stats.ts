@@ -189,7 +189,7 @@ export async function evaluateAndSavePRs(
   workoutId: string,
   achievedAt: string,
   sets: Array<{
-    id: string | null
+    id: string
     exerciseId: string
     exerciseName: string
     weight_kg: number
@@ -258,7 +258,7 @@ export async function evaluateAndSavePRs(
 }
 
 export async function evaluateAndSaveAllPRs(userId: string): Promise<void> {
-  const supabase = await getSupabaseServer()
+  const supabase = getSupabaseAdmin()
 
   const { data: allSets, error } = await supabase
     .from('sets')

@@ -16,6 +16,7 @@ import { WorkoutHistoryList } from '@/components/workout/WorkoutHistoryList'
 import { User, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { ClearDataButton } from '@/components/profile/ClearDataButton'
+import { RecalculatePRsButton } from '@/components/profile/RecalculatePRsButton'
 
 type Tab = 'stats' | 'history' | 'exercises' | 'account'
 
@@ -90,9 +91,12 @@ async function StatsTab({ userId }: { userId: string }) {
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-black uppercase tracking-[0.15em] text-[#adb4ce]">Personal Records</h2>
-          <span className="text-[9px] font-black uppercase tracking-widest text-[#CCFF00] bg-[#CCFF00]/10 border border-[#CCFF00]/20 px-2.5 py-1 rounded-lg">
-            All-Time
-          </span>
+          <div className="flex items-center gap-3">
+            <RecalculatePRsButton />
+            <span className="text-[9px] font-black uppercase tracking-widest text-[#CCFF00] bg-[#CCFF00]/10 border border-[#CCFF00]/20 px-2.5 py-1 rounded-lg">
+              All-Time
+            </span>
+          </div>
         </div>
         <TopPRsTable prs={topPRs} />
       </section>

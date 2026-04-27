@@ -2,8 +2,9 @@
 
 import { auth, signOut } from '@/lib/auth'
 import { updateProfile as updateProfileData } from '@/lib/data/profile'
+import { evaluateAndSaveAllPRs } from '@/lib/data/stats'
 import { revalidatePath } from 'next/cache'
-import { getSupabaseServer } from '@/lib/supabase/server'
+import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { bustProfile, bustEverything } from '@/lib/cache'
 
 export async function updateProfileAction(formData: FormData) {
@@ -100,12 +101,32 @@ export async function refreshCacheAction() {
   return { success: true }
 }
 
+export async function recalculatePRsAction() {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error('Not authenticated')
+
+  const userId = session.user.id
+
+  try {
+    await evaluateAndSaveAllPRs(userId)
+    bustEverything(userId)
+    revalidatePath('/dashboard')
+    revalidatePath('/profile')
+    revalidatePath('/progress')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Error recalculating PRs:', error)
+    return { success: false, error: error.message }
+  }
+}
+
 export async function clearAllWorkoutDataAction() {
   const session = await auth()
   if (!session?.user?.id) throw new Error('Not authenticated')
 
   const userId   = session.user.id
-  const supabase = await getSupabaseServer()
+  // Admin client: reads here traverse workout_exercises→sets which fail RLS on server client
+  const supabase = getSupabaseAdmin()
 
   try {
     await supabase.from('personal_records').delete().eq('user_id', userId)
