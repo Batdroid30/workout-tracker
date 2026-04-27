@@ -2,33 +2,40 @@ import { unstable_cache } from 'next/cache'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { TAGS } from '@/lib/cache'
-import type { ActiveWorkout } from '@/types/database'
+import type { ActiveWorkout, PRType } from '@/types/database'
 
 // ── Read functions (cached) ───────────────────────────────────────────────────
 
-// Fetches the set of set_ids that have at least one PR record for this user.
-// personal_records is a small table (one row per exercise per PR type), so this
-// is far cheaper than passing thousands of set IDs in an IN() clause.
-async function fetchPRSetIds(supabase: any, uid: string): Promise<Set<string>> {
+// Fetches a map of set_id → PR types for that set.
+// personal_records is small (one row per exercise per PR type) so fetching all
+// at once is far cheaper than IN() clauses on thousands of set IDs.
+async function fetchPRSetMap(supabase: any, uid: string): Promise<Map<string, PRType[]>> {
   const { data } = await supabase
     .from('personal_records')
-    .select('set_id')
+    .select('set_id, pr_type')
     .eq('user_id', uid)
     .not('set_id', 'is', null)
-  const ids = new Set<string>()
-  data?.forEach((pr: { set_id: string }) => ids.add(pr.set_id))
-  return ids
+  const map = new Map<string, PRType[]>()
+  data?.forEach((pr: { set_id: string; pr_type: PRType }) => {
+    const existing = map.get(pr.set_id) ?? []
+    existing.push(pr.pr_type)
+    map.set(pr.set_id, existing)
+  })
+  return map
 }
 
-function attachPRCounts<T extends { workout_exercises: any[] }>(
+function attachPRTypes<T extends { workout_exercises: any[] }>(
   workouts: T[],
-  prSetIds: Set<string>,
-): (T & { prCount: number })[] {
+  prSetMap: Map<string, PRType[]>,
+): (T & { prTypes: PRType[] })[] {
   return workouts.map(w => {
-    const prCount = w.workout_exercises.reduce((sum: number, we: any) => {
-      return sum + (we.sets ?? []).filter((s: any) => prSetIds.has(s.id)).length
-    }, 0)
-    return { ...w, prCount }
+    const typeSet = new Set<PRType>()
+    w.workout_exercises.forEach((we: any) => {
+      ;(we.sets ?? []).forEach((s: any) => {
+        prSetMap.get(s.id)?.forEach(t => typeSet.add(t))
+      })
+    })
+    return { ...w, prTypes: Array.from(typeSet) }
   })
 }
 
@@ -37,7 +44,7 @@ export const getRecentWorkouts = async (userId: string) => {
     async (uid: string) => {
       const supabase = getSupabaseAdmin()
 
-      const [{ data, error }, prSetIds] = await Promise.all([
+      const [{ data, error }, prSetMap] = await Promise.all([
         supabase
           .from('workouts')
           .select(`
@@ -50,7 +57,7 @@ export const getRecentWorkouts = async (userId: string) => {
           .eq('user_id', uid)
           .order('started_at', { ascending: false })
           .limit(5),
-        fetchPRSetIds(supabase, uid),
+        fetchPRSetMap(supabase, uid),
       ])
 
       if (error) {
@@ -58,7 +65,7 @@ export const getRecentWorkouts = async (userId: string) => {
         throw new DatabaseError('Failed to fetch recent workouts', error)
       }
 
-      return attachPRCounts(data, prSetIds)
+      return attachPRTypes(data, prSetMap)
     },
     [`recent-workouts`, userId],
     { revalidate: false, tags: [TAGS.workouts(userId)] },
@@ -72,7 +79,7 @@ export const getAllWorkouts = async (userId: string) => {
     async (uid: string) => {
       const supabase = getSupabaseAdmin()
 
-      const [{ data, error }, prSetIds] = await Promise.all([
+      const [{ data, error }, prSetMap] = await Promise.all([
         supabase
           .from('workouts')
           .select(`
@@ -85,7 +92,7 @@ export const getAllWorkouts = async (userId: string) => {
           .eq('user_id', uid)
           .order('started_at', { ascending: false })
           .limit(HISTORY_LIMIT),
-        fetchPRSetIds(supabase, uid),
+        fetchPRSetMap(supabase, uid),
       ])
 
       if (error) {
@@ -93,7 +100,7 @@ export const getAllWorkouts = async (userId: string) => {
         throw new DatabaseError('Failed to fetch workout history', error)
       }
 
-      return attachPRCounts(data, prSetIds)
+      return attachPRTypes(data, prSetMap)
     },
     [`all-workouts`, userId],
     { revalidate: false, tags: [TAGS.workouts(userId)] },

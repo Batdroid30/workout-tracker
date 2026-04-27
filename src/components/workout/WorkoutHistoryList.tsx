@@ -2,17 +2,29 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { Trophy, Loader2, Trash2 } from 'lucide-react'
+import { Loader2, Trash2 } from 'lucide-react'
 import { deleteWorkoutAction } from '@/app/(app)/workout/actions'
 import { useDialog } from '@/providers/DialogProvider'
 import { useToast } from '@/providers/ToastProvider'
+import type { PRType } from '@/types/database'
+
+// ─── PR badge config ──────────────────────────────────────────────────────────
+
+const PR_BADGE_CONFIG: Record<PRType, { label: string; color: string; bg: string; border: string }> = {
+  best_weight: { label: 'W',   color: 'text-yellow-300', bg: 'bg-yellow-400/10', border: 'border-yellow-400/30' },
+  best_1rm:    { label: '1RM', color: 'text-sky-300',    bg: 'bg-sky-400/10',    border: 'border-sky-400/30'    },
+  best_volume: { label: 'VOL', color: 'text-violet-300', bg: 'bg-violet-400/10', border: 'border-violet-400/30' },
+}
+
+// Display order: weight → 1RM → volume
+const PR_DISPLAY_ORDER: PRType[] = ['best_weight', 'best_1rm', 'best_volume']
 
 interface WorkoutItem {
   id: string
   title: string | null
   started_at: string
   duration_seconds: number | null
-  prCount: number
+  prTypes: PRType[]
   workout_exercises: Array<{
     exercise: { name: string }
     sets: Array<{ weight_kg: number; reps: number }>
@@ -96,12 +108,18 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
               {formatWorkoutDate(workout.started_at)}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {workout.prCount > 0 && (
-              <div className="bg-[#CCFF00]/10 text-[#CCFF00] px-2 py-1 flex items-center gap-1 rounded-lg text-[10px] font-black border border-[#CCFF00]/20 uppercase">
-                <Trophy className="w-3 h-3" /><span>{workout.prCount}</span>
-              </div>
-            )}
+          <div className="flex items-center gap-1.5">
+            {PR_DISPLAY_ORDER.filter(t => workout.prTypes.includes(t)).map(t => {
+              const cfg = PR_BADGE_CONFIG[t]
+              return (
+                <span
+                  key={t}
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${cfg.color} ${cfg.bg} ${cfg.border}`}
+                >
+                  {cfg.label}
+                </span>
+              )
+            })}
             {workout.duration_seconds && (
               <div className="bg-[#151b2d] text-[#adb4ce] px-2 py-1 rounded-lg text-[10px] font-bold border border-[#334155]">
                 {Math.floor(workout.duration_seconds / 60)}m

@@ -5,7 +5,7 @@ import { WarmupRamp }           from './WarmupRamp'
 import { PlateCalculator }      from './PlateCalculator'
 import { RestTimer }            from './RestTimer'
 import { PRBanner }             from './PRBanner'
-import type { ActiveExercise, PRCheckResult } from '@/types/database'
+import type { ActiveExercise } from '@/types/database'
 import { Plus, Check, MoreVertical, Calculator, Timer } from 'lucide-react'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -33,7 +33,7 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise }: SetLog
   const [showRestTimer,     setShowRestTimer]      = useState(false)
   const [restTimerKey,      setRestTimerKey]       = useState(0)
   const [showDurationPicker, setShowDurationPicker] = useState(false)
-  const [activePR,          setActivePR]          = useState<PRCheckResult | null>(null)
+  const [activePRs,         setActivePRs]         = useState<PRCheckResult[]>([])
   const prDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dialog = useDialog()
 
@@ -212,12 +212,8 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise }: SetLog
                   if (!currentSet.is_warmup && currentSet.weight_kg > 0 && currentSet.reps > 0) {
                     const prs = checkLocalPR(exercise.exercise.id, currentSet.weight_kg, currentSet.reps)
                     if (prs.length > 0) {
-                      // Show the most meaningful PR: weight > 1RM > volume
-                      const priority: Record<string, number> = { best_weight: 0, best_1rm: 1, best_volume: 2 }
-                      const top = prs.sort((a, b) => priority[a.pr_type] - priority[b.pr_type])[0]
                       if (prDismissTimer.current) clearTimeout(prDismissTimer.current)
-                      setActivePR(top)
-                      prDismissTimer.current = setTimeout(() => setActivePR(null), 4000)
+                      setActivePRs(prs)
                     }
                   }
                 }
@@ -271,14 +267,14 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise }: SetLog
         onClose={() => setShowDurationPicker(false)}
       />
 
-      {/* Real-time PR banner — auto-dismisses after 4s */}
-      <PRBanner
-        pr={activePR}
-        onDismiss={() => {
-          if (prDismissTimer.current) clearTimeout(prDismissTimer.current)
-          setActivePR(null)
-        }}
-      />
+      {/* Real-time PR celebration — auto-dismisses after 5s */}
+      {activePRs.length > 0 && (
+        <PRBanner
+          prs={activePRs}
+          exerciseName={exercise.exercise.name}
+          onDismiss={() => setActivePRs([])}
+        />
+      )}
     </div>
   )
 }

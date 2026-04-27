@@ -200,13 +200,18 @@ export async function evaluateAndSavePRs(
   // Use admin client to bypass RLS — we already verified ownership in the action
   const supabase = getSupabaseAdmin()
 
+  // Fetch existing PRs WITH their DB ids — same pattern as evaluateAndSaveAllPRs.
+  // Upsert by id (when record exists) is reliable; onConflict column names are
+  // fragile because they depend on the exact constraint name Supabase registered.
   const { data: existingPRs } = await supabase
     .from('personal_records')
-    .select('exercise_id, pr_type, value')
+    .select('id, exercise_id, pr_type, value')
     .eq('user_id', userId)
 
-  const prMap = new Map<string, number>()
-  existingPRs?.forEach(pr => { prMap.set(`${pr.exercise_id}|${pr.pr_type}`, Number(pr.value)) })
+  const prMap = new Map<string, { value: number; dbId: string | null }>()
+  existingPRs?.forEach(pr => {
+    prMap.set(`${pr.exercise_id}|${pr.pr_type}`, { value: Number(pr.value), dbId: pr.id })
+  })
 
   const brokenPRs: PREvaluationResult[] = []
   const newPRsToUpsert: any[] = []
@@ -223,24 +228,28 @@ export async function evaluateAndSavePRs(
     ]
 
     for (const check of checks) {
-      const key = `${set.exerciseId}|${check.type}`
-      const currentRecord = prMap.get(key) ?? 0
+      const key          = `${set.exerciseId}|${check.type}`
+      const current      = prMap.get(key)
+      const currentValue = current?.value ?? 0
 
-      if (check.value > currentRecord) {
+      if (check.value > currentValue) {
         brokenPRs.push({
           exerciseName: set.exerciseName,
-          prType: check.type,
-          oldValue: currentRecord === 0 ? null : currentRecord,
-          newValue: check.value,
+          prType:       check.type,
+          oldValue:     currentValue === 0 ? null : currentValue,
+          newValue:     check.value,
         })
-        prMap.set(key, check.value)
+        // Update local map so later sets in the same workout compare against the new bar
+        prMap.set(key, { value: check.value, dbId: current?.dbId ?? null })
         newPRsToUpsert.push({
-          user_id: userId,
+          // Pass existing DB id → Supabase upserts in-place; omit → inserts new row
+          ...(current?.dbId ? { id: current.dbId } : {}),
+          user_id:     userId,
           exercise_id: set.exerciseId,
-          pr_type: check.type,
+          pr_type:     check.type,
           reps,
-          value: check.value,
-          set_id: set.id,
+          value:       check.value,
+          set_id:      set.id,
           achieved_at: achievedAt,
         })
       }
@@ -250,7 +259,7 @@ export async function evaluateAndSavePRs(
   if (newPRsToUpsert.length > 0) {
     const { error: upsertErr } = await supabase
       .from('personal_records')
-      .upsert(newPRsToUpsert, { onConflict: 'user_id,exercise_id,pr_type' })
+      .upsert(newPRsToUpsert)
     if (upsertErr) console.error('Failed to save PRs:', upsertErr.message)
   }
 
