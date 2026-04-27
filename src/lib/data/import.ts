@@ -231,12 +231,41 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
     workoutsMap.get(key)!.push(row)
   })
 
-  // ── Step 2: resolve exercises (2 DB calls total) ──────────────────────────────
+  // ── Step 2: skip workouts that already exist in the DB ───────────────────────
+  // Use the CSV's date range to scope the duplicate check — avoids a full-table scan.
+  const allStartTimes = workoutEntries.map(e => e.firstRow.start_time)
+  const rangeMin = allStartTimes.reduce((a, b) => (a < b ? a : b))
+  const rangeMax = allStartTimes.reduce((a, b) => (a > b ? a : b))
+
+  const { data: existingWorkouts } = await supabase
+    .from('workouts')
+    .select('title, started_at')
+    .eq('user_id', userId)
+    .gte('started_at', rangeMin)
+    .lte('started_at', rangeMax)
+
+  const existingKeys = new Set(
+    (existingWorkouts ?? []).map((w: { title: string; started_at: string }) =>
+      `${w.title}-${w.started_at}`
+    )
+  )
+
+  const newEntries = workoutEntries.filter(({ firstRow }) => {
+    // Normalise: the CSV uses "18 Apr 2026, 08:23" but DB stores ISO.
+    // We match on the raw start_time string used as key during grouping.
+    return !existingKeys.has(`${firstRow.title}-${firstRow.start_time}`)
+  })
+
+  if (newEntries.length === 0) {
+    return { workoutsImported: 0, skipped: workoutEntries.length, errors: [] as string[] }
+  }
+
+  // ── Step 3: resolve exercises (2 DB calls total) ──────────────────────────────
   const allExerciseNames = rows.map(r => r.exercise_title).filter(Boolean)
   const exerciseLookup = await bulkResolveExercises(supabase, userId, allExerciseNames)
 
-  // ── Step 3: batch insert ALL workouts in one call ────────────────────────────
-  const workoutsToInsert = workoutEntries.map(({ firstRow }) => ({
+  // ── Step 4: batch insert new workouts in one call ─────────────────────────────
+  const workoutsToInsert = newEntries.map(({ firstRow }) => ({
     user_id: userId,
     title: firstRow.title,
     notes: firstRow.description || null,
@@ -253,14 +282,14 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
 
   if (workoutsErr) throw new DatabaseError('Failed to insert workouts', workoutsErr)
 
-  // ── Step 4: build all workout_exercises rows (in insertion-order) ─────────────
-  // insertedWorkouts[i] corresponds to workoutEntries[i] — Postgres returns rows
+  // ── Step 5: build all workout_exercises rows (in insertion-order) ─────────────
+  // insertedWorkouts[i] corresponds to newEntries[i] — Postgres returns rows
   // in the order they were supplied to INSERT.
   type WEMeta = { setRows: HevyRow[]; weIndex: number }
   const weBatch: object[] = []
   const weMeta: WEMeta[] = []
 
-  workoutEntries.forEach(({ allRows }, wIdx) => {
+  newEntries.forEach(({ allRows }, wIdx) => {
     const workout = insertedWorkouts[wIdx]
     if (!workout) return
 
@@ -284,11 +313,11 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
     }
   })
 
-  // ── Step 5: batch insert ALL workout_exercises ────────────────────────────────
+  // ── Step 6: batch insert ALL workout_exercises ────────────────────────────────
   const { data: insertedWEs, error: weErr } = await insertInChunks(supabase, 'workout_exercises', weBatch as object[])
   if (weErr) throw new DatabaseError('Failed to insert workout exercises', weErr)
 
-  // ── Step 6: build all sets rows ───────────────────────────────────────────────
+  // ── Step 7: build all sets rows ───────────────────────────────────────────────
   const allSets: object[] = []
   weMeta.forEach(({ setRows, weIndex }) => {
     const we = insertedWEs[weIndex]
@@ -318,11 +347,15 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
     })
   })
 
-  // ── Step 7: batch insert ALL sets ────────────────────────────────────────────
+  // ── Step 8: batch insert ALL sets ────────────────────────────────────────────
   if (allSets.length > 0) {
     const { error: setsErr } = await insertInChunks(supabase, 'sets', allSets as object[])
     if (setsErr) throw new DatabaseError('Failed to insert sets', setsErr)
   }
 
-  return { workoutsImported: insertedWorkouts.length, errors: [] as string[] }
+  return {
+    workoutsImported: insertedWorkouts.length,
+    skipped: workoutEntries.length - newEntries.length,
+    errors: [] as string[],
+  }
 }

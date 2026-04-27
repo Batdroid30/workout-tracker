@@ -6,97 +6,94 @@ import type { ActiveWorkout } from '@/types/database'
 
 // ── Read functions (cached) ───────────────────────────────────────────────────
 
+// Fetches the set of set_ids that have at least one PR record for this user.
+// personal_records is a small table (one row per exercise per PR type), so this
+// is far cheaper than passing thousands of set IDs in an IN() clause.
+async function fetchPRSetIds(supabase: any, uid: string): Promise<Set<string>> {
+  const { data } = await supabase
+    .from('personal_records')
+    .select('set_id')
+    .eq('user_id', uid)
+    .not('set_id', 'is', null)
+  const ids = new Set<string>()
+  data?.forEach((pr: { set_id: string }) => ids.add(pr.set_id))
+  return ids
+}
+
+function attachPRCounts<T extends { workout_exercises: any[] }>(
+  workouts: T[],
+  prSetIds: Set<string>,
+): (T & { prCount: number })[] {
+  return workouts.map(w => {
+    const prCount = w.workout_exercises.reduce((sum: number, we: any) => {
+      return sum + (we.sets ?? []).filter((s: any) => prSetIds.has(s.id)).length
+    }, 0)
+    return { ...w, prCount }
+  })
+}
+
 export const getRecentWorkouts = async (userId: string) => {
   return unstable_cache(
     async (uid: string) => {
       const supabase = getSupabaseAdmin()
 
-      const { data, error } = await supabase
-        .from('workouts')
-        .select(`
-          *,
-          workout_exercises (
-            exercise:exercises ( name ),
-            sets ( id, weight_kg, reps )
-          )
-        `)
-        .eq('user_id', uid)
-        .order('started_at', { ascending: false })
-        .limit(5)
+      const [{ data, error }, prSetIds] = await Promise.all([
+        supabase
+          .from('workouts')
+          .select(`
+            *,
+            workout_exercises (
+              exercise:exercises ( name ),
+              sets ( id, weight_kg, reps )
+            )
+          `)
+          .eq('user_id', uid)
+          .order('started_at', { ascending: false })
+          .limit(5),
+        fetchPRSetIds(supabase, uid),
+      ])
 
       if (error) {
         console.error('Failed to fetch recent workouts:', error.message)
         throw new DatabaseError('Failed to fetch recent workouts', error)
       }
 
-      const allSetIds = data.flatMap((w: any) =>
-        w.workout_exercises.flatMap((we: any) => we.sets.map((s: any) => s.id))
-      )
-
-      let prsBySetId: Record<string, number> = {}
-      if (allSetIds.length > 0) {
-        const { data: prs } = await supabase
-          .from('personal_records')
-          .select('set_id')
-          .in('set_id', allSetIds)
-        prs?.forEach((pr: any) => {
-          if (pr.set_id) prsBySetId[pr.set_id] = (prsBySetId[pr.set_id] || 0) + 1
-        })
-      }
-
-      return data.map((workout: any) => {
-        const setIds = workout.workout_exercises.flatMap((we: any) => we.sets.map((s: any) => s.id))
-        const prCount = setIds.reduce((sum: number, sid: string) => sum + (prsBySetId[sid] || 0), 0)
-        return { ...workout, prCount }
-      })
+      return attachPRCounts(data, prSetIds)
     },
     [`recent-workouts`, userId],
     { revalidate: false, tags: [TAGS.workouts(userId)] },
   )(userId)
 }
 
+const HISTORY_LIMIT = 200
+
 export const getAllWorkouts = async (userId: string) => {
   return unstable_cache(
     async (uid: string) => {
       const supabase = getSupabaseAdmin()
 
-      const { data, error } = await supabase
-        .from('workouts')
-        .select(`
-          *,
-          workout_exercises (
-            exercise:exercises ( name ),
-            sets ( id, weight_kg, reps )
-          )
-        `)
-        .eq('user_id', uid)
-        .order('started_at', { ascending: false })
+      const [{ data, error }, prSetIds] = await Promise.all([
+        supabase
+          .from('workouts')
+          .select(`
+            *,
+            workout_exercises (
+              exercise:exercises ( name ),
+              sets ( id, weight_kg, reps )
+            )
+          `)
+          .eq('user_id', uid)
+          .order('started_at', { ascending: false })
+          .limit(HISTORY_LIMIT),
+        fetchPRSetIds(supabase, uid),
+      ])
 
       if (error) {
         console.error('Failed to fetch workout history:', error.message)
         throw new DatabaseError('Failed to fetch workout history', error)
       }
 
-      const allSetIds = data.flatMap((w: any) =>
-        w.workout_exercises.flatMap((we: any) => we.sets.map((s: any) => s.id))
-      )
-
-      let prsBySetId: Record<string, number> = {}
-      if (allSetIds.length > 0) {
-        const { data: prs } = await supabase
-          .from('personal_records')
-          .select('set_id')
-          .in('set_id', allSetIds)
-        prs?.forEach((pr: any) => {
-          if (pr.set_id) prsBySetId[pr.set_id] = (prsBySetId[pr.set_id] || 0) + 1
-        })
-      }
-
-      return data.map((workout: any) => {
-        const setIds = workout.workout_exercises.flatMap((we: any) => we.sets.map((s: any) => s.id))
-        const prCount = setIds.reduce((sum: number, sid: string) => sum + (prsBySetId[sid] || 0), 0)
-        return { ...workout, prCount }
-      })
+      return attachPRCounts(data, prSetIds)
     },
     [`all-workouts`, userId],
     { revalidate: false, tags: [TAGS.workouts(userId)] },

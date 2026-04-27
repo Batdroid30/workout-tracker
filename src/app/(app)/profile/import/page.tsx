@@ -18,7 +18,7 @@ export default function ImportPage() {
   const [isUploading, setIsUploading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [phaseMessage, setPhaseMessage] = useState('')
-  const [result, setResult] = useState<{ success: boolean; count?: number; error?: string; errors?: string[] } | null>(null)
+  const [result, setResult] = useState<{ success: boolean; count?: number; skipped?: number; error?: string; errors?: string[] } | null>(null)
   const router = useRouter()
 
   // Progress simulation
@@ -85,6 +85,7 @@ export default function ImportPage() {
       setResult({
         success: true,
         count: importRes.count,
+        skipped: importRes.skipped,
         errors: [
           ...(importRes.errors ?? []),
           ...(!prRes.success ? ['PR recalculation failed — your personal records may not be up to date'] : []),
@@ -198,7 +199,9 @@ export default function ImportPage() {
               )}
               <div className="space-y-1">
                 <p className={`text-[11px] font-black uppercase tracking-widest ${result.success ? 'text-[#CCFF00]' : 'text-red-400'}`}>
-                  {result.success ? `Successfully imported ${result.count} workouts!` : 'Import failed'}
+                  {result.success
+                  ? `Imported ${result.count} workout${result.count !== 1 ? 's' : ''}${result.skipped ? ` · ${result.skipped} already existed` : ''}`
+                  : 'Import failed'}
                 </p>
                 {result.error && <p className="text-[10px] text-[#4a5568] font-body">{result.error}</p>}
                 {result.errors && result.errors.length > 0 && (

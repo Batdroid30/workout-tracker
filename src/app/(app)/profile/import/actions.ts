@@ -22,7 +22,7 @@ export async function importHevyCSVAction(formData: FormData) {
     if (rows.length === 0) return { success: false, error: 'Empty or invalid CSV file' }
 
     const results = await importWorkoutsFromHevy(userId, rows)
-    return { success: true, count: results.workoutsImported, errors: results.errors }
+    return { success: true, count: results.workoutsImported, skipped: results.skipped, errors: results.errors }
   } catch (error: any) {
     console.error('Import failed:', error)
     return { success: false, error: error.message }

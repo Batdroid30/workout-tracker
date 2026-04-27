@@ -48,8 +48,6 @@ export const TAGS = {
 // ── Low-level bust ────────────────────────────────────────────────────────────
 
 function bust(...tags: string[]) {
-  // Next.js 16 revalidateTag requires a second `profile` argument.
-  // Passing {} (empty CacheLifeConfig) uses runtime defaults.
   tags.forEach(t => revalidateTag(t, {}))
 }
 
