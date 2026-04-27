@@ -1,7 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useWorkoutStore } from '@/store/workout.store'
 import { SetLogger } from '@/components/workout/SetLogger'
+import { PlateCalculator } from '@/components/workout/PlateCalculator'
+import { RestTimer } from '@/components/workout/RestTimer'
 import { Button } from '@/components/ui/Button'
 import { Plus, Play, ChevronLeft } from 'lucide-react'
 import { AddExerciseModal } from '@/components/workout/AddExerciseModal'
@@ -34,6 +36,18 @@ export default function WorkoutPage() {
   const [addingExerciseMode, setAddingExerciseMode] = useState<{ mode: 'add' } | { mode: 'replace', index: number } | null>(null)
   const [isFinishing,      setIsFinishing]      = useState(false)
   const [celebrationPRs,   setCelebrationPRs]   = useState<PREvaluationResult[] | null>(null)
+
+  // ── Plate calculator — owned here so it renders outside backdrop-filter cards ──
+  const [plateCalc, setPlateCalc] = useState<{ isOpen: boolean; weight: number }>({ isOpen: false, weight: 100 })
+  const handleOpenPlateCalc = useCallback((weight: number) => setPlateCalc({ isOpen: true, weight }), [])
+
+  // ── Rest timer — owned here so fixed positioning is relative to the viewport ──
+  const [restTimer, setRestTimer] = useState<{ isVisible: boolean; seconds: number; key: number }>({
+    isVisible: false, seconds: 90, key: 0,
+  })
+  const handleRestTimerStart = useCallback((seconds: number) => {
+    setRestTimer(prev => ({ isVisible: true, seconds, key: prev.key + 1 }))
+  }, [])
 
   const handleFinish = async () => {
     if (!activeWorkout) return
@@ -184,6 +198,8 @@ export default function WorkoutPage() {
               exerciseIndex={i}
               exercise={ex}
               onReplaceExercise={() => setAddingExerciseMode({ mode: 'replace', index: i })}
+              onOpenPlateCalc={handleOpenPlateCalc}
+              onRestTimerStart={handleRestTimerStart}
             />
           ))
         )}
@@ -226,6 +242,28 @@ export default function WorkoutPage() {
             setCelebrationPRs(null)
             router.push('/dashboard')
           }}
+        />
+      )}
+
+      {/*
+        PlateCalculator and RestTimer live here — NOT inside SetLogger cards.
+        SetLogger cards have `backdrop-filter` (glass-panel) which creates a new
+        CSS containing block for fixed-position descendants, breaking full-screen
+        overlays and bottom-docked timers. Rendering here ensures they are direct
+        children of the root and position correctly against the viewport.
+      */}
+      <PlateCalculator
+        isOpen={plateCalc.isOpen}
+        onClose={() => setPlateCalc(p => ({ ...p, isOpen: false }))}
+        initialWeight={plateCalc.weight}
+      />
+
+      {restTimer.isVisible && (
+        <RestTimer
+          key={restTimer.key}
+          seconds={restTimer.seconds}
+          onSkip={() => setRestTimer(p => ({ ...p, isVisible: false }))}
+          onComplete={() => setRestTimer(p => ({ ...p, isVisible: false }))}
         />
       )}
     </div>

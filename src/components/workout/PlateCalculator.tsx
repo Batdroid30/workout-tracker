@@ -64,7 +64,7 @@ export function PlateCalculator({ isOpen, onClose, initialWeight = 100 }: PlateC
 
   return (
     <div className="fixed inset-0 z-50 flex items-end">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
 
       <div className="relative w-full bg-[#0c1324] border-t border-[#334155] rounded-t-2xl p-5 pb-8">
         {/* Header */}

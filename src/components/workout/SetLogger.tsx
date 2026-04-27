@@ -2,8 +2,6 @@
 
 import { SetRow }               from './SetRow'
 import { WarmupRamp }           from './WarmupRamp'
-import { PlateCalculator }      from './PlateCalculator'
-import { RestTimer }            from './RestTimer'
 import { PRBanner }             from './PRBanner'
 import type { ActiveExercise, PRCheckResult } from '@/types/database'
 import { Plus, Check, MoreVertical, Calculator, Timer } from 'lucide-react'
@@ -23,15 +21,16 @@ interface SetLoggerProps {
   exerciseIndex: number
   exercise: ActiveExercise
   onReplaceExercise?: () => void
+  /** Called when the user taps the plate-calc icon; parent renders the modal. */
+  onOpenPlateCalc: (weight: number) => void
+  /** Called when a working set is completed; parent renders the rest timer. */
+  onRestTimerStart: (restSeconds: number) => void
 }
 
-export function SetLogger({ exerciseIndex, exercise, onReplaceExercise }: SetLoggerProps) {
+export function SetLogger({ exerciseIndex, exercise, onReplaceExercise, onOpenPlateCalc, onRestTimerStart }: SetLoggerProps) {
   const { updateSet, markSetDone, addSet, addWarmupSet, removeExercise, removeSet, moveExerciseUp, moveExerciseDown, updateExerciseRestSeconds } = useWorkoutStore()
   const { loadPRsForExercises, checkLocalPR } = usePRStore()
-  const [menuOpen,          setMenuOpen]          = useState(false)
-  const [plateCalcOpen,     setPlateCalcOpen]     = useState(false)
-  const [showRestTimer,     setShowRestTimer]      = useState(false)
-  const [restTimerKey,      setRestTimerKey]       = useState(0)
+  const [menuOpen,           setMenuOpen]           = useState(false)
   const [showDurationPicker, setShowDurationPicker] = useState(false)
   const [activePRs,         setActivePRs]         = useState<PRCheckResult[]>([])
   const prDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -93,9 +92,10 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise }: SetLog
   }, [exerciseIndex, exercise.exercise.id, updateExerciseRestSeconds])
 
   const handleSetCompleted = useCallback(() => {
-    setRestTimerKey(k => k + 1)
-    setShowRestTimer(true)
-  }, [])
+    onRestTimerStart(restSeconds)
+  // restSeconds is a dependency — but it's a local number, safe to include
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restSeconds, onRestTimerStart])
 
   // Working weight = first non-warmup set with a weight entered
   const workingWeight = exercise.sets.find(s => !s.is_warmup && s.weight_kg > 0)?.weight_kg ?? 0
@@ -124,9 +124,9 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise }: SetLog
             <span className="text-[10px] font-black text-[#adb4ce] tabular-nums">{restLabel}</span>
           </button>
 
-          {/* Plate calculator trigger */}
+          {/* Plate calculator trigger — state lives in the workout page */}
           <button
-            onClick={() => setPlateCalcOpen(true)}
+            onClick={() => onOpenPlateCalc(workingWeight || 100)}
             className="text-[#4a5568] hover:text-[#adb4ce] p-2 hover:bg-[#151b2d] rounded-lg transition-colors"
             aria-label="Plate calculator"
           >
@@ -241,23 +241,6 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise }: SetLog
           </button>
         </div>
       </div>
-
-      {/* Plate calculator modal */}
-      <PlateCalculator
-        isOpen={plateCalcOpen}
-        onClose={() => setPlateCalcOpen(false)}
-        initialWeight={workingWeight || 100}
-      />
-
-      {/* Per-exercise rest timer */}
-      {showRestTimer && (
-        <RestTimer
-          key={restTimerKey}
-          seconds={restSeconds}
-          onSkip={() => setShowRestTimer(false)}
-          onComplete={() => setShowRestTimer(false)}
-        />
-      )}
 
       {/* Rest duration picker */}
       <RestDurationPicker
