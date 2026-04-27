@@ -2,7 +2,8 @@
 
 import { auth } from '@/lib/auth'
 import { saveActiveWorkout, deleteWorkout } from '@/lib/data/workouts'
-import { evaluateAndSavePRs } from '@/lib/data/stats'
+import { evaluateAndSavePRs, evaluateAndSaveAllPRs } from '@/lib/data/stats'
+import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 
 export async function finishWorkoutAction(activeWorkout: any) {
@@ -32,6 +33,14 @@ export async function deleteWorkoutAction(workoutId: string) {
 
   try {
     await deleteWorkout(workoutId, userId)
+
+    // The deleted workout may have contained PR-setting sets. Those set rows are
+    // now gone (cascade), but personal_records rows pointing to them are orphaned.
+    // Wipe the user's PRs and rebuild from the remaining sets so the dashboard
+    // reflects reality without requiring a manual recalculate.
+    const supabase = getSupabaseAdmin()
+    await supabase.from('personal_records').delete().eq('user_id', userId)
+    await evaluateAndSaveAllPRs(userId)
 
     revalidateAll()
 
