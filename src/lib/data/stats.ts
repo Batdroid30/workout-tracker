@@ -189,7 +189,7 @@ export async function evaluateAndSavePRs(
   workoutId: string,
   achievedAt: string,
   sets: Array<{
-    id: string
+    id: string | null
     exerciseId: string
     exerciseName: string
     weight_kg: number
