@@ -3,12 +3,15 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { Check, Trash2, X } from 'lucide-react'
 import type { ActiveSet } from '@/types/database'
+import type { OverloadSuggestion } from '@/lib/algorithms'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/providers/ToastProvider'
 
 interface SetRowProps {
   set: ActiveSet
   prevSetText?: string
+  /** Per-set progressive-overload suggestion from the previous workout. */
+  suggestion?: OverloadSuggestion
   onChange: (updates: Partial<ActiveSet>) => void
   onDone: () => void
   onRemove: () => void
@@ -25,7 +28,7 @@ interface SetRowProps {
 // get sanitised to "27" mid-entry. Value is committed to the store onBlur
 // and whenever the string represents a complete valid number.
 
-function ActiveSetRow({ set, prevSetText, onChange, onDone, onRemove }: SetRowProps) {
+function ActiveSetRow({ set, prevSetText, suggestion, onChange, onDone, onRemove }: SetRowProps) {
   // ── Local string state for weight (fixes decimal mid-entry bug) ──────────
   const [weightStr, setWeightStr] = useState(() =>
     set.weight_kg > 0 ? String(set.weight_kg) : ''
@@ -98,7 +101,7 @@ function ActiveSetRow({ set, prevSetText, onChange, onDone, onRemove }: SetRowPr
     )}>
       {/* ── Row 1: [set# + prev stacked] · weight · reps · ✓ ──────────── */}
       <div className="flex items-center gap-2 py-1.5">
-        {/* Set badge + prev text — stacked in one column to save horizontal space */}
+        {/* Set badge + prev + suggestion — stacked in one column */}
         <div className="w-14 shrink-0 flex flex-col items-center gap-0.5">
           <span className={cn(
             'font-black text-xs w-6 h-6 flex items-center justify-center rounded',
@@ -108,9 +111,16 @@ function ActiveSetRow({ set, prevSetText, onChange, onDone, onRemove }: SetRowPr
           )}>
             {set.is_warmup ? 'W' : set.set_number}
           </span>
+          {/* Previous performance */}
           <span className="text-[9px] font-body text-[#334155] leading-none tabular-nums">
             {prevSetText}
           </span>
+          {/* Per-set overload target — only for working sets with history */}
+          {suggestion && !set.is_warmup && (
+            <span className="text-[8px] font-black text-[#CCFF00]/50 leading-none tabular-nums">
+              →{suggestion.weight_kg}×{suggestion.target_reps}
+            </span>
+          )}
         </div>
 
         {/* Weight — decimal-safe via local string state, min-w-0 allows flex shrink */}
@@ -232,6 +242,10 @@ interface CompletedSetRowProps {
 }
 
 function CompletedSetRow({ set, onDone, onRemove }: CompletedSetRowProps) {
+  // Epley estimated 1RM — only meaningful for non-warmup, multi-rep working sets
+  const e1rm = !set.is_warmup && set.weight_kg > 0 && set.reps > 1
+    ? Math.round(set.weight_kg * (1 + set.reps / 30))
+    : null
   // ── Undo-delete pattern ──────────────────────────────────────────────────
   const [pendingDelete, setPendingDelete] = useState(false)
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -325,8 +339,11 @@ function CompletedSetRow({ set, onDone, onRemove }: CompletedSetRowProps) {
           {set.weight_kg > 0 ? `${set.weight_kg}kg` : '—'}
           {' × '}
           {set.reps > 0 ? set.reps : '—'}
+          {e1rm && (
+            <span className="text-[9px] font-body text-[#334155] ml-1.5">· ~{e1rm}kg</span>
+          )}
           {!set.is_warmup && set.rpe !== null && (
-            <span className="text-[10px] font-body text-[#334155] ml-2">· RPE {set.rpe}</span>
+            <span className="text-[10px] font-body text-[#334155] ml-1.5">· RPE {set.rpe}</span>
           )}
         </span>
 
@@ -346,7 +363,7 @@ function CompletedSetRow({ set, onDone, onRemove }: CompletedSetRowProps) {
 
 // ─── Public export ────────────────────────────────────────────────────────────
 
-export function SetRow({ set, prevSetText = '-', onChange, onDone, onRemove }: SetRowProps) {
+export function SetRow({ set, prevSetText = '-', suggestion, onChange, onDone, onRemove }: SetRowProps) {
   if (set.completed) {
     return (
       <CompletedSetRow
@@ -361,6 +378,7 @@ export function SetRow({ set, prevSetText = '-', onChange, onDone, onRemove }: S
     <ActiveSetRow
       set={set}
       prevSetText={prevSetText}
+      suggestion={suggestion}
       onChange={onChange}
       onDone={onDone}
       onRemove={onRemove}

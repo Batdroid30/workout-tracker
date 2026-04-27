@@ -6,11 +6,10 @@ import { PRBanner }             from './PRBanner'
 import type { ActiveExercise, PRCheckResult } from '@/types/database'
 import { Plus, Check, MoreVertical, Calculator, Timer } from 'lucide-react'
 import { BottomSheet } from '@/components/ui/BottomSheet'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useWorkoutStore }      from '@/store/workout.store'
 import { usePRStore }           from '@/store/pr.store'
-import { useExerciseHistory }   from '@/hooks/useExerciseHistory'
-import { useOverloadSuggestion } from '@/hooks/useOverloadSuggestion'
+import { useLastWorkoutSets }   from '@/hooks/useLastWorkoutSets'
 import { useDialog }            from '@/providers/DialogProvider'
 import { getSupabaseClient }    from '@/lib/supabase/client'
 import { upsertExercisePreference } from '@/lib/data/exercise-preferences'
@@ -32,24 +31,16 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise, onOpenPl
   const { loadPRsForExercises, checkLocalPR } = usePRStore()
   const [menuOpen,           setMenuOpen]           = useState(false)
   const [showDurationPicker, setShowDurationPicker] = useState(false)
-  const [activePRs,         setActivePRs]         = useState<PRCheckResult[]>([])
-  const prDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [activePRs, setActivePRs] = useState<PRCheckResult[]>([])
   const dialog = useDialog()
 
-  const { history }    = useExerciseHistory(exercise.exercise.id)
-  const { suggestion, lastWeight, lastReps } = useOverloadSuggestion(exercise.exercise.id)
+  // Per-set history + suggestions — indexed by set position (0 = first working set)
+  const { sets: lastWorkoutSets } = useLastWorkoutSets(exercise.exercise.id)
 
   // Load current PRs for this exercise so we can detect them in real-time
   useEffect(() => {
     loadPRsForExercises([exercise.exercise.id])
   }, [exercise.exercise.id, loadPRsForExercises])
-
-  // Clean up auto-dismiss timer on unmount
-  useEffect(() => {
-    return () => {
-      if (prDismissTimer.current) clearTimeout(prDismissTimer.current)
-    }
-  }, [])
 
   // ── Per-exercise rest seconds ─────────────────────────────────────────────
   // Initial value: from store (persisted in localStorage) or hard default
@@ -99,6 +90,11 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise, onOpenPl
 
   // Working weight = first non-warmup set with a weight entered
   const workingWeight = exercise.sets.find(s => !s.is_warmup && s.weight_kg > 0)?.weight_kg ?? 0
+
+  // Session volume for this exercise (completed working sets only)
+  const sessionVolume = exercise.sets
+    .filter(s => s.completed && !s.is_warmup && s.weight_kg > 0 && s.reps > 0)
+    .reduce((sum, s) => sum + s.weight_kg * s.reps, 0)
 
   // ── Rest timer label helper ───────────────────────────────────────────────
   const restLabel = restSeconds >= 60
@@ -163,19 +159,6 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise, onOpenPl
         </div>
       </div>
 
-      {/* Coach suggestion — shown when last session data exists */}
-      {suggestion && lastWeight !== null && lastReps !== null && (
-        <div className="flex items-center justify-between px-4 py-2 border-b border-[#1e293b] bg-[#CCFF00]/5">
-          <span className="text-[9px] font-black text-[#CCFF00] uppercase tracking-widest">Coach</span>
-          <span className="text-[10px] text-[#4a5568] font-body">
-            Last: {lastWeight}kg × {lastReps}
-          </span>
-          <span className="text-sm font-black text-[#CCFF00] tracking-tight">
-            → {suggestion.weight_kg}×{suggestion.target_reps}
-          </span>
-        </div>
-      )}
-
       {/* Warmup ramp — shown when working weight is entered; tappable to add sets */}
       <WarmupRamp
         workingWeight={workingWeight}
@@ -193,14 +176,26 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise, onOpenPl
       {/* Rows */}
       <div className="px-4 py-3">
         {exercise.sets.map((set, setIndex) => {
-          const prevRecord = history[setIndex]
-          const prevText   = prevRecord ? `${prevRecord.weight_kg}×${prevRecord.reps}` : '-'
+          // Map set position to last-workout history.
+          // Warmup sets have no position in lastWorkoutSets (working sets only),
+          // so we track a separate working-set counter.
+          const workingSetsBefore = exercise.sets
+            .slice(0, setIndex)
+            .filter(s => !s.is_warmup).length
+          const lastSetAtPosition = !set.is_warmup
+            ? lastWorkoutSets[workingSetsBefore]
+            : undefined
+
+          const prevText = lastSetAtPosition
+            ? `${lastSetAtPosition.weight_kg}×${lastSetAtPosition.reps}`
+            : '-'
 
           return (
             <SetRow
               key={set.id}
               set={set}
               prevSetText={prevText}
+              suggestion={lastSetAtPosition?.suggestion}
               onChange={(updates) => updateSet(exerciseIndex, setIndex, updates)}
               onDone={() => {
                 const currentSet = exercise.sets[setIndex]
@@ -211,10 +206,7 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise, onOpenPl
                   // Real-time PR detection — client-side only, server confirms on save
                   if (!currentSet.is_warmup && currentSet.weight_kg > 0 && currentSet.reps > 0) {
                     const prs = checkLocalPR(exercise.exercise.id, currentSet.weight_kg, currentSet.reps)
-                    if (prs.length > 0) {
-                      if (prDismissTimer.current) clearTimeout(prDismissTimer.current)
-                      setActivePRs(prs)
-                    }
+                    if (prs.length > 0) setActivePRs(prs)
                   }
                 }
               }}
@@ -240,6 +232,19 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise, onOpenPl
             <Plus className="w-3 h-3" /> Add Set
           </button>
         </div>
+
+        {/* Session volume — appears once the first working set is completed */}
+        {sessionVolume > 0 && (
+          <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-[#1e293b]">
+            <span className="text-[9px] font-black text-[#334155] uppercase tracking-widest">Session volume</span>
+            <span className="text-xs font-black text-[#adb4ce] tabular-nums">
+              {sessionVolume >= 1000
+                ? `${(sessionVolume / 1000).toFixed(1)}k`
+                : sessionVolume}
+              <span className="text-[9px] text-[#334155] ml-0.5">kg</span>
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Rest duration picker */}
