@@ -260,6 +260,16 @@ export const getWorkoutById = async (workoutId: string, userId: string) => {
 
 // ── Write functions (never cached) ────────────────────────────────────────────
 
+export interface SavedSetForPR {
+  id: string
+  exerciseId: string
+  exerciseName: string
+  weight_kg: number
+  reps: number
+  is_warmup: boolean
+  set_number: number
+}
+
 export async function saveActiveWorkout(userId: string, workout: ActiveWorkout) {
   const supabase = await getSupabaseServer()
 
@@ -279,6 +289,8 @@ export async function saveActiveWorkout(userId: string, workout: ActiveWorkout) 
 
   if (workoutErr) throw new DatabaseError('Failed to create workout record', workoutErr)
 
+  const savedSets: SavedSetForPR[] = []
+
   for (const [exerciseIndex, ex] of workout.exercises.entries()) {
     const { data: weData, error: weErr } = await supabase
       .from('workout_exercises')
@@ -294,7 +306,7 @@ export async function saveActiveWorkout(userId: string, workout: ActiveWorkout) 
 
     const completedSets = ex.sets.filter(s => s.completed)
     if (completedSets.length > 0) {
-      const { error: setsErr } = await supabase.from('sets').insert(
+      const { data: setsData, error: setsErr } = await supabase.from('sets').insert(
         completedSets.map((s, setIndex: number) => ({
           workout_exercise_id: weData.id,
           set_number: setIndex + 1,
@@ -304,13 +316,25 @@ export async function saveActiveWorkout(userId: string, workout: ActiveWorkout) 
           is_warmup: s.is_warmup,
           completed_at: new Date().toISOString(),
         })),
-      )
+      ).select('id, weight_kg, reps, is_warmup, set_number')
 
       if (setsErr) throw new DatabaseError('Failed to insert sets', setsErr)
+
+      for (const dbSet of setsData ?? []) {
+        savedSets.push({
+          id: dbSet.id,
+          exerciseId: ex.exercise.id,
+          exerciseName: ex.exercise.name,
+          weight_kg: dbSet.weight_kg,
+          reps: dbSet.reps,
+          is_warmup: dbSet.is_warmup,
+          set_number: dbSet.set_number,
+        })
+      }
     }
   }
 
-  return workoutData
+  return { workout: workoutData, savedSets }
 }
 
 export async function deleteWorkout(workoutId: string, userId: string): Promise<void> {

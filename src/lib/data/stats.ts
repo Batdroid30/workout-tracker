@@ -184,71 +184,74 @@ export const getWeeklyMuscleGroupStats = async (userId: string) => {
 
 // ── Write functions (never cached) ────────────────────────────────────────────
 
-export async function evaluateAndSavePRs(userId: string, workoutId: string): Promise<PREvaluationResult[]> {
-  const supabase = await getSupabaseServer()
+export async function evaluateAndSavePRs(
+  userId: string,
+  workoutId: string,
+  achievedAt: string,
+  sets: Array<{
+    id: string
+    exerciseId: string
+    exerciseName: string
+    weight_kg: number
+    reps: number
+    is_warmup: boolean
+  }>,
+): Promise<PREvaluationResult[]> {
+  // Use admin client to bypass RLS — we already verified ownership in the action
+  const supabase = getSupabaseAdmin()
 
-  const { data: workout, error } = await supabase
-    .from('workouts')
-    .select(`
-      started_at,
-      workout_exercises (
-        id,
-        exercise:exercises ( id, name ),
-        sets ( id, weight_kg, reps, is_warmup, set_number )
-      )
-    `)
-    .eq('id', workoutId)
-    .single()
-
-  if (error || !workout) throw new Error('Failed to fetch workout for PR evaluation')
-
-  const brokenPRs: PREvaluationResult[] = []
   const { data: existingPRs } = await supabase
     .from('personal_records')
-    .select('*')
+    .select('exercise_id, pr_type, value')
     .eq('user_id', userId)
 
   const prMap = new Map<string, number>()
   existingPRs?.forEach(pr => { prMap.set(`${pr.exercise_id}|${pr.pr_type}`, Number(pr.value)) })
 
+  const brokenPRs: PREvaluationResult[] = []
   const newPRsToUpsert: any[] = []
 
-  for (const we of workout.workout_exercises || []) {
-    // @ts-ignore
-    const exerciseId = we.exercise.id
-    // @ts-ignore
-    const exerciseName = we.exercise.name
-    const sortedSets = (we.sets || []).sort((a: any, b: any) => a.set_number - b.set_number)
+  for (const set of sets) {
+    if (set.is_warmup || !set.weight_kg || !set.reps) continue
 
-    for (const set of sortedSets) {
-      if (set.is_warmup || !set.weight_kg || !set.reps) continue
+    const weight = Number(set.weight_kg)
+    const reps   = Number(set.reps)
+    const checks = [
+      { type: 'best_weight' as PRType, value: weight },
+      { type: 'best_volume' as PRType, value: weight * reps },
+      { type: 'best_1rm'    as PRType, value: calculate1RM(weight, reps) },
+    ]
 
-      const weight = Number(set.weight_kg)
-      const reps = Number(set.reps)
-      const checks = [
-        { type: 'best_weight' as PRType, value: weight },
-        { type: 'best_volume' as PRType, value: weight * reps },
-        { type: 'best_1rm'    as PRType, value: calculate1RM(weight, reps) },
-      ]
+    for (const check of checks) {
+      const key = `${set.exerciseId}|${check.type}`
+      const currentRecord = prMap.get(key) ?? 0
 
-      for (const check of checks) {
-        const key = `${exerciseId}|${check.type}`
-        const currentRecord = prMap.get(key) || 0
-
-        if (check.value > currentRecord) {
-          brokenPRs.push({ exerciseName, prType: check.type, oldValue: currentRecord === 0 ? null : currentRecord, newValue: check.value })
-          prMap.set(key, check.value)
-          newPRsToUpsert.push({
-            user_id: userId, exercise_id: exerciseId, pr_type: check.type,
-            reps, value: check.value, set_id: set.id, achieved_at: workout.started_at,
-          })
-        }
+      if (check.value > currentRecord) {
+        brokenPRs.push({
+          exerciseName: set.exerciseName,
+          prType: check.type,
+          oldValue: currentRecord === 0 ? null : currentRecord,
+          newValue: check.value,
+        })
+        prMap.set(key, check.value)
+        newPRsToUpsert.push({
+          user_id: userId,
+          exercise_id: set.exerciseId,
+          pr_type: check.type,
+          reps,
+          value: check.value,
+          set_id: set.id,
+          achieved_at: achievedAt,
+        })
       }
     }
   }
 
   if (newPRsToUpsert.length > 0) {
-    await supabase.from('personal_records').upsert(newPRsToUpsert, { onConflict: 'user_id,exercise_id,pr_type' })
+    const { error: upsertErr } = await supabase
+      .from('personal_records')
+      .upsert(newPRsToUpsert, { onConflict: 'user_id,exercise_id,pr_type' })
+    if (upsertErr) console.error('Failed to save PRs:', upsertErr.message)
   }
 
   return brokenPRs

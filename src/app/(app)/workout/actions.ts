@@ -13,14 +13,14 @@ export async function finishWorkoutAction(activeWorkout: any) {
   const userId = session.user.id
 
   try {
-    const result = await saveActiveWorkout(userId, activeWorkout)
-    const prs    = await evaluateAndSavePRs(userId, result.id)
+    const { workout, savedSets } = await saveActiveWorkout(userId, activeWorkout)
+    const prs = await evaluateAndSavePRs(userId, workout.id, workout.started_at, savedSets)
 
     bustAfterWorkout(userId)
     revalidatePath('/dashboard')
     revalidatePath('/progress')
 
-    return { success: true, workoutId: result.id, prs }
+    return { success: true, workoutId: workout.id, prs }
   } catch (error: any) {
     console.error('Failed to finish workout:', error)
     return { success: false, error: error.message }

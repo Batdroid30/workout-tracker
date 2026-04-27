@@ -17,7 +17,7 @@ const fetchHistory = async (exerciseId: string) => {
       )
     `)
     .eq('workout_exercises.exercise_id', exerciseId)
-    .order('completed_at', { ascending: false, foreignTable: 'workout_exercises.workouts' })
+    .order('completed_at', { ascending: false })
     .limit(10)
 
   if (error) throw error
