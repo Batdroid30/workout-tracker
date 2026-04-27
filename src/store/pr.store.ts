@@ -41,7 +41,7 @@ export const usePRStore = create<PRStore>((set, get) => ({
 
     const updated = { ...get().prs }
     for (const id of uncached) {
-      updated[id] = data.filter(r => r.exercise_id === id) as PersonalRecord[]
+      updated[id] = data.filter((r: { exercise_id: string }) => r.exercise_id === id) as PersonalRecord[]
     }
     set({ prs: updated })
   },
