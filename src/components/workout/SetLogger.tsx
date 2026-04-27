@@ -4,11 +4,13 @@ import { SetRow }               from './SetRow'
 import { WarmupRamp }           from './WarmupRamp'
 import { PlateCalculator }      from './PlateCalculator'
 import { RestTimer }            from './RestTimer'
-import type { ActiveExercise }  from '@/types/database'
+import { PRBanner }             from './PRBanner'
+import type { ActiveExercise, PRCheckResult } from '@/types/database'
 import { Plus, Check, MoreVertical, Calculator, Timer } from 'lucide-react'
 import { BottomSheet } from '@/components/ui/BottomSheet'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useWorkoutStore }      from '@/store/workout.store'
+import { usePRStore }           from '@/store/pr.store'
 import { useExerciseHistory }   from '@/hooks/useExerciseHistory'
 import { useOverloadSuggestion } from '@/hooks/useOverloadSuggestion'
 import { useDialog }            from '@/providers/DialogProvider'
@@ -25,15 +27,30 @@ interface SetLoggerProps {
 
 export function SetLogger({ exerciseIndex, exercise, onReplaceExercise }: SetLoggerProps) {
   const { updateSet, markSetDone, addSet, addWarmupSet, removeExercise, removeSet, moveExerciseUp, moveExerciseDown, updateExerciseRestSeconds } = useWorkoutStore()
+  const { loadPRsForExercises, checkLocalPR } = usePRStore()
   const [menuOpen,          setMenuOpen]          = useState(false)
   const [plateCalcOpen,     setPlateCalcOpen]     = useState(false)
   const [showRestTimer,     setShowRestTimer]      = useState(false)
   const [restTimerKey,      setRestTimerKey]       = useState(0)
   const [showDurationPicker, setShowDurationPicker] = useState(false)
+  const [activePR,          setActivePR]          = useState<PRCheckResult | null>(null)
+  const prDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dialog = useDialog()
 
   const { history }    = useExerciseHistory(exercise.exercise.id)
   const { suggestion, lastWeight, lastReps } = useOverloadSuggestion(exercise.exercise.id)
+
+  // Load current PRs for this exercise so we can detect them in real-time
+  useEffect(() => {
+    loadPRsForExercises([exercise.exercise.id])
+  }, [exercise.exercise.id, loadPRsForExercises])
+
+  // Clean up auto-dismiss timer on unmount
+  useEffect(() => {
+    return () => {
+      if (prDismissTimer.current) clearTimeout(prDismissTimer.current)
+    }
+  }, [])
 
   // ── Per-exercise rest seconds ─────────────────────────────────────────────
   // Initial value: from store (persisted in localStorage) or hard default
@@ -186,10 +203,24 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise }: SetLog
               prevSetText={prevText}
               onChange={(updates) => updateSet(exerciseIndex, setIndex, updates)}
               onDone={() => {
-                const wasCompleted = exercise.sets[setIndex].completed
+                const currentSet = exercise.sets[setIndex]
+                const wasCompleted = currentSet.completed
                 markSetDone(exerciseIndex, setIndex)
-                // Only trigger rest timer when completing a set, not when unticking
-                if (!wasCompleted) handleSetCompleted()
+                if (!wasCompleted) {
+                  handleSetCompleted()
+                  // Real-time PR detection — client-side only, server confirms on save
+                  if (!currentSet.is_warmup && currentSet.weight_kg > 0 && currentSet.reps > 0) {
+                    const prs = checkLocalPR(exercise.exercise.id, currentSet.weight_kg, currentSet.reps)
+                    if (prs.length > 0) {
+                      // Show the most meaningful PR: weight > 1RM > volume
+                      const priority: Record<string, number> = { best_weight: 0, best_1rm: 1, best_volume: 2 }
+                      const top = prs.sort((a, b) => priority[a.pr_type] - priority[b.pr_type])[0]
+                      if (prDismissTimer.current) clearTimeout(prDismissTimer.current)
+                      setActivePR(top)
+                      prDismissTimer.current = setTimeout(() => setActivePR(null), 4000)
+                    }
+                  }
+                }
               }}
               onRemove={() => removeSet(exerciseIndex, setIndex)}
             />
@@ -238,6 +269,15 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise }: SetLog
         current={restSeconds}
         onChange={handleRestSecondsChange}
         onClose={() => setShowDurationPicker(false)}
+      />
+
+      {/* Real-time PR banner — auto-dismisses after 4s */}
+      <PRBanner
+        pr={activePR}
+        onDismiss={() => {
+          if (prDismissTimer.current) clearTimeout(prDismissTimer.current)
+          setActivePR(null)
+        }}
       />
     </div>
   )
