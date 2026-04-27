@@ -109,7 +109,7 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
             </p>
           </div>
           <div className="flex items-center gap-1.5">
-            {PR_DISPLAY_ORDER.filter(t => workout.prTypes.includes(t)).map(t => {
+            {PR_DISPLAY_ORDER.filter(t => workout.prTypes?.includes(t)).map(t => {
               const cfg = PR_BADGE_CONFIG[t]
               return (
                 <span
