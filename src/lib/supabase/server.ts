@@ -25,15 +25,22 @@ export async function getSupabaseServer() {
   )
 }
 
+// Singleton — the admin client carries no user session state (always uses the
+// service role key), so one instance is safe to share across all server requests.
+let adminClient: ReturnType<typeof createClient> | null = null
+
 export function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  )
+  if (!adminClient) {
+    adminClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    )
+  }
+  return adminClient
 }
