@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { Check, Trash2, X } from 'lucide-react'
+import { Check, Trash2, X, Zap } from 'lucide-react'
 import type { ActiveSet } from '@/types/database'
 import type { OverloadSuggestion } from '@/lib/algorithms'
 import { cn } from '@/lib/utils'
@@ -97,7 +97,7 @@ function ActiveSetRow({ set, prevSetText, suggestion, onChange, onDone, onRemove
   return (
     <div className={cn(
       'overflow-hidden transition-all duration-300',
-      pendingDelete ? 'max-h-0 opacity-0 mb-0' : 'max-h-48 opacity-100 mb-1.5',
+      pendingDelete ? 'max-h-0 opacity-0 mb-0' : 'max-h-64 opacity-100 mb-1.5',
     )}>
       {/* ── Row 1: [set# + prev stacked] · weight · reps · ✓ ──────────── */}
       <div className="flex items-center gap-2 py-1.5">
@@ -115,12 +115,6 @@ function ActiveSetRow({ set, prevSetText, suggestion, onChange, onDone, onRemove
           <span className="text-[9px] font-body text-[#334155] leading-none tabular-nums">
             {prevSetText}
           </span>
-          {/* Per-set overload target — only for working sets with history */}
-          {suggestion && !set.is_warmup && (
-            <span className="text-[8px] font-black text-[#CCFF00]/50 leading-none tabular-nums">
-              →{suggestion.weight_kg}×{suggestion.target_reps}
-            </span>
-          )}
         </div>
 
         {/* Weight — decimal-safe via local string state, min-w-0 allows flex shrink */}
@@ -174,6 +168,25 @@ function ActiveSetRow({ set, prevSetText, suggestion, onChange, onDone, onRemove
           <Check className="w-4 h-4" />
         </button>
       </div>
+
+      {/* ── Suggestion chip — tap to pre-fill weight + reps ────────────── */}
+      {suggestion && !set.is_warmup && (
+        <button
+          onClick={() => {
+            setWeightStr(String(suggestion.weight_kg))
+            onChange({ weight_kg: suggestion.weight_kg, reps: suggestion.target_reps })
+          }}
+          className="w-full flex items-center gap-1.5 px-2 py-1 mb-1 rounded-lg border border-[#CCFF00]/20 bg-[#CCFF00]/5 hover:bg-[#CCFF00]/10 active:scale-[0.98] transition-all group"
+        >
+          <Zap className="w-3 h-3 text-[#CCFF00]/60 shrink-0 group-hover:text-[#CCFF00]" />
+          <span className="text-[11px] font-black text-[#CCFF00]/60 group-hover:text-[#CCFF00] tabular-nums">
+            {suggestion.weight_kg}kg × {suggestion.target_reps}
+          </span>
+          <span className="text-[10px] font-body text-[#4a5568] truncate flex-1 text-left">
+            {suggestion.reason}
+          </span>
+        </button>
+      )}
 
       {/* ── Row 2: RPE + delete (non-warmup) ────────────────────────────── */}
       {!set.is_warmup && (

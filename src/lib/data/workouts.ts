@@ -149,6 +149,7 @@ export const getVolumeHistory = cache(async (
   if (!data) return []
 
   const volumeByDate = data.reduce((acc: Record<string, number>, set) => {
+    if (!set.completed_at) return acc
     const date = new Date(set.completed_at).toISOString().split('T')[0]
     acc[date] = (acc[date] || 0) + (set.weight_kg || 0) * (set.reps || 0)
     return acc
@@ -179,6 +180,7 @@ export const getExercise1RMHistory = cache(async (
   if (!data) return []
 
   const best1RMByDate = data.reduce((acc: Record<string, number>, set) => {
+    if (!set.completed_at) return acc
     const date = new Date(set.completed_at).toISOString().split('T')[0]
     const e1rm = (set.weight_kg || 0) * (1 + (set.reps || 0) / 30)
     if (!acc[date] || e1rm > acc[date]) acc[date] = e1rm
@@ -244,15 +246,22 @@ export interface SavedSetForPR {
 export async function saveActiveWorkout(userId: string, workout: ActiveWorkout) {
   const supabase = getSupabaseAdmin()
 
+  // workout.started_at is a Date in the active-workout store; the DB column
+  // is a timestamptz expecting an ISO string. Normalise here, in one place,
+  // so the rest of the function can share the same value.
+  const startedAtIso = workout.started_at instanceof Date
+    ? workout.started_at.toISOString()
+    : new Date(workout.started_at).toISOString()
+
   const { data: workoutData, error: workoutErr } = await supabase
     .from('workouts')
     .insert({
       user_id: userId,
       title: workout.title,
-      started_at: workout.started_at,
+      started_at: startedAtIso,
       completed_at: new Date().toISOString(),
       duration_seconds: Math.floor(
-        (new Date().getTime() - new Date(workout.started_at).getTime()) / 1000,
+        (Date.now() - new Date(startedAtIso).getTime()) / 1000,
       ),
     })
     .select()
@@ -301,7 +310,8 @@ export async function saveActiveWorkout(userId: string, workout: ActiveWorkout) 
           exerciseName: ex.exercise.name,
           weight_kg: dbSet.weight_kg,
           reps: dbSet.reps,
-          is_warmup: dbSet.is_warmup,
+          // Column is nullable; treat null as false (the default for working sets).
+          is_warmup: dbSet.is_warmup ?? false,
           set_number: dbSet.set_number,
         })
       }

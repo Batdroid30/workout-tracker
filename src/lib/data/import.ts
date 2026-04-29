@@ -245,8 +245,8 @@ export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
     .lte('started_at', rangeMax)
 
   const existingKeys = new Set(
-    (existingWorkouts ?? []).map((w: { title: string; started_at: string }) =>
-      `${w.title}-${w.started_at}`
+    (existingWorkouts ?? []).map((w: { title: string | null; started_at: string }) =>
+      `${w.title ?? ''}-${w.started_at}`
     )
   )
 

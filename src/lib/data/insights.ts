@@ -13,8 +13,14 @@ export interface NeglectedMuscle {
 
 export interface StalledMovement {
   exerciseName: string
-  currentBest: number
+  currentBest:  number
   previousBest: number
+  /**
+   * Progression rate over the comparison window (~3 weeks).
+   * Positive = climbing, ~0 = stalled, negative = regressing.
+   */
+  pctPerWeek: number
+  kgPerWeek:  number
 }
 
 export interface RecentPR {
@@ -279,16 +285,24 @@ export const getStalledMovements = cache(async (userId: string): Promise<Stalled
       ex.recentDates.size >= 2 && ex.previousDates.size >= 2 &&
       (ex.recentBest - ex.previousBest) / ex.previousBest < 0.03
     )
-    .map(([name, ex]) => ({
-      exerciseName: name,
-      currentBest:  Math.round(ex.recentBest  * 10) / 10,
-      previousBest: Math.round(ex.previousBest * 10) / 10,
-    }))
-    .sort((a, b) => {
-      const aChange = (a.currentBest - a.previousBest) / a.previousBest
-      const bChange = (b.currentBest - b.previousBest) / b.previousBest
-      return aChange - bChange
+    .map(([name, ex]) => {
+      // Comparison window matches the recent/previous split: 3 weeks each.
+      // Per-week rate makes "stuck for 3 weeks" actionable as
+      // "0.2 kg/week" or "+0.5%/week", which the user can compare against
+      // their goal-driven expected progression.
+      const WEEKS_IN_WINDOW = 3
+      const totalKg = ex.recentBest - ex.previousBest
+      const pctPerWeek = (totalKg / ex.previousBest) * 100 / WEEKS_IN_WINDOW
+      const kgPerWeek  = totalKg / WEEKS_IN_WINDOW
+      return {
+        exerciseName: name,
+        currentBest:  Math.round(ex.recentBest  * 10) / 10,
+        previousBest: Math.round(ex.previousBest * 10) / 10,
+        pctPerWeek:   Math.round(pctPerWeek * 100) / 100,
+        kgPerWeek:    Math.round(kgPerWeek  * 100) / 100,
+      }
     })
+    .sort((a, b) => a.pctPerWeek - b.pctPerWeek)  // worst (most negative) first
     .slice(0, 3)
 })
 
@@ -399,3 +413,172 @@ export function deriveCoachTips(weeklySummary: WeeklySummary, streak: TrainingSt
   for (const tip of fallbacks) { if (tips.length >= 3) break; tips.push(tip) }
   return tips.slice(0, 3)
 }
+
+// ─── Weekly working sets per muscle group ────────────────────────────────────
+//
+// Counts each completed working set against its exercise's primary muscle
+// group. Used by WeeklySetsCard to compare against the user's per-muscle
+// weekly targets (style + phase aware).
+//
+// Window: Monday → now (UTC), matching the existing weekly-summary helpers.
+// Excludes warmups and incomplete sets — only count what actually trains.
+
+export interface WeeklySetCount {
+  muscleGroup: string
+  setCount:    number
+}
+
+export const getWeeklySetsByMuscle = cache(async (userId: string): Promise<WeeklySetCount[]> => {
+  const supabase = getSupabaseAdmin()
+
+  const monday = new Date(getMondayOf(new Date()) + 'T00:00:00Z')
+
+  const { data, error } = await supabase
+    .from('sets')
+    .select(`
+      id, is_warmup, completed_at,
+      workout_exercises!inner (
+        exercise:exercises ( muscle_group ),
+        workouts!inner ( user_id )
+      )
+    `)
+    .eq('workout_exercises.workouts.user_id', userId)
+    .eq('is_warmup', false)
+    .gte('completed_at', monday.toISOString())
+
+  if (error) throw new DatabaseError('Failed to fetch weekly sets by muscle', error)
+  if (!data || data.length === 0) return []
+
+  const counts: Record<string, number> = {}
+  for (const set of data as any[]) {
+    const we       = Array.isArray(set.workout_exercises) ? set.workout_exercises[0] : set.workout_exercises
+    const exercise = Array.isArray(we?.exercise)          ? we.exercise[0]           : we?.exercise
+    const group    = exercise?.muscle_group as string | undefined
+    if (!group) continue
+    counts[group] = (counts[group] ?? 0) + 1
+  }
+
+  return Object.entries(counts)
+    .map(([muscleGroup, setCount]) => ({ muscleGroup, setCount }))
+    .sort((a, b) => b.setCount - a.setCount)
+})
+
+// ─── Recent exercise loads (for deload generator) ────────────────────────────
+//
+// Returns the most-recent working set per exercise the user has trained in
+// the last 14 days. Used as input to generateDeloadRoutine().
+//
+// Why 14 days: anything older isn't relevant to the current mesocycle —
+// the user's strength baseline may have shifted.
+
+import type { RecentExerciseLoad } from '@/lib/algorithms'
+
+export const getRecentExerciseLoads = cache(async (userId: string): Promise<RecentExerciseLoad[]> => {
+  const supabase = getSupabaseAdmin()
+
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000)
+
+  const { data, error } = await supabase
+    .from('sets')
+    .select(`
+      weight_kg, reps, completed_at, is_warmup,
+      workout_exercises!inner (
+        exercise:exercises ( id, name, muscle_group ),
+        workouts!inner ( user_id )
+      )
+    `)
+    .eq('workout_exercises.workouts.user_id', userId)
+    .eq('is_warmup', false)
+    .gt('weight_kg', 0)
+    .gt('reps', 0)
+    .gte('completed_at', fourteenDaysAgo.toISOString())
+    .order('completed_at', { ascending: false })
+
+  if (error) throw new DatabaseError('Failed to fetch recent loads', error)
+  if (!data || data.length === 0) return []
+
+  // Keep only the most-recent working set per exercise — data is already
+  // sorted desc by completed_at so the first hit per id wins.
+  const seen = new Map<string, RecentExerciseLoad>()
+  for (const set of data as any[]) {
+    const we       = Array.isArray(set.workout_exercises) ? set.workout_exercises[0] : set.workout_exercises
+    const exercise = Array.isArray(we?.exercise)          ? we.exercise[0]           : we?.exercise
+    if (!exercise?.id || seen.has(exercise.id)) continue
+    seen.set(exercise.id, {
+      exerciseId:   exercise.id,
+      exerciseName: exercise.name,
+      muscleGroup:  exercise.muscle_group ?? '',
+      lastWeight:   Number(set.weight_kg),
+      lastReps:     Number(set.reps),
+    })
+  }
+
+  return Array.from(seen.values())
+})
+
+// ─── Push/Pull balance (last 28 days) ────────────────────────────────────────
+//
+// Counts working sets by upper-body push vs pull muscle groups over the last
+// 4 weeks. Surfaces front-vs-back imbalances that lead to posture issues and
+// shoulder injuries.
+//
+//   Push muscles: chest, shoulders, triceps
+//   Pull muscles: back, lats, biceps, traps
+//
+// Legs and core are ignored — they don't fit either bucket.
+//
+// Window: 28 days for a stable signal. One workout doesn't shift the ratio.
+
+export interface PushPullBalance {
+  pushSets: number
+  pullSets: number
+  /** push:pull ratio. 1 = balanced, >1 = push-heavy, <1 = pull-heavy. null when both are zero. */
+  ratio:    number | null
+}
+
+// Reuses PUSH_MUSCLES / PULL_MUSCLES declared earlier in this file (used by
+// the "Push Day" / "Pull Day" workout classifier). Keeping a single source of
+// truth means the balance card and the day-classifier always agree on what
+// counts as push vs pull.
+
+export const getPushPullBalance = cache(async (userId: string): Promise<PushPullBalance> => {
+  const supabase = getSupabaseAdmin()
+
+  const twentyEightDaysAgo = new Date(Date.now() - 28 * 86400000)
+
+  const { data, error } = await supabase
+    .from('sets')
+    .select(`
+      id, is_warmup, completed_at,
+      workout_exercises!inner (
+        exercise:exercises ( muscle_group ),
+        workouts!inner ( user_id )
+      )
+    `)
+    .eq('workout_exercises.workouts.user_id', userId)
+    .eq('is_warmup', false)
+    .gte('completed_at', twentyEightDaysAgo.toISOString())
+
+  if (error) throw new DatabaseError('Failed to fetch push/pull data', error)
+  if (!data || data.length === 0) return { pushSets: 0, pullSets: 0, ratio: null }
+
+  let pushSets = 0
+  let pullSets = 0
+
+  for (const set of data as any[]) {
+    const we       = Array.isArray(set.workout_exercises) ? set.workout_exercises[0] : set.workout_exercises
+    const exercise = Array.isArray(we?.exercise)          ? we.exercise[0]           : we?.exercise
+    const group    = exercise?.muscle_group as string | undefined
+    if (!group) continue
+    if (PUSH_MUSCLES.has(group)) pushSets += 1
+    else if (PULL_MUSCLES.has(group)) pullSets += 1
+  }
+
+  const ratio = pushSets === 0 && pullSets === 0
+    ? null
+    : pullSets === 0
+      ? Infinity
+      : pushSets / pullSets
+
+  return { pushSets, pullSets, ratio }
+})

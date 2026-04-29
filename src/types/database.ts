@@ -5,30 +5,46 @@ export type MuscleGroup =
   | 'core' | 'traps' | 'lats'
 
 export type MovementPattern = 'push' | 'pull' | 'hinge' | 'squat' | 'carry' | 'isolation'
-export type PRType = 'best_weight' | 'best_volume' | 'best_1rm'
-export type ProgramGoal = 'strength' | 'hypertrophy' | 'powerbuilding' | 'endurance'
+export type PRType          = 'best_weight' | 'best_volume' | 'best_1rm'
 
+// Training profile — values must match DB check constraints on profiles table
+export type TrainingGoal    = 'strength' | 'muscle' | 'both'
+export type TrainingPhase   = 'bulking'  | 'cutting' | 'maingaining'
+export type TrainingStyle   = 'volume'   | 'intensity'
+export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced'
+
+// Mirrors the public.profiles table. Email lives on the auth session, not
+// here — read it from session.user.email at the call site.
 export interface Profile {
   id: string
-  email: string
   first_name: string | null
   last_name: string | null
   avatar_url: string | null
   rest_timer_seconds: number
   weekly_goal_sessions: number
-  updated_at: string
+  updated_at: string | null
+  // Training profile — all nullable so existing users are unaffected until they set up
+  training_goal:    TrainingGoal    | null
+  training_phase:   TrainingPhase   | null
+  training_style:   TrainingStyle   | null
+  experience_level: ExperienceLevel | null
+  phase_started_at: string          | null
 }
 
+// Mirrors the public.exercises table. Note muscle_group / movement_pattern
+// are typed as the broader `string` here to match the DB columns — the
+// MuscleGroup / MovementPattern unions stay useful for UI dispatch but the
+// DB doesn't enforce them as enums (custom exercises can carry any string).
 export interface Exercise {
   id: string
   name: string
-  muscle_group: MuscleGroup
-  secondary_muscles: MuscleGroup[] | null
+  muscle_group: string
+  secondary_muscles: string[] | null
   equipment: string | null
-  movement_pattern: MovementPattern
-  is_custom: boolean
+  movement_pattern: string
+  is_custom: boolean | null
   created_by: string | null
-  created_at: string
+  created_at: string | null
 }
 
 export interface Workout {

@@ -11,7 +11,10 @@ export const getProfile = cache(async (userId: string): Promise<Profile | null> 
     .eq('id', userId)
     .single()
 
-  if (!profileError && profileData) return profileData
+  // DB stores training_* / experience_level as text columns with check
+  // constraints; the generated types are string|null. Narrowing here is
+  // safe — anything outside the union would have failed the constraint.
+  if (!profileError && profileData) return profileData as Profile
 
   // Fallback: synthesise from the auth session user
   const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId)
@@ -23,13 +26,17 @@ export const getProfile = cache(async (userId: string): Promise<Profile | null> 
 
   return {
     id: user.id,
-    email: user.email || '',
     first_name: user.user_metadata?.first_name || null,
     last_name: user.user_metadata?.last_name || null,
     avatar_url: user.user_metadata?.avatar_url || null,
     rest_timer_seconds: 90,
     weekly_goal_sessions: 3,
     updated_at: user.updated_at || new Date().toISOString(),
+    training_goal:    null,
+    training_phase:   null,
+    training_style:   null,
+    experience_level: null,
+    phase_started_at: null,
   }
 })
 
@@ -38,9 +45,15 @@ export const getProfile = cache(async (userId: string): Promise<Profile | null> 
 export async function updateProfile(userId: string, updates: Partial<Profile>) {
   const supabase = await getSupabaseServer()
 
+  const upsertPayload = {
+    id: userId,
+    ...updates,
+    updated_at: new Date().toISOString(),
+  }
+
   const { data: profileData, error: profileError } = await supabase
     .from('profiles')
-    .upsert({ id: userId, ...updates, updated_at: new Date().toISOString() })
+    .upsert(upsertPayload)
     .select()
     .single()
 

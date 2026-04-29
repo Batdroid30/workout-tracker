@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useWorkoutStore } from '@/store/workout.store'
 import { SetLogger } from '@/components/workout/SetLogger'
 import { PlateCalculator } from '@/components/workout/PlateCalculator'
@@ -7,8 +7,10 @@ import { RestTimer } from '@/components/workout/RestTimer'
 import { Button } from '@/components/ui/Button'
 import { Plus, Play, ChevronLeft } from 'lucide-react'
 import { AddExerciseModal } from '@/components/workout/AddExerciseModal'
-import { PRCelebration } from '@/components/workout/PRCelebration'
-import { finishWorkoutAction } from './actions'
+import { PostWorkoutSummary } from '@/components/workout/PostWorkoutSummary'
+import { SuggestNextChip } from '@/components/workout/SuggestNextChip'
+import { useExerciseStore } from '@/store/exercise.store'
+import { finishWorkoutAction, getUserExerciseFrequency } from './actions'
 import { updateRoutineExercisesAction } from '@/app/(app)/routines/actions'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -35,7 +37,12 @@ export default function WorkoutPage() {
   }
   const [addingExerciseMode, setAddingExerciseMode] = useState<{ mode: 'add' } | { mode: 'replace', index: number } | null>(null)
   const [isFinishing,      setIsFinishing]      = useState(false)
-  const [celebrationPRs,   setCelebrationPRs]   = useState<PREvaluationResult[] | null>(null)
+  // Snapshot of the workout + PRs at finish time, used to render the
+  // post-workout summary screen. Cleared (→ null) on dashboard navigation.
+  const [summary, setSummary] = useState<{
+    workout: NonNullable<typeof activeWorkout>
+    prs:     PREvaluationResult[]
+  } | null>(null)
 
   // ── Plate calculator — owned here so it renders outside backdrop-filter cards ──
   const [plateCalc, setPlateCalc] = useState<{ isOpen: boolean; weight: number }>({ isOpen: false, weight: 100 })
@@ -48,6 +55,37 @@ export default function WorkoutPage() {
   const handleRestTimerStart = useCallback((seconds: number) => {
     setRestTimer(prev => ({ isVisible: true, seconds, key: prev.key + 1 }))
   }, [])
+
+  // ── Exercise cache + frequency map for "suggest next" ──────────────────
+  // Both are fetched once per workout-page mount and reused for every chip
+  // re-render. The exercise list is also localStorage-cached for 24h, so
+  // this is effectively free after the first visit.
+  const loadExerciseCache = useExerciseStore(s => s.load)
+  const [usageFrequency, setUsageFrequency] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    if (!activeWorkout) return
+    loadExerciseCache()
+    getUserExerciseFrequency().then(setUsageFrequency)
+  // Only run once per workout session — frequency is a stable snapshot
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWorkout?.started_at])
+
+  // ── Accordion state — used when starting from a routine ─────────────────
+  // Routines load all exercises upfront, but rendering 5–8 expanded SetLoggers
+  // is overwhelming. Show a collapsed summary list; one expanded at a time.
+  // Blank workouts keep the legacy fully-expanded behaviour.
+  const isRoutineWorkout = !!activeWorkout?.routine_id
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
+
+  // On routine start, auto-expand the first exercise that still has incomplete sets.
+  useEffect(() => {
+    if (!isRoutineWorkout || expandedIndex !== null || !activeWorkout) return
+    const firstIncomplete = activeWorkout.exercises.findIndex(ex =>
+      ex.sets.some(s => !s.completed)
+    )
+    setExpandedIndex(firstIncomplete >= 0 ? firstIncomplete : 0)
+  }, [isRoutineWorkout, activeWorkout, expandedIndex])
 
   const handleFinish = async () => {
     if (!activeWorkout) return
@@ -125,13 +163,10 @@ export default function WorkoutPage() {
       // 2. Save the workout
       const result = await finishWorkoutAction(finalWorkout)
       if (result.success) {
+        // Snapshot before clearing the active workout — the summary screen
+        // needs the full exercise list (with completed sets) for its stats.
+        setSummary({ workout: finalWorkout, prs: result.prs ?? [] })
         finishWorkout()
-        // Show PR celebration before navigating away
-        if (result.prs && result.prs.length > 0) {
-          setCelebrationPRs(result.prs)
-        } else {
-          router.push('/dashboard')
-        }
       } else {
         dialog.alert({ title: 'Error', description: 'Failed to save workout: ' + result.error })
       }
@@ -140,6 +175,21 @@ export default function WorkoutPage() {
     } finally {
       setIsFinishing(false)
     }
+  }
+
+  // Post-workout summary takes priority over both the empty state and the
+  // active workout view — finishWorkout() has already cleared activeWorkout.
+  if (summary) {
+    return (
+      <PostWorkoutSummary
+        workout={summary.workout}
+        prs={summary.prs}
+        onDone={() => {
+          setSummary(null)
+          router.push('/dashboard')
+        }}
+      />
+    )
   }
 
   if (!activeWorkout) {
@@ -200,8 +250,20 @@ export default function WorkoutPage() {
               onReplaceExercise={() => setAddingExerciseMode({ mode: 'replace', index: i })}
               onOpenPlateCalc={handleOpenPlateCalc}
               onRestTimerStart={handleRestTimerStart}
+              // Accordion mode — only collapse for routine-driven workouts.
+              isCollapsed={isRoutineWorkout && expandedIndex !== i}
+              onExpand={() => setExpandedIndex(i)}
             />
           ))
+        )}
+
+        {/* Suggest-next chips — blank workouts only, after at least one exercise */}
+        {!isRoutineWorkout && activeWorkout.exercises.length > 0 && (
+          <SuggestNextChip
+            workoutExercises={activeWorkout.exercises}
+            usageFrequency={usageFrequency}
+            onAdd={(ex) => addExercise(ex)}
+          />
         )}
 
         <Button
@@ -234,16 +296,6 @@ export default function WorkoutPage() {
         }}
       />
 
-      {/* PR Celebration overlay */}
-      {celebrationPRs && (
-        <PRCelebration
-          prs={celebrationPRs}
-          onClose={() => {
-            setCelebrationPRs(null)
-            router.push('/dashboard')
-          }}
-        />
-      )}
 
       {/*
         PlateCalculator and RestTimer live here — NOT inside SetLogger cards.

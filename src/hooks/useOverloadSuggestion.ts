@@ -51,10 +51,13 @@ export function useOverloadSuggestion(exerciseId: string): OverloadInfo {
 
       if (cancelled || !data || data.length === 0) return
 
-      // Isolate the most recent workout's sets (same calendar date)
-      const mostRecentDay = data[0].completed_at.split('T')[0]
+      // completed_at can be null on draft sets — skip them when picking the
+      // most recent calendar day. Working sets always have it set.
+      const firstCompleted = data[0].completed_at
+      if (!firstCompleted) return
+      const mostRecentDay = firstCompleted.split('T')[0]
       const lastWorkoutSets = data
-        .filter((s: any) => s.completed_at.split('T')[0] === mostRecentDay)
+        .filter((s: any) => s.completed_at && s.completed_at.split('T')[0] === mostRecentDay)
         .sort((a: any, b: any) => b.set_number - a.set_number)
 
       const lastSet = lastWorkoutSets[0]
@@ -64,7 +67,7 @@ export function useOverloadSuggestion(exerciseId: string): OverloadInfo {
       const r = Number(lastSet.reps)
 
       if (!cancelled) {
-        setInfo({ lastWeight: w, lastReps: r, suggestion: suggestNextSet(w, r) })
+        setInfo({ lastWeight: w, lastReps: r, suggestion: suggestNextSet({ lastWeight: w, lastReps: r }) })
       }
     }
 
