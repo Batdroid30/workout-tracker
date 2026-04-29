@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Trophy } from 'lucide-react'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
 import { ExerciseMetaEditor } from '@/components/exercises/ExerciseMetaEditor'
+import type { MuscleGroup, MovementPattern } from '@/types/database'
 
 export default async function ExerciseDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -47,8 +48,11 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
             </p>
             <ExerciseMetaEditor
               exerciseId={exercise.id}
-              currentMuscleGroup={exercise.muscle_group}
-              currentMovementPattern={exercise.movement_pattern}
+              // DB columns are stored as plain text — narrow at the boundary.
+              // Custom rows with an unknown value will simply show no selection
+              // in the dropdown, which the editor handles gracefully.
+              currentMuscleGroup={exercise.muscle_group as MuscleGroup}
+              currentMovementPattern={exercise.movement_pattern as MovementPattern}
             />
           </div>
         </div>

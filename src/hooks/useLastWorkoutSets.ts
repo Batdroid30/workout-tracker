@@ -60,7 +60,7 @@ async function fetchLastWorkoutSets(exerciseId: string): Promise<LastWorkoutSetI
     .map((set: any) => {
       const w = Number(set.weight_kg)
       const r = Number(set.reps)
-      return { weight_kg: w, reps: r, suggestion: suggestNextSet(w, r) }
+      return { weight_kg: w, reps: r, suggestion: suggestNextSet({ lastWeight: w, lastReps: r }) }
     })
 }
 

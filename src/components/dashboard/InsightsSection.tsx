@@ -6,11 +6,14 @@ import {
   getTrainingStreak,
   getNeglectedMuscles,
   getStalledMovements,
+  getWeeklySetsByMuscle,
+  getPushPullBalance,
   deriveWeeklySummary,
   deriveNextWorkoutSuggestion,
   deriveCoachTips,
 } from '@/lib/data/insights'
 import { getBadges } from '@/lib/data/achievements'
+import { getProfile } from '@/lib/data/profile'
 
 import { DeloadCard }           from './DeloadCard'
 import { WeeklySummaryCard }    from './WeeklySummaryCard'
@@ -24,6 +27,9 @@ import { BadgesCard }           from './BadgesCard'
 import { NextWorkoutCard }      from './NextWorkoutCard'
 import { CoachTipCard }         from './CoachTipCard'
 import { WeeklyGoalCard }       from './WeeklyGoalCard'
+import { WeeklySetsCard }       from './WeeklySetsCard'
+import { PushPullBalanceCard }  from './PushPullBalanceCard'
+import { PhaseTransitionCard }  from './PhaseTransitionCard'
 
 interface InsightsSectionProps {
   userId: string
@@ -38,7 +44,7 @@ export async function InsightsSection({
   totalWorkouts,
   weeklyGoalSessions,
 }: InsightsSectionProps) {
-  const [weeks, recentPRs, mostImproved, streak, neglectedMuscles, stalledMovements, badges] =
+  const [weeks, recentPRs, mostImproved, streak, neglectedMuscles, stalledMovements, badges, weeklySets, pushPull, profile] =
     await Promise.all([
       getWeeklyTrainingSummary(userId),
       getRecentPRs(userId, 60),
@@ -47,11 +53,18 @@ export async function InsightsSection({
       getNeglectedMuscles(userId),
       getStalledMovements(userId),
       getBadges(userId, totalVolume, totalWorkouts),
+      getWeeklySetsByMuscle(userId),
+      getPushPullBalance(userId),
+      getProfile(userId),
     ])
 
   const weeklySummary       = deriveWeeklySummary(weeks)
   const daysSinceLastPR     = recentPRs.length > 0 ? recentPRs[0].daysAgo : null
-  const fatigue             = assessFatigueLevel(weeks, daysSinceLastPR)
+  const fatigue             = assessFatigueLevel(weeks, daysSinceLastPR, profile ? {
+    experience_level: profile.experience_level,
+    training_phase:   profile.training_phase,
+    phase_started_at: profile.phase_started_at,
+  } : null)
   const nextWorkout         = deriveNextWorkoutSuggestion(neglectedMuscles)
   const coachTips           = deriveCoachTips(weeklySummary, streak, neglectedMuscles, stalledMovements)
 
@@ -59,6 +72,13 @@ export async function InsightsSection({
     <div className="space-y-3">
       {/* Deload — highest priority, shown first when active */}
       {fatigue.shouldSuggest && <DeloadCard assessment={fatigue} />}
+
+      {/* Phase transition prompt — fires when user is well overdue for a phase swap */}
+      <PhaseTransitionCard
+        experienceLevel={profile?.experience_level ?? null}
+        trainingPhase={profile?.training_phase ?? null}
+        phaseStartedAt={profile?.phase_started_at ?? null}
+      />
 
       {/* Recent PRs — high-value, shown near the top */}
       <RecentPRsCard prs={recentPRs} />
@@ -77,6 +97,16 @@ export async function InsightsSection({
 
       {/* Weekly summary */}
       <WeeklySummaryCard data={weeklySummary} />
+
+      {/* Weekly sets vs target — per muscle group */}
+      <WeeklySetsCard
+        sets={weeklySets}
+        style={profile?.training_style ?? null}
+        phase={profile?.training_phase ?? null}
+      />
+
+      {/* Push/Pull balance — last 4 weeks */}
+      <PushPullBalanceCard balance={pushPull} />
 
       {/* Training streak */}
       <TrainingStreakCard streak={streak} />

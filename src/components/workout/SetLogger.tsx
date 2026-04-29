@@ -4,7 +4,7 @@ import { SetRow }               from './SetRow'
 import { WarmupRamp }           from './WarmupRamp'
 import { PRBanner }             from './PRBanner'
 import type { ActiveExercise, PRCheckResult } from '@/types/database'
-import { Plus, Check, MoreVertical, Calculator, Timer } from 'lucide-react'
+import { Plus, Check, MoreVertical, Calculator, Timer, ChevronDown } from 'lucide-react'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { useState, useEffect, useCallback } from 'react'
 import { useWorkoutStore }      from '@/store/workout.store'
@@ -24,9 +24,27 @@ interface SetLoggerProps {
   onOpenPlateCalc: (weight: number) => void
   /** Called when a working set is completed; parent renders the rest timer. */
   onRestTimerStart: (restSeconds: number) => void
+  /**
+   * Accordion state. When true, only a compact summary is rendered and
+   * tapping the card expands it via `onExpand`. When false, the full
+   * set-logger UI is shown.
+   *
+   * Both default to a no-op so existing callers (and blank-workout flows)
+   * keep working unchanged with all exercises expanded.
+   */
+  isCollapsed?: boolean
+  onExpand?:    () => void
 }
 
-export function SetLogger({ exerciseIndex, exercise, onReplaceExercise, onOpenPlateCalc, onRestTimerStart }: SetLoggerProps) {
+export function SetLogger({
+  exerciseIndex,
+  exercise,
+  onReplaceExercise,
+  onOpenPlateCalc,
+  onRestTimerStart,
+  isCollapsed = false,
+  onExpand,
+}: SetLoggerProps) {
   const { updateSet, markSetDone, addSet, addWarmupSet, removeExercise, removeSet, moveExerciseUp, moveExerciseDown, updateExerciseRestSeconds } = useWorkoutStore()
   const { loadPRsForExercises, checkLocalPR } = usePRStore()
   const [menuOpen,           setMenuOpen]           = useState(false)
@@ -100,6 +118,46 @@ export function SetLogger({ exerciseIndex, exercise, onReplaceExercise, onOpenPl
   const restLabel = restSeconds >= 60
     ? `${Math.floor(restSeconds / 60)}:${String(restSeconds % 60).padStart(2, '0')}`
     : `${restSeconds}s`
+
+  // ── Collapsed view ───────────────────────────────────────────────────────
+  // Renders a compact summary card. Used when the parent runs an accordion
+  // flow (typically routine starts) so the user can scan the whole plan
+  // without scrolling through every exercise's full set log.
+  if (isCollapsed) {
+    const workingSets   = exercise.sets.filter(s => !s.is_warmup)
+    const completedSets = workingSets.filter(s => s.completed).length
+    const totalSets     = workingSets.length
+    const isDone        = totalSets > 0 && completedSets === totalSets
+    const targetReps    = workingSets[0]?.reps ?? 0
+
+    return (
+      <button
+        onClick={onExpand}
+        className="w-full glass-panel rounded-xl mb-2 border border-[#334155] hover:border-[#CCFF00]/30 active:scale-[0.99] transition-all"
+        aria-label={`Expand ${exercise.exercise.name}`}
+      >
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div className="text-left min-w-0 flex-1">
+            <h3 className={`font-black text-sm uppercase tracking-tight truncate ${isDone ? 'text-[#4a5568] line-through' : 'text-[#CCFF00]'}`}>
+              {exercise.exercise.name}
+            </h3>
+            <p className="text-[10px] text-[#4a5568] uppercase tracking-[0.15em] mt-0.5">
+              {exercise.exercise.muscle_group}
+              {targetReps > 0 && (
+                <span className="text-[#334155]"> · {totalSets}×{targetReps}</span>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`text-[10px] font-black tabular-nums ${isDone ? 'text-[#CCFF00]' : 'text-[#adb4ce]'}`}>
+              {completedSets}/{totalSets}
+            </span>
+            <ChevronDown className="w-4 h-4 text-[#4a5568]" />
+          </div>
+        </div>
+      </button>
+    )
+  }
 
   return (
     <div className="glass-panel rounded-xl overflow-hidden mb-4 border border-[#334155]">

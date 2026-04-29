@@ -5,6 +5,7 @@ import { updateProfile as updateProfileData } from '@/lib/data/profile'
 import { evaluateAndSaveAllPRs } from '@/lib/data/stats'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
+import type { TrainingGoal, TrainingPhase, TrainingStyle, ExperienceLevel } from '@/types/database'
 
 export async function updateProfileAction(formData: FormData) {
   const session = await auth()
@@ -103,6 +104,26 @@ export async function recalculatePRsAction() {
     console.error('Error recalculating PRs:', error)
     return { success: false, error: error.message }
   }
+}
+
+export async function updateTrainingProfileAction(updates: {
+  training_goal?:    TrainingGoal
+  training_phase?:   TrainingPhase
+  training_style?:   TrainingStyle
+  experience_level?: ExperienceLevel
+}) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error('Not authenticated')
+
+  // When phase changes, reset the mesocycle clock so deload timing
+  // starts fresh from today rather than carrying over from the previous phase.
+  const payload = updates.training_phase
+    ? { ...updates, phase_started_at: new Date().toISOString() }
+    : updates
+
+  await updateProfileData(session.user.id, payload)
+  revalidateAll()
+  return { success: true }
 }
 
 export async function clearAllWorkoutDataAction() {
