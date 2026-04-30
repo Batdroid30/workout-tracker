@@ -6,29 +6,25 @@ import {
   getTrainingStreak,
   getNeglectedMuscles,
   getStalledMovements,
-  getWeeklySetsByMuscle,
   getPushPullBalance,
+  getRecentExerciseLoads,
   deriveWeeklySummary,
   deriveNextWorkoutSuggestion,
-  deriveCoachTips,
 } from '@/lib/data/insights'
+import {
+  getKeyLifts,
+  getVolumeLandmarksByMuscle,
+  getStrengthIndex,
+  buildThisWeekMissions,
+} from '@/lib/data/phase-coach'
+import { getWeeksInPhase } from '@/lib/phase-coach'
 import { getBadges } from '@/lib/data/achievements'
 import { getProfile } from '@/lib/data/profile'
 
 import { DeloadCard }           from './DeloadCard'
-import { WeeklySummaryCard }    from './WeeklySummaryCard'
-import { TrainingStreakCard }    from './TrainingStreakCard'
-import { RecentPRsCard }        from './RecentPRsCard'
-import { MostImprovedCard }     from './MostImprovedCard'
-import { NeglectedMusclesCard } from './NeglectedMusclesCard'
-import { StalledMovementsCard } from './StalledMovementsCard'
-import { MilestonesCard }       from './MilestonesCard'
-import { BadgesCard }           from './BadgesCard'
-import { NextWorkoutCard }      from './NextWorkoutCard'
-import { CoachTipCard }         from './CoachTipCard'
-import { WeeklyGoalCard }       from './WeeklyGoalCard'
-import { WeeklySetsCard }       from './WeeklySetsCard'
-import { PushPullBalanceCard }  from './PushPullBalanceCard'
+import { ThisWeekCard }         from './ThisWeekCard'
+import { PhaseCoachCard }       from './PhaseCoachCard'
+import { MomentumStrip }        from './MomentumStrip'
 import { PhaseTransitionCard }  from './PhaseTransitionCard'
 
 interface InsightsSectionProps {
@@ -44,29 +40,59 @@ export async function InsightsSection({
   totalWorkouts,
   weeklyGoalSessions,
 }: InsightsSectionProps) {
-  const [weeks, recentPRs, mostImproved, streak, neglectedMuscles, stalledMovements, badges, weeklySets, pushPull, profile] =
-    await Promise.all([
-      getWeeklyTrainingSummary(userId),
-      getRecentPRs(userId, 60),
-      getMostImprovedExercises(userId),
-      getTrainingStreak(userId),
-      getNeglectedMuscles(userId),
-      getStalledMovements(userId),
-      getBadges(userId, totalVolume, totalWorkouts),
-      getWeeklySetsByMuscle(userId),
-      getPushPullBalance(userId),
-      getProfile(userId),
-    ])
+  const [
+    weeks,
+    recentPRs,
+    mostImproved,
+    streak,
+    neglectedMuscles,
+    stalledMovements,
+    badges,
+    pushPull,
+    profile,
+    keyLifts,
+    recentLoads,
+  ] = await Promise.all([
+    getWeeklyTrainingSummary(userId),
+    getRecentPRs(userId, 60),
+    getMostImprovedExercises(userId),
+    getTrainingStreak(userId),
+    getNeglectedMuscles(userId),
+    getStalledMovements(userId),
+    getBadges(userId, totalVolume, totalWorkouts),
+    getPushPullBalance(userId),
+    getProfile(userId),
+    getKeyLifts(userId),
+    getRecentExerciseLoads(userId),
+  ])
 
-  const weeklySummary       = deriveWeeklySummary(weeks)
-  const daysSinceLastPR     = recentPRs.length > 0 ? recentPRs[0].daysAgo : null
-  const fatigue             = assessFatigueLevel(weeks, daysSinceLastPR, profile ? {
+  // Both depend on profile — fetch in parallel after profile resolves.
+  // getWeeklySetsByMuscle / getKeyLifts inside are cached(), no extra queries.
+  const [volumeLandmarks, strengthIndex] = await Promise.all([
+    getVolumeLandmarksByMuscle(userId, profile),
+    getStrengthIndex(userId, profile),
+  ])
+
+  const weeklySummary   = deriveWeeklySummary(weeks)
+  const daysSinceLastPR = recentPRs.length > 0 ? recentPRs[0].daysAgo : null
+  const fatigue         = assessFatigueLevel(weeks, daysSinceLastPR, profile ? {
     experience_level: profile.experience_level,
     training_phase:   profile.training_phase,
     phase_started_at: profile.phase_started_at,
   } : null)
-  const nextWorkout         = deriveNextWorkoutSuggestion(neglectedMuscles)
-  const coachTips           = deriveCoachTips(weeklySummary, streak, neglectedMuscles, stalledMovements)
+  const nextWorkout     = deriveNextWorkoutSuggestion(neglectedMuscles)
+
+  const missions = buildThisWeekMissions({
+    stalledMovements,
+    neglectedMuscles,
+    volumeLandmarks,
+    pushPullBalance: pushPull,
+    keyLifts,
+    recentLoads,
+    profile: profile
+      ? { training_goal: profile.training_goal, experience_level: profile.experience_level }
+      : null,
+  })
 
   return (
     <div className="space-y-3">
@@ -80,51 +106,32 @@ export async function InsightsSection({
         phaseStartedAt={profile?.phase_started_at ?? null}
       />
 
-      {/* Recent PRs — high-value, shown near the top */}
-      <RecentPRsCard prs={recentPRs} />
-
-      {/* Weekly goal — always visible */}
-      <WeeklyGoalCard
+      {/* Headline: This Week — sessions + volume + missions + next session */}
+      <ThisWeekCard
         thisWeekCount={weeklySummary.thisWeekCount}
         goalSessions={weeklyGoalSessions}
+        weeklySummary={weeklySummary}
+        missions={missions}
+        nextWorkout={nextWorkout}
       />
 
-      {/* Next workout recommendation — when there are neglected muscles */}
-      {nextWorkout && <NextWorkoutCard suggestion={nextWorkout} />}
-
-      {/* Coach tips — context-aware rotating tips */}
-      <CoachTipCard tips={coachTips} />
-
-      {/* Weekly summary */}
-      <WeeklySummaryCard data={weeklySummary} />
-
-      {/* Weekly sets vs target — per muscle group */}
-      <WeeklySetsCard
-        sets={weeklySets}
-        style={profile?.training_style ?? null}
-        phase={profile?.training_phase ?? null}
+      {/* Phase Coach — strength index, volume landmarks, most improved */}
+      <PhaseCoachCard
+        trainingPhase={profile?.training_phase    ?? null}
+        experienceLevel={profile?.experience_level ?? null}
+        weeksInPhase={getWeeksInPhase(profile?.phase_started_at ?? null)}
+        strengthIndex={strengthIndex}
+        volumeLandmarks={volumeLandmarks}
+        mostImproved={mostImproved}
       />
 
-      {/* Push/Pull balance — last 4 weeks */}
-      <PushPullBalanceCard balance={pushPull} />
-
-      {/* Training streak */}
-      <TrainingStreakCard streak={streak} />
-
-      {/* Most improved */}
-      <MostImprovedCard exercises={mostImproved} />
-
-      {/* Neglected muscles */}
-      <NeglectedMusclesCard muscles={neglectedMuscles} />
-
-      {/* Stalled movements */}
-      <StalledMovementsCard movements={stalledMovements} />
-
-      {/* Achievement badges */}
-      <BadgesCard badges={badges} />
-
-      {/* Lifetime tonnage milestones */}
-      <MilestonesCard totalVolume={totalVolume} />
+      {/* Momentum — PRs, streak, badges, lifetime tonnage in one 2x2 strip */}
+      <MomentumStrip
+        prs={recentPRs}
+        streak={streak}
+        badges={badges}
+        totalVolume={totalVolume}
+      />
     </div>
   )
 }
