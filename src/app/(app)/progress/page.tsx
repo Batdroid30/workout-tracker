@@ -1,20 +1,39 @@
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
 import { WeeklyMuscleRadarChart } from '@/components/ui/WeeklyMuscleRadarChart'
+import { PhaseCoachDetail } from '@/components/progress/PhaseCoachDetail'
 import { auth } from '@/lib/auth'
 import { getWorkoutsSummary, getVolumeHistory } from '@/lib/data/workouts'
 import { getWeeklyMuscleGroupStats } from '@/lib/data/stats'
+import { getProfile } from '@/lib/data/profile'
+import {
+  getStrengthIndex,
+  getVolumeLandmarksByMuscle,
+  getKeyLifts,
+} from '@/lib/data/phase-coach'
+import { getWeeksInPhase } from '@/lib/phase-coach'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { TrendingUp, Dumbbell, Activity } from 'lucide-react'
+import { TrendingUp, Activity } from 'lucide-react'
 
 export default async function ProgressPage() {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
   const userId = session.user.id
-  const { totalVolume } = await getWorkoutsSummary(userId)
-  const volumeHistory   = await getVolumeHistory(userId)
-  const radarData       = await getWeeklyMuscleGroupStats(userId)
+
+  const [{ totalVolume }, volumeHistory, radarData, profile, keyLifts] = await Promise.all([
+    getWorkoutsSummary(userId),
+    getVolumeHistory(userId),
+    getWeeklyMuscleGroupStats(userId),
+    getProfile(userId),
+    getKeyLifts(userId),
+  ])
+
+  // Both depend on profile; getKeyLifts/getWeeklySetsByMuscle inside are cached().
+  const [strengthIndex, volumeLandmarks] = await Promise.all([
+    getStrengthIndex(userId, profile),
+    getVolumeLandmarksByMuscle(userId, profile),
+  ])
 
   const chartData = volumeHistory.map(item => ({
     date:  new Date(item.date).toLocaleDateString([], { month: 'short', day: 'numeric' }),
@@ -48,6 +67,16 @@ export default async function ProgressPage() {
             <TrendingUp className="w-5 h-5 text-[#CCFF00]" />
           </div>
         </div>
+
+        {/* ── Phase Coach detail — strength index + volume landmarks ─── */}
+        <PhaseCoachDetail
+          trainingPhase={profile?.training_phase    ?? null}
+          experienceLevel={profile?.experience_level ?? null}
+          weeksInPhase={getWeeksInPhase(profile?.phase_started_at ?? null)}
+          strengthIndex={strengthIndex}
+          volumeLandmarks={volumeLandmarks}
+          keyLifts={keyLifts}
+        />
 
         {/* ── Volume over time ────────────────────────────── */}
         <section>

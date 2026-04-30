@@ -392,33 +392,13 @@ export function deriveNextWorkoutSuggestion(neglectedMuscles: NeglectedMuscle[])
   return { focus, muscleGroups: relatedMuscles, reason: `${top.muscleGroup.charAt(0).toUpperCase()}${top.muscleGroup.slice(1)} last trained ${top.daysSinceLastTrained} days ago` }
 }
 
-export function deriveCoachTips(weeklySummary: WeeklySummary, streak: TrainingStreak, neglectedMuscles: NeglectedMuscle[], stalledMovements: StalledMovement[]): string[] {
-  const tips: string[] = []
-  if (weeklySummary.volumeChangePct !== null) {
-    if (weeklySummary.volumeChangePct <= -20) tips.push(`Volume dropped ${Math.abs(weeklySummary.volumeChangePct)}% this week. Try adding one extra set per exercise to get back on track.`)
-    else if (weeklySummary.volumeChangePct >= 30) tips.push(`Volume jumped +${weeklySummary.volumeChangePct}% this week. Great effort — make sure sleep and protein are dialled in to absorb it.`)
-  }
-  if (streak.currentStreak >= 10) tips.push(`${streak.currentStreak} weeks straight — elite consistency. Schedule a deload week soon to let your nervous system recover.`)
-  else if (streak.currentStreak === 0 && streak.longestStreak > 0) tips.push('Time to restart the streak. Even one session this week breaks the inertia.')
-  if (neglectedMuscles.length >= 2) {
-    const names = neglectedMuscles.slice(0, 2).map(m => m.muscleGroup).join(' and ')
-    tips.push(`${names.charAt(0).toUpperCase()}${names.slice(1)} are being undertrained. Muscle imbalances limit your compound lift potential.`)
-  }
-  if (stalledMovements.length > 0) tips.push(`${stalledMovements[0].exerciseName} has plateaued. Switch rep range — try 5×5 if you've been doing 3×10, or add a pause rep.`)
-  const fallbacks = [
-    'Progressive overload is the only law. Add weight or reps to at least one set each week.',
-    'Track your RPE — it tells the coach whether you are recovering or accumulating fatigue.',
-    'Consistency beats intensity. Showing up every week matters more than any single session.',
-  ]
-  for (const tip of fallbacks) { if (tips.length >= 3) break; tips.push(tip) }
-  return tips.slice(0, 3)
-}
 
 // ─── Weekly working sets per muscle group ────────────────────────────────────
 //
 // Counts each completed working set against its exercise's primary muscle
-// group. Used by WeeklySetsCard to compare against the user's per-muscle
-// weekly targets (style + phase aware).
+// group. Feeds the Phase Coach volume-landmark bars that compare this week's
+// set count against the user's per-muscle MV/MEV/MAV/MRV bands (style +
+// phase aware).
 //
 // Window: Monday → now (UTC), matching the existing weekly-summary helpers.
 // Excludes warmups and incomplete sets — only count what actually trains.
