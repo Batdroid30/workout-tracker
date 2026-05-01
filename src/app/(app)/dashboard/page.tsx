@@ -4,16 +4,20 @@ import { Suspense } from 'react'
 import { auth } from '@/lib/auth'
 import { getWorkoutsSummary, getRecentWorkouts } from '@/lib/data/workouts'
 import { getProfile } from '@/lib/data/profile'
+import { getLatestBodyweight } from '@/lib/data/bodyweight'
 import { WorkoutHistoryList } from '@/components/workout/WorkoutHistoryList'
 import { InsightsSection } from '@/components/dashboard/InsightsSection'
+import { BodyweightLogger } from '@/components/progress/BodyweightLogger'
 
 export default async function DashboardPage() {
   const session = await auth()
   const userId = session?.user?.id as string
-  const { totalWorkouts, totalVolume } = await getWorkoutsSummary(userId)
-
-  const recentWorkouts = await getRecentWorkouts(userId)
-  const profile = await getProfile(userId)
+  const [{ totalWorkouts, totalVolume }, recentWorkouts, profile, latestBodyweight] = await Promise.all([
+    getWorkoutsSummary(userId),
+    getRecentWorkouts(userId),
+    getProfile(userId),
+    getLatestBodyweight(userId),
+  ])
 
   return (
     <div className="min-h-screen bg-[#070d1f] text-[#dce1fb] p-4 pb-28">
@@ -58,6 +62,19 @@ export default async function DashboardPage() {
             <Dumbbell className="w-16 h-16 text-[#CCFF00]" />
           </div>
         </div>
+      </div>
+
+      {/* Bodyweight quick-log */}
+      <div className="glass-panel border border-[#334155] rounded-xl px-4 py-3 mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#4a5568]">Bodyweight</p>
+          {latestBodyweight && (
+            <Link href="/progress" className="text-[9px] font-black uppercase tracking-widest text-[#60a5fa] hover:text-blue-300">
+              View trend →
+            </Link>
+          )}
+        </div>
+        <BodyweightLogger latestWeight={latestBodyweight?.weight_kg ?? null} />
       </div>
 
       {/* Insights — deload check, weekly summary, streak, PRs, most improved */}

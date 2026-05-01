@@ -195,7 +195,23 @@ export async function evaluateAndSavePRs(
   })
 
   const brokenPRs: PREvaluationResult[] = []
-  const newPRsToUpsert: any[] = []
+
+  // Keyed by `exerciseId|prType` — one entry per type per exercise.
+  // Using a Map prevents duplicate rows when the same PR type is beaten
+  // twice in one workout (e.g. set 3 then set 5 both beat chest best_1rm).
+  // Without this, the batch upsert would contain two INSERT attempts for
+  // the same (user_id, exercise_id, pr_type) and hit the unique constraint.
+  type PRInsert = {
+    id?:         string
+    user_id:     string
+    exercise_id: string
+    pr_type:     string
+    reps:        number
+    value:       number
+    set_id:      string
+    achieved_at: string
+  }
+  const upsertMap = new Map<string, PRInsert>()
 
   for (const set of sets) {
     if (set.is_warmup || !set.weight_kg || !set.reps) continue
@@ -220,11 +236,13 @@ export async function evaluateAndSavePRs(
           oldValue:     currentValue === 0 ? null : currentValue,
           newValue:     check.value,
         })
-        // Update local map so later sets in the same workout compare against the new bar
+        // Advance the local bar — subsequent sets in this workout compare
+        // against the new value, not the old DB value.
         prMap.set(key, { value: check.value, dbId: current?.dbId ?? null })
-        newPRsToUpsert.push({
-          // Pass existing DB id → Supabase upserts in-place; omit → inserts new row
-          ...(current?.dbId ? { id: current.dbId } : {}),
+
+        // Overwrite any earlier entry for this key so only the highest
+        // value from this workout session ends up in the batch.
+        const entry: PRInsert = {
           user_id:     userId,
           exercise_id: set.exerciseId,
           pr_type:     check.type,
@@ -232,16 +250,20 @@ export async function evaluateAndSavePRs(
           value:       check.value,
           set_id:      set.id,
           achieved_at: achievedAt,
-        })
+        }
+        if (current?.dbId) entry.id = current.dbId
+        upsertMap.set(key, entry)
       }
     }
   }
 
-  if (newPRsToUpsert.length > 0) {
+  if (upsertMap.size > 0) {
     const { error: upsertErr } = await supabase
       .from('personal_records')
-      .upsert(newPRsToUpsert)
-    if (upsertErr) console.error('Failed to save PRs:', upsertErr.message)
+      .upsert(Array.from(upsertMap.values()), {
+        onConflict: 'user_id,exercise_id,pr_type',
+      })
+    if (upsertErr) throw new Error(`Failed to save PRs: ${upsertErr.message}`)
   }
 
   return brokenPRs
@@ -303,7 +325,9 @@ export async function evaluateAndSaveAllPRs(userId: string): Promise<void> {
   })
 
   if (newPRsToUpsert.length > 0) {
-    const { error: upsertErr } = await supabase.from('personal_records').upsert(newPRsToUpsert)
+    const { error: upsertErr } = await supabase
+      .from('personal_records')
+      .upsert(newPRsToUpsert, { onConflict: 'user_id,exercise_id,pr_type' })
     if (upsertErr) throw new Error(`Failed to save PRs: ${upsertErr.message}`)
   }
 }

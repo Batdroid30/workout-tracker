@@ -1,16 +1,19 @@
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
 import { WeeklyMuscleRadarChart } from '@/components/ui/WeeklyMuscleRadarChart'
 import { PhaseCoachDetail } from '@/components/progress/PhaseCoachDetail'
+import { BodyweightSection } from '@/components/progress/BodyweightSection'
 import { auth } from '@/lib/auth'
 import { getWorkoutsSummary, getVolumeHistory } from '@/lib/data/workouts'
 import { getWeeklyMuscleGroupStats } from '@/lib/data/stats'
 import { getProfile } from '@/lib/data/profile'
+import { getWeeklyTrainingSummary } from '@/lib/data/insights'
 import {
   getStrengthIndex,
   getVolumeLandmarksByMuscle,
   getKeyLifts,
 } from '@/lib/data/phase-coach'
-import { getWeeksInPhase } from '@/lib/phase-coach'
+import { getBodyweightHistory, getLatestBodyweight } from '@/lib/data/bodyweight'
+import { getWeeksInPhase, buildMesocycleTimeline } from '@/lib/phase-coach'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { TrendingUp, Activity } from 'lucide-react'
@@ -21,12 +24,15 @@ export default async function ProgressPage() {
 
   const userId = session.user.id
 
-  const [{ totalVolume }, volumeHistory, radarData, profile, keyLifts] = await Promise.all([
+  const [{ totalVolume }, volumeHistory, radarData, profile, keyLifts, weeks, bwHistory, bwLatest] = await Promise.all([
     getWorkoutsSummary(userId),
     getVolumeHistory(userId),
     getWeeklyMuscleGroupStats(userId),
     getProfile(userId),
     getKeyLifts(userId),
+    getWeeklyTrainingSummary(userId),
+    getBodyweightHistory(userId),
+    getLatestBodyweight(userId),
   ])
 
   // Both depend on profile; getKeyLifts/getWeeklySetsByMuscle inside are cached().
@@ -34,6 +40,14 @@ export default async function ProgressPage() {
     getStrengthIndex(userId, profile),
     getVolumeLandmarksByMuscle(userId, profile),
   ])
+
+  const mesocycle = buildMesocycleTimeline({
+    phaseStartedAt:     profile?.phase_started_at ?? null,
+    experienceLevel:    profile?.experience_level ?? null,
+    trainingPhase:      profile?.training_phase   ?? null,
+    weeklyData:         weeks,
+    weeklyGoalSessions: profile?.weekly_goal_sessions ?? 3,
+  })
 
   const chartData = volumeHistory.map(item => ({
     date:  new Date(item.date).toLocaleDateString([], { month: 'short', day: 'numeric' }),
@@ -76,6 +90,7 @@ export default async function ProgressPage() {
           strengthIndex={strengthIndex}
           volumeLandmarks={volumeLandmarks}
           keyLifts={keyLifts}
+          mesocycle={mesocycle}
         />
 
         {/* ── Volume over time ────────────────────────────── */}
@@ -101,6 +116,13 @@ export default async function ProgressPage() {
             )}
           </div>
         </section>
+
+        {/* ── Bodyweight trend + quick log ────────────────── */}
+        <BodyweightSection
+          history={bwHistory}
+          latestWeight={bwLatest}
+          trainingPhase={profile?.training_phase ?? null}
+        />
 
         {/* ── Muscle focus radar ──────────────────────────── */}
         <section>

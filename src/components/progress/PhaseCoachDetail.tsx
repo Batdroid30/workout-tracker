@@ -2,7 +2,8 @@ import { Compass, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { DELOAD_THRESHOLDS } from '@/lib/workout-intelligence'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
-import type { VolumeStatus } from '@/lib/phase-coach'
+import { MesocycleTimeline } from '@/components/phase-coach/MesocycleTimeline'
+import type { VolumeStatus, Mesocycle } from '@/lib/phase-coach'
 import type {
   StrengthIndexSummary,
   MuscleVolumeLandmarkPoint,
@@ -23,6 +24,7 @@ interface PhaseCoachDetailProps {
   strengthIndex:    StrengthIndexSummary
   volumeLandmarks:  MuscleVolumeLandmarkPoint[]
   keyLifts:         KeyLift[]
+  mesocycle:        Mesocycle       | null
 }
 
 // ── Status styling — kept identical to PhaseCoachCard for visual consistency ──
@@ -47,6 +49,7 @@ export function PhaseCoachDetail({
   strengthIndex,
   volumeLandmarks,
   keyLifts,
+  mesocycle,
 }: PhaseCoachDetailProps) {
   const phaseLabel  = trainingPhase ? trainingPhase.toUpperCase() : null
   const cycleLength = (trainingPhase && experienceLevel)
@@ -76,6 +79,23 @@ export function PhaseCoachDetail({
           </span>
         )}
       </div>
+
+      {/* ── Mesocycle timeline (full) ───────────────────────────────── */}
+      {mesocycle && (
+        <div className="glass-panel border border-[#334155] rounded-xl p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-[#adb4ce]">
+              Mesocycle · Wk {mesocycle.currentWeek} / {mesocycle.totalWeeks}
+            </h3>
+            <p className="text-[9px] font-body text-[#334155]">sessions / week</p>
+          </div>
+          <MesocycleTimeline mesocycle={mesocycle} />
+          <p className="text-[10px] text-[#4a5568] font-body mt-3 leading-relaxed">
+            Cycle length follows your experience and phase. Deload week is recommended —
+            the Deload card on the dashboard will fire earlier if your fatigue signals spike.
+          </p>
+        </div>
+      )}
 
       {/* ── Strength Index full chart ──────────────────────────────── */}
       <div className="glass-panel border border-[#334155] rounded-xl p-4 mb-4">
@@ -252,7 +272,7 @@ function VolumeLegend() {
 // ── Volume landmark row — same visual as dashboard, larger spacing ──────────
 
 function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
-  const { muscleGroup, setCount, landmarks, status } = point
+  const { muscleGroup, setCount, weeklyFrequency, landmarks, status } = point
   const styles = VOLUME_STATUS_STYLES[status]
 
   const scaleMax = Math.max(landmarks.mrv * 1.2, setCount * 1.05, 1)
@@ -265,6 +285,10 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
   const mrvPct    = pct(landmarks.mrv)
   const markerPct = pct(setCount)
 
+  const freqSessions = weeklyFrequency > 0 ? Math.max(1, Math.round(weeklyFrequency)) : 0
+  const freqLabel    = freqSessions > 0 ? `${freqSessions}×/wk` : null
+  const freqColor    = freqSessions >= 2 ? 'text-[#CCFF00] bg-[#CCFF00]/10' : 'text-yellow-400 bg-yellow-400/10'
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
@@ -273,6 +297,11 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
           <span className="text-xs font-black uppercase tracking-tight text-white truncate">
             {muscleGroup}
           </span>
+          {freqLabel && (
+            <span className={cn('text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0', freqColor)}>
+              {freqLabel}/wk
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-[10px] tabular-nums text-[#adb4ce] font-black">

@@ -1,15 +1,16 @@
 'use client'
-import { Home, List, User } from 'lucide-react'
+import { Home, List, User, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
 const tabs = [
-  { href: '/dashboard', icon: 'home',    label: 'Home'     },
-  { href: '/routines',  icon: 'list',    label: 'Routines' },
-  { href: '/workout',   icon: 'logo',    label: 'Workout'  },
-  { href: '/profile',   icon: 'user',    label: 'Me'       },
+  { href: '/dashboard', icon: 'home',     label: 'Home'     },
+  { href: '/routines',  icon: 'list',     label: 'Routines' },
+  { href: '/workout',   icon: 'logo',     label: 'Workout'  },
+  { href: '/progress',  icon: 'progress', label: 'Progress' },
+  { href: '/profile',   icon: 'user',     label: 'Me'       },
 ] as const
 
 type TabIcon = typeof tabs[number]['icon']
@@ -36,7 +37,7 @@ function TabIcon({ icon, isActive }: { icon: TabIcon; isActive: boolean }) {
     )
   }
 
-  const iconMap = { home: Home, list: List, user: User }
+  const iconMap = { home: Home, list: List, user: User, progress: TrendingUp }
   const Icon = iconMap[icon as keyof typeof iconMap]
   return <Icon className="w-5 h-5 mb-1" strokeWidth={isActive ? 2.5 : 2} />
 }
