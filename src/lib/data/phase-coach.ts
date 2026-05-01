@@ -272,15 +272,76 @@ export const getStrengthIndex = cache(async (
 // ── Volume Landmarks per muscle ──────────────────────────────────────────────
 
 export interface MuscleVolumeLandmarkPoint {
-  muscleGroup: MuscleGroup
-  setCount:    number
-  landmarks:   VolumeLandmarks
-  status:      VolumeStatus
+  muscleGroup:     MuscleGroup
+  setCount:        number
+  /**
+   * Average training sessions per week for this muscle over the last 4 weeks.
+   * Computed as distinct calendar days with ≥1 working set, divided by 4.
+   *
+   * Interpretation reference: Schoenfeld et al. (2016) found that training a
+   * muscle 2× per week produces superior hypertrophy vs. 1× volume-matched.
+   * Badge colour in the UI reflects this: 1×/wk = yellow, 2+×/wk = lime.
+   */
+  weeklyFrequency: number
+  landmarks:       VolumeLandmarks
+  status:          VolumeStatus
 }
+
+// ── Muscle training frequency (last 4 weeks) ─────────────────────────────────
+//
+// Counts how many distinct calendar days the user trained each muscle in the
+// last 28 days, then divides by 4 to get average sessions-per-week.
+//
+// Schoenfeld et al. (2016): 2× per week > 1× per week for hypertrophy when
+// volume is equated. This signal drives the frequency badge on each row.
+
+const getWeeklyMuscleFrequency = cache(async (
+  userId: string,
+): Promise<Map<string, number>> => {
+  const supabase   = getSupabaseAdmin()
+  const windowStart = new Date(Date.now() - 28 * 86400_000)
+
+  const { data, error } = await supabase
+    .from('sets')
+    .select(`
+      completed_at,
+      workout_exercises!inner (
+        exercise:exercises ( muscle_group ),
+        workouts!inner ( user_id )
+      )
+    `)
+    .eq('workout_exercises.workouts.user_id', userId)
+    .eq('is_warmup', false)
+    .gte('completed_at', windowStart.toISOString())
+
+  if (error) throw new DatabaseError('Failed to fetch muscle frequency', error)
+  if (!data || data.length === 0) return new Map()
+
+  // Accumulate distinct calendar days per muscle
+  const muscleDays = new Map<string, Set<string>>()
+  for (const row of data as any[]) {
+    const we       = Array.isArray(row.workout_exercises) ? row.workout_exercises[0] : row.workout_exercises
+    const exercise = Array.isArray(we?.exercise) ? we.exercise[0] : we?.exercise
+    const muscle   = exercise?.muscle_group as string | undefined
+    if (!muscle) continue
+
+    const dayKey = (row.completed_at as string).split('T')[0]
+    if (!muscleDays.has(muscle)) muscleDays.set(muscle, new Set())
+    muscleDays.get(muscle)!.add(dayKey)
+  }
+
+  // sessions/week = distinct days in 28-day window ÷ 4
+  const freqMap = new Map<string, number>()
+  for (const [muscle, days] of muscleDays) {
+    freqMap.set(muscle, Number((days.size / 4).toFixed(2)))
+  }
+  return freqMap
+})
 
 /**
  * Joins this week's set count per muscle (from the existing weekly sets
- * helper) with the user's phase- and style-adjusted volume landmarks.
+ * helper) with the user's phase- and style-adjusted volume landmarks, plus
+ * the average weekly training frequency for each muscle over the last 4 weeks.
  *
  * Always returns one entry per known MuscleGroup — including muscles with
  * zero sets, which the UI surfaces as "below MV" warnings. That's the
@@ -293,17 +354,21 @@ export const getVolumeLandmarksByMuscle = cache(async (
   const style: TrainingStyle = profile?.training_style ?? 'volume'
   const phase: TrainingPhase = profile?.training_phase ?? 'maingaining'
 
-  const sets   = await getWeeklySetsByMuscle(userId)
+  const [sets, freqMap] = await Promise.all([
+    getWeeklySetsByMuscle(userId),
+    getWeeklyMuscleFrequency(userId),
+  ])
   const setMap = new Map(sets.map(s => [s.muscleGroup, s.setCount]))
 
   return ALL_MUSCLES.map(muscle => {
     const setCount  = setMap.get(muscle) ?? 0
     const landmarks = getAdjustedLandmarks(muscle, style, phase)
     return {
-      muscleGroup: muscle,
+      muscleGroup:     muscle,
       setCount,
+      weeklyFrequency: freqMap.get(muscle) ?? 0,
       landmarks,
-      status: classifyVolumeStatus(setCount, landmarks),
+      status:          classifyVolumeStatus(setCount, landmarks),
     }
   })
 })

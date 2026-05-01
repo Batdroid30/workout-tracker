@@ -18,6 +18,7 @@ import type {
   TrainingPhase,
   TrainingStyle,
 } from '@/types/database'
+import { DELOAD_THRESHOLDS } from '@/lib/workout-intelligence'
 
 // ── Volume Landmarks ─────────────────────────────────────────────────────────
 //
@@ -200,4 +201,126 @@ export function linearSlopePerWeek(points: { weekStart: string; value: number }[
   }
   if (den === 0) return null
   return num / den
+}
+
+// ── Mesocycle timeline ───────────────────────────────────────────────────────
+//
+// A small calendar-shaped strip of week cells representing where the user
+// sits in their current training block. Used by both the dashboard
+// PhaseCoachCard (compact) and the /progress PhaseCoachDetail (full).
+//
+// Cell statuses are derived from the same WeekSummary data used elsewhere —
+// no new DB queries needed.
+
+export type MesocycleCellStatus =
+  | 'good'     // hit weekly goal
+  | 'low'      // trained but under goal
+  | 'missed'   // zero sessions
+  | 'current'  // ongoing — partial data
+  | 'pending'  // future week
+  | 'deload'   // recommended deload week (overrides above on the cell)
+
+export interface MesocycleCell {
+  weekNumber:   number   // 1-indexed within the phase
+  weekStart:    string   // ISO Monday
+  sessionCount: number
+  isCurrent:    boolean
+  isDeload:     boolean
+  status:       MesocycleCellStatus
+}
+
+export interface Mesocycle {
+  cells:        MesocycleCell[]
+  totalWeeks:   number
+  deloadWeek:   number   // 1-indexed
+  currentWeek:  number   // 1-indexed; clamped to totalWeeks
+}
+
+interface BuildMesocycleInput {
+  phaseStartedAt:     string | null
+  experienceLevel:    ExperienceLevel | null
+  trainingPhase:      TrainingPhase   | null
+  weeklyData:         { week_start: string; workout_count: number }[]
+  weeklyGoalSessions: number
+}
+
+function getMondayOf(date: Date): string {
+  const d = new Date(date)
+  const day = d.getUTCDay()
+  const diff = day === 0 ? -6 : 1 - day
+  d.setUTCDate(d.getUTCDate() + diff)
+  return d.toISOString().split('T')[0]
+}
+
+function addWeeks(iso: string, weeks: number): string {
+  const d = new Date(iso + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + weeks * 7)
+  return d.toISOString().split('T')[0]
+}
+
+/**
+ * Builds a 1-indexed mesocycle timeline starting from the user's phase start.
+ *
+ *   - Length = DELOAD_THRESHOLDS for the user's experience × phase, +1 cell
+ *     for the deload week itself.
+ *   - The deload cell is the last week of the cycle.
+ *   - Past weeks are graded against the user's weekly session goal.
+ *   - The current week always shows status `current` (partial data).
+ *
+ * Returns null when phase_started_at is unset — the calling component
+ * shouldn't render anything in that case.
+ */
+export function buildMesocycleTimeline(input: BuildMesocycleInput): Mesocycle | null {
+  if (!input.phaseStartedAt) return null
+
+  const experience = input.experienceLevel ?? 'intermediate'
+  const phase      = input.trainingPhase   ?? 'maingaining'
+  const cycleLen   = DELOAD_THRESHOLDS[experience][phase]   // weeks before deload is due
+  const totalWeeks = cycleLen + 1                            // include deload as the last cell
+  const deloadWeek = totalWeeks                              // 1-indexed
+
+  const phaseStartMonday = getMondayOf(new Date(input.phaseStartedAt))
+  const todayMonday      = getMondayOf(new Date())
+
+  const sessionByWeek = new Map(
+    input.weeklyData.map(w => [w.week_start, w.workout_count] as const),
+  )
+
+  const cells: MesocycleCell[] = []
+  for (let i = 0; i < totalWeeks; i++) {
+    const weekStart    = addWeeks(phaseStartMonday, i)
+    const sessionCount = sessionByWeek.get(weekStart) ?? 0
+    const weekNumber   = i + 1
+    const isCurrent    = weekStart === todayMonday
+    const isFuture     = weekStart > todayMonday
+    const isDeload     = weekNumber === deloadWeek
+
+    let status: MesocycleCellStatus
+    if (isDeload && (isCurrent || isFuture)) {
+      status = 'deload'
+    } else if (isCurrent) {
+      status = 'current'
+    } else if (isFuture) {
+      status = 'pending'
+    } else if (sessionCount === 0) {
+      status = 'missed'
+    } else if (sessionCount >= input.weeklyGoalSessions) {
+      status = 'good'
+    } else {
+      status = 'low'
+    }
+
+    cells.push({ weekNumber, weekStart, sessionCount, isCurrent, isDeload, status })
+  }
+
+  // Determine current week within the cycle. If today is past the cycle
+  // end, clamp to totalWeeks so the UI shows "WK N / N (deload overdue)".
+  const currentCellIndex = cells.findIndex(c => c.isCurrent)
+  const currentWeek = currentCellIndex >= 0
+    ? currentCellIndex + 1
+    : todayMonday > cells[cells.length - 1].weekStart
+      ? totalWeeks
+      : 1
+
+  return { cells, totalWeeks, deloadWeek, currentWeek }
 }

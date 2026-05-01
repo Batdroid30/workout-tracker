@@ -17,7 +17,7 @@ import {
   getStrengthIndex,
   buildThisWeekMissions,
 } from '@/lib/data/phase-coach'
-import { getWeeksInPhase } from '@/lib/phase-coach'
+import { getWeeksInPhase, buildMesocycleTimeline } from '@/lib/phase-coach'
 import { getBadges } from '@/lib/data/achievements'
 import { getProfile } from '@/lib/data/profile'
 
@@ -81,6 +81,13 @@ export async function InsightsSection({
     phase_started_at: profile.phase_started_at,
   } : null)
   const nextWorkout     = deriveNextWorkoutSuggestion(neglectedMuscles)
+  const mesocycle       = buildMesocycleTimeline({
+    phaseStartedAt:     profile?.phase_started_at ?? null,
+    experienceLevel:    profile?.experience_level ?? null,
+    trainingPhase:      profile?.training_phase   ?? null,
+    weeklyData:         weeks,
+    weeklyGoalSessions,
+  })
 
   const missions = buildThisWeekMissions({
     stalledMovements,
@@ -123,6 +130,7 @@ export async function InsightsSection({
         strengthIndex={strengthIndex}
         volumeLandmarks={volumeLandmarks}
         mostImproved={mostImproved}
+        mesocycle={mesocycle}
       />
 
       {/* Momentum — PRs, streak, badges, lifetime tonnage in one 2x2 strip */}

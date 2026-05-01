@@ -1,13 +1,14 @@
 import { Compass, TrendingUp, TrendingDown, Minus, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { DELOAD_THRESHOLDS } from '@/lib/workout-intelligence'
-import type { VolumeStatus } from '@/lib/phase-coach'
+import type { VolumeStatus, Mesocycle } from '@/lib/phase-coach'
 import type {
   StrengthIndexSummary,
   MuscleVolumeLandmarkPoint,
 } from '@/lib/data/phase-coach'
 import type { ImprovedExercise } from '@/lib/data/insights'
 import type { TrainingPhase, ExperienceLevel } from '@/types/database'
+import { MesocycleTimeline } from '@/components/phase-coach/MesocycleTimeline'
 
 // ─── Phase Coach card ────────────────────────────────────────────────────────
 //
@@ -34,6 +35,8 @@ interface PhaseCoachCardProps {
   strengthIndex:    StrengthIndexSummary
   volumeLandmarks:  MuscleVolumeLandmarkPoint[]
   mostImproved:     ImprovedExercise[]
+  /** Mesocycle strip — null when phase_started_at is unset. */
+  mesocycle:        Mesocycle        | null
 }
 
 // ── Status styling ──────────────────────────────────────────────────────────
@@ -61,6 +64,7 @@ export function PhaseCoachCard({
   strengthIndex,
   volumeLandmarks,
   mostImproved,
+  mesocycle,
 }: PhaseCoachCardProps) {
   const phaseLabel  = trainingPhase ? trainingPhase.toUpperCase() : null
   const cycleLength = (trainingPhase && experienceLevel)
@@ -92,6 +96,13 @@ export function PhaseCoachCard({
           </span>
         )}
       </div>
+
+      {/* ── Mesocycle timeline ──────────────────────────────────────── */}
+      {mesocycle && (
+        <div className="mb-4">
+          <MesocycleTimeline mesocycle={mesocycle} compact />
+        </div>
+      )}
 
       {/* ── Strength Index ──────────────────────────────────────────── */}
       <StrengthIndexSection summary={strengthIndex} />
@@ -248,7 +259,7 @@ function Sparkline({ points }: { points: number[] }) {
 // ── Volume landmark row — bar with zones + marker ────────────────────────────
 
 function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
-  const { muscleGroup, setCount, landmarks, status } = point
+  const { muscleGroup, setCount, weeklyFrequency, landmarks, status } = point
   const styles = VOLUME_STATUS_STYLES[status]
 
   // Scale: from 0 to a bit past MRV so over-MRV sets are visible
@@ -262,6 +273,13 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
   const mrvPct     = pct(landmarks.mrv)
   const markerPct  = pct(setCount)
 
+  // Round to nearest 0.5 for display; hide badge when muscle hasn't been
+  // trained at all in the window (frequency === 0).
+  const freqRounded = Math.round(weeklyFrequency * 2) / 2
+  const freqLabel   = freqRounded > 0 ? `${freqRounded}×` : null
+  // Schoenfeld 2016: 2×/wk > 1×/wk for hypertrophy — signal the gap.
+  const freqColor   = freqRounded >= 2 ? 'text-[#CCFF00] bg-[#CCFF00]/10' : 'text-yellow-400 bg-yellow-400/10'
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
@@ -270,6 +288,11 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
           <span className="text-[11px] font-black uppercase tracking-tight text-white truncate">
             {muscleGroup}
           </span>
+          {freqLabel && (
+            <span className={cn('text-[8px] font-black uppercase tracking-widest px-1 py-0.5 rounded shrink-0', freqColor)}>
+              {freqLabel}/wk
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-[10px] tabular-nums text-[#adb4ce] font-black">

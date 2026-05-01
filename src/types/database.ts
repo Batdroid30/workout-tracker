@@ -97,6 +97,15 @@ export interface PRCheckResult {
   is_pr: boolean
 }
 
+export interface BodyweightLog {
+  id:         string
+  user_id:    string
+  weight_kg:  number
+  logged_at:  string
+  notes:      string | null
+  created_at: string
+}
+
 export interface WeeklyVolume {
   muscle_group: MuscleGroup
   week_start: string
