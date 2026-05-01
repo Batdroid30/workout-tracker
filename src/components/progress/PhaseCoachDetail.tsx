@@ -299,7 +299,7 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
           </span>
           {freqLabel && (
             <span className={cn('text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0', freqColor)}>
-              {freqLabel}/wk
+              {freqLabel}
             </span>
           )}
         </div>
