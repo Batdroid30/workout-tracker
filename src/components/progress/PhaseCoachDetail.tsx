@@ -285,9 +285,9 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
   const mrvPct    = pct(landmarks.mrv)
   const markerPct = pct(setCount)
 
-  const freqRounded = Math.round(weeklyFrequency * 2) / 2
-  const freqLabel   = freqRounded > 0 ? `${freqRounded}×` : null
-  const freqColor   = freqRounded >= 2 ? 'text-[#CCFF00] bg-[#CCFF00]/10' : 'text-yellow-400 bg-yellow-400/10'
+  const freqSessions = weeklyFrequency > 0 ? Math.max(1, Math.round(weeklyFrequency)) : 0
+  const freqLabel    = freqSessions > 0 ? `${freqSessions}×/wk` : null
+  const freqColor    = freqSessions >= 2 ? 'text-[#CCFF00] bg-[#CCFF00]/10' : 'text-yellow-400 bg-yellow-400/10'
 
   return (
     <div>

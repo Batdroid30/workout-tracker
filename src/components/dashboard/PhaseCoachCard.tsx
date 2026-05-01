@@ -273,12 +273,13 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
   const mrvPct     = pct(landmarks.mrv)
   const markerPct  = pct(setCount)
 
-  // Round to nearest 0.5 for display; hide badge when muscle hasn't been
-  // trained at all in the window (frequency === 0).
-  const freqRounded = Math.round(weeklyFrequency * 2) / 2
-  const freqLabel   = freqRounded > 0 ? `${freqRounded}×` : null
+  // Show frequency as whole sessions-per-week, minimum 1 when trained at all.
+  // weeklyFrequency = distinct days trained ÷ 4 weeks, so 0.5 = once per 2 wks.
+  // We ceil so "trained once in 4 weeks" still shows 1× rather than <1×.
+  const freqSessions = weeklyFrequency > 0 ? Math.max(1, Math.round(weeklyFrequency)) : 0
+  const freqLabel    = freqSessions > 0 ? `${freqSessions}×/wk` : null
   // Schoenfeld 2016: 2×/wk > 1×/wk for hypertrophy — signal the gap.
-  const freqColor   = freqRounded >= 2 ? 'text-[#CCFF00] bg-[#CCFF00]/10' : 'text-yellow-400 bg-yellow-400/10'
+  const freqColor    = freqSessions >= 2 ? 'text-[#CCFF00] bg-[#CCFF00]/10' : 'text-yellow-400 bg-yellow-400/10'
 
   return (
     <div>
