@@ -12,16 +12,31 @@ export async function finishWorkoutAction(activeWorkout: any) {
 
   const userId = session.user.id
 
+  let workoutId: string
+  let savedSets: Awaited<ReturnType<typeof saveActiveWorkout>>['savedSets']
+  let startedAt: string
+
   try {
-    const { workout, savedSets } = await saveActiveWorkout(userId, activeWorkout)
-    const prs = await evaluateAndSavePRs(userId, workout.id, workout.started_at, savedSets)
-
-    revalidateAll()
-
-    return { success: true, workoutId: workout.id, prs }
+    const result = await saveActiveWorkout(userId, activeWorkout)
+    workoutId = result.workout.id
+    savedSets = result.savedSets
+    startedAt = result.workout.started_at
   } catch (error: any) {
-    console.error('Failed to finish workout:', error)
+    console.error('Failed to save workout:', error)
     return { success: false, error: error.message }
+  }
+
+  // Workout is durably saved at this point. PR evaluation is best-effort —
+  // a failure here must not pretend the whole save failed (we'd lose the user's
+  // workout in localStorage on the client). Report partial success instead.
+  try {
+    const prs = await evaluateAndSavePRs(userId, workoutId, startedAt, savedSets)
+    revalidateAll()
+    return { success: true, workoutId, prs }
+  } catch (error: any) {
+    console.error('PR evaluation failed for workout', workoutId, error)
+    revalidateAll()
+    return { success: true, workoutId, prs: [], prError: error.message }
   }
 }
 
