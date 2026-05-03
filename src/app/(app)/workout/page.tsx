@@ -145,6 +145,12 @@ export default function WorkoutPage() {
       if (result.success) {
         setSummary({ workout: finalWorkout, prs: result.prs ?? [] })
         finishWorkout()
+        if (result.prError) {
+          dialog.alert({
+            title: 'Workout saved',
+            description: 'Your workout was saved, but we couldn\'t check for personal records. They\'ll be picked up next time stats are recalculated.',
+          })
+        }
       } else {
         dialog.alert({ title: 'Error', description: 'Failed to save workout: ' + result.error })
       }
