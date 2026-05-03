@@ -41,7 +41,7 @@ export function BodyweightSection({
         {latestWeight && (
           <span
             className="text-[9px] font-medium uppercase tracking-widest px-2.5 py-1 rounded-lg"
-            style={{ background: 'rgba(127,217,200,0.10)', border: '1px solid rgba(127,217,200,0.20)', color: 'var(--teal)' }}
+            style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)', color: 'var(--accent)' }}
           >
             {latestWeight.weight_kg} kg
           </span>
@@ -53,7 +53,7 @@ export function BodyweightSection({
         {/* ── Trend chart ────────────────────────────────────────────── */}
         {chartData.length > 1 ? (
           <div className="h-[160px] w-full">
-            <ProgressionLineChart data={chartData} color="#7fd9c8" formatType="number" />
+            <ProgressionLineChart data={chartData} color="#f3c08a" formatType="number" />
           </div>
         ) : (
           <div className="h-[60px] flex items-center justify-center">
@@ -67,10 +67,10 @@ export function BodyweightSection({
             {delta4w !== null && (
               <div className="flex items-center gap-1.5">
                 {delta4w > 0.2
-                  ? <TrendingUp  className="w-3.5 h-3.5" style={{ color: 'var(--teal)' }} />
+                  ? <TrendingUp   className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
                   : delta4w < -0.2
-                  ? <TrendingDown className="w-3.5 h-3.5" style={{ color: 'var(--teal)' }} />
-                  : <Minus        className="w-3.5 h-3.5 text-[var(--text-faint)]" />
+                  ? <TrendingDown className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
+                  : <Minus        className="w-3.5 h-3.5" style={{ color: 'var(--text-faint)' }} />
                 }
                 <span className="text-[11px] font-semibold tabular-nums text-[var(--text-hi)]">
                   {delta4w > 0 ? '+' : ''}{delta4w.toFixed(1)} kg
