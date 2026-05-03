@@ -61,27 +61,39 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     <DialogContext.Provider value={{ confirm, alert }}>
       {children}
       {isOpen && options && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0 bg-[#020617]/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-[#0c1324] border border-[#334155] p-6 rounded-2xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 slide-in-from-bottom-4 duration-200">
-            <h3 className="text-base font-black uppercase tracking-tight text-white mb-1.5">{options.title}</h3>
-            <p className="text-[#4a5568] mb-6 text-sm font-body leading-relaxed">{options.description}</p>
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0 backdrop-blur-sm animate-in fade-in duration-200"
+          style={{ background: 'rgba(6,7,13,0.80)' }}
+        >
+          <div
+            className="p-6 rounded-[var(--radius-card)] shadow-2xl w-full max-w-sm animate-in zoom-in-95 slide-in-from-bottom-4 duration-200"
+            style={{ background: 'rgba(10,13,24,0.98)', border: '1px solid var(--glass-border)' }}
+          >
+            <h3
+              className="text-base font-semibold uppercase tracking-tight mb-1.5"
+              style={{ color: 'var(--text-hi)' }}
+            >
+              {options.title}
+            </h3>
+            <p className="t-caption mb-6 leading-relaxed">{options.description}</p>
 
             <div className="flex gap-2 justify-end">
               {type === 'confirm' && (
                 <button
                   onClick={handleCancel}
-                  className="px-4 py-2.5 text-xs font-black text-[#adb4ce] hover:bg-[#151b2d] rounded-xl transition-colors uppercase tracking-widest"
+                  className="px-4 py-2.5 text-xs font-medium rounded-[var(--radius-inner)] transition-all hover:opacity-80 uppercase tracking-widest"
+                  style={{ color: 'var(--text-mid)', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
                 >
                   {options.cancelText || 'Cancel'}
                 </button>
               )}
               <button
                 onClick={handleConfirm}
-                className={`px-5 py-2.5 text-xs font-black rounded-xl transition-colors uppercase tracking-widest ${
-                  options.danger
-                    ? 'bg-red-500 hover:bg-red-600 text-white'
-                    : 'bg-[#CCFF00] hover:bg-[#abd600] text-[#020617]'
-                }`}
+                className="px-5 py-2.5 text-xs font-semibold rounded-[var(--radius-inner)] transition-all hover:opacity-90 uppercase tracking-widest"
+                style={options.danger
+                  ? { background: 'rgb(239,68,68)', color: '#fff' }
+                  : { background: 'var(--accent)',  color: 'var(--accent-on)' }
+                }
               >
                 {options.confirmText || 'OK'}
               </button>

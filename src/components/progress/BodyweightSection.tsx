@@ -37,26 +37,27 @@ export function BodyweightSection({
     <section>
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-[#adb4ce]">Bodyweight</h2>
+        <h2 className="t-display-s">Bodyweight</h2>
         {latestWeight && (
-          <span className="text-[9px] font-black uppercase tracking-widest text-[#60a5fa] bg-blue-400/10 border border-blue-400/20 px-2.5 py-1 rounded-lg">
+          <span
+            className="text-[9px] font-medium uppercase tracking-widest px-2.5 py-1 rounded-lg"
+            style={{ background: 'rgba(127,217,200,0.10)', border: '1px solid rgba(127,217,200,0.20)', color: 'var(--teal)' }}
+          >
             {latestWeight.weight_kg} kg
           </span>
         )}
       </div>
 
-      <div className="glass-panel border border-[#334155] rounded-xl p-4 space-y-3">
+      <div className="glass p-4 space-y-3">
 
         {/* ── Trend chart ────────────────────────────────────────────── */}
         {chartData.length > 1 ? (
           <div className="h-[160px] w-full">
-            <ProgressionLineChart data={chartData} color="#60a5fa" formatType="number" />
+            <ProgressionLineChart data={chartData} color="#7fd9c8" formatType="number" />
           </div>
         ) : (
           <div className="h-[60px] flex items-center justify-center">
-            <p className="text-[11px] text-[#334155] font-body tracking-wide">
-              Log a few readings to see your weight trend.
-            </p>
+            <p className="t-caption">Log a few readings to see your weight trend.</p>
           </div>
         )}
 
@@ -66,19 +67,19 @@ export function BodyweightSection({
             {delta4w !== null && (
               <div className="flex items-center gap-1.5">
                 {delta4w > 0.2
-                  ? <TrendingUp  className="w-3.5 h-3.5 text-[#60a5fa]" />
+                  ? <TrendingUp  className="w-3.5 h-3.5" style={{ color: 'var(--teal)' }} />
                   : delta4w < -0.2
-                  ? <TrendingDown className="w-3.5 h-3.5 text-[#60a5fa]" />
-                  : <Minus        className="w-3.5 h-3.5 text-[#4a5568]" />
+                  ? <TrendingDown className="w-3.5 h-3.5" style={{ color: 'var(--teal)' }} />
+                  : <Minus        className="w-3.5 h-3.5 text-[var(--text-faint)]" />
                 }
-                <span className="text-[11px] font-black tabular-nums text-white">
+                <span className="text-[11px] font-semibold tabular-nums text-[var(--text-hi)]">
                   {delta4w > 0 ? '+' : ''}{delta4w.toFixed(1)} kg
                 </span>
-                <span className="text-[10px] text-[#4a5568] font-body">vs 4 wks ago</span>
+                <span className="t-caption">vs 4 wks ago</span>
               </div>
             )}
             {signal && (
-              <p className={`text-[10px] font-black uppercase tracking-wider ${signal.color}`}>
+              <p className={`text-[10px] font-semibold uppercase tracking-wider ${signal.color}`}>
                 {signal.label}
               </p>
             )}
@@ -90,7 +91,7 @@ export function BodyweightSection({
 
       </div>
 
-      <p className="text-[10px] text-[#4a5568] font-body mt-2 px-1 leading-relaxed">
+      <p className="t-caption mt-2 px-1 leading-relaxed">
         Log in the morning, fasted, for consistent readings. Weight fluctuates
         ±1–2 kg day-to-day — track the trend over weeks, not individual numbers.
       </p>
@@ -135,19 +136,19 @@ function phaseSignal(delta: number | null, phase: TrainingPhase | null): PhaseSi
   if (delta === null || !phase) return null
 
   if (phase === 'bulking') {
-    if (delta >  0.3) return { label: 'Trending up — bulk on track',        color: 'text-[#CCFF00]'  }
+    if (delta >  0.3) return { label: 'Trending up — bulk on track',        color: 'text-[var(--teal)]'  }
     if (delta < -0.3) return { label: 'Weight dropping — increase intake',  color: 'text-orange-400' }
     return               { label: 'Stable — small surplus needed',          color: 'text-yellow-400' }
   }
 
   if (phase === 'cutting') {
-    if (delta < -0.2) return { label: 'Trending down — cut on track',       color: 'text-[#CCFF00]'  }
+    if (delta < -0.2) return { label: 'Trending down — cut on track',       color: 'text-[var(--teal)]'  }
     if (delta >  0.2) return { label: 'Weight rising — review intake',      color: 'text-orange-400' }
     return               { label: 'Stable — maintain deficit',              color: 'text-yellow-400' }
   }
 
   // maingaining
-  if (Math.abs(delta) <= 0.5) return { label: 'Stable — maingaining on track',       color: 'text-[#CCFF00]'  }
+  if (Math.abs(delta) <= 0.5) return { label: 'Stable — maingaining on track',       color: 'text-[var(--teal)]'  }
   if (delta >  0.5)           return { label: 'Slight gain — strength-first working', color: 'text-yellow-400' }
   return                       { label: 'Weight drifting down — check intake',        color: 'text-orange-400' }
 }

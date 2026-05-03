@@ -60,7 +60,7 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
-      className="flex flex-col min-h-screen bg-[#070d1f]"
+      className="flex flex-col min-h-screen"
     >
       {/* Pull indicator — only visible while pulling or refreshing */}
       <div
@@ -68,8 +68,12 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
         style={{ height: indicatorHeight }}
       >
         <div
-          className={`w-5 h-5 rounded-full border-2 border-[#CCFF00] border-t-transparent ${isRefreshing ? 'animate-spin' : ''}`}
-          style={isRefreshing ? undefined : { transform: `rotate(${spinDeg}deg)` }}
+          className={`w-5 h-5 rounded-full border-2 border-t-transparent ${isRefreshing ? 'animate-spin' : ''}`}
+          style={{
+            borderColor: 'var(--accent)',
+            borderTopColor: 'transparent',
+            ...(isRefreshing ? {} : { transform: `rotate(${spinDeg}deg)` }),
+          }}
         />
       </div>
 

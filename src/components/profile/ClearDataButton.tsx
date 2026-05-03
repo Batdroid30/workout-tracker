@@ -30,10 +30,10 @@ export function ClearDataButton() {
           description: result.error || 'Failed to clear data.',
         })
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       dialog.alert({
         title: 'Error',
-        description: error.message || 'An unexpected error occurred.',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
       })
     } finally {
       setIsLoading(false)
@@ -44,7 +44,8 @@ export function ClearDataButton() {
     <button
       onClick={handleClear}
       disabled={isLoading}
-      className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-red-500/50 hover:text-red-500 transition-colors py-2"
+      className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-widest transition-colors py-2 hover:text-red-400 disabled:opacity-40"
+      style={{ color: 'var(--text-faint)' }}
     >
       {isLoading ? (
         <Loader2 className="w-3 h-3 animate-spin" />

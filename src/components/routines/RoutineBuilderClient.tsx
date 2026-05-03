@@ -97,17 +97,31 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
   }
 
   return (
-    <div className="max-w-md mx-auto w-full pb-32 bg-[#070d1f] min-h-screen">
+    <div className="max-w-md mx-auto w-full pb-32 min-h-screen">
 
       {/* ── Top Nav ─────────────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-30 bg-[#070d1f]/95 backdrop-blur border-b border-[#334155] px-4 py-3 flex items-center gap-3">
+      <div
+        className="sticky top-0 z-30 px-4 py-3 flex items-center gap-3"
+        style={{
+          background: 'rgba(6,7,13,0.85)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid var(--glass-border)',
+        }}
+      >
         {/* Back */}
-        <Link href="/routines" className="p-2.5 hover:bg-[#151b2d] rounded-lg transition-colors shrink-0">
-          <ArrowLeft className="w-5 h-5 text-[#adb4ce]" />
+        <Link
+          href="/routines"
+          className="p-2.5 rounded-[var(--radius-inner)] transition-colors hover:bg-white/[0.06] shrink-0"
+          style={{ color: 'var(--text-mid)' }}
+        >
+          <ArrowLeft className="w-5 h-5" />
         </Link>
 
         {/* Title — takes remaining space, truncates on narrow screens */}
-        <h1 className="flex-1 min-w-0 text-sm font-black uppercase tracking-widest text-white truncate">
+        <h1
+          className="flex-1 min-w-0 text-sm font-semibold uppercase tracking-widest truncate"
+          style={{ color: 'var(--text-hi)' }}
+        >
           {initialRoutine ? 'Edit Routine' : 'Build Routine'}
         </h1>
 
@@ -124,9 +138,9 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
       <div className="p-4 space-y-5">
 
         {/* ── Basic Info ──────────────────────────────────────────────────── */}
-        <div className="glass-panel border border-[#334155] rounded-xl p-4 space-y-4">
+        <div className="glass p-4 space-y-4">
           <div>
-            <label className="block text-[10px] font-black text-[#adb4ce] uppercase tracking-[0.15em] mb-2">
+            <label className="t-label block mb-2">
               Routine Title
             </label>
             <Input
@@ -134,19 +148,24 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="e.g. Push Day, Upper Body"
-              className="uppercase font-black tracking-tight"
+              className="uppercase font-semibold tracking-tight"
             />
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-[#adb4ce] uppercase tracking-[0.15em] mb-2">
+            <label className="t-label block mb-2">
               Notes{' '}
-              <span className="text-[#4a5568] normal-case font-body tracking-normal">(optional)</span>
+              <span className="normal-case font-normal tracking-normal" style={{ color: 'var(--text-faint)' }}>(optional)</span>
             </label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              className="w-full bg-[#070d1f] border border-[#334155] rounded-xl px-4 py-3 text-[#dce1fb] text-sm font-body focus:outline-none focus:border-[#CCFF00]/50 resize-none h-20 transition-colors placeholder:text-[#334155]"
+              className="w-full rounded-[var(--radius-inner)] px-4 py-3 text-sm focus:outline-none resize-none h-20 transition-colors"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--text-hi)',
+              }}
               placeholder="e.g. Focus on slow eccentrics…"
             />
           </div>
@@ -154,18 +173,33 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
 
         {/* ── Exercises List ───────────────────────────────────────────────── */}
         <div className="space-y-3">
-          <h3 className="text-xs font-black text-[#adb4ce] uppercase tracking-[0.15em]">Exercises</h3>
+          <h3 className="t-label">Exercises</h3>
 
           {exercises.map((ex, i) => (
-            <div key={i} className="glass-panel border border-[#334155] rounded-xl overflow-hidden">
-              <div className="px-4 py-3 bg-[#0c1324] border-b border-[#334155] flex justify-between items-center">
+            <div
+              key={i}
+              className="glass overflow-hidden"
+            >
+              <div
+                className="px-4 py-3 flex justify-between items-center"
+                style={{
+                  background: 'var(--bg-1)',
+                  borderBottom: '1px solid var(--glass-border)',
+                }}
+              >
                 <div>
-                  <h4 className="font-black text-[#CCFF00] uppercase tracking-tight text-sm">{ex.exercise.name}</h4>
-                  <p className="text-[10px] text-[#4a5568] uppercase tracking-[0.15em] mt-0.5">{ex.exercise.muscle_group}</p>
+                  <h4
+                    className="font-semibold uppercase tracking-tight text-sm"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    {ex.exercise.name}
+                  </h4>
+                  <p className="t-label mt-0.5 capitalize">{ex.exercise.muscle_group}</p>
                 </div>
                 <button
                   onClick={() => handleRemoveExercise(i)}
-                  className="p-2.5 text-[#4a5568] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                  className="p-2.5 rounded-[var(--radius-inner)] transition-colors hover:bg-red-500/10 hover:text-red-400"
+                  style={{ color: 'var(--text-faint)' }}
                   aria-label={`Remove ${ex.exercise.name}`}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -174,7 +208,10 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
 
               <div className="p-4 grid grid-cols-2 gap-3">
                 <div className="min-w-0">
-                  <label className="block text-[9px] font-black text-[#4a5568] uppercase tracking-widest mb-2 text-center">
+                  <label
+                    className="block text-[9px] font-medium uppercase tracking-widest mb-2 text-center"
+                    style={{ color: 'var(--text-faint)' }}
+                  >
                     Sets
                   </label>
                   <NumberStepper
@@ -185,7 +222,10 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
                   />
                 </div>
                 <div className="min-w-0">
-                  <label className="block text-[9px] font-black text-[#4a5568] uppercase tracking-widest mb-2 text-center">
+                  <label
+                    className="block text-[9px] font-medium uppercase tracking-widest mb-2 text-center"
+                    style={{ color: 'var(--text-faint)' }}
+                  >
                     Reps
                   </label>
                   <NumberStepper
@@ -201,7 +241,11 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
 
           <button
             onClick={() => setIsAddingExercise(true)}
-            className="w-full h-12 flex items-center justify-center gap-2 border border-dashed border-[#334155] rounded-xl text-[#CCFF00] font-black hover:bg-[#151b2d] transition-colors text-xs uppercase tracking-widest"
+            className="w-full h-12 flex items-center justify-center gap-2 rounded-[var(--radius-inner)] text-xs font-medium uppercase tracking-widest transition-colors hover:bg-white/[0.04]"
+            style={{
+              border: '1px dashed var(--glass-border)',
+              color: 'var(--accent)',
+            }}
           >
             <Plus className="w-4 h-4" /> Add Exercise
           </button>

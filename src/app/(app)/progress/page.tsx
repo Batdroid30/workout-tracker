@@ -35,7 +35,6 @@ export default async function ProgressPage() {
     getLatestBodyweight(userId),
   ])
 
-  // Both depend on profile; getKeyLifts/getWeeklySetsByMuscle inside are cached().
   const [strengthIndex, volumeLandmarks] = await Promise.all([
     getStrengthIndex(userId, profile),
     getVolumeLandmarksByMuscle(userId, profile),
@@ -54,35 +53,49 @@ export default async function ProgressPage() {
     value: item.volume,
   }))
 
+  const formattedVolume = totalVolume >= 1_000_000
+    ? `${(totalVolume / 1_000_000).toFixed(2)}M`
+    : totalVolume >= 1_000
+    ? `${(totalVolume / 1_000).toFixed(1)}k`
+    : String(totalVolume)
+
   return (
-    <div className="min-h-screen bg-[#070d1f] text-[#dce1fb] pb-24">
-      {/* Page hero — open section, not a sticky nav */}
-      <div className="px-4 pt-8 pb-6">
-        <p className="text-[10px] font-black tracking-[0.2em] uppercase text-[#4a5568] mb-1">Your Data</p>
-        <h1 className="text-2xl font-black uppercase tracking-tight text-white">Progress</h1>
+    <div className="min-h-screen pb-24 p-5">
+
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <div className="pt-4 mb-7">
+        <div className="t-label mb-1.5">Progress</div>
+        <h1 className="t-display-l">
+          Your data<span style={{ fontStyle: 'italic', color: 'var(--accent)' }}>.</span>
+        </h1>
       </div>
 
-      <div className="px-4 space-y-6">
+      <div className="space-y-5">
 
-        {/* ── Volume stat strip ───────────────────────────── */}
-        <div className="glass-panel border border-[#CCFF00]/20 rounded-xl p-4 flex items-center justify-between">
+        {/* ── Lifetime volume ──────────────────────────────────────────── */}
+        <div
+          className="glass p-4 flex items-center justify-between"
+          style={{ borderColor: 'var(--accent-line)' }}
+        >
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#4a5568] mb-1">Total Volume Lifted</p>
-            <p className="text-4xl font-black text-[#CCFF00] tracking-tighter">
-              {totalVolume >= 1_000_000
-                ? `${(totalVolume / 1_000_000).toFixed(2)}M`
-                : totalVolume >= 1_000
-                ? `${(totalVolume / 1_000).toFixed(1)}k`
-                : totalVolume}
-              <span className="text-base text-[#CCFF00]/40 ml-1">kg</span>
+            <div className="t-label mb-1">Total Volume Lifted</div>
+            <p
+              className="mono text-4xl font-medium tracking-tighter"
+              style={{ color: 'var(--accent)', textShadow: '0 0 24px var(--accent-glow)' }}
+            >
+              {formattedVolume}
+              <span className="text-base ml-1" style={{ color: 'var(--accent-line)' }}>kg</span>
             </p>
           </div>
-          <div className="w-12 h-12 bg-[#CCFF00]/10 border border-[#CCFF00]/20 rounded-xl flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-[#CCFF00]" />
+          <div
+            className="w-12 h-12 rounded-[var(--radius-inner)] flex items-center justify-center"
+            style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }}
+          >
+            <TrendingUp className="w-5 h-5" style={{ color: 'var(--accent)' }} />
           </div>
         </div>
 
-        {/* ── Phase Coach detail — strength index + volume landmarks ─── */}
+        {/* ── Phase Coach detail ───────────────────────────────────────── */}
         <PhaseCoachDetail
           trainingPhase={profile?.training_phase    ?? null}
           experienceLevel={profile?.experience_level ?? null}
@@ -93,71 +106,70 @@ export default async function ProgressPage() {
           mesocycle={mesocycle}
         />
 
-        {/* ── Volume over time ────────────────────────────── */}
+        {/* ── Volume over time ─────────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-[#adb4ce]">Volume Over Time</h2>
+            <h2 className="t-display-s">Volume Trend</h2>
           </div>
-          <div className="glass-panel border border-[#334155] rounded-xl p-4">
+          <div className="glass p-4">
             {chartData.length > 1 ? (
               <div className="h-[200px] w-full">
-                <ProgressionLineChart
-                  data={chartData}
-                  color="#CCFF00"
-                  formatType="volume"
-                />
+                <ProgressionLineChart data={chartData} color="#f3c08a" formatType="volume" />
               </div>
             ) : (
               <div className="h-[120px] flex items-center justify-center">
-                <p className="text-[11px] text-[#334155] font-body tracking-wide">
-                  Log a few workouts to see your volume trend.
-                </p>
+                <p className="t-caption text-center">Log a few workouts to see your volume trend.</p>
               </div>
             )}
           </div>
         </section>
 
-        {/* ── Bodyweight trend + quick log ────────────────── */}
+        {/* ── Bodyweight ───────────────────────────────────────────────── */}
         <BodyweightSection
           history={bwHistory}
           latestWeight={bwLatest}
           trainingPhase={profile?.training_phase ?? null}
         />
 
-        {/* ── Muscle focus radar ──────────────────────────── */}
+        {/* ── Muscle focus radar ───────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-[#adb4ce]">Muscle Focus</h2>
-            <span className="text-[9px] font-black uppercase tracking-widest text-[#CCFF00] bg-[#CCFF00]/10 border border-[#CCFF00]/20 px-2.5 py-1 rounded-lg">
+            <h2 className="t-display-s">Muscle Focus</h2>
+            <span
+              className="text-[9px] font-medium uppercase tracking-widest px-2.5 py-1 rounded-lg"
+              style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)', color: 'var(--accent)' }}
+            >
               Last 7 Days
             </span>
           </div>
-          <div className="glass-panel border border-[#334155] rounded-xl p-4 flex flex-col items-center">
+          <div className="glass p-4 flex flex-col items-center">
             <div className="h-[240px] w-full">
               <WeeklyMuscleRadarChart data={radarData} />
             </div>
-            <p className="text-[11px] text-[#4a5568] font-body mt-2 text-center tracking-wide">
+            <p className="t-caption text-center mt-2">
               Distribution of working sets across muscle groups this week.
             </p>
           </div>
         </section>
 
-        {/* ── Drill into exercises ────────────────────────── */}
+        {/* ── Exercise drill-down ──────────────────────────────────────── */}
         <section>
-          <h2 className="text-xs font-black uppercase tracking-[0.2em] text-[#adb4ce] mb-3">Exercise Detail</h2>
-          <div className="glass-panel border border-[#334155] rounded-xl p-5 flex items-center gap-4">
-            <div className="w-11 h-11 bg-[#151b2d] border border-[#334155] rounded-xl flex items-center justify-center shrink-0">
-              <Activity className="w-5 h-5 text-[#CCFF00]" />
+          <h2 className="t-display-s mb-3">Exercise Detail</h2>
+          <div className="glass p-4 flex items-center gap-4">
+            <div
+              className="w-11 h-11 rounded-[var(--radius-inner)] flex items-center justify-center shrink-0"
+              style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }}
+            >
+              <Activity className="w-5 h-5" style={{ color: 'var(--accent)' }} />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-black text-white uppercase tracking-tight">Per-Exercise Stats</p>
-              <p className="text-[11px] text-[#4a5568] font-body mt-0.5 tracking-wide">
-                View e1RM progression, max weight and PRs for any exercise.
-              </p>
+              <p className="text-[13px] font-semibold text-[var(--text-hi)]">Per-Exercise Stats</p>
+              <p className="t-caption mt-0.5">View e1RM progression, max weight and PRs for any exercise.</p>
             </div>
             <Link
               href="/exercises"
-              className="shrink-0 h-9 px-4 bg-[#CCFF00] text-[#020617] font-black text-[10px] uppercase tracking-widest rounded-lg flex items-center hover:bg-[#abd600] active:scale-95 transition-all"
+              className="shrink-0 h-9 px-4 rounded-[var(--radius-pill)] text-[10px] font-semibold uppercase tracking-widest transition-all active:scale-95 hover:opacity-90 flex items-center justify-center"
+              style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
             >
               Browse
             </Link>

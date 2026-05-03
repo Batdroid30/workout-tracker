@@ -13,6 +13,7 @@ import { useLastWorkoutSets }   from '@/hooks/useLastWorkoutSets'
 import { useDialog }            from '@/providers/DialogProvider'
 import { getSupabaseClient }    from '@/lib/supabase/client'
 import { upsertExercisePreference } from '@/lib/data/exercise-preferences'
+import { cn } from '@/lib/utils'
 
 const DEFAULT_REST = 90
 
@@ -20,18 +21,8 @@ interface SetLoggerProps {
   exerciseIndex: number
   exercise: ActiveExercise
   onReplaceExercise?: () => void
-  /** Called when the user taps the plate-calc icon; parent renders the modal. */
   onOpenPlateCalc: (weight: number) => void
-  /** Called when a working set is completed; parent renders the rest timer. */
   onRestTimerStart: (restSeconds: number) => void
-  /**
-   * Accordion state. When true, only a compact summary is rendered and
-   * tapping the card expands it via `onExpand`. When false, the full
-   * set-logger UI is shown.
-   *
-   * Both default to a no-op so existing callers (and blank-workout flows)
-   * keep working unchanged with all exercises expanded.
-   */
   isCollapsed?: boolean
   onExpand?:    () => void
 }
@@ -49,24 +40,19 @@ export function SetLogger({
   const { loadPRsForExercises, checkLocalPR } = usePRStore()
   const [menuOpen,           setMenuOpen]           = useState(false)
   const [showDurationPicker, setShowDurationPicker] = useState(false)
-  const [activePRs, setActivePRs] = useState<PRCheckResult[]>([])
+  const [activePRs,          setActivePRs]          = useState<PRCheckResult[]>([])
   const dialog = useDialog()
 
-  // Per-set history + suggestions — indexed by set position (0 = first working set)
   const { sets: lastWorkoutSets } = useLastWorkoutSets(exercise.exercise.id)
 
-  // Load current PRs for this exercise so we can detect them in real-time
   useEffect(() => {
     loadPRsForExercises([exercise.exercise.id])
   }, [exercise.exercise.id, loadPRsForExercises])
 
-  // ── Per-exercise rest seconds ─────────────────────────────────────────────
-  // Initial value: from store (persisted in localStorage) or hard default
   const [restSeconds, setRestSeconds] = useState<number>(exercise.rest_seconds ?? DEFAULT_REST)
 
-  // On first render only: if store has no preference, check DB for a saved one
   useEffect(() => {
-    if (exercise.rest_seconds !== undefined) return  // already hydrated
+    if (exercise.rest_seconds !== undefined) return
     let cancelled = false
 
     async function loadFromDb() {
@@ -82,7 +68,6 @@ export function SetLogger({
         .single()
 
       if (cancelled || !data) return
-
       setRestSeconds(data.rest_seconds)
       updateExerciseRestSeconds(exerciseIndex, data.rest_seconds)
     }
@@ -95,34 +80,26 @@ export function SetLogger({
   const handleRestSecondsChange = useCallback((seconds: number) => {
     setRestSeconds(seconds)
     updateExerciseRestSeconds(exerciseIndex, seconds)
-    // Fire-and-forget — UI is already updated optimistically
     upsertExercisePreference(exercise.exercise.id, seconds)
     setShowDurationPicker(false)
   }, [exerciseIndex, exercise.exercise.id, updateExerciseRestSeconds])
 
   const handleSetCompleted = useCallback(() => {
     onRestTimerStart(restSeconds)
-  // restSeconds is a dependency — but it's a local number, safe to include
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restSeconds, onRestTimerStart])
 
-  // Working weight = first non-warmup set with a weight entered
   const workingWeight = exercise.sets.find(s => !s.is_warmup && s.weight_kg > 0)?.weight_kg ?? 0
 
-  // Session volume for this exercise (completed working sets only)
   const sessionVolume = exercise.sets
     .filter(s => s.completed && !s.is_warmup && s.weight_kg > 0 && s.reps > 0)
     .reduce((sum, s) => sum + s.weight_kg * s.reps, 0)
 
-  // ── Rest timer label helper ───────────────────────────────────────────────
   const restLabel = restSeconds >= 60
     ? `${Math.floor(restSeconds / 60)}:${String(restSeconds % 60).padStart(2, '0')}`
     : `${restSeconds}s`
 
   // ── Collapsed view ───────────────────────────────────────────────────────
-  // Renders a compact summary card. Used when the parent runs an accordion
-  // flow (typically routine starts) so the user can scan the whole plan
-  // without scrolling through every exercise's full set log.
   if (isCollapsed) {
     const workingSets   = exercise.sets.filter(s => !s.is_warmup)
     const completedSets = workingSets.filter(s => s.completed).length
@@ -133,26 +110,32 @@ export function SetLogger({
     return (
       <button
         onClick={onExpand}
-        className="w-full glass-panel rounded-xl mb-2 border border-[#334155] hover:border-[#CCFF00]/30 active:scale-[0.99] transition-all"
+        className="w-full glass hover:border-[var(--accent-line)] mb-2 active:scale-[0.99] transition-all"
         aria-label={`Expand ${exercise.exercise.name}`}
       >
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="text-left min-w-0 flex-1">
-            <h3 className={`font-black text-sm uppercase tracking-tight truncate ${isDone ? 'text-[#4a5568] line-through' : 'text-[#CCFF00]'}`}>
+            <h3 className={cn(
+              'font-semibold text-[13px] truncate',
+              isDone ? 'text-[var(--text-low)] line-through' : 'text-[var(--accent)]',
+            )}>
               {exercise.exercise.name}
             </h3>
-            <p className="text-[10px] text-[#4a5568] uppercase tracking-[0.15em] mt-0.5">
+            <p className="text-[10px] text-[var(--text-faint)] uppercase tracking-[0.15em] mt-0.5">
               {exercise.exercise.muscle_group}
               {targetReps > 0 && (
-                <span className="text-[#334155]"> · {totalSets}×{targetReps}</span>
+                <span className="text-[var(--text-faint)]"> · {totalSets}×{targetReps}</span>
               )}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className={`text-[10px] font-black tabular-nums ${isDone ? 'text-[#CCFF00]' : 'text-[#adb4ce]'}`}>
+            <span className={cn(
+              'mono text-[11px] tabular-nums',
+              isDone ? 'text-[var(--accent)]' : 'text-[var(--text-mid)]',
+            )}>
               {completedSets}/{totalSets}
             </span>
-            <ChevronDown className="w-4 h-4 text-[#4a5568]" />
+            <ChevronDown className="w-4 h-4 text-[var(--text-faint)]" />
           </div>
         </div>
       </button>
@@ -160,28 +143,36 @@ export function SetLogger({
   }
 
   return (
-    <div className="glass-panel rounded-xl overflow-hidden mb-4 border border-[#334155]">
-      {/* Header */}
-      <div className="px-4 py-3 flex items-center justify-between border-b border-[#334155] bg-[#0c1324]">
+    <div className="glass mb-4 overflow-hidden">
+
+      {/* ── Exercise header ─────────────────────────────────────────────── */}
+      <div
+        className="px-4 py-3 flex items-center justify-between"
+        style={{ borderBottom: '1px solid var(--glass-border)' }}
+      >
         <div>
-          <h3 className="font-black text-base text-[#CCFF00] uppercase tracking-tight">{exercise.exercise.name}</h3>
-          <p className="text-[10px] text-[#4a5568] uppercase tracking-[0.15em] mt-0.5">{exercise.exercise.muscle_group}</p>
+          <h3 className="font-semibold text-[15px] text-[var(--accent)]">{exercise.exercise.name}</h3>
+          <p className="text-[10px] text-[var(--text-faint)] uppercase tracking-[0.15em] mt-0.5">
+            {exercise.exercise.muscle_group}
+          </p>
         </div>
+
         <div className="flex items-center gap-1">
-          {/* Per-exercise rest timer pill */}
+          {/* Rest timer pill */}
           <button
             onClick={() => setShowDurationPicker(true)}
-            className="flex items-center gap-1 h-7 px-2.5 bg-[#151b2d] border border-[#334155] rounded-lg hover:border-[#CCFF00]/40 transition-colors"
+            className="flex items-center gap-1 h-7 px-2.5 rounded-lg transition-colors hover:border-[var(--accent-line)]"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
             aria-label="Set rest timer duration"
           >
-            <Timer className="w-3 h-3 text-[#4a5568]" />
-            <span className="text-[10px] font-black text-[#adb4ce] tabular-nums">{restLabel}</span>
+            <Timer className="w-3 h-3 text-[var(--text-faint)]" />
+            <span className="mono text-[10px] text-[var(--text-mid)] tabular-nums">{restLabel}</span>
           </button>
 
-          {/* Plate calculator trigger — state lives in the workout page */}
+          {/* Plate calculator */}
           <button
             onClick={() => onOpenPlateCalc(workingWeight || 100)}
-            className="text-[#4a5568] hover:text-[#adb4ce] p-2 hover:bg-[#151b2d] rounded-lg transition-colors"
+            className="p-2 rounded-lg text-[var(--text-low)] hover:text-[var(--text-hi)] hover:bg-white/[0.06] transition-colors"
             aria-label="Plate calculator"
           >
             <Calculator className="w-4 h-4" />
@@ -190,63 +181,84 @@ export function SetLogger({
           {/* Exercise menu */}
           <div className="relative">
             <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="text-[#4a5568] hover:text-[#adb4ce] p-2 hover:bg-[#151b2d] rounded-lg transition-colors"
+              onClick={() => setMenuOpen(o => !o)}
+              className="p-2 rounded-lg text-[var(--text-low)] hover:text-[var(--text-hi)] hover:bg-white/[0.06] transition-colors"
             >
-              <MoreVertical className="w-5 h-5" />
+              <MoreVertical className="w-4 h-4" />
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-[#0c1324] border border-[#334155] rounded-xl shadow-xl overflow-hidden z-20">
-                <button onClick={() => { onReplaceExercise?.(); setMenuOpen(false) }} className="w-full text-left px-4 py-3 text-sm font-bold text-[#dce1fb] hover:bg-[#151b2d] transition-colors">Replace Exercise</button>
-                <button onClick={() => { moveExerciseUp(exerciseIndex); setMenuOpen(false) }} className="w-full text-left px-4 py-3 text-sm font-bold text-[#dce1fb] hover:bg-[#151b2d] transition-colors">Move Up</button>
-                <button onClick={() => { moveExerciseDown(exerciseIndex); setMenuOpen(false) }} className="w-full text-left px-4 py-3 text-sm font-bold text-[#dce1fb] hover:bg-[#151b2d] transition-colors border-b border-[#334155]">Move Down</button>
-                <button
-                  onClick={async () => {
-                    setMenuOpen(false)
-                    const confirmed = await dialog.confirm({ title: 'Remove Exercise', description: 'Remove this exercise from the workout?', danger: true, confirmText: 'Remove' })
-                    if (confirmed) removeExercise(exerciseIndex)
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                <div
+                  className="absolute right-0 top-full mt-1 w-48 z-20 rounded-[var(--radius-inner)] overflow-hidden"
+                  style={{
+                    background: 'rgba(10,13,24,0.97)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid var(--glass-border-strong)',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
                   }}
-                  className="w-full text-left px-4 py-3 text-sm font-bold text-red-400 hover:bg-red-500/10 transition-colors"
                 >
-                  Remove Exercise
-                </button>
-              </div>
+                  {[
+                    { label: 'Replace Exercise', action: () => { onReplaceExercise?.(); setMenuOpen(false) } },
+                    { label: 'Move Up',          action: () => { moveExerciseUp(exerciseIndex); setMenuOpen(false) } },
+                    { label: 'Move Down',        action: () => { moveExerciseDown(exerciseIndex); setMenuOpen(false) } },
+                  ].map(item => (
+                    <button
+                      key={item.label}
+                      onClick={item.action}
+                      className="w-full text-left px-4 py-3 text-[13px] text-[var(--text-hi)] hover:bg-white/[0.06] transition-colors"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                  <div className="h-px bg-[var(--glass-border)]" />
+                  <button
+                    onClick={async () => {
+                      setMenuOpen(false)
+                      const confirmed = await dialog.confirm({
+                        title: 'Remove Exercise', description: 'Remove this exercise from the workout?',
+                        danger: true, confirmText: 'Remove',
+                      })
+                      if (confirmed) removeExercise(exerciseIndex)
+                    }}
+                    className="w-full text-left px-4 py-3 text-[13px] transition-colors hover:bg-[var(--rose)]/10"
+                    style={{ color: 'var(--rose)' }}
+                  >
+                    Remove Exercise
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>
       </div>
 
-      {/* Warmup ramp — shown when working weight is entered; tappable to add sets */}
+      {/* ── Warmup ramp ─────────────────────────────────────────────────── */}
       <WarmupRamp
         workingWeight={workingWeight}
-        onAddSet={(weight, reps) => addWarmupSet(exerciseIndex, weight, reps)}
+        onAddSet={(w, r) => addWarmupSet(exerciseIndex, w, r)}
       />
 
-      {/* Column Headers — mirrors SetRow row-1 layout exactly */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-[#1e293b]">
-        <span className="w-14 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest">Set · Prev</span>
-        <span className="flex-1 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest">kg</span>
-        <span className="flex-1 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest">Reps</span>
-        <span className="w-10 text-center text-[9px] font-black text-[#334155] uppercase tracking-widest"><Check className="w-3 h-3 mx-auto" /></span>
+      {/* ── Column headers ──────────────────────────────────────────────── */}
+      <div
+        className="flex items-center gap-2 px-4 py-2"
+        style={{ borderBottom: '1px solid var(--glass-border)' }}
+      >
+        <span className="w-14 text-center text-[9px] font-medium text-[var(--text-faint)] uppercase tracking-widest">Set · Prev</span>
+        <span className="flex-1 text-center text-[9px] font-medium text-[var(--text-faint)] uppercase tracking-widest">kg</span>
+        <span className="flex-1 text-center text-[9px] font-medium text-[var(--text-faint)] uppercase tracking-widest">Reps</span>
+        <span className="w-10 text-center text-[9px] font-medium text-[var(--text-faint)] uppercase tracking-widest">
+          <Check className="w-3 h-3 mx-auto" />
+        </span>
       </div>
 
-      {/* Rows */}
+      {/* ── Set rows ────────────────────────────────────────────────────── */}
       <div className="px-4 py-3">
         {exercise.sets.map((set, setIndex) => {
-          // Map set position to last-workout history.
-          // Warmup sets have no position in lastWorkoutSets (working sets only),
-          // so we track a separate working-set counter.
-          const workingSetsBefore = exercise.sets
-            .slice(0, setIndex)
-            .filter(s => !s.is_warmup).length
-          const lastSetAtPosition = !set.is_warmup
-            ? lastWorkoutSets[workingSetsBefore]
-            : undefined
-
-          const prevText = lastSetAtPosition
-            ? `${lastSetAtPosition.weight_kg}×${lastSetAtPosition.reps}`
-            : '-'
+          const workingSetsBefore = exercise.sets.slice(0, setIndex).filter(s => !s.is_warmup).length
+          const lastSetAtPosition = !set.is_warmup ? lastWorkoutSets[workingSetsBefore] : undefined
+          const prevText = lastSetAtPosition ? `${lastSetAtPosition.weight_kg}×${lastSetAtPosition.reps}` : '-'
 
           return (
             <SetRow
@@ -254,14 +266,13 @@ export function SetLogger({
               set={set}
               prevSetText={prevText}
               suggestion={lastSetAtPosition?.suggestion}
-              onChange={(updates) => updateSet(exerciseIndex, setIndex, updates)}
+              onChange={updates => updateSet(exerciseIndex, setIndex, updates)}
               onDone={() => {
                 const currentSet = exercise.sets[setIndex]
                 const wasCompleted = currentSet.completed
                 markSetDone(exerciseIndex, setIndex)
                 if (!wasCompleted) {
                   handleSetCompleted()
-                  // Real-time PR detection — client-side only, server confirms on save
                   if (!currentSet.is_warmup && currentSet.weight_kg > 0 && currentSet.reps > 0) {
                     const prs = checkLocalPR(exercise.exercise.id, currentSet.weight_kg, currentSet.reps)
                     if (prs.length > 0) setActivePRs(prs)
@@ -273,39 +284,43 @@ export function SetLogger({
           )
         })}
 
+        {/* ── Add set buttons ─────────────────────────────────────────── */}
         <div className="flex gap-2 mt-2">
-          {/* Add Warmup — secondary, left */}
           <button
             onClick={() => addWarmupSet(exerciseIndex)}
-            className="flex-1 flex items-center justify-center gap-1.5 h-9 text-[11px] font-black text-orange-400 bg-orange-500/5 hover:bg-orange-500/10 rounded-lg transition-colors border border-orange-500/20 hover:border-orange-500/30 uppercase tracking-widest"
+            className="flex-1 flex items-center justify-center gap-1.5 h-9 text-[11px] font-medium uppercase tracking-widest rounded-[var(--radius-inner)] transition-colors border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10"
           >
             <Plus className="w-3 h-3" /> Warmup
           </button>
-
-          {/* Add Working Set — primary, right */}
           <button
             onClick={() => addSet(exerciseIndex)}
-            className="flex-1 flex items-center justify-center gap-1.5 h-9 text-[11px] font-black text-[#CCFF00] bg-[#CCFF00]/5 hover:bg-[#CCFF00]/10 rounded-lg transition-colors border border-[#CCFF00]/10 hover:border-[#CCFF00]/20 uppercase tracking-widest"
+            className="flex-1 flex items-center justify-center gap-1.5 h-9 text-[11px] font-medium uppercase tracking-widest rounded-[var(--radius-inner)] transition-colors"
+            style={{
+              background: 'var(--accent-soft)',
+              border: '1px solid var(--accent-line)',
+              color: 'var(--accent)',
+            }}
           >
             <Plus className="w-3 h-3" /> Add Set
           </button>
         </div>
 
-        {/* Session volume — appears once the first working set is completed */}
+        {/* ── Session volume ──────────────────────────────────────────── */}
         {sessionVolume > 0 && (
-          <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-[#1e293b]">
-            <span className="text-[9px] font-black text-[#334155] uppercase tracking-widest">Session volume</span>
-            <span className="text-xs font-black text-[#adb4ce] tabular-nums">
-              {sessionVolume >= 1000
-                ? `${(sessionVolume / 1000).toFixed(1)}k`
-                : sessionVolume}
-              <span className="text-[9px] text-[#334155] ml-0.5">kg</span>
+          <div
+            className="flex items-center justify-between mt-3 pt-2.5"
+            style={{ borderTop: '1px solid var(--glass-border)' }}
+          >
+            <span className="text-[9px] font-medium text-[var(--text-faint)] uppercase tracking-widest">Session volume</span>
+            <span className="mono text-xs text-[var(--text-mid)] tabular-nums">
+              {sessionVolume >= 1000 ? `${(sessionVolume / 1000).toFixed(1)}k` : sessionVolume}
+              <span className="text-[9px] text-[var(--text-faint)] ml-0.5">kg</span>
             </span>
           </div>
         )}
       </div>
 
-      {/* Rest duration picker */}
+      {/* ── Rest duration picker ─────────────────────────────────────────── */}
       <RestDurationPicker
         isOpen={showDurationPicker}
         current={restSeconds}
@@ -313,7 +328,7 @@ export function SetLogger({
         onClose={() => setShowDurationPicker(false)}
       />
 
-      {/* Real-time PR celebration — auto-dismisses after 5s */}
+      {/* ── PR celebration ──────────────────────────────────────────────── */}
       {activePRs.length > 0 && (
         <PRBanner
           prs={activePRs}
@@ -326,7 +341,6 @@ export function SetLogger({
 }
 
 // ─── Rest Duration Picker ─────────────────────────────────────────────────────
-// Uses the shared BottomSheet component so the overlay pattern stays DRY.
 
 const REST_PRESETS = [
   { label: '30s',  seconds: 30  },
@@ -353,30 +367,28 @@ function RestDurationPicker({ isOpen, current, onChange, onClose }: RestDuration
   }
 
   return (
-    <BottomSheet
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Rest Duration"
-      icon={<Timer className="w-4 h-4 text-[#CCFF00]" />}
-    >
-      {/* Preset grid */}
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Rest Duration" icon={<Timer className="w-4 h-4 text-[var(--accent)]" />}>
       <div className="grid grid-cols-3 gap-2 mb-4">
         {REST_PRESETS.map(p => (
           <button
             key={p.seconds}
             onClick={() => onChange(p.seconds)}
-            className={`py-3 rounded-xl font-black text-sm transition-all active:scale-95 border ${
+            className={cn(
+              'py-3 rounded-[var(--radius-inner)] mono text-sm transition-all active:scale-95',
               current === p.seconds
-                ? 'bg-[#CCFF00] text-[#020617] border-[#CCFF00]'
-                : 'bg-[#151b2d] text-[#adb4ce] border-[#334155] hover:border-[#CCFF00]/40'
-            }`}
+                ? 'text-[var(--accent-on)]'
+                : 'text-[var(--text-mid)] hover:text-[var(--text-hi)]',
+            )}
+            style={current === p.seconds
+              ? { background: 'var(--accent)', border: '1px solid var(--accent)' }
+              : { background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }
+            }
           >
             {p.label}
           </button>
         ))}
       </div>
 
-      {/* Custom input */}
       <div className="flex gap-2">
         <input
           type="number"
@@ -385,17 +397,19 @@ function RestDurationPicker({ isOpen, current, onChange, onClose }: RestDuration
           value={custom}
           onChange={e => setCustom(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleCustomSubmit()}
-          className="flex-1 h-11 bg-[#151b2d] border border-[#334155] rounded-xl px-4 text-sm font-black text-white placeholder:text-[#334155] focus:outline-none focus:border-[#CCFF00]/50"
+          className="flex-1 h-11 rounded-[var(--radius-inner)] px-4 mono text-sm text-[var(--text-hi)] placeholder:text-[var(--text-faint)] focus:outline-none"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
         />
         <button
           onClick={handleCustomSubmit}
-          className="h-11 px-5 bg-[#CCFF00] text-[#020617] font-black text-sm rounded-xl active:scale-95 transition-transform hover:bg-[#abd600]"
+          className="h-11 px-5 rounded-[var(--radius-inner)] mono text-sm transition-transform active:scale-95"
+          style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
         >
           Set
         </button>
       </div>
-      <p className="text-[10px] text-[#334155] font-body mt-2">
-        Saved per exercise — pre-fills next time you log this exercise.
+      <p className="text-[10px] text-[var(--text-faint)] mt-2">
+        Saved per exercise — pre-fills next time.
       </p>
     </BottomSheet>
   )

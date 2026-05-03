@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo } from 'react'
 import { X } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import type { Exercise } from '@/types/database'
 import { useExerciseStore } from '@/store/exercise.store'
 import { getDefaultExercisesForFocus } from '@/lib/workout-intelligence'
@@ -41,13 +40,7 @@ const FOCUS_OPTIONS: FocusOption[] = [
 interface WorkoutFocusSheetProps {
   isOpen: boolean
   onClose: () => void
-  /** Server-Action result, keyed exercise_id → set count (last 90 days). */
   usageFrequency: Record<string, number>
-  /**
-   * Called with the suggested exercise list once the user picks a focus.
-   * Empty array means the user skipped — the parent should leave the
-   * workout blank.
-   */
   onPick: (exercises: Exercise[]) => void
 }
 
@@ -59,12 +52,10 @@ export function WorkoutFocusSheet({
 }: WorkoutFocusSheetProps) {
   const { exercises, load, isLoading } = useExerciseStore()
 
-  // Warm the cache when the sheet opens (no-op if fresh)
   useEffect(() => {
     if (isOpen) load()
   }, [isOpen, load])
 
-  // Frequency comes in as a plain object — convert to Map once for the algorithm
   const frequencyMap = useMemo(
     () => new Map(Object.entries(usageFrequency)),
     [usageFrequency],
@@ -84,21 +75,24 @@ export function WorkoutFocusSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#070d1f] lg:inset-y-0 lg:right-0 lg:left-auto lg:w-[500px] lg:border-l lg:border-[#334155] animate-in slide-in-from-bottom duration-300">
+    <div
+      className="fixed inset-0 z-50 flex flex-col lg:inset-y-0 lg:right-0 lg:left-auto lg:w-[500px] animate-in slide-in-from-bottom duration-300"
+      style={{ background: 'var(--bg-0)', borderLeft: '1px solid var(--glass-border)' }}
+    >
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-[#334155]">
+      <div
+        className="flex items-center justify-between px-4 py-4"
+        style={{ borderBottom: '1px solid var(--glass-border)' }}
+      >
         <div>
-          <p className="text-[10px] font-black tracking-[0.2em] uppercase text-[#4a5568] leading-none mb-0.5">
-            New workout
-          </p>
-          <h2 className="text-lg font-black italic uppercase tracking-tight text-white">
-            What are you hitting?
-          </h2>
+          <p className="t-label mb-0.5">New workout</p>
+          <h2 className="t-display-s">What are you hitting?</h2>
         </div>
         <button
           onClick={onClose}
-          className="p-2.5 hover:bg-[#151b2d] rounded-lg transition-colors text-[#adb4ce]"
+          className="p-2.5 rounded-[var(--radius-inner)] transition-colors hover:bg-white/[0.06]"
+          style={{ color: 'var(--text-mid)' }}
           aria-label="Close"
         >
           <X className="w-5 h-5" />
@@ -107,7 +101,7 @@ export function WorkoutFocusSheet({
 
       {/* ── Focus grid ── */}
       <div className="flex-1 overflow-y-auto p-4">
-        <p className="text-xs font-body text-[#4a5568] mb-4 leading-relaxed">
+        <p className="t-caption mb-4 leading-relaxed">
           Pick a focus and we'll load 4–5 starter exercises based on what you train most.
           You can change anything before starting.
         </p>
@@ -118,35 +112,36 @@ export function WorkoutFocusSheet({
               key={opt.key}
               onClick={() => handlePick(opt.key)}
               disabled={isLoading}
-              className={cn(
-                'flex flex-col items-start gap-1 p-4 rounded-xl border text-left transition-all',
-                'bg-[#0c1324] border-[#334155]',
-                'hover:border-[#CCFF00]/40 hover:bg-[#CCFF00]/5',
-                'active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100',
-              )}
+              className="flex flex-col items-start gap-1 p-4 rounded-[var(--radius-inner)] text-left transition-all active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100 hover:opacity-90"
+              style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid var(--glass-border)',
+              }}
             >
-              <span className="text-base font-black uppercase tracking-tight text-white">
+              <span className="text-base font-semibold uppercase tracking-tight" style={{ color: 'var(--text-hi)' }}>
                 {opt.label}
               </span>
-              <span className="text-[11px] font-body text-[#4a5568] leading-snug">
-                {opt.blurb}
-              </span>
+              <span className="t-caption leading-snug">{opt.blurb}</span>
             </button>
           ))}
         </div>
 
         {isLoading && (
           <div className="flex items-center justify-center mt-6">
-            <div className="w-5 h-5 border-2 border-[#CCFF00] border-t-transparent rounded-full animate-spin" />
+            <div
+              className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin"
+              style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}
+            />
           </div>
         )}
       </div>
 
-      {/* ── Skip — start blank ── */}
-      <div className="p-4 border-t border-[#334155]">
+      {/* ── Skip ── */}
+      <div className="p-4" style={{ borderTop: '1px solid var(--glass-border)' }}>
         <button
           onClick={handleSkip}
-          className="w-full h-11 flex items-center justify-center text-xs font-black uppercase tracking-wider text-[#4a5568] hover:text-[#adb4ce] transition-colors"
+          className="w-full h-11 flex items-center justify-center text-xs font-medium uppercase tracking-wider transition-colors hover:opacity-80"
+          style={{ color: 'var(--text-faint)' }}
         >
           Skip — start blank
         </button>

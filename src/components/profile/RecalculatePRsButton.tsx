@@ -23,11 +23,9 @@ export function RecalculatePRsButton() {
           description: result.error || 'Failed to recalculate PRs.',
         })
       }
-    } catch (error: any) {
-      dialog.alert({
-        title: 'Error',
-        description: error.message || 'An unexpected error occurred.',
-      })
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred.'
+      dialog.alert({ title: 'Error', description: message })
     } finally {
       setIsLoading(false)
     }
@@ -37,7 +35,8 @@ export function RecalculatePRsButton() {
     <button
       onClick={handleRecalculate}
       disabled={isLoading}
-      className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-[#adb4ce] hover:text-[#CCFF00] transition-colors disabled:opacity-50"
+      className="flex items-center gap-1.5 text-[9px] font-medium uppercase tracking-widest transition-colors disabled:opacity-50 hover:opacity-80"
+      style={{ color: 'var(--text-mid)' }}
     >
       <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
       <span>{isLoading ? 'Recalculating...' : 'Recalculate'}</span>

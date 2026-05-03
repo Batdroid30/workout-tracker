@@ -100,11 +100,11 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
 
   return (
     <Link href={`/workout/${workout.id}`} className="block">
-      <div className="glass-panel border border-[#334155] hover:border-[#CCFF00]/30 rounded-xl p-4 active:scale-[0.98] transition-all cursor-pointer">
+      <div className="glass hover:border-[var(--accent-line)] p-4 active:scale-[0.98] transition-all cursor-pointer">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <h3 className="font-black text-sm text-white uppercase tracking-tight">{workout.title || 'Workout'}</h3>
-            <p className="text-[11px] text-[#4a5568] font-body mt-0.5">
+            <h3 className="text-[13px] font-medium text-[var(--text-hi)]">{workout.title || 'Workout'}</h3>
+            <p className="mono text-[11px] text-[var(--text-low)] mt-0.5">
               {formatWorkoutDate(workout.started_at)}
             </p>
           </div>
@@ -114,22 +114,21 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
               return (
                 <span
                   key={t}
-                  className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${cfg.color} ${cfg.bg} ${cfg.border}`}
+                  className={`px-1.5 py-0.5 rounded-md text-[9px] font-medium uppercase tracking-widest border ${cfg.color} ${cfg.bg} ${cfg.border}`}
                 >
                   {cfg.label}
                 </span>
               )
             })}
             {workout.duration_seconds && (
-              <div className="bg-[#151b2d] text-[#adb4ce] px-2 py-1 rounded-lg text-[10px] font-bold border border-[#334155]">
+              <div className="bg-white/[0.04] text-[var(--text-mid)] px-2 py-1 rounded-lg mono text-[10px] border border-[var(--glass-border)]">
                 {Math.floor(workout.duration_seconds / 60)}m
               </div>
             )}
-            {/* Inline delete — no separate DeleteWorkoutButton needed */}
             <button
               onClick={handleDelete}
               disabled={isPending}
-              className="-mr-1 p-2 rounded-lg hover:bg-red-500/10 text-[#4a5568] hover:text-red-400 transition-colors disabled:opacity-50"
+              className="-mr-1 p-2 rounded-lg hover:bg-[var(--rose)]/10 text-[var(--text-low)] hover:text-[var(--rose)] transition-colors disabled:opacity-50"
               aria-label="Delete workout"
             >
               {isPending
@@ -140,12 +139,12 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
           </div>
         </div>
 
-        <span className="text-white font-black text-lg tracking-tight">
+        <span className="mono text-lg font-medium text-[var(--text-hi)] tracking-tight">
           {workoutVolume >= 1000 ? `${(workoutVolume / 1000).toFixed(1)}k` : workoutVolume}
-          <span className="text-[11px] text-[#4a5568] ml-0.5 font-bold">kg</span>
+          <span className="text-[11px] text-[var(--text-low)] ml-0.5">kg</span>
         </span>
 
-        <div className="mt-2 pt-2 border-t border-[#1e293b] text-[11px] font-body text-[#4a5568] truncate">
+        <div className="mt-2 pt-2 border-t border-white/[0.05] text-[11px] text-[var(--text-low)] truncate">
           {exerciseNames}
         </div>
       </div>
@@ -158,8 +157,8 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
 export function WorkoutHistoryList({ workouts }: WorkoutHistoryListProps) {
   if (workouts.length === 0) {
     return (
-      <div className="glass-panel border border-dashed border-[#334155] rounded-xl p-8 text-center">
-        <p className="text-[#4a5568] text-sm font-body">No workouts yet. Start your first session!</p>
+      <div className="glass border border-dashed border-[var(--glass-border)] p-8 text-center">
+        <p className="t-caption">No workouts yet. Start your first session!</p>
       </div>
     )
   }

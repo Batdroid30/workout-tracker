@@ -2,12 +2,13 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getRoutines } from '@/lib/data/routines'
 import { RoutineCard } from '@/components/routines/RoutineCard'
-import { Plus } from 'lucide-react'
+import { Plus, Zap } from 'lucide-react'
 import Link from 'next/link'
+import { StartEmptyWorkout } from '@/components/workout/StartEmptyWorkout'
 
 export const metadata = {
-  title: 'Routines | Lifts',
-  description: 'Manage your workout templates',
+  title: 'Workout | Lifts',
+  description: 'Start a session or pick a routine',
 }
 
 export default async function RoutinesPage() {
@@ -17,41 +18,53 @@ export default async function RoutinesPage() {
   const routines = await getRoutines(session.user.id)
 
   return (
-    <div className="max-w-md mx-auto w-full pb-24 bg-[#070d1f] min-h-screen">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#070d1f]/95 backdrop-blur border-b border-[#334155] px-4 py-4">
-        <p className="text-[10px] font-black tracking-[0.2em] uppercase text-[#4a5568] mb-0.5">Your Templates</p>
-        <h1 className="text-xl font-black uppercase tracking-tight text-white">Routines</h1>
+    <div className="min-h-screen p-5 pb-36">
+
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <div className="pt-4 mb-7">
+        <div className="t-label mb-1.5">Workout</div>
+        <h1 className="t-display-l">
+          Train<span style={{ fontStyle: 'italic', color: 'var(--accent)' }}>.</span>
+        </h1>
       </div>
 
-      <div className="p-4 space-y-4">
+      {/* ── Start empty session CTA ────────────────────────────── */}
+      <div className="mb-7">
+        <StartEmptyWorkout />
+      </div>
+
+      {/* ── Routines section ───────────────────────────────────── */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="t-display-s">Routines</h2>
+          <Link
+            href="/routines/create"
+            className="flex items-center gap-1.5 h-8 px-3 rounded-full text-[10px] font-medium uppercase tracking-widest bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent-line)] hover:bg-[var(--accent-line)] transition-colors"
+          >
+            <Plus className="w-3 h-3" /> New
+          </Link>
+        </div>
+
         {routines.length === 0 ? (
-          <div className="glass-panel border border-[#334155] rounded-xl p-8 text-center mt-4">
-            <h3 className="text-base font-black uppercase text-white mb-2 tracking-tight">No Routines Yet</h3>
-            <p className="text-[#4a5568] mb-6 text-sm font-body">Create your first template to speed up your workouts.</p>
+          <div className="glass border-dashed p-8 text-center">
+            <div className="w-12 h-12 rounded-full bg-[var(--accent-soft)] border border-[var(--accent-line)] flex items-center justify-center mx-auto mb-4">
+              <Zap className="w-5 h-5 text-[var(--accent)]" />
+            </div>
+            <p className="text-[14px] font-medium text-[var(--text-hi)] mb-1">No routines yet</p>
+            <p className="t-caption mb-5">Save a template to speed up future sessions.</p>
             <Link
               href="/routines/create"
-              className="inline-flex items-center justify-center bg-[#CCFF00] text-[#020617] font-black py-3 px-6 rounded-xl hover:bg-[#abd600] transition-colors uppercase tracking-widest text-sm"
+              className="inline-flex items-center gap-2 h-10 px-5 rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--accent-on)] text-[11px] font-semibold uppercase tracking-widest hover:opacity-90 transition-opacity"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Routine
+              <Plus className="w-3.5 h-3.5" /> Create Routine
             </Link>
           </div>
         ) : (
-          <>
-            <Link
-              href="/routines/create"
-              className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[#334155] rounded-xl text-[#CCFF00] font-black hover:bg-[#151b2d] transition-colors text-xs uppercase tracking-widest"
-            >
-              <Plus className="w-4 h-4" /> New Routine
-            </Link>
-
-            <div className="space-y-3">
-              {routines.map(routine => (
-                <RoutineCard key={routine.id} routine={routine} />
-              ))}
-            </div>
-          </>
+          <div className="space-y-3">
+            {routines.map(routine => (
+              <RoutineCard key={routine.id} routine={routine} />
+            ))}
+          </div>
         )}
       </div>
     </div>

@@ -35,13 +35,17 @@ export function NumberStepper({ value, onChange, step = 1, min = 0, max = 999 }:
   }
 
   return (
-    <div className="w-full flex items-center h-12 bg-[#0c1324] rounded-xl overflow-hidden border border-[#334155] focus-within:border-[#CCFF00]/50 transition-all">
+    <div
+      className="w-full flex items-center h-12 rounded-[var(--radius-inner)] overflow-hidden transition-all"
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
+    >
       {/* Decrement */}
       <button
         type="button"
         onClick={handleDecrement}
         disabled={value <= min}
-        className="w-9 h-full flex items-center justify-center text-[#adb4ce] hover:text-white hover:bg-[#151b2d] active:bg-[#CCFF00]/10 transition-colors font-black text-lg shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+        className="w-9 h-full flex items-center justify-center font-semibold text-lg shrink-0 transition-colors active:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed"
+        style={{ color: 'var(--text-mid)' }}
         aria-label="Decrease"
       >
         −
@@ -51,7 +55,8 @@ export function NumberStepper({ value, onChange, step = 1, min = 0, max = 999 }:
       <input
         type="text"
         inputMode="numeric"
-        className="flex-1 min-w-0 bg-transparent text-center font-black text-lg text-white focus:outline-none"
+        className="flex-1 min-w-0 bg-transparent text-center font-semibold text-lg focus:outline-none"
+        style={{ color: 'var(--text-hi)' }}
         value={localStr}
         onChange={e => setLocalStr(e.target.value)}
         onBlur={handleBlur}
@@ -62,7 +67,8 @@ export function NumberStepper({ value, onChange, step = 1, min = 0, max = 999 }:
         type="button"
         onClick={handleIncrement}
         disabled={value >= max}
-        className="w-9 h-full flex items-center justify-center text-[#adb4ce] hover:text-white hover:bg-[#151b2d] active:bg-[#CCFF00]/10 transition-colors font-black text-lg shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+        className="w-9 h-full flex items-center justify-center font-semibold text-lg shrink-0 transition-colors active:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed"
+        style={{ color: 'var(--text-mid)' }}
         aria-label="Increase"
       >
         +

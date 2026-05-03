@@ -14,34 +14,34 @@ export default async function SignupPage({ searchParams }: Props) {
   return (
     <form action={signupUser} className="space-y-4">
       <div className="mb-5">
-        <h2 className="text-xl font-black uppercase tracking-tight text-white">Create account</h2>
-        <p className="text-[11px] text-[#4a5568] font-body mt-1">Start tracking. Start growing.</p>
+        <h2 className="t-display-s">Create account</h2>
+        <p className="t-caption mt-1">Start tracking. Start growing.</p>
       </div>
 
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold rounded-xl">
+        <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium rounded-[var(--radius-inner)]">
           {error}
         </div>
       )}
 
       <div className="space-y-1.5">
-        <label className="block text-[10px] font-black text-[#adb4ce] uppercase tracking-[0.15em]">Email</label>
+        <label className="t-label block">Email</label>
         <Input type="email" name="email" placeholder="you@example.com" required />
       </div>
       <div className="space-y-1.5">
-        <label className="block text-[10px] font-black text-[#adb4ce] uppercase tracking-[0.15em]">Password</label>
+        <label className="t-label block">Password</label>
         <Input type="password" name="password" placeholder="Create a password" required />
       </div>
       <div className="space-y-1.5">
-        <label className="block text-[10px] font-black text-[#adb4ce] uppercase tracking-[0.15em]">Confirm Password</label>
+        <label className="t-label block">Confirm Password</label>
         <Input type="password" name="confirmPassword" placeholder="Confirm password" required />
       </div>
 
       <SubmitButton type="submit" className="mt-6 w-full" pendingText="Creating Account...">Create Account</SubmitButton>
 
-      <p className="text-center text-xs text-[#4a5568] font-body mt-4">
+      <p className="text-center text-xs mt-4" style={{ color: 'var(--text-faint)' }}>
         Already have an account?{' '}
-        <Link href="/login" className="text-[#CCFF00] hover:underline font-black">
+        <Link href="/login" className="font-semibold hover:underline" style={{ color: 'var(--accent)' }}>
           Sign in
         </Link>
       </p>
