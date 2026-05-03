@@ -37,12 +37,10 @@ const MOVEMENT_PATTERNS: { value: MovementPattern; label: string }[] = [
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface ExerciseMetaEditorProps {
-  exerciseId: string
-  currentMuscleGroup: MuscleGroup
+  exerciseId:             string
+  currentMuscleGroup:    MuscleGroup
   currentMovementPattern: MovementPattern
 }
-
-// ── Component ────────────────────────────────────────────────────────────────
 
 /**
  * Small pencil button that opens a BottomSheet for editing an exercise's
@@ -54,14 +52,13 @@ export function ExerciseMetaEditor({
   currentMuscleGroup,
   currentMovementPattern,
 }: ExerciseMetaEditorProps) {
-  const [isOpen, setIsOpen]                     = useState(false)
-  const [muscleGroup, setMuscleGroup]           = useState<MuscleGroup>(currentMuscleGroup)
-  const [movementPattern, setMovementPattern]   = useState<MovementPattern>(currentMovementPattern)
-  const [isPending, startTransition]            = useTransition()
-  const toast                                   = useToast()
+  const [isOpen,          setIsOpen]          = useState(false)
+  const [muscleGroup,     setMuscleGroup]     = useState<MuscleGroup>(currentMuscleGroup)
+  const [movementPattern, setMovementPattern] = useState<MovementPattern>(currentMovementPattern)
+  const [isPending,       startTransition]    = useTransition()
+  const toast = useToast()
 
   function handleOpen() {
-    // Reset to current persisted values each time the sheet opens
     setMuscleGroup(currentMuscleGroup)
     setMovementPattern(currentMovementPattern)
     setIsOpen(true)
@@ -89,10 +86,10 @@ export function ExerciseMetaEditor({
 
   return (
     <>
-      {/* Pencil trigger — sits inline next to the muscle group label */}
       <button
         onClick={handleOpen}
-        className="p-1.5 rounded-lg hover:bg-[#151b2d] transition-colors text-[#4a5568] hover:text-[#CCFF00]"
+        className="p-1.5 rounded-lg transition-colors hover:bg-white/[0.06] hover:opacity-80"
+        style={{ color: 'var(--text-faint)' }}
         aria-label="Edit muscle group and movement pattern"
       >
         <Pencil className="w-3.5 h-3.5" />
@@ -102,14 +99,12 @@ export function ExerciseMetaEditor({
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         title="Edit Exercise"
-        icon={<Pencil className="w-4 h-4 text-[#CCFF00]" />}
+        icon={<Pencil className="w-4 h-4" style={{ color: 'var(--accent)' }} />}
         position="center"
       >
         {/* Muscle group */}
         <div className="mb-6">
-          <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#4a5568] mb-3">
-            Muscle Group
-          </p>
+          <p className="t-label mb-3">Muscle Group</p>
           <div className="grid grid-cols-3 gap-2">
             {MUSCLE_GROUPS.map(({ value, label }) => {
               const isSelected = muscleGroup === value
@@ -117,13 +112,11 @@ export function ExerciseMetaEditor({
                 <button
                   key={value}
                   onClick={() => setMuscleGroup(value)}
-                  className={`
-                    py-2.5 px-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all
-                    ${isSelected
-                      ? 'bg-[#CCFF00] text-[#020617]'
-                      : 'bg-[#151b2d] text-[#adb4ce] border border-[#334155] hover:border-[#CCFF00]/40'
-                    }
-                  `}
+                  className="py-2.5 px-2 rounded-[var(--radius-inner)] text-xs font-medium uppercase tracking-wider transition-all active:scale-95"
+                  style={isSelected
+                    ? { background: 'var(--accent)', color: 'var(--accent-on)' }
+                    : { background: 'rgba(255,255,255,0.04)', color: 'var(--text-mid)', border: '1px solid var(--glass-border)' }
+                  }
                 >
                   {label}
                 </button>
@@ -134,9 +127,7 @@ export function ExerciseMetaEditor({
 
         {/* Movement pattern */}
         <div className="mb-8">
-          <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#4a5568] mb-3">
-            Movement Pattern
-          </p>
+          <p className="t-label mb-3">Movement Pattern</p>
           <div className="grid grid-cols-3 gap-2">
             {MOVEMENT_PATTERNS.map(({ value, label }) => {
               const isSelected = movementPattern === value
@@ -144,13 +135,11 @@ export function ExerciseMetaEditor({
                 <button
                   key={value}
                   onClick={() => setMovementPattern(value)}
-                  className={`
-                    py-2.5 px-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all
-                    ${isSelected
-                      ? 'bg-[#CCFF00]/20 text-[#CCFF00] border border-[#CCFF00]/50'
-                      : 'bg-[#151b2d] text-[#adb4ce] border border-[#334155] hover:border-[#CCFF00]/40'
-                    }
-                  `}
+                  className="py-2.5 px-2 rounded-[var(--radius-inner)] text-xs font-medium uppercase tracking-wider transition-all active:scale-95"
+                  style={isSelected
+                    ? { background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-line)' }
+                    : { background: 'rgba(255,255,255,0.04)', color: 'var(--text-mid)', border: '1px solid var(--glass-border)' }
+                  }
                 >
                   {label}
                 </button>
@@ -163,10 +152,8 @@ export function ExerciseMetaEditor({
         <button
           onClick={handleSave}
           disabled={!isDirty || isPending}
-          className="w-full py-3.5 rounded-xl font-black uppercase tracking-widest text-sm transition-all
-            bg-[#CCFF00] text-[#020617]
-            disabled:opacity-40 disabled:cursor-not-allowed
-            hover:bg-[#abd600] active:scale-95"
+          className="w-full py-3.5 rounded-[var(--radius-pill)] font-semibold uppercase tracking-widest text-sm transition-all active:scale-95 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
         >
           {isPending ? 'Saving…' : 'Save Changes'}
         </button>

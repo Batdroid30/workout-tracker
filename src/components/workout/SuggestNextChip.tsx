@@ -35,7 +35,7 @@ export function SuggestNextChip({
   const suggestions = useMemo<Exercise[]>(() => {
     if (workoutExercises.length === 0 || exercises.length === 0) return []
 
-    const lastExercise    = workoutExercises[workoutExercises.length - 1].exercise
+    const lastExercise     = workoutExercises[workoutExercises.length - 1].exercise
     const alreadyInWorkout = workoutExercises.map(we => we.exercise.id)
     const frequencyMap     = new Map(Object.entries(usageFrequency))
 
@@ -53,24 +53,27 @@ export function SuggestNextChip({
   return (
     <div className="mt-4">
       <div className="flex items-center gap-1.5 mb-2 px-1">
-        <Sparkles className="w-3 h-3 text-[#CCFF00]/60" />
-        <span className="text-[10px] font-black uppercase tracking-widest text-[#4a5568]">
-          Suggested next
-        </span>
+        <Sparkles className="w-3 h-3" style={{ color: 'var(--accent)', opacity: 0.60 }} />
+        <span className="t-label">Suggested next</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {suggestions.map(ex => (
           <button
             key={ex.id}
             onClick={() => onAdd(ex)}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#CCFF00]/5 border border-[#CCFF00]/20 hover:bg-[#CCFF00]/10 hover:border-[#CCFF00]/40 active:scale-95 transition-all"
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg active:scale-95 transition-all hover:opacity-90"
+            style={{
+              background: 'var(--accent-soft)',
+              border: '1px solid var(--accent-line)',
+            }}
           >
-            <span className="text-[11px] font-black text-[#CCFF00] uppercase tracking-tight">
+            <span
+              className="text-[11px] font-semibold uppercase tracking-tight"
+              style={{ color: 'var(--accent)' }}
+            >
               {ex.name}
             </span>
-            <span className="text-[9px] font-body text-[#4a5568]">
-              {ex.muscle_group}
-            </span>
+            <span className="t-caption">{ex.muscle_group}</span>
           </button>
         ))}
       </div>

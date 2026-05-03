@@ -6,7 +6,6 @@ import { Scale } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface BodyweightLoggerProps {
-  /** Pre-fill the input with the most-recent reading, if any. */
   latestWeight: number | null
 }
 
@@ -20,7 +19,6 @@ export function BodyweightLogger({ latestWeight }: BodyweightLoggerProps) {
   async function handleLog() {
     const weight = parseFloat(value)
     if (!weight || weight <= 0 || weight > 500) return
-
     setStatus('saving')
     try {
       const res = await fetch('/api/bodyweight', {
@@ -29,12 +27,9 @@ export function BodyweightLogger({ latestWeight }: BodyweightLoggerProps) {
         body:    JSON.stringify({ weight_kg: weight }),
       })
       if (!res.ok) throw new Error('Request failed')
-
       setStatus('saved')
-      // Refresh server components so the chart picks up the new reading
       router.refresh()
       setTimeout(() => setStatus('idle'), 2000)
-
     } catch {
       setStatus('error')
       setTimeout(() => setStatus('idle'), 2000)
@@ -45,7 +40,7 @@ export function BodyweightLogger({ latestWeight }: BodyweightLoggerProps) {
 
   return (
     <div className="flex items-center gap-2 pt-1">
-      <Scale className="w-3.5 h-3.5 text-[#4a5568] shrink-0" />
+      <Scale className="w-3.5 h-3.5 text-[var(--text-low)] shrink-0" />
 
       <div className="relative flex-1">
         <input
@@ -58,9 +53,9 @@ export function BodyweightLogger({ latestWeight }: BodyweightLoggerProps) {
           onChange={e => setValue(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleLog()}
           placeholder={latestWeight ? `Last: ${latestWeight}` : 'Enter weight'}
-          className="w-full h-9 bg-[#0c1324] border border-[#1e293b] rounded-lg px-3 pr-8 text-sm font-body text-white placeholder:text-[#334155] focus:outline-none focus:border-[#CCFF00]/40 text-center tabular-nums"
+          className="w-full h-9 bg-white/[0.04] border border-[var(--glass-border)] rounded-xl px-3 pr-8 mono text-[13px] text-[var(--text-hi)] placeholder:text-[var(--text-faint)] focus:outline-none focus:border-[var(--accent-line)] text-center tabular-nums"
         />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-[#334155] font-body pointer-events-none">
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-[var(--text-faint)] pointer-events-none">
           kg
         </span>
       </div>
@@ -69,15 +64,15 @@ export function BodyweightLogger({ latestWeight }: BodyweightLoggerProps) {
         onClick={handleLog}
         disabled={isBusy || !value}
         className={cn(
-          'shrink-0 h-9 px-4 font-black text-[10px] uppercase tracking-widest rounded-lg transition-all active:scale-95',
+          'shrink-0 h-9 px-4 font-medium text-[10px] uppercase tracking-widest rounded-xl transition-all active:scale-95',
           status === 'saved'
-            ? 'bg-[#CCFF00]/20 text-[#CCFF00]'
+            ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
             : status === 'error'
-            ? 'bg-red-500/20 text-red-400'
-            : 'bg-[#CCFF00] text-[#020617] hover:bg-[#abd600] disabled:opacity-40 disabled:cursor-not-allowed',
+            ? 'bg-[var(--rose)]/20 text-[var(--rose)]'
+            : 'bg-[var(--accent)] text-[var(--accent-on)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed',
         )}
       >
-        {status === 'saving' ? '…' : status === 'saved' ? '✓ Saved' : status === 'error' ? 'Error' : 'Log'}
+        {status === 'saving' ? '…' : status === 'saved' ? '✓' : status === 'error' ? 'Error' : 'Log'}
       </button>
     </div>
   )

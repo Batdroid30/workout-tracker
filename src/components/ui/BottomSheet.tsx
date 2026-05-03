@@ -55,7 +55,7 @@ export function BottomSheet({
         /* Scroll layer — sits above backdrop, scrollable for tall panels */
         <div className="absolute inset-0 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative w-full max-w-sm bg-[#0c1324] border border-[#334155] rounded-2xl p-5 pb-6">
+            <div className="relative w-full max-w-sm rounded-2xl p-5 pb-6" style={{ background: 'rgba(10,13,24,0.98)', border: '1px solid var(--glass-border)' }}>
               {title && <SheetHeader title={title} icon={icon} onClose={onClose} />}
               {children}
             </div>
@@ -63,7 +63,7 @@ export function BottomSheet({
         </div>
       ) : (
         /* Bottom panel */
-        <div className="absolute bottom-0 left-0 right-0 bg-[#0c1324] border-t border-[#334155] rounded-t-2xl p-5 pb-8 max-h-[85dvh] overflow-y-auto">
+        <div className="absolute bottom-0 left-0 right-0 rounded-t-2xl p-5 pb-8 max-h-[85dvh] overflow-y-auto" style={{ background: 'rgba(10,13,24,0.98)', borderTop: '1px solid var(--glass-border)' }}>
           {title && <SheetHeader title={title} icon={icon} onClose={onClose} />}
           {children}
         </div>
@@ -93,7 +93,8 @@ function SheetHeader({
       </div>
       <button
         onClick={onClose}
-        className="text-[#4a5568] hover:text-white p-2.5 rounded-lg transition-colors"
+        className="p-2.5 rounded-lg transition-colors hover:opacity-80"
+        style={{ color: 'var(--text-faint)' }}
         aria-label="Close"
       >
         <X className="w-4 h-4" />

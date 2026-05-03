@@ -21,17 +21,21 @@ export function ProfileTabs({ activeTab }: { activeTab: string }) {
   }
 
   return (
-    <div className="flex gap-1 bg-[#0c1324] p-1 rounded-xl border border-[#334155]">
+    <div
+      className="flex gap-1 p-1 rounded-[var(--radius-inner)]"
+      style={{ background: 'var(--bg-1)', border: '1px solid var(--glass-border)' }}
+    >
       {TABS.map((tab) => (
         <button
           key={tab.id}
           onClick={() => navigate(tab.id)}
           className={cn(
-            'flex-1 py-2 text-[10px] font-bold rounded-lg transition-all tracking-widest uppercase',
-            activeTab === tab.id
-              ? 'bg-[#CCFF00] text-[#020617]'
-              : 'text-[#4a5568] hover:text-[#adb4ce]'
+            'flex-1 py-2 text-[10px] font-semibold rounded-lg transition-all tracking-widest uppercase',
           )}
+          style={activeTab === tab.id
+            ? { background: 'var(--accent)', color: 'var(--accent-on)' }
+            : { color: 'var(--text-faint)' }
+          }
         >
           {tab.label}
         </button>

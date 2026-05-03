@@ -7,14 +7,15 @@ import { useWorkoutStore } from '@/store/workout.store'
 import { deleteRoutineAction } from '@/app/(app)/routines/actions'
 import { useDialog } from '@/providers/DialogProvider'
 import { useToast } from '@/providers/ToastProvider'
+import { cn } from '@/lib/utils'
 
 interface RoutineCardProps {
   routine: any
 }
 
 export function RoutineCard({ routine }: RoutineCardProps) {
-  const router = useRouter()
-  const startRoutine = useWorkoutStore(state => state.startRoutine)
+  const router        = useRouter()
+  const startRoutine  = useWorkoutStore(state => state.startRoutine)
   const [menuOpen,  setMenuOpen]  = useState(false)
   const [deleted,   setDeleted]   = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -29,16 +30,14 @@ export function RoutineCard({ routine }: RoutineCardProps) {
   const handleDelete = async () => {
     setMenuOpen(false)
     const confirmed = await dialog.confirm({
-      title: 'Delete Routine',
+      title:       'Delete Routine',
       description: 'Are you sure you want to delete this routine? This action cannot be undone.',
-      danger: true,
+      danger:       true,
       confirmText: 'Delete',
     })
     if (!confirmed) return
 
-    // Optimistic — vanish immediately
     setDeleted(true)
-
     startTransition(async () => {
       try {
         await deleteRoutineAction(routine.id)
@@ -55,46 +54,95 @@ export function RoutineCard({ routine }: RoutineCardProps) {
     router.push(`/routines/${routine.id}/edit`)
   }
 
-  const exerciseNames = routine.routine_exercises.map((re: any) => re.exercise?.name).join(' · ')
+  const exerciseCount = routine.routine_exercises?.length ?? 0
+  const exerciseNames = routine.routine_exercises
+    ?.map((re: any) => re.exercise?.name)
+    .filter(Boolean)
+    .join(' · ')
 
-  // Optimistic delete — collapse away with a fade+scale before server confirms
   if (deleted) return null
 
   return (
-    <div className="glass-panel border border-[#334155] hover:border-[#CCFF00]/30 rounded-xl p-4 transition-colors">
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
-          <h3 className="font-black text-base text-white uppercase tracking-tight mb-1">{routine.title}</h3>
-          {routine.notes && <p className="text-sm text-[#adb4ce] font-body mb-2">{routine.notes}</p>}
-          <p className="text-[11px] text-[#4a5568] font-body line-clamp-2">{exerciseNames || 'No exercises'}</p>
+    <div className="glass hover:border-[var(--accent-line)] transition-colors p-4 relative">
+      {/* Header row */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-[15px] font-semibold text-[var(--text-hi)] leading-snug">
+            {routine.title}
+          </h3>
+          {routine.notes && (
+            <p className="text-[12px] text-[var(--text-mid)] mt-0.5 line-clamp-1">{routine.notes}</p>
+          )}
         </div>
-        <div className="relative ml-2">
+
+        {/* Overflow menu */}
+        <div className="relative ml-2 shrink-0">
           <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="text-[#4a5568] hover:text-[#adb4ce] p-2 -mr-1 rounded-lg transition-colors"
+            onClick={() => setMenuOpen(o => !o)}
+            className="p-1.5 -mr-1 rounded-lg text-[var(--text-low)] hover:text-[var(--text-mid)] hover:bg-white/[0.06] transition-colors"
+            aria-label="Routine options"
           >
             <MoreVertical className="w-4 h-4" />
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 w-44 bg-[#0c1324] border border-[#334155] rounded-xl shadow-xl overflow-hidden z-20">
-              <button onClick={handleModify} className="w-full text-left flex items-center px-4 py-3 text-sm font-bold text-[#dce1fb] hover:bg-[#151b2d] transition-colors">
-                <Edit2 className="w-4 h-4 mr-2" /> Modify
-              </button>
-              <button onClick={handleDelete} disabled={isPending} className="w-full text-left flex items-center px-4 py-3 text-sm font-bold text-red-400 hover:bg-red-500/10 transition-colors border-t border-[#334155]">
-                {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                Delete
-              </button>
-            </div>
+            <>
+              {/* Backdrop to close menu */}
+              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+              <div
+                className="absolute right-0 top-full mt-1 w-44 z-20 rounded-[var(--radius-inner)] overflow-hidden"
+                style={{
+                  background: 'rgba(14,19,32,0.95)',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid var(--glass-border-strong)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                }}
+              >
+                <button
+                  onClick={handleModify}
+                  className="w-full flex items-center gap-2.5 px-4 py-3 text-[13px] text-[var(--text-hi)] hover:bg-white/[0.06] transition-colors"
+                >
+                  <Edit2 className="w-3.5 h-3.5 text-[var(--text-low)]" /> Edit
+                </button>
+                <div className="h-px bg-[var(--glass-border)]" />
+                <button
+                  onClick={handleDelete}
+                  disabled={isPending}
+                  className="w-full flex items-center gap-2.5 px-4 py-3 text-[13px] text-[var(--rose)] hover:bg-[var(--rose)]/10 transition-colors disabled:opacity-50"
+                >
+                  {isPending
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : <Trash2 className="w-3.5 h-3.5" />
+                  }
+                  Delete
+                </button>
+              </div>
+            </>
           )}
         </div>
       </div>
 
+      {/* Exercise preview */}
+      <p className="text-[11px] text-[var(--text-low)] mb-4 truncate">
+        {exerciseNames || 'No exercises added'}
+        {exerciseCount > 0 && (
+          <span className="ml-2 text-[var(--text-faint)]">
+            · {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}
+          </span>
+        )}
+      </p>
+
+      {/* Start button */}
       <button
         onClick={handleStartRoutine}
-        className="w-full py-2.5 bg-[#CCFF00] text-[#020617] font-black rounded-xl flex items-center justify-center gap-2 hover:bg-[#abd600] transition-colors active:scale-[0.97] uppercase tracking-widest text-xs shadow-[0_4px_16px_rgba(204,255,0,0.2)]"
+        className={cn(
+          'w-full h-10 rounded-[var(--radius-inner)] flex items-center justify-center gap-2',
+          'text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-[0.97]',
+          'bg-[var(--accent)] text-[var(--accent-on)] hover:opacity-90',
+          'shadow-[0_4px_20px_rgba(243,192,138,0.25)]',
+        )}
       >
-        <Play className="w-4 h-4 fill-current" /> Start Routine
+        <Play className="w-3.5 h-3.5 fill-current" /> Start Routine
       </button>
     </div>
   )

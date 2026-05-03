@@ -25,8 +25,8 @@ export function DeleteHistoricalExerciseButton({ workoutExerciseId, workoutId }:
       try {
         await deleteHistoricalExerciseAction(workoutExerciseId)
         router.refresh()
-      } catch (err: any) {
-        dialog.alert({ title: 'Error', description: err.message })
+      } catch (err: unknown) {
+        dialog.alert({ title: 'Error', description: err instanceof Error ? err.message : 'An unexpected error occurred.' })
       }
     })
   }
@@ -35,7 +35,8 @@ export function DeleteHistoricalExerciseButton({ workoutExerciseId, workoutId }:
     <button 
       onClick={handleDelete}
       disabled={isPending}
-      className="p-2.5 text-[#4a5568] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+      className="p-2.5 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+      style={{ color: 'var(--text-faint)' }}
     >
       {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
     </button>

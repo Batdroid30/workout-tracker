@@ -30,12 +30,12 @@ interface PhaseCoachDetailProps {
 // ── Status styling — kept identical to PhaseCoachCard for visual consistency ──
 
 const VOLUME_STATUS_STYLES: Record<VolumeStatus, { dot: string; text: string; label: string }> = {
-  below_mv:    { dot: 'bg-red-400',    text: 'text-red-400',    label: 'Below MV'    },
-  maintenance: { dot: 'bg-orange-400', text: 'text-orange-400', label: 'Maintaining' },
-  sub_optimal: { dot: 'bg-yellow-400', text: 'text-yellow-400', label: 'Sub-optimal' },
-  optimal:     { dot: 'bg-[#CCFF00]',  text: 'text-[#CCFF00]',  label: 'Optimal'     },
-  high:        { dot: 'bg-orange-400', text: 'text-orange-400', label: 'High'        },
-  over_mrv:    { dot: 'bg-red-500',    text: 'text-red-500',    label: 'Over MRV'    },
+  below_mv:    { dot: 'bg-red-400',              text: 'text-red-400',              label: 'Below MV'    },
+  maintenance: { dot: 'bg-orange-400',           text: 'text-orange-400',           label: 'Maintaining' },
+  sub_optimal: { dot: 'bg-yellow-400',           text: 'text-yellow-400',           label: 'Sub-optimal' },
+  optimal:     { dot: 'bg-[var(--teal)]',        text: 'text-[var(--teal)]',        label: 'Optimal'     },
+  high:        { dot: 'bg-orange-400',           text: 'text-orange-400',           label: 'High'        },
+  over_mrv:    { dot: 'bg-red-500',              text: 'text-red-500',              label: 'Over MRV'    },
 }
 
 const STATUS_PRIORITY: Record<VolumeStatus, number> = {
@@ -69,9 +69,12 @@ export function PhaseCoachDetail({
     <section>
       {/* ── Section header ──────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-[#adb4ce]">Phase Coach</h2>
+        <h2 className="t-display-s">Phase Coach</h2>
         {phaseLabel && (
-          <span className="text-[9px] font-black uppercase tracking-widest text-[#CCFF00] bg-[#CCFF00]/10 border border-[#CCFF00]/20 px-2.5 py-1 rounded-lg">
+          <span
+            className="text-[9px] font-medium uppercase tracking-widest px-2.5 py-1 rounded-lg"
+            style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)', color: 'var(--accent)' }}
+          >
             {phaseLabel}
             {weeksInPhase && cycleLength
               ? ` · WK ${Math.min(weeksInPhase, cycleLength + 4)} / ${cycleLength}`
@@ -82,15 +85,15 @@ export function PhaseCoachDetail({
 
       {/* ── Mesocycle timeline (full) ───────────────────────────────── */}
       {mesocycle && (
-        <div className="glass-panel border border-[#334155] rounded-xl p-4 mb-4">
+        <div className="glass p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-[#adb4ce]">
+            <h3 className="t-label">
               Mesocycle · Wk {mesocycle.currentWeek} / {mesocycle.totalWeeks}
             </h3>
-            <p className="text-[9px] font-body text-[#334155]">sessions / week</p>
+            <p className="t-caption">sessions / week</p>
           </div>
           <MesocycleTimeline mesocycle={mesocycle} />
-          <p className="text-[10px] text-[#4a5568] font-body mt-3 leading-relaxed">
+          <p className="t-caption mt-3 leading-relaxed">
             Cycle length follows your experience and phase. Deload week is recommended —
             the Deload card on the dashboard will fire earlier if your fatigue signals spike.
           </p>
@@ -98,34 +101,31 @@ export function PhaseCoachDetail({
       )}
 
       {/* ── Strength Index full chart ──────────────────────────────── */}
-      <div className="glass-panel border border-[#334155] rounded-xl p-4 mb-4">
+      <div className="glass p-4 mb-4">
         <div className="flex items-center gap-2 mb-1">
-          <Compass className="w-3.5 h-3.5 text-[#CCFF00]" />
-          <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-[#adb4ce]">
-            Strength Index
-          </h3>
+          <Compass className="w-3.5 h-3.5" style={{ color: 'var(--teal)' }} />
+          <h3 className="t-label">Strength Index</h3>
         </div>
 
         <StrengthIndexBlock summary={strengthIndex} chartData={indexChartData} />
 
         {/* Tracked lifts */}
         {keyLifts.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-[#1e293b]">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#4a5568] mb-2">
-              Tracked lifts ({keyLifts.length})
-            </p>
+          <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--glass-border)' }}>
+            <p className="t-label mb-2">Tracked lifts ({keyLifts.length})</p>
             <div className="flex flex-wrap gap-1.5">
               {keyLifts.map(lift => (
                 <span
                   key={lift.exerciseId}
-                  className="text-[10px] font-black uppercase tracking-tight text-[#adb4ce] bg-[#0c1324] border border-[#1e293b] rounded px-2 py-1"
+                  className="text-[10px] font-medium uppercase tracking-tight rounded px-2 py-1"
+                  style={{ color: 'var(--text-mid)', background: 'var(--bg-1)', border: '1px solid var(--glass-border)' }}
                   title={`${lift.sessionCount} sessions in last 12 weeks`}
                 >
                   {lift.exerciseName}
                 </span>
               ))}
             </div>
-            <p className="text-[10px] text-[#4a5568] font-body mt-2">
+            <p className="t-caption mt-2">
               Auto-detected from your most-frequent compound lifts in the last 12 weeks.
             </p>
           </div>
@@ -133,12 +133,10 @@ export function PhaseCoachDetail({
       </div>
 
       {/* ── Volume Landmarks ───────────────────────────────────────── */}
-      <div className="glass-panel border border-[#334155] rounded-xl p-4 mb-4">
+      <div className="glass p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-[#adb4ce]">
-            Volume Landmarks · This Week
-          </h3>
-          <p className="text-[9px] font-body text-[#334155]">sets / week</p>
+          <h3 className="t-label">Volume Landmarks · This Week</h3>
+          <p className="t-caption">sets / week</p>
         </div>
 
         <VolumeLegend />
@@ -149,7 +147,7 @@ export function PhaseCoachDetail({
           ))}
         </div>
 
-        <p className="text-[10px] text-[#4a5568] font-body mt-3 leading-relaxed">
+        <p className="t-caption mt-3 leading-relaxed">
           Bands shift with your phase and style. Cuts shrink the recoverable
           ceiling; bulks raise it.
         </p>
@@ -157,9 +155,9 @@ export function PhaseCoachDetail({
 
       {/* ── Honesty footer ─────────────────────────────────────────── */}
       <div className="flex items-start gap-2 px-1">
-        <Info className="w-3 h-3 text-[#334155] shrink-0 mt-0.5" />
-        <p className="text-[10px] text-[#4a5568] font-body leading-relaxed">
-          Strength gain is a <span className="text-[#adb4ce] font-black">proxy</span> for muscle gain, not a direct measure.
+        <Info className="w-3 h-3 shrink-0 mt-0.5" style={{ color: 'var(--text-faint)' }} />
+        <p className="t-caption leading-relaxed">
+          Strength gain is a <span className="text-[var(--text-mid)] font-semibold">proxy</span> for muscle gain, not a direct measure.
           Track bodyweight and progress photos alongside it for the complete picture.
         </p>
       </div>
@@ -177,7 +175,7 @@ interface StrengthIndexBlockProps {
 function StrengthIndexBlock({ summary, chartData }: StrengthIndexBlockProps) {
   if (summary.history.length < 3) {
     return (
-      <p className="text-[11px] text-[#4a5568] font-body leading-relaxed mt-2">
+      <p className="t-caption leading-relaxed mt-2">
         {summary.liftCount < 3
           ? 'Train at least 3 different compound lifts so we can normalise an Index across them.'
           : 'Log a few weeks of compound lifts to start tracking your Index since phase start.'}
@@ -191,10 +189,10 @@ function StrengthIndexBlock({ summary, chartData }: StrengthIndexBlockProps) {
   const pctPerWeek = summary.pctPerWeek
 
   const trendColor =
-    summary.status === 'on_track'       ? 'text-[#CCFF00]' :
-    summary.status === 'above_expected' ? 'text-[#CCFF00]' :
+    summary.status === 'on_track'       ? 'text-[var(--teal)]' :
+    summary.status === 'above_expected' ? 'text-[var(--teal)]' :
     summary.status === 'below_expected' ? 'text-orange-400' :
-    'text-[#adb4ce]'
+    'text-[var(--text-mid)]'
 
   const trendLabel =
     summary.status === 'on_track'       ? 'On track for your level' :
@@ -207,38 +205,34 @@ function StrengthIndexBlock({ summary, chartData }: StrengthIndexBlockProps) {
       {/* Headline numbers */}
       <div className="flex items-end justify-between mt-1 mb-3">
         <div>
-          <p className="text-3xl font-black text-white tabular-nums tracking-tighter">
+          <p className="mono text-3xl tabular-nums tracking-tighter" style={{ color: 'var(--text-hi)' }}>
             {totalPct >= 0 ? '+' : ''}{totalPct.toFixed(1)}
-            <span className="text-base text-[#4a5568] ml-0.5">%</span>
+            <span className="text-base ml-0.5" style={{ color: 'var(--text-faint)' }}>%</span>
           </p>
-          <p className="text-[10px] font-black text-[#4a5568] uppercase tracking-widest mt-0.5">
-            Since phase start
-          </p>
+          <p className="t-label mt-0.5">Since phase start</p>
         </div>
         {pctPerWeek !== null && (
           <div className="text-right">
-            <p className={cn('text-xl font-black tabular-nums tracking-tight', trendColor)}>
+            <p className={cn('mono text-xl tabular-nums tracking-tight', trendColor)}>
               {pctPerWeek >= 0 ? '+' : ''}{pctPerWeek.toFixed(2)}%
             </p>
-            <p className="text-[10px] font-black text-[#4a5568] uppercase tracking-widest mt-0.5">
-              per week
-            </p>
+            <p className="t-label mt-0.5">per week</p>
           </div>
         )}
       </div>
 
       {/* Full chart */}
       <div className="h-[180px] w-full">
-        <ProgressionLineChart data={chartData} color="#CCFF00" formatType="number" />
+        <ProgressionLineChart data={chartData} color="#7fd9c8" formatType="number" />
       </div>
 
       {trendLabel && (
-        <p className={cn('text-[11px] font-black uppercase tracking-wider mt-2 text-center', trendColor)}>
+        <p className={cn('text-[11px] font-semibold uppercase tracking-wider mt-2 text-center', trendColor)}>
           {trendLabel}
         </p>
       )}
 
-      <p className="text-[10px] text-[#334155] font-body mt-2 text-center">
+      <p className="t-caption mt-2 text-center">
         Avg of weekly best e1RM across {summary.liftCount} key lift{summary.liftCount === 1 ? '' : 's'}, normalised to phase start.
       </p>
     </div>
@@ -249,7 +243,7 @@ function StrengthIndexBlock({ summary, chartData }: StrengthIndexBlockProps) {
 
 function VolumeLegend() {
   return (
-    <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-[9px] font-body text-[#4a5568]">
+    <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-[9px]" style={{ color: 'var(--text-faint)' }}>
       <span className="flex items-center gap-1">
         <span className="w-2 h-2 rounded-sm bg-orange-400/30" /> MV → MEV (maintain)
       </span>
@@ -257,7 +251,7 @@ function VolumeLegend() {
         <span className="w-2 h-2 rounded-sm bg-yellow-400/40" /> MEV → MAV (growing)
       </span>
       <span className="flex items-center gap-1">
-        <span className="w-2 h-2 rounded-sm bg-[#CCFF00]/50" /> MAV (optimal)
+        <span className="w-2 h-2 rounded-sm" style={{ background: 'rgba(127,217,200,0.40)' }} /> MAV (optimal)
       </span>
       <span className="flex items-center gap-1">
         <span className="w-2 h-2 rounded-sm bg-orange-400/40" /> MAV → MRV (high)
@@ -287,40 +281,45 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
 
   const freqSessions = weeklyFrequency > 0 ? Math.max(1, Math.round(weeklyFrequency)) : 0
   const freqLabel    = freqSessions > 0 ? `${freqSessions}×/wk` : null
-  const freqColor    = freqSessions >= 2 ? 'text-[#CCFF00] bg-[#CCFF00]/10' : 'text-yellow-400 bg-yellow-400/10'
+  const freqStyle    = freqSessions >= 2
+    ? { color: 'var(--teal)', background: 'rgba(127,217,200,0.10)' }
+    : { color: '#facc15',     background: 'rgba(250,204,21,0.10)'  }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', styles.dot)} />
-          <span className="text-xs font-black uppercase tracking-tight text-white truncate">
+          <span className="text-xs font-semibold uppercase tracking-tight truncate" style={{ color: 'var(--text-hi)' }}>
             {muscleGroup}
           </span>
           {freqLabel && (
-            <span className={cn('text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0', freqColor)}>
+            <span
+              className="text-[8px] font-medium uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0"
+              style={freqStyle}
+            >
               {freqLabel}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] tabular-nums text-[#adb4ce] font-black">
+          <span className="text-[10px] tabular-nums font-medium" style={{ color: 'var(--text-mid)' }}>
             {setCount}
-            <span className="text-[#334155] font-body ml-1">/ MEV {landmarks.mev} · MAV {landmarks.mav.max}</span>
+            <span className="ml-1" style={{ color: 'var(--text-faint)' }}>/ MEV {landmarks.mev} · MAV {landmarks.mav.max}</span>
           </span>
-          <span className={cn('text-[8px] font-black uppercase tracking-widest w-[60px] text-right', styles.text)}>
+          <span className={cn('text-[8px] font-semibold uppercase tracking-widest w-[60px] text-right', styles.text)}>
             {styles.label}
           </span>
         </div>
       </div>
 
-      <div className="relative h-2 bg-[#0c1324] rounded-full overflow-visible">
+      <div className="relative h-2 rounded-full overflow-visible" style={{ background: 'var(--bg-1)' }}>
         <div className="absolute top-0 h-full bg-orange-400/15 rounded-full"
              style={{ left: `${mvPct}%`, width: `${Math.max(0, mevPct - mvPct)}%` }} />
         <div className="absolute top-0 h-full bg-yellow-400/20"
              style={{ left: `${mevPct}%`, width: `${Math.max(0, mavMinPct - mevPct)}%` }} />
-        <div className="absolute top-0 h-full bg-[#CCFF00]/30"
-             style={{ left: `${mavMinPct}%`, width: `${Math.max(0, mavMaxPct - mavMinPct)}%` }} />
+        <div className="absolute top-0 h-full"
+             style={{ left: `${mavMinPct}%`, width: `${Math.max(0, mavMaxPct - mavMinPct)}%`, background: 'rgba(127,217,200,0.25)' }} />
         <div className="absolute top-0 h-full bg-orange-400/20"
              style={{ left: `${mavMaxPct}%`, width: `${Math.max(0, mrvPct - mavMaxPct)}%` }} />
         <div className="absolute top-0 h-full bg-red-500/30 rounded-r-full"

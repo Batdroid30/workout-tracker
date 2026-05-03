@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Lexend } from "next/font/google";
+import { Space_Grotesk, Lexend, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { DialogProvider } from "@/providers/DialogProvider";
 import { ToastProvider } from "@/providers/ToastProvider";
@@ -13,39 +13,39 @@ const spaceGrotesk = Space_Grotesk({
 const lexend = Lexend({
   variable: "--font-lexend",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  weight: ["300", "400", "500", "600", "700"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
 });
 
 export const metadata: Metadata = {
   title: "Lifts",
-  description: "Track your lifts, PRs, and progress. Engineered for athletes.",
+  description: "A quieter strength for the long game.",
   manifest: "/manifest.json",
-  // ── Icons ──────────────────────────────────────────────────────────────────
-  // favicon-32 → browser tab
-  // apple-icon → iOS "Add to Home Screen" bookmark
-  // icon-192   → Android PWA install prompt
   icons: {
-    icon:             [{ url: "/icons/favicon-32.png",    sizes: "32x32",   type: "image/png" }],
-    apple:            [{ url: "/icons/apple-icon-180.png", sizes: "180x180", type: "image/png" }],
-    shortcut:         [{ url: "/icons/favicon-32.png" }],
+    icon:     [{ url: "/icons/favicon-32.png",     sizes: "32x32",   type: "image/png" }],
+    apple:    [{ url: "/icons/apple-icon-180.png", sizes: "180x180", type: "image/png" }],
+    shortcut: [{ url: "/icons/favicon-32.png" }],
   },
-  // ── iOS PWA behaviour ──────────────────────────────────────────────────────
   appleWebApp: {
-    capable:         true,
-    statusBarStyle:  "black-translucent",
-    title:           "Lifts",
-    startupImage:    "/icons/icon-512.png",
+    capable:        true,
+    statusBarStyle: "black-translucent",
+    title:          "Lifts",
+    startupImage:   "/icons/icon-512.png",
   },
-  // ── Open Graph (share previews) ───────────────────────────────────────────
   openGraph: {
     title:       "Lifts — Workout Tracker",
-    description: "Track your lifts, PRs, and progress.",
+    description: "A quieter strength for the long game.",
     images:      [{ url: "/icons/icon-512.png" }],
   },
 };
 
 export const viewport = {
-  themeColor: "#070d1f",
+  themeColor: "#0b0804",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -60,14 +60,35 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${lexend.variable} h-full antialiased dark`}
+      data-theme="warm"
+      className={`${spaceGrotesk.variable} ${lexend.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col bg-[#070d1f] text-[#dce1fb] font-sans selection:bg-[#CCFF00] selection:text-[#020617]">
-        <DialogProvider>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
-        </DialogProvider>
+      <body className="min-h-full flex flex-col bg-[var(--bg-0)] text-[var(--text-hi)] font-sans selection:bg-[var(--accent)] selection:text-[var(--accent-on)]">
+        {/* Aurora — wallpaper, never signal */}
+        <div className="aurora-page" aria-hidden>
+          <div className="aurora-orb a" />
+          <div className="aurora-orb b" />
+          <div className="aurora-orb c" />
+          <div className="aurora-grain" />
+        </div>
+
+        {/*
+          Page gradient — scrolls with content so every glass card on the page
+          sees warm amber behind it, not just the ones at the very top of the viewport.
+          Fades: amber-tinted dark at top → transparent at ~480px → pure bg-0 below.
+        */}
+        <div
+          className="relative z-[1] flex-1 flex flex-col min-h-full"
+          style={{
+            background: 'linear-gradient(180deg, rgba(200,100,28,0.13) 0%, rgba(200,100,28,0.04) 280px, transparent 480px)',
+          }}
+        >
+          <DialogProvider>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </DialogProvider>
+        </div>
       </body>
     </html>
   );
