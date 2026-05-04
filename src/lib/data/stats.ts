@@ -181,17 +181,14 @@ export async function evaluateAndSavePRs(
   // Use admin client to bypass RLS — we already verified ownership in the action
   const supabase = getSupabaseAdmin()
 
-  // Fetch existing PRs WITH their DB ids — same pattern as evaluateAndSaveAllPRs.
-  // Upsert by id (when record exists) is reliable; onConflict column names are
-  // fragile because they depend on the exact constraint name Supabase registered.
   const { data: existingPRs } = await supabase
     .from('personal_records')
-    .select('id, exercise_id, pr_type, value')
+    .select('exercise_id, pr_type, value')
     .eq('user_id', userId)
 
-  const prMap = new Map<string, { value: number; dbId: string | null }>()
+  const prMap = new Map<string, number>()
   existingPRs?.forEach(pr => {
-    prMap.set(`${pr.exercise_id}|${pr.pr_type}`, { value: Number(pr.value), dbId: pr.id })
+    prMap.set(`${pr.exercise_id}|${pr.pr_type}`, Number(pr.value))
   })
 
   const brokenPRs: PREvaluationResult[] = []
@@ -202,7 +199,6 @@ export async function evaluateAndSavePRs(
   // Without this, the batch upsert would contain two INSERT attempts for
   // the same (user_id, exercise_id, pr_type) and hit the unique constraint.
   type PRInsert = {
-    id?:         string
     user_id:     string
     exercise_id: string
     pr_type:     string
@@ -226,8 +222,7 @@ export async function evaluateAndSavePRs(
 
     for (const check of checks) {
       const key          = `${set.exerciseId}|${check.type}`
-      const current      = prMap.get(key)
-      const currentValue = current?.value ?? 0
+      const currentValue = prMap.get(key) ?? 0
 
       if (check.value > currentValue) {
         brokenPRs.push({
@@ -238,7 +233,7 @@ export async function evaluateAndSavePRs(
         })
         // Advance the local bar — subsequent sets in this workout compare
         // against the new value, not the old DB value.
-        prMap.set(key, { value: check.value, dbId: current?.dbId ?? null })
+        prMap.set(key, check.value)
 
         // Overwrite any earlier entry for this key so only the highest
         // value from this workout session ends up in the batch.
@@ -251,7 +246,6 @@ export async function evaluateAndSavePRs(
           set_id:      set.id,
           achieved_at: achievedAt,
         }
-        if (current?.dbId) entry.id = current.dbId
         upsertMap.set(key, entry)
       }
     }
@@ -310,15 +304,9 @@ export async function evaluateAndSaveAllPRs(userId: string): Promise<void> {
     }
   }
 
-  const { data: existingPRs } = await supabase.from('personal_records').select('id, exercise_id, pr_type').eq('user_id', userId)
-  const existingPRMap = new Map<string, string>()
-  existingPRs?.forEach(pr => { existingPRMap.set(`${pr.exercise_id}|${pr.pr_type}`, pr.id) })
-
   const newPRsToUpsert = Array.from(prMap.entries()).map(([key, data]) => {
     const [exercise_id, pr_type] = key.split('|')
-    const existingId = existingPRMap.get(key)
     return {
-      ...(existingId ? { id: existingId } : {}),
       user_id: userId, exercise_id, pr_type,
       value: data.value, reps: data.reps, set_id: data.set_id, achieved_at: data.achieved_at,
     }
