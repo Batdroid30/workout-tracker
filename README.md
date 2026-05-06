@@ -91,5 +91,3 @@ Security is enforced at the DB level.
 3. **Social Layers**: Implement "Training Squads" using Supabase Realtime for shared live workouts.
 
 ---
-
-*Handed over with confidence. Go build something great.*
