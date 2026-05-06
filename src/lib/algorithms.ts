@@ -1,5 +1,5 @@
 import type { WeeklyVolume, TrainingGoal, ExperienceLevel, TrainingPhase } from '@/types/database'
-import { REP_RANGES, WEIGHT_INCREMENTS, DELOAD_THRESHOLDS } from '@/lib/workout-intelligence'
+import { REP_RANGES, WEIGHT_INCREMENTS, DELOAD_THRESHOLDS, STALL_THRESHOLD_PCT } from '@/lib/workout-intelligence'
 
 /**
  * Weekly training summary — one entry per calendar week.
@@ -249,4 +249,126 @@ export function generateDeloadRoutine(loads: RecentExerciseLoad[]): DeloadPrescr
     weight_kg:    roundToPlate(load.lastWeight * 0.6),
     reps:         Math.max(5, load.lastReps - 2),
   }))
+}
+
+// ─── Per-exercise coach insights ──────────────────────────────────────────────
+//
+// Pure function — no DB, no async. Receives the progression array already
+// fetched by getExerciseProgression() and returns 1–3 actionable tips.
+//
+// Signals analysed (in priority order):
+//   1. e1RM trend      — last 4 sessions vs previous 4 (positive/stall/decline)
+//   2. Peak proximity  — how far the current e1RM is from the all-time best
+//   3. Volume trend    — session volume trajectory across the last 4 sessions
+//   4. Frequency       — sessions per week over the last 30 days
+
+export interface ExerciseInsight {
+  type: 'positive' | 'warning' | 'info'
+  message: string
+}
+
+export function deriveExerciseInsights(
+  progression: { date: string; maxWeight: number; best1RM: number; volume: number }[],
+  experienceLevel: ExperienceLevel | null = null,
+): ExerciseInsight[] {
+  if (progression.length < 3) return []
+
+  const insights: ExerciseInsight[] = []
+  const sorted      = [...progression].sort((a, b) => a.date.localeCompare(b.date))
+  const allTimePeak = Math.max(...sorted.map(p => p.best1RM))
+  const current     = sorted[sorted.length - 1]
+  const pctFromPeak = (current.best1RM / allTimePeak) * 100
+
+  // ── Signal 1: e1RM trend (last 4 sessions vs previous 4) ─────────────────
+  const last4 = sorted.slice(-4)
+  const prev4 = sorted.slice(-8, -4)
+
+  if (prev4.length >= 2) {
+    const recentAvg  = last4.reduce((s, p) => s + p.best1RM, 0) / last4.length
+    const prevAvg    = prev4.reduce((s, p) => s + p.best1RM, 0) / prev4.length
+    const changePct  = ((recentAvg - prevAvg) / prevAvg) * 100
+    // Use the experience-appropriate threshold so a beginner needs more change
+    // to be "healthy" than an advanced lifter, matching STALL_THRESHOLD_PCT.
+    const stallFloor = STALL_THRESHOLD_PCT[experienceLevel ?? 'intermediate']
+
+    if (changePct >= stallFloor * 2) {
+      insights.push({
+        type: 'positive',
+        message: `e1RM is up ${changePct.toFixed(1)}% over your last 8 sessions — strong upward trend. Keep pushing the top of your rep range before adding weight.`,
+      })
+    } else if (changePct < -2) {
+      insights.push({
+        type: 'warning',
+        message: `e1RM has dropped ${Math.abs(changePct).toFixed(1)}% recently. Accumulated fatigue is likely — consider a deload week for this lift specifically before pushing heavy again.`,
+      })
+    } else if (changePct < stallFloor) {
+      insights.push({
+        type: 'warning',
+        message: `Progress has plateaued over your last ${last4.length} sessions. Try shifting to a lower rep range (3–5) for 3 weeks to drive new strength, or swap to a variation that hits the same muscle from a different angle.`,
+      })
+    } else {
+      insights.push({
+        type: 'positive',
+        message: `Steady progress — e1RM up ${changePct.toFixed(1)}% over your last 8 sessions. Stay consistent with your current rep range.`,
+      })
+    }
+  } else {
+    // Not enough history for a block comparison — show overall gain instead
+    const first   = sorted[0]
+    const gainPct = ((current.best1RM - first.best1RM) / first.best1RM) * 100
+    if (gainPct > 0) {
+      insights.push({
+        type: 'positive',
+        message: `Up ${gainPct.toFixed(1)}% from your first session — keep building. Log a few more sessions to unlock trend analysis.`,
+      })
+    }
+  }
+
+  // ── Signal 2: peak proximity ──────────────────────────────────────────────
+  if (pctFromPeak >= 99) {
+    insights.push({
+      type: 'positive',
+      message: `You're at your all-time best e1RM. A new PR may be within reach — consider a peak week: work up to a heavy triple or double with crisp technique.`,
+    })
+  } else if (pctFromPeak < 88 && sorted.length >= 6) {
+    insights.push({
+      type: 'warning',
+      message: `Current e1RM is ${(100 - pctFromPeak).toFixed(0)}% below your all-time best. Check recovery: sleep quality, calorie intake, and stress all have a direct impact on performance.`,
+    })
+  }
+
+  // ── Signal 3: session volume trend (last 4 sessions) ─────────────────────
+  if (last4.length >= 3) {
+    const vols        = last4.map(p => p.volume)
+    const volFirst    = vols[0]
+    const volLast     = vols[vols.length - 1]
+    const volDeltaPct = volFirst > 0 ? ((volLast - volFirst) / volFirst) * 100 : 0
+
+    if (volDeltaPct >= 15) {
+      insights.push({
+        type: 'positive',
+        message: `Session volume is up ${volDeltaPct.toFixed(0)}% — you're handling significantly more total work, which is a primary driver of hypertrophy.`,
+      })
+    } else if (volDeltaPct < -20) {
+      insights.push({
+        type: 'info',
+        message: `Session volume has dropped ${Math.abs(volDeltaPct).toFixed(0)}% recently. If you're focusing on heavier intensity work, that's intentional and fine — otherwise it may signal fatigue or motivation dips.`,
+      })
+    }
+  }
+
+  // ── Signal 4: training frequency (last 30 days) ───────────────────────────
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]
+  const recentCount   = sorted.filter(p => p.date >= thirtyDaysAgo).length
+  const freqPerWeek   = recentCount / 4.3  // 30 days ≈ 4.3 weeks
+
+  if (recentCount >= 2 && freqPerWeek < 0.8) {
+    insights.push({
+      type: 'info',
+      message: `You're training this exercise roughly ${Math.round(recentCount)}× per month. Increasing to 2× per week typically doubles the rate of strength adaptation for most lifters.`,
+    })
+  }
+
+  // Cap at 3 — more than that becomes noise rather than signal
+  return insights.slice(0, 3)
 }

@@ -1,6 +1,7 @@
 import { ArrowLeft, Clock, Dumbbell, Trophy } from 'lucide-react'
 import Link from 'next/link'
 import { getWorkoutById } from '@/lib/data/workouts'
+import { getWorkoutSetPRs } from '@/lib/data/stats'
 import { notFound } from 'next/navigation'
 import { DeleteWorkoutButton } from '@/components/workout/DeleteWorkoutButton'
 import { DuplicateWorkoutButton } from '@/components/workout/DuplicateWorkoutButton'
@@ -16,25 +17,8 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
 
   if (!workout) notFound()
 
-  const { getSupabaseServer } = await import('@/lib/supabase/server')
-  const supabase = await getSupabaseServer()
-
   const setIds = workout.workout_exercises.flatMap((we: any) => we.sets?.map((s: any) => s.id) || [])
-
-  const { data: prs } = await supabase
-    .from('personal_records')
-    .select('pr_type, set_id')
-    .in('set_id', setIds)
-
-  const prMap = new Map<string, string[]>()
-  if (prs) {
-    prs.forEach(pr => {
-      if (pr.set_id) {
-        const existing = prMap.get(pr.set_id) || []
-        prMap.set(pr.set_id, [...existing, pr.pr_type])
-      }
-    })
-  }
+  const prMap = await getWorkoutSetPRs(setIds)
 
   const workoutVolume = workout.workout_exercises.reduce((acc: number, we: any) => {
     const weVolume = we.sets?.reduce((sAcc: number, set: any) => sAcc + (set.weight_kg * set.reps), 0) || 0
