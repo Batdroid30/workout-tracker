@@ -3,6 +3,7 @@ import { Space_Grotesk, Lexend, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { DialogProvider } from "@/providers/DialogProvider";
 import { ToastProvider } from "@/providers/ToastProvider";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -61,6 +62,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme="warm"
+      suppressHydrationWarning
       className={`${spaceGrotesk.variable} ${lexend.variable} ${geistMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col bg-[var(--bg-0)] text-[var(--text-hi)] font-sans selection:bg-[var(--accent)] selection:text-[var(--accent-on)]">
@@ -78,16 +80,18 @@ export default function RootLayout({
           Fades: amber-tinted dark at top → transparent at ~480px → pure bg-0 below.
         */}
         <div
-          className="relative z-[1] flex-1 flex flex-col min-h-full"
+          className="page-gradient relative z-[1] flex-1 flex flex-col min-h-full"
           style={{
             background: 'linear-gradient(180deg, rgba(200,100,28,0.13) 0%, rgba(200,100,28,0.04) 280px, transparent 480px)',
           }}
         >
-          <DialogProvider>
-            <ToastProvider>
-              {children}
-            </ToastProvider>
-          </DialogProvider>
+          <ThemeProvider>
+            <DialogProvider>
+              <ToastProvider>
+                {children}
+              </ToastProvider>
+            </DialogProvider>
+          </ThemeProvider>
         </div>
       </body>
     </html>

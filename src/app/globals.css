@@ -52,6 +52,27 @@
   --t-unfold: 500ms ease;
 }
 
+/* ─── AMOLED theme overrides ────────────────────────────────────────────────
+   Pure-black surfaces for OLED power saving. Glass effects and radii are
+   unchanged — only the backgrounds and aurora are swapped out.
+   ─────────────────────────────────────────────────────────────────────────── */
+[data-theme="amoled"] {
+  --bg-0: #000000;
+  --bg-1: #0a0a0a;
+  --bg-2: #111111;
+
+  /* More opaque glass — pure black has no backdrop to blur through */
+  --glass-fill:           rgba(255, 255, 255, 0.07);
+  --glass-fill-strong:    rgba(255, 255, 255, 0.12);
+  --glass-border:         rgba(255, 255, 255, 0.14);
+  --glass-border-strong:  rgba(255, 255, 255, 0.24);
+  --glass-highlight:      rgba(255, 255, 255, 0.28);
+}
+
+/* Hide aurora and neutralise the warm gradient wash in AMOLED mode */
+[data-theme="amoled"] .aurora-page   { display: none; }
+[data-theme="amoled"] .page-gradient { background: none !important; }
+
 /* Tailwind v4 theme bridge — exposes tokens as Tailwind utilities */
 @theme inline {
   --font-display: var(--font-space-grotesk), system-ui, sans-serif;
