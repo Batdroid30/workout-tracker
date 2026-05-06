@@ -78,6 +78,32 @@ export const getExerciseProgression = cache(async (userId: string, exerciseId: s
   return { prs: prs || [], progression: progressionData }
 })
 
+/**
+ * Returns a map of set_id → PR types achieved on that set.
+ * Used by the workout history detail page to badge individual sets.
+ * Short-circuits on empty input — no query issued.
+ */
+export async function getWorkoutSetPRs(setIds: string[]): Promise<Map<string, string[]>> {
+  if (setIds.length === 0) return new Map()
+
+  const supabase = getSupabaseAdmin()
+  const { data, error } = await supabase
+    .from('personal_records')
+    .select('pr_type, set_id')
+    .in('set_id', setIds)
+
+  if (error) throw new Error(`Failed to fetch workout PRs: ${error.message}`)
+
+  const prMap = new Map<string, string[]>()
+  data?.forEach(pr => {
+    if (!pr.set_id) return
+    const existing = prMap.get(pr.set_id) ?? []
+    prMap.set(pr.set_id, [...existing, pr.pr_type])
+  })
+
+  return prMap
+}
+
 export const getTopPersonalRecords = cache(async (userId: string): Promise<TopPR[]> => {
   const supabase = getSupabaseAdmin()
 

@@ -1,24 +1,27 @@
-import { getSupabaseServer } from '@/lib/supabase/server'
 import { auth } from '@/lib/auth'
 import { getExerciseProgression } from '@/lib/data/stats'
+import { getProfile } from '@/lib/data/profile'
+import { getExerciseById } from '@/lib/data/exercises'
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { ArrowLeft, Trophy } from 'lucide-react'
+import { Trophy, TrendingUp, AlertTriangle, Info } from 'lucide-react'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
+import { BackButton } from '@/components/ui/BackButton'
 import { ExerciseMetaEditor } from '@/components/exercises/ExerciseMetaEditor'
-import type { MuscleGroup, MovementPattern } from '@/types/database'
+import { deriveExerciseInsights } from '@/lib/algorithms'
+import type { MuscleGroup, MovementPattern, ExperienceLevel } from '@/types/database'
 
 export default async function ExerciseDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const session = await auth()
   const userId  = session?.user?.id as string
 
-  const supabase = await getSupabaseServer()
-  const { data: exercise } = await supabase.from('exercises').select('*').eq('id', id).single()
+  const [exercise, { prs, progression }, profile] = await Promise.all([
+    getExerciseById(id),
+    getExerciseProgression(userId, id),
+    getProfile(userId),
+  ])
 
   if (!exercise) notFound()
-
-  const { prs, progression } = await getExerciseProgression(userId, id)
 
   const current1RM           = progression.length > 0 ? progression[progression.length - 1].best1RM : null
   const best1RMFromHistory   = progression.length > 0 ? Math.max(...progression.map(p => p.best1RM))   : null
@@ -31,6 +34,12 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
 
   const chartData1RM    = progression.map(p => ({ date: p.date, value: p.best1RM }))
   const chartDataWeight = progression.map(p => ({ date: p.date, value: p.maxWeight }))
+  const chartDataVolume = progression.map(p => ({ date: p.date, value: Math.round(p.volume) }))
+
+  const insights = deriveExerciseInsights(
+    progression,
+    (profile?.experience_level as ExperienceLevel | null) ?? null,
+  )
 
   return (
     <div className="min-h-screen pb-24" style={{ color: 'var(--text-hi)' }}>
@@ -44,13 +53,7 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
           borderBottom: '1px solid var(--glass-border)',
         }}
       >
-        <Link
-          href="/exercises"
-          className="p-2.5 rounded-[var(--radius-inner)] transition-colors hover:bg-white/[0.06]"
-          style={{ color: 'var(--text-mid)' }}
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
+        <BackButton />
         <div className="flex-1 min-w-0">
           <h1
             className="text-sm font-semibold uppercase tracking-widest leading-tight truncate"
@@ -135,6 +138,18 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
           </section>
         )}
 
+        {/* ── Session Volume chart ──────────────────────────────────── */}
+        {chartDataVolume.length > 1 && (
+          <section>
+            <h2 className="t-label mb-3">Session Volume</h2>
+            <div className="glass p-4">
+              <div className="h-[180px] w-full">
+                <ProgressionLineChart data={chartDataVolume} color="#a78bfa" formatType="volume" />
+              </div>
+            </div>
+          </section>
+        )}
+
         {progression.length <= 1 && (
           <div
             className="glass p-8 text-center"
@@ -144,6 +159,40 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
               Log this exercise at least twice to see progression charts.
             </p>
           </div>
+        )}
+
+        {/* ── Coach Insights ────────────────────────────────────────── */}
+        {insights.length > 0 && (
+          <section>
+            <h2 className="t-label mb-3">Coach Insights</h2>
+            <div className="space-y-2">
+              {insights.map((insight, i) => (
+                <div key={i} className="glass p-4 flex items-start gap-3">
+                  {insight.type === 'positive' && (
+                    <TrendingUp
+                      className="w-4 h-4 mt-0.5 shrink-0"
+                      style={{ color: 'var(--accent)' }}
+                    />
+                  )}
+                  {insight.type === 'warning' && (
+                    <AlertTriangle
+                      className="w-4 h-4 mt-0.5 shrink-0"
+                      style={{ color: '#f59e0b' }}
+                    />
+                  )}
+                  {insight.type === 'info' && (
+                    <Info
+                      className="w-4 h-4 mt-0.5 shrink-0"
+                      style={{ color: 'var(--text-mid)' }}
+                    />
+                  )}
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-mid)' }}>
+                    {insight.message}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
       </div>
     </div>
