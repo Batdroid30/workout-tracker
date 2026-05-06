@@ -450,7 +450,9 @@ export function buildThisWeekMissions(input: BuildMissionsInput): Mission[] {
       priority: 'high',
       icon:     '📉',
       headline: `${s.exerciseName} is stalled`,
-      detail:   `${sign}${s.pctPerWeek.toFixed(1)}%/wk over 3 weeks. Switch rep range — try 5×5 if you've been doing 8–12, or vice versa.`,
+      detail:   s.advice.length > 0
+        ? `${sign}${s.pctPerWeek.toFixed(1)}%/wk over 3 weeks. ${s.advice[0]}`
+        : `${sign}${s.pctPerWeek.toFixed(1)}%/wk over 3 weeks. Switch rep range — try 5×5 if you've been doing 8–12, or vice versa.`,
     })
   }
 

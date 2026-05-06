@@ -6,7 +6,9 @@ import { suggestNextSet, type OverloadSuggestion } from '@/lib/algorithms'
 
 export interface LastWorkoutSetInfo {
   weight_kg: number
-  reps: number
+  reps:      number
+  /** RPE logged on this set last session — fed into the overload suggestion. */
+  rpe?:      number
   /** Progressive-overload suggestion for this set position. */
   suggestion: OverloadSuggestion
 }
@@ -22,6 +24,7 @@ async function fetchLastWorkoutSets(exerciseId: string): Promise<LastWorkoutSetI
     .select(`
       weight_kg,
       reps,
+      rpe,
       set_number,
       is_warmup,
       completed_at,
@@ -58,9 +61,15 @@ async function fetchLastWorkoutSets(exerciseId: string): Promise<LastWorkoutSetI
     .filter((set: any) => resolveWorkoutId(set) === latestWorkoutId)
     .sort((a: any, b: any) => (a.set_number ?? 0) - (b.set_number ?? 0))
     .map((set: any) => {
-      const w = Number(set.weight_kg)
-      const r = Number(set.reps)
-      return { weight_kg: w, reps: r, suggestion: suggestNextSet({ lastWeight: w, lastReps: r }) }
+      const w   = Number(set.weight_kg)
+      const r   = Number(set.reps)
+      const rpe = set.rpe != null ? Number(set.rpe) : undefined
+      return {
+        weight_kg: w,
+        reps:      r,
+        rpe,
+        suggestion: suggestNextSet({ lastWeight: w, lastReps: r, lastRPE: rpe }),
+      }
     })
 }
 

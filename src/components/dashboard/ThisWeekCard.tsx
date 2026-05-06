@@ -7,6 +7,7 @@ import { updateWeeklyGoalAction } from '@/app/(app)/profile/actions'
 import { cn } from '@/lib/utils'
 import type { Mission, MissionPriority } from '@/lib/data/phase-coach'
 import type { WeeklySummary, NextWorkoutSuggestion } from '@/lib/data/insights'
+import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 
 interface ThisWeekCardProps {
   thisWeekCount:  number
@@ -36,6 +37,7 @@ export function ThisWeekCard({
   const sessionPct = Math.min(100, Math.round((thisWeekCount / goalSessions) * 100))
   const reached    = thisWeekCount >= goalSessions
   const remaining  = Math.max(0, goalSessions - thisWeekCount)
+  const dupScheme  = getCurrentDUPScheme()
 
   const saveGoal = () => {
     startTransition(async () => {
@@ -47,9 +49,19 @@ export function ThisWeekCard({
   return (
     <div className="glass border border-[var(--accent-line)] p-4">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
-        <Target className="w-3.5 h-3.5 text-[var(--accent)]" />
-        <h3 className="t-label">This Week</h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Target className="w-3.5 h-3.5 text-[var(--accent)]" />
+          <h3 className="t-label">This Week</h3>
+        </div>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--accent-soft)] border border-[var(--accent-line)]">
+          <span className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-widest">
+            {dupScheme.label}
+          </span>
+          <span className="text-[10px] text-[var(--text-low)]">
+            {dupScheme.repRange.min}–{dupScheme.repRange.max} reps
+          </span>
+        </div>
       </div>
 
       {/* Sessions + progress */}

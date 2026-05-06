@@ -16,6 +16,7 @@ import Link from 'next/link'
 import { useDialog } from '@/providers/DialogProvider'
 import { cn } from '@/lib/utils'
 import type { PREvaluationResult } from '@/lib/data/stats'
+import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 
 export default function WorkoutPage() {
   const router = useRouter()
@@ -161,6 +162,8 @@ export default function WorkoutPage() {
     }
   }
 
+  const dupScheme = getCurrentDUPScheme()
+
   if (summary) {
     return (
       <PostWorkoutSummary
@@ -200,7 +203,7 @@ export default function WorkoutPage() {
 
       {/* ── Sticky header ─────────────────────────────────────────────────── */}
       <div
-        className="sticky top-0 z-30 px-4 py-3 flex items-center justify-between"
+        className="sticky top-0 z-30 flex flex-col"
         style={{
           background: 'rgba(6,7,13,0.85)',
           backdropFilter: 'blur(20px)',
@@ -208,28 +211,48 @@ export default function WorkoutPage() {
           borderBottom: '1px solid var(--glass-border)',
         }}
       >
-        <div className="flex items-center gap-2 flex-1 mr-3">
-          <Link href="/dashboard" className="p-2 -ml-1 rounded-[var(--radius-inner)] text-[var(--text-low)] hover:text-[var(--text-hi)] hover:bg-white/[0.06] transition-colors">
-            <ChevronLeft className="w-5 h-5" />
-          </Link>
-          <input
-            type="text"
-            value={activeWorkout.title}
-            onChange={e => updateTitle(e.target.value)}
-            placeholder="Session title"
-            className="bg-transparent border-none text-[15px] font-semibold text-[var(--text-hi)] focus:ring-0 p-0 w-full placeholder:text-[var(--text-faint)] outline-none"
-          />
+        {/* Title row */}
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 flex-1 mr-3">
+            <Link href="/dashboard" className="p-2 -ml-1 rounded-[var(--radius-inner)] text-[var(--text-low)] hover:text-[var(--text-hi)] hover:bg-white/[0.06] transition-colors">
+              <ChevronLeft className="w-5 h-5" />
+            </Link>
+            <input
+              type="text"
+              value={activeWorkout.title}
+              onChange={e => updateTitle(e.target.value)}
+              placeholder="Session title"
+              className="bg-transparent border-none text-[15px] font-semibold text-[var(--text-hi)] focus:ring-0 p-0 w-full placeholder:text-[var(--text-faint)] outline-none"
+            />
+          </div>
+          <button
+            onClick={handleFinish}
+            disabled={isFinishing}
+            className={cn(
+              'h-9 px-4 rounded-[var(--radius-pill)] text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50',
+            )}
+            style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
+          >
+            {isFinishing ? 'Saving…' : 'Finish'}
+          </button>
         </div>
-        <button
-          onClick={handleFinish}
-          disabled={isFinishing}
-          className={cn(
-            'h-9 px-4 rounded-[var(--radius-pill)] text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50',
-          )}
-          style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-        >
-          {isFinishing ? 'Saving…' : 'Finish'}
-        </button>
+
+        {/* DUP week scheme pill */}
+        <div className="px-4 pb-2.5">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--accent-soft)] border border-[var(--accent-line)]">
+            <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">
+              {dupScheme.label}
+            </span>
+            <span className="w-px h-3 bg-[var(--accent-line)]" />
+            <span className="text-[10px] text-[var(--text-mid)] tabular-nums">
+              {dupScheme.repRange.min}–{dupScheme.repRange.max} reps
+            </span>
+            <span className="w-px h-3 bg-[var(--accent-line)]" />
+            <span className="text-[10px] text-[var(--text-low)]">
+              RPE {dupScheme.rpeTarget}
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className="p-4 space-y-2">
