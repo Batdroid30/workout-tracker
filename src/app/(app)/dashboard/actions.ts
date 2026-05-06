@@ -2,7 +2,7 @@
 
 import { auth } from '@/lib/auth'
 import { getRecentExerciseLoads } from '@/lib/data/insights'
-import { generateDeloadRoutine, type DeloadPrescription } from '@/lib/algorithms'
+import { generateDeloadRoutine, type DeloadPrescription, type FatigueAssessment } from '@/lib/algorithms'
 
 // ─── Deload routine ──────────────────────────────────────────────────────────
 //
@@ -11,10 +11,12 @@ import { generateDeloadRoutine, type DeloadPrescription } from '@/lib/algorithms
 // need a deload.
 //
 // userId comes from the server session — never trust a client-passed id.
-export async function getDeloadRoutineAction(): Promise<DeloadPrescription[]> {
+export async function getDeloadRoutineAction(
+  confidence: FatigueAssessment['confidence'] = 'medium',
+): Promise<DeloadPrescription[]> {
   const session = await auth()
   if (!session?.user?.id) return []
 
   const loads = await getRecentExerciseLoads(session.user.id)
-  return generateDeloadRoutine(loads)
+  return generateDeloadRoutine(loads, confidence)
 }

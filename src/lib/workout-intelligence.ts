@@ -20,7 +20,7 @@ import type {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type MovementKey = `${MuscleGroup}-${MovementPattern}`
+export type MovementKey = `${MuscleGroup}-${MovementPattern}`
 
 export interface SuccessorPattern {
   muscleGroup:     MuscleGroup
@@ -103,6 +103,21 @@ export const DELOAD_THRESHOLDS: Record<ExperienceLevel, Record<TrainingPhase, nu
   beginner:     { bulking: 8, cutting: 10, maingaining: 8  },
   intermediate: { bulking: 5, cutting: 7,  maingaining: 6  },
   advanced:     { bulking: 4, cutting: 6,  maingaining: 5  },
+}
+
+// ── Target RPE by training goal ───────────────────────────────────────────────
+//
+// Used by suggestNextSet() to calibrate whether last session's RPE was on
+// target, too hard, or too easy.
+//
+// Each RPE unit ≈ 2.5% of 1RM (Tuchscherer 2008).
+// Strength work tolerates higher RPE (closer to maximal effort).
+// Hypertrophy is most effective at RPE 7–8 — high effort but not failure.
+
+export const TARGET_RPE: Record<TrainingGoal, number> = {
+  strength: 8.5,  // near-maximal, 1–2 RIR
+  muscle:   7.5,  // moderate-high, 2–3 RIR
+  both:     8.0,
 }
 
 // ── Stall thresholds — minimum monthly e1RM progress before flagging ──────────
@@ -210,6 +225,137 @@ export const MOVEMENT_SUCCESSORS: Partial<Record<MovementKey, SuccessorPattern[]
   'core-carry': [
     { muscleGroup: 'core',     movementPattern: 'isolation',  priority: 1 },
   ],
+}
+
+// ── Stall variation advice — by movement pattern ─────────────────────────────
+//
+// When getStalledMovements() detects a plateau, these tips are attached to the
+// result so the coach card and mission detail can give concrete, actionable
+// advice rather than generic "switch rep range" copy.
+//
+// Each entry: 2–3 ordered tips (most impactful first).
+
+export const STALL_VARIATION_ADVICE: Partial<Record<MovementKey, string[]>> = {
+  'chest-push': [
+    'Shift to 3–5 rep range for 3 weeks — higher intensity drives new strength that carries back into volume work.',
+    'Add a 2-second pause at chest contact to eliminate the stretch reflex and build true pressing strength.',
+    'Try incline bench for 2–3 sessions to change the stimulus; upper-chest strength transfers back to flat.',
+  ],
+  'chest-isolation': [
+    'Increase time-under-tension with a 3-second eccentric on each rep.',
+    'Switch to cables — constant tension through the full range hits the pecs harder than a machine at lockout.',
+  ],
+  'back-pull': [
+    'Drop to 4–6 rep range for 3 weeks to build raw pulling strength before returning to volume work.',
+    'Try chest-supported rows to remove lower-back fatigue and isolate the mid-back directly.',
+    'Add a 1-second squeeze at full contraction — improves mind-muscle connection and motor recruitment.',
+  ],
+  'lats-pull': [
+    'Supinate your grip (underhand) to recruit more biceps and achieve a stronger peak contraction.',
+    'Try single-arm cable pulldowns to identify and fix side-to-side strength imbalances.',
+    'Add a dead-hang stretch between sets for a fuller range of motion and greater lat recruitment.',
+  ],
+  'back-hinge': [
+    'Switch to Romanian deadlifts for 3 weeks to build posterior-chain strength without compressive spinal load.',
+    'Try deficit deadlifts (2–4 cm) to extend the range and build strength from a deeper starting position.',
+    'Use a belt — it enables harder bracing and typically unlocks 5–10% more load immediately.',
+  ],
+  'shoulders-push': [
+    'Drop to 3–5 reps for 3 weeks to build overhead pressing strength that carries back into volume sets.',
+    'Switch to seated dumbbell press — each side works independently, exposing and fixing strength gaps.',
+    'Add a 2-second pause at the bottom position to build strength out of the hole.',
+  ],
+  'shoulders-isolation': [
+    'Drop weight 20% and focus on a strict 2-second eccentric — lateral raises respond better to tension than load.',
+    'Try cables instead of dumbbells for constant tension through the full arc.',
+    'Switch to prone incline lateral raises for rear-delt bias if front/rear balance is off.',
+  ],
+  'biceps-isolation': [
+    'Use a 3-second eccentric — biceps respond strongly to lengthened-position tension.',
+    'Try incline dumbbell curls for a greater stretch at the bottom and increased peak contraction.',
+    'Switch to hammer curls (neutral grip) to target the brachialis and add upper-arm thickness.',
+  ],
+  'triceps-isolation': [
+    'Try close-grip bench press — a compound tricep movement that allows far heavier loading than extensions.',
+    'Switch from pushdowns to overhead cable extensions to train the long head in its stretched position.',
+    'Add a 2-second pause at full extension to maximise the peak contraction.',
+  ],
+  'quads-squat': [
+    'Add pause squats (3 seconds in the hole) to build strength at the sticking point out of the bottom.',
+    'Include Bulgarian split squats — unilateral loading frequently breaks bilateral strength plateaus.',
+    'Try front squats or goblet squats to force a more upright torso and increase direct quad drive.',
+  ],
+  'quads-isolation': [
+    'Add a 2-second pause at full extension — peak contraction is the primary stimulus for the quads.',
+    'Shift to a higher rep range (15–20) with shorter rest to increase metabolic stress and hypertrophy.',
+  ],
+  'hamstrings-hinge': [
+    'Switch to single-leg RDLs for 2 weeks to correct side-to-side imbalances and improve hip stability.',
+    'Add a 2-second pause at the bottom of each rep for a deeper hamstring stretch and greater stimulus.',
+  ],
+  'hamstrings-isolation': [
+    'Perform leg curls with plantarflexed feet (toes pointed) to increase hamstring activation.',
+    'Use a 3-second eccentric — hamstrings respond strongly to lengthened-position tension.',
+  ],
+  'glutes-isolation': [
+    'Add a 1-second squeeze at the top of each rep — peak glute activation occurs at full hip extension.',
+    'Switch to single-leg variations to load each glute independently and address imbalances.',
+  ],
+  'traps-isolation': [
+    'Try dumbbell shrugs instead of a machine for greater range of motion and a stronger peak contraction.',
+    'Hold the top position for 1–2 seconds on each rep.',
+  ],
+  'core-isolation': [
+    'Add an isometric hold at the point of peak contraction on each rep.',
+    'Progress to weighted variations (cable crunches, weighted leg raises) once bodyweight feels easy.',
+  ],
+}
+
+// ── Daily Undulating Periodization (DUP) rep schemes ─────────────────────────
+//
+// Rotating rep schemes week-to-week produces better long-term results than
+// fixed rep ranges for intermediate and advanced lifters (Rhea et al., 2002).
+//
+// Cycle length: 3 weeks (strength → hypertrophy → metabolic stress → repeat).
+// Week index is derived from ISO week number modulo 3.
+
+export interface DUPScheme {
+  label:      string
+  repRange:   RepRange
+  rpeTarget:  number
+  rationale:  string
+}
+
+export const DUP_CYCLE: DUPScheme[] = [
+  {
+    label:     'Strength Week',
+    repRange:  { min: 3, max: 5 },
+    rpeTarget: 8.5,
+    rationale: 'Low reps, heavy load — drives neuromuscular adaptation and 1RM strength.',
+  },
+  {
+    label:     'Hypertrophy Week',
+    repRange:  { min: 8, max: 12 },
+    rpeTarget: 7.5,
+    rationale: 'Moderate reps, moderate load — maximises muscle protein synthesis.',
+  },
+  {
+    label:     'Volume Week',
+    repRange:  { min: 13, max: 20 },
+    rpeTarget: 7.0,
+    rationale: 'Higher reps, metabolic stress — builds work capacity and muscle endurance.',
+  },
+]
+
+/**
+ * Returns the DUP scheme for the current ISO week.
+ * The cycle resets every 3 weeks automatically — no user configuration needed.
+ */
+export function getCurrentDUPScheme(): DUPScheme {
+  const now       = new Date()
+  const startOfYear = new Date(now.getUTCFullYear(), 0, 1)
+  const isoWeek   = Math.ceil(((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getUTCDay() + 1) / 7)
+  return DUP_CYCLE[isoWeek % 3]
 }
 
 // ── Workout focus defaults — by muscle group ──────────────────────────────────

@@ -27,7 +27,7 @@ export function DeloadCard({ assessment }: DeloadCardProps) {
     if (routine !== null) return
     setGenerating(true)
     try {
-      const data = await getDeloadRoutineAction()
+      const data = await getDeloadRoutineAction(assessment.confidence)
       setRoutine(data)
     } finally {
       setGenerating(false)
@@ -88,22 +88,45 @@ export function DeloadCard({ assessment }: DeloadCardProps) {
       </InsightCard>
 
       {sheetOpen && (
-        <DeloadRoutineSheet routine={routine} isLoading={generating} onClose={() => setSheetOpen(false)} />
+        <DeloadRoutineSheet
+          routine={routine}
+          isLoading={generating}
+          confidence={assessment.confidence}
+          onClose={() => setSheetOpen(false)}
+        />
       )}
     </>
   )
 }
 
-function DeloadRoutineSheet({ routine, isLoading, onClose }: {
-  routine: DeloadPrescription[] | null
-  isLoading: boolean
-  onClose: () => void
+const DELOAD_SHEET_COPY: Record<FatigueAssessment['confidence'], { subtitle: string; description: string }> = {
+  low: {
+    subtitle:    'Light taper week',
+    description: 'Same exercises, same days. Work at 75% of your usual load for 3 sets — just enough to take the foot off the gas without losing any progress.',
+  },
+  medium: {
+    subtitle:    'Standard deload week',
+    description: 'Same exercises, same days. Drop to 65% of your usual load for 3 sets. This lets your joints, tendons and nervous system recover so you come back stronger.',
+  },
+  high: {
+    subtitle:    'Deep recovery week',
+    description: 'Strong fatigue signals detected. Work at 55% of your usual load for 2 sets per exercise — treat this week as restoration, not training. One week is all it takes.',
+  },
+}
+
+function DeloadRoutineSheet({ routine, isLoading, confidence, onClose }: {
+  routine:    DeloadPrescription[] | null
+  isLoading:  boolean
+  confidence: FatigueAssessment['confidence']
+  onClose:    () => void
 }) {
+  const copy = DELOAD_SHEET_COPY[confidence]
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[var(--bg-0)] lg:inset-y-0 lg:right-0 lg:left-auto lg:w-[500px] lg:border-l lg:border-[var(--glass-border)] animate-in slide-in-from-bottom duration-300">
       <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--glass-border)]">
         <div>
-          <p className="t-label mb-0.5">One week only</p>
+          <p className="t-label mb-0.5">{copy.subtitle}</p>
           <h2 className="t-display-s">Your deload week</h2>
         </div>
         <button onClick={onClose} className="p-2.5 hover:bg-white/[0.04] rounded-xl transition-colors text-[var(--text-mid)]" aria-label="Close">
@@ -113,7 +136,7 @@ function DeloadRoutineSheet({ routine, isLoading, onClose }: {
 
       <div className="flex-1 overflow-y-auto p-5">
         <p className="text-[12px] text-[var(--text-low)] mb-4 leading-relaxed">
-          Same days, same exercises. Just lighter — 60% of your last working weight, two fewer reps per set. Three sets each.
+          {copy.description}
         </p>
 
         {isLoading && (

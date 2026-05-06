@@ -2,6 +2,7 @@ import { cache } from 'react'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { calculateEpley1RM, type WeekSummary } from '@/lib/algorithms'
+import { STALL_VARIATION_ADVICE, type MovementKey } from '@/lib/workout-intelligence'
 import type { PRType } from '@/types/database'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -21,6 +22,8 @@ export interface StalledMovement {
    */
   pctPerWeek: number
   kgPerWeek:  number
+  /** Concrete variation/strategy tips derived from the exercise's movement pattern. */
+  advice: string[]
 }
 
 export interface RecentPR {
@@ -249,7 +252,7 @@ export const getStalledMovements = cache(async (userId: string): Promise<Stalled
     .select(`
       weight_kg, reps, is_warmup, completed_at,
       workout_exercises!inner (
-        exercise:exercises ( name ),
+        exercise:exercises ( name, muscle_group, movement_pattern ),
         workouts!inner ( user_id, started_at )
       )
     `)
@@ -260,7 +263,14 @@ export const getStalledMovements = cache(async (userId: string): Promise<Stalled
   if (error) throw new DatabaseError('Failed to fetch sets for stall analysis', error)
   if (!data || data.length === 0) return []
 
-  const exerciseMap: Record<string, { recentBest: number; previousBest: number; recentDates: Set<string>; previousDates: Set<string> }> = {}
+  const exerciseMap: Record<string, {
+    recentBest:     number
+    previousBest:   number
+    recentDates:    Set<string>
+    previousDates:  Set<string>
+    muscleGroup:    string
+    movementPattern: string
+  }> = {}
 
   data.forEach((set: any) => {
     if (!set.weight_kg || !set.reps) return
@@ -273,7 +283,14 @@ export const getStalledMovements = cache(async (userId: string): Promise<Stalled
     const setMs    = new Date(set.completed_at).getTime()
     const dateStr  = workout.started_at.split('T')[0] as string
     const isRecent = setMs >= threeWeeksAgoMs
-    if (!exerciseMap[key]) exerciseMap[key] = { recentBest: 0, previousBest: 0, recentDates: new Set(), previousDates: new Set() }
+    if (!exerciseMap[key]) exerciseMap[key] = {
+      recentBest:      0,
+      previousBest:    0,
+      recentDates:     new Set(),
+      previousDates:   new Set(),
+      muscleGroup:     exercise.muscle_group    ?? '',
+      movementPattern: exercise.movement_pattern ?? '',
+    }
     const ex = exerciseMap[key]
     if (isRecent) { if (e1rm > ex.recentBest) ex.recentBest = e1rm; ex.recentDates.add(dateStr) }
     else          { if (e1rm > ex.previousBest) ex.previousBest = e1rm; ex.previousDates.add(dateStr) }
@@ -291,15 +308,17 @@ export const getStalledMovements = cache(async (userId: string): Promise<Stalled
       // "0.2 kg/week" or "+0.5%/week", which the user can compare against
       // their goal-driven expected progression.
       const WEEKS_IN_WINDOW = 3
-      const totalKg = ex.recentBest - ex.previousBest
+      const totalKg    = ex.recentBest - ex.previousBest
       const pctPerWeek = (totalKg / ex.previousBest) * 100 / WEEKS_IN_WINDOW
       const kgPerWeek  = totalKg / WEEKS_IN_WINDOW
+      const movementKey = `${ex.muscleGroup}-${ex.movementPattern}` as MovementKey
       return {
         exerciseName: name,
         currentBest:  Math.round(ex.recentBest  * 10) / 10,
         previousBest: Math.round(ex.previousBest * 10) / 10,
         pctPerWeek:   Math.round(pctPerWeek * 100) / 100,
         kgPerWeek:    Math.round(kgPerWeek  * 100) / 100,
+        advice:       STALL_VARIATION_ADVICE[movementKey] ?? [],
       }
     })
     .sort((a, b) => a.pctPerWeek - b.pctPerWeek)  // worst (most negative) first

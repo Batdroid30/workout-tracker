@@ -1,5 +1,5 @@
 import type { WeeklyVolume, TrainingGoal, ExperienceLevel, TrainingPhase } from '@/types/database'
-import { REP_RANGES, WEIGHT_INCREMENTS, DELOAD_THRESHOLDS, STALL_THRESHOLD_PCT } from '@/lib/workout-intelligence'
+import { REP_RANGES, WEIGHT_INCREMENTS, DELOAD_THRESHOLDS, STALL_THRESHOLD_PCT, TARGET_RPE } from '@/lib/workout-intelligence'
 
 /**
  * Weekly training summary — one entry per calendar week.
@@ -150,17 +150,23 @@ export interface OverloadSuggestion {
 }
 
 interface SuggestNextSetParams {
-  lastWeight:      number
-  lastReps:        number
+  lastWeight:       number
+  lastReps:         number
+  /**
+   * RPE logged on this set last session.
+   * When provided, the suggestion is calibrated against TARGET_RPE for the
+   * user's goal — too hard means hold the weight, too easy means push harder.
+   */
+  lastRPE?:         number
   /** Compound lifts (squat, bench, row) use larger jumps than isolation. */
-  exerciseType?:   'compound' | 'isolation'
-  trainingGoal?:   TrainingGoal    | null
-  experienceLevel?:ExperienceLevel | null
+  exerciseType?:    'compound' | 'isolation'
+  trainingGoal?:    TrainingGoal    | null
+  experienceLevel?: ExperienceLevel | null
 }
 
 /**
- * Double-progression overload suggestion, personalised to the user's goal
- * and experience level.
+ * Progressive overload suggestion, personalised to the user's goal,
+ * experience level, and — when RPE data is available — last session's effort.
  *
  * Goal drives the rep range target:
  *   strength  → 3–6 reps, heavier weight jumps
@@ -171,10 +177,18 @@ interface SuggestNextSetParams {
  *   beginner     → +5kg compounds / +2.5kg isolation
  *   intermediate → +2.5kg / +1.25kg
  *   advanced     → +1.25kg / +1.25kg
+ *
+ * RPE calibration (when lastRPE is provided):
+ *   Each RPE unit ≈ 2.5% of 1RM (Tuchscherer 2008).
+ *   deviation = lastRPE − targetRPE
+ *   deviation > +1.5 → too hard: back off weight before progressing
+ *   deviation < −1.5 → too easy: progress more aggressively
+ *   otherwise        → standard double-progression
  */
 export function suggestNextSet({
   lastWeight,
   lastReps,
+  lastRPE,
   exerciseType    = 'compound',
   trainingGoal    = null,
   experienceLevel = null,
@@ -182,6 +196,42 @@ export function suggestNextSet({
   const range     = REP_RANGES[trainingGoal ?? 'muscle']
   const increment = WEIGHT_INCREMENTS[experienceLevel ?? 'intermediate'][exerciseType]
 
+  // ── RPE calibration ───────────────────────────────────────────────────────
+  if (lastRPE != null) {
+    const targetRPE = TARGET_RPE[trainingGoal ?? 'both']
+    const deviation = lastRPE - targetRPE
+
+    if (deviation > 1.5) {
+      // Last session was too hard — back off before adding load.
+      // Each unit over target ≈ 2.5% reduction, capped at 2 standard increments.
+      const backoffPct     = Math.min(deviation * 0.025, (increment * 2) / lastWeight)
+      const adjustedWeight = roundToPlate(lastWeight * (1 - backoffPct))
+      return {
+        weight_kg:   Math.max(adjustedWeight, lastWeight - increment * 2),
+        target_reps: range.min,
+        reason:      `RPE ${lastRPE} last session was above target — consolidate at reduced load before progressing.`,
+      }
+    }
+
+    if (deviation < -1.5) {
+      // Last session was too easy — progress more aggressively.
+      if (lastReps >= range.max) {
+        return {
+          weight_kg:   lastWeight + increment,
+          target_reps: range.min + 1, // start 1 above minimum since capacity is clearly there
+          reason:      `RPE ${lastRPE} was well below target — progress the load with confidence.`,
+        }
+      }
+      return {
+        weight_kg:   lastWeight,
+        target_reps: Math.min(lastReps + 2, range.max), // add 2 reps instead of 1
+        reason:      `RPE ${lastRPE} was below target — push for ${Math.min(lastReps + 2, range.max)} reps.`,
+      }
+    }
+    // deviation within ±1.5 → on target, fall through to standard double-progression
+  }
+
+  // ── Standard double-progression ──────────────────────────────────────────
   if (lastReps >= range.max) {
     return {
       weight_kg:   lastWeight + increment,
@@ -240,14 +290,39 @@ function roundToPlate(weight: number): number {
   return Math.max(0, Math.round(weight / 2.5) * 2.5)
 }
 
-export function generateDeloadRoutine(loads: RecentExerciseLoad[]): DeloadPrescription[] {
+// Deload depth scales with how fatigued the athlete actually is.
+// Research supports 40–60% load reduction; the exact depth depends on
+// accumulated fatigue. Over-deloading when the signal is weak causes
+// unnecessary detraining. Under-deloading when the signal is strong
+// fails to restore the CNS and joints.
+const DELOAD_PARAMS: Record<
+  FatigueAssessment['confidence'],
+  { intensityFactor: number; sets: number; repReduction: number }
+> = {
+  low:    { intensityFactor: 0.75, sets: 3, repReduction: 2 }, // light taper
+  medium: { intensityFactor: 0.65, sets: 3, repReduction: 2 }, // standard deload
+  high:   { intensityFactor: 0.55, sets: 2, repReduction: 3 }, // deep recovery week
+}
+
+/**
+ * Generates a one-week deload prescription from the user's recent training loads.
+ *
+ * @param loads       Most-recent working set per exercise (last 14 days).
+ * @param confidence  Fatigue assessment confidence — drives how deep the deload is.
+ *                    Defaults to 'medium' for the general deload prescription.
+ */
+export function generateDeloadRoutine(
+  loads:      RecentExerciseLoad[],
+  confidence: FatigueAssessment['confidence'] = 'medium',
+): DeloadPrescription[] {
+  const { intensityFactor, sets, repReduction } = DELOAD_PARAMS[confidence]
   return loads.map(load => ({
     exerciseId:   load.exerciseId,
     exerciseName: load.exerciseName,
     muscleGroup:  load.muscleGroup,
-    sets:         3,
-    weight_kg:    roundToPlate(load.lastWeight * 0.6),
-    reps:         Math.max(5, load.lastReps - 2),
+    sets,
+    weight_kg:    roundToPlate(load.lastWeight * intensityFactor),
+    reps:         Math.max(5, load.lastReps - repReduction),
   }))
 }
 
