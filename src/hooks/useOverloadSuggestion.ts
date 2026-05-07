@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { suggestNextSet, type OverloadSuggestion } from '@/lib/algorithms'
+import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 
 export interface OverloadInfo {
   suggestion: OverloadSuggestion | null
@@ -67,7 +68,8 @@ export function useOverloadSuggestion(exerciseId: string): OverloadInfo {
       const r = Number(lastSet.reps)
 
       if (!cancelled) {
-        setInfo({ lastWeight: w, lastReps: r, suggestion: suggestNextSet({ lastWeight: w, lastReps: r }) })
+        const dupRepRange = getCurrentDUPScheme().repRange
+        setInfo({ lastWeight: w, lastReps: r, suggestion: suggestNextSet({ lastWeight: w, lastReps: r, dupRepRange }) })
       }
     }
 

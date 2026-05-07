@@ -2,6 +2,7 @@ import { cache } from 'react'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { calculateEpley1RM, suggestNextSet } from '@/lib/algorithms'
+import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 import type { RecentExerciseLoad } from '@/lib/algorithms'
 import {
   getAdjustedLandmarks,
@@ -516,6 +517,8 @@ export function buildThisWeekMissions(input: BuildMissionsInput): Mission[] {
     .filter((entry): entry is { lift: KeyLift; load: RecentExerciseLoad } => !!entry.load)
     .slice(0, 2)
 
+  const dupScheme = getCurrentDUPScheme()
+
   for (const { lift, load } of overloadPicks) {
     const suggestion = suggestNextSet({
       lastWeight:      load.lastWeight,
@@ -523,6 +526,8 @@ export function buildThisWeekMissions(input: BuildMissionsInput): Mission[] {
       exerciseType:    'compound',
       trainingGoal:    input.profile?.training_goal    ?? null,
       experienceLevel: input.profile?.experience_level ?? null,
+      dupRepRange:     dupScheme.repRange,
+      dupRpeTarget:    dupScheme.rpeTarget,
     })
     missions.push({
       id:       `overload-${lift.exerciseId}`,

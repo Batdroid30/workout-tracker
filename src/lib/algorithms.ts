@@ -1,5 +1,5 @@
 import type { WeeklyVolume, TrainingGoal, ExperienceLevel, TrainingPhase } from '@/types/database'
-import { REP_RANGES, WEIGHT_INCREMENTS, DELOAD_THRESHOLDS, STALL_THRESHOLD_PCT, TARGET_RPE } from '@/lib/workout-intelligence'
+import { REP_RANGES, WEIGHT_INCREMENTS, DELOAD_THRESHOLDS, STALL_THRESHOLD_PCT, TARGET_RPE, type RepRange } from '@/lib/workout-intelligence'
 
 /**
  * Weekly training summary — one entry per calendar week.
@@ -162,6 +162,18 @@ interface SuggestNextSetParams {
   exerciseType?:    'compound' | 'isolation'
   trainingGoal?:    TrainingGoal    | null
   experienceLevel?: ExperienceLevel | null
+  /**
+   * When provided, overrides the goal-based rep range with today's DUP scheme
+   * target. This keeps suggestions coherent with the range shown in the
+   * workout header — they must always agree.
+   */
+  dupRepRange?:    RepRange | null
+  /**
+   * When provided, overrides the goal-based RPE target with the DUP scheme's
+   * rpeTarget for the current week. Prevents Volume Week (RPE 7.0) from being
+   * calibrated against a goal target (muscle=7.5, both=8.0) that doesn't match.
+   */
+  dupRpeTarget?:   number | null
 }
 
 /**
@@ -192,13 +204,17 @@ export function suggestNextSet({
   exerciseType    = 'compound',
   trainingGoal    = null,
   experienceLevel = null,
+  dupRepRange     = null,
+  dupRpeTarget    = null,
 }: SuggestNextSetParams): OverloadSuggestion {
-  const range     = REP_RANGES[trainingGoal ?? 'muscle']
+  // DUP scheme range takes precedence — keeps suggestions coherent with the
+  // week label and rep range shown in the workout header.
+  const range     = dupRepRange ?? REP_RANGES[trainingGoal ?? 'muscle']
   const increment = WEIGHT_INCREMENTS[experienceLevel ?? 'intermediate'][exerciseType]
 
   // ── RPE calibration ───────────────────────────────────────────────────────
   if (lastRPE != null) {
-    const targetRPE = TARGET_RPE[trainingGoal ?? 'both']
+    const targetRPE = dupRpeTarget ?? TARGET_RPE[trainingGoal ?? 'both']
     const deviation = lastRPE - targetRPE
 
     if (deviation > 1.5) {

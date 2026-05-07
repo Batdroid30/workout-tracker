@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getRoutines } from '@/lib/data/routines'
+import { getProfile } from '@/lib/data/profile'
 import { RoutineCard } from '@/components/routines/RoutineCard'
 import { Plus, Zap } from 'lucide-react'
 import Link from 'next/link'
@@ -15,7 +16,10 @@ export default async function RoutinesPage() {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const routines = await getRoutines(session.user.id)
+  const [routines, profile] = await Promise.all([
+    getRoutines(session.user.id),
+    getProfile(session.user.id),
+  ])
 
   return (
     <div className="min-h-screen p-5 pb-36">
@@ -30,7 +34,7 @@ export default async function RoutinesPage() {
 
       {/* ── Start empty session CTA ────────────────────────────── */}
       <div className="mb-7">
-        <StartEmptyWorkout />
+        <StartEmptyWorkout trainingPhase={profile?.training_phase ?? null} />
       </div>
 
       {/* ── Routines section ───────────────────────────────────── */}

@@ -17,10 +17,13 @@ import { useDialog } from '@/providers/DialogProvider'
 import { cn } from '@/lib/utils'
 import type { PREvaluationResult } from '@/lib/data/stats'
 import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
+import { WorkoutFocusSheet } from '@/components/workout/WorkoutFocusSheet'
+import { buildWorkoutTemplate } from '@/lib/template-generator'
+import type { Exercise } from '@/types/database'
 
 export default function WorkoutPage() {
   const router = useRouter()
-  const { activeWorkout, startWorkout, finishWorkout, discardWorkout, addExercise, updateTitle, completeAllSets } = useWorkoutStore()
+  const { activeWorkout, startWorkout, startFromTemplate, finishWorkout, discardWorkout, addExercise, updateTitle, completeAllSets } = useWorkoutStore()
   const dialog = useDialog()
 
   const handleDiscard = async () => {
@@ -55,12 +58,23 @@ export default function WorkoutPage() {
     setRestTimer(prev => ({ isVisible: true, seconds, key: prev.key + 1 }))
   }, [])
 
-  // Exercise cache + usage frequency for "suggest next" chips
+  // Focus sheet — shown on the "no active workout" landing screen
+  const [focusSheetOpen, setFocusSheetOpen] = useState(false)
+
+  const handleFocusPick = useCallback((exercises: Exercise[]) => {
+    setFocusSheetOpen(false)
+    if (exercises.length === 0) {
+      startWorkout()
+    } else {
+      startFromTemplate(buildWorkoutTemplate(exercises, null))
+    }
+  }, [startWorkout, startFromTemplate])
+
+  // Exercise cache + usage frequency for "suggest next" chips and focus sheet
   const loadExerciseCache = useExerciseStore(s => s.load)
   const [usageFrequency, setUsageFrequency] = useState<Record<string, number>>({})
 
   useEffect(() => {
-    if (!activeWorkout) return
     loadExerciseCache()
     getUserExerciseFrequency().then(setUsageFrequency)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -176,25 +190,34 @@ export default function WorkoutPage() {
 
   if (!activeWorkout) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-80px)] p-6 text-center">
-        <div
-          className="w-20 h-20 rounded-[var(--radius-card)] flex items-center justify-center mb-6"
-          style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }}
-        >
-          <Dumbbell className="w-8 h-8" style={{ color: 'var(--accent)' }} />
+      <>
+        <div className="flex flex-col items-center justify-center h-[calc(100vh-80px)] p-6 text-center">
+          <div
+            className="w-20 h-20 rounded-[var(--radius-card)] flex items-center justify-center mb-6"
+            style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }}
+          >
+            <Dumbbell className="w-8 h-8" style={{ color: 'var(--accent)' }} />
+          </div>
+          <h1 className="t-display-m mb-2">Ready to lift?</h1>
+          <p className="t-body mb-8 max-w-xs">
+            Start a blank session or pick a routine from the Workout tab.
+          </p>
+          <button
+            onClick={() => setFocusSheetOpen(true)}
+            className="h-12 px-8 rounded-[var(--radius-pill)] text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95"
+            style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
+          >
+            Start Session
+          </button>
         </div>
-        <h1 className="t-display-m mb-2">Ready to lift?</h1>
-        <p className="t-body mb-8 max-w-xs">
-          Start a blank session or pick a routine from the Workout tab.
-        </p>
-        <button
-          onClick={() => startWorkout()}
-          className="h-12 px-8 rounded-[var(--radius-pill)] text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95"
-          style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-        >
-          Start Empty Session
-        </button>
-      </div>
+
+        <WorkoutFocusSheet
+          isOpen={focusSheetOpen}
+          onClose={() => setFocusSheetOpen(false)}
+          usageFrequency={usageFrequency}
+          onPick={handleFocusPick}
+        />
+      </>
     )
   }
 

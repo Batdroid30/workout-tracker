@@ -7,6 +7,7 @@ interface WorkoutStore {
 
   // Actions
   startWorkout: (title?: string) => void
+  startFromTemplate: (exercises: ActiveExercise[], title?: string) => void
   startRoutine: (routine: any) => void
   copyWorkout: (pastWorkout: any) => void
   addExercise: (exercise: Exercise, restSeconds?: number) => void
@@ -37,6 +38,15 @@ export const useWorkoutStore = create<WorkoutStore>()(
           title,
           started_at: new Date(),
           exercises: [],
+        }
+      }),
+
+      startFromTemplate: (exercises, title = 'Workout') => set({
+        activeWorkout: {
+          id: null,
+          title,
+          started_at: new Date(),
+          exercises,
         }
       }),
 

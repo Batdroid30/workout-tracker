@@ -3,6 +3,7 @@
 import useSWR from 'swr'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { suggestNextSet, type OverloadSuggestion } from '@/lib/algorithms'
+import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 
 export interface LastWorkoutSetInfo {
   weight_kg: number
@@ -57,6 +58,8 @@ async function fetchLastWorkoutSets(exerciseId: string): Promise<LastWorkoutSetI
   // Keep only sets from that workout, then sort by position.
   // Cast to any[] here — the Supabase inferred type becomes too narrow after
   // chained array methods and all fields are accessed as numbers/strings anyway.
+  const dupScheme = getCurrentDUPScheme()
+
   return (data as any[])
     .filter((set: any) => resolveWorkoutId(set) === latestWorkoutId)
     .sort((a: any, b: any) => (a.set_number ?? 0) - (b.set_number ?? 0))
@@ -68,7 +71,7 @@ async function fetchLastWorkoutSets(exerciseId: string): Promise<LastWorkoutSetI
         weight_kg: w,
         reps:      r,
         rpe,
-        suggestion: suggestNextSet({ lastWeight: w, lastReps: r, lastRPE: rpe }),
+        suggestion: suggestNextSet({ lastWeight: w, lastReps: r, lastRPE: rpe, dupRepRange: dupScheme.repRange, dupRpeTarget: dupScheme.rpeTarget }),
       }
     })
 }
