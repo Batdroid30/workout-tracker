@@ -23,6 +23,8 @@ interface WorkoutStore {
   updateExerciseRestSeconds: (exerciseIndex: number, seconds: number) => void
   removeExercise: (exerciseIndex: number) => void
   removeSet: (exerciseIndex: number, setIndex: number) => void
+  pairAsSuperset: (indexA: number, indexB: number) => void
+  unpairSuperset: (index: number) => void
   finishWorkout: () => void
   discardWorkout: () => void
 }
@@ -283,6 +285,25 @@ export const useWorkoutStore = create<WorkoutStore>()(
     if (!state.activeWorkout) return state
     const exercises = [...state.activeWorkout.exercises]
     exercises[exerciseIndex] = { ...exercises[exerciseIndex], rest_seconds: seconds }
+    return { activeWorkout: { ...state.activeWorkout, exercises } }
+  }),
+
+  pairAsSuperset: (indexA, indexB) => set((state) => {
+    if (!state.activeWorkout) return state
+    const exercises = [...state.activeWorkout.exercises]
+    const groupId = crypto.randomUUID()
+    exercises[indexA] = { ...exercises[indexA], superset_group: groupId }
+    exercises[indexB] = { ...exercises[indexB], superset_group: groupId }
+    return { activeWorkout: { ...state.activeWorkout, exercises } }
+  }),
+
+  unpairSuperset: (index) => set((state) => {
+    if (!state.activeWorkout) return state
+    const groupId = state.activeWorkout.exercises[index]?.superset_group
+    if (!groupId) return state
+    const exercises = state.activeWorkout.exercises.map(ex =>
+      ex.superset_group === groupId ? { ...ex, superset_group: undefined } : ex
+    )
     return { activeWorkout: { ...state.activeWorkout, exercises } }
   }),
 

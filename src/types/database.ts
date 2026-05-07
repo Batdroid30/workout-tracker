@@ -131,7 +131,8 @@ export interface ActiveExercise {
   exercise: Exercise
   sets: ActiveSet[]
   order_index: number
-  rest_seconds?: number   // per-exercise rest override (null = use global default)
+  rest_seconds?: number    // per-exercise rest override (null = use global default)
+  superset_group?: string  // shared UUID links exercises in the same superset
 }
 
 export interface ActiveWorkout {

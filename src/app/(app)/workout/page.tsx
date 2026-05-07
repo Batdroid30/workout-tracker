@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { useWorkoutStore } from '@/store/workout.store'
 import { SetLogger } from '@/components/workout/SetLogger'
 import { PlateCalculator } from '@/components/workout/PlateCalculator'
@@ -18,12 +18,94 @@ import { cn } from '@/lib/utils'
 import type { PREvaluationResult } from '@/lib/data/stats'
 import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 import { WorkoutFocusSheet } from '@/components/workout/WorkoutFocusSheet'
+import { SupersetWrapper } from '@/components/workout/SupersetWrapper'
 import { buildWorkoutTemplate } from '@/lib/template-generator'
-import type { Exercise } from '@/types/database'
+import type { Exercise, ActiveExercise } from '@/types/database'
+
+// ── Superset grouping ─────────────────────────────────────────────────────────
+
+interface RenderOptions {
+  isRoutineWorkout: boolean
+  expandedIndex: number | null
+  onExpand: (i: number) => void
+  onReplaceExercise: (i: number) => void
+  onOpenPlateCalc: (weight: number) => void
+  onRestTimerStart: (seconds: number) => void
+  onPairAsSuperset: (a: number, b: number) => void
+  onUnpairSuperset: (i: number) => void
+}
+
+function renderExercises(exercises: ActiveExercise[], opts: RenderOptions) {
+  const nodes: React.ReactNode[] = []
+  let i = 0
+
+  while (i < exercises.length) {
+    const ex = exercises[i]
+    const groupId = ex.superset_group
+
+    if (!groupId) {
+      // Standalone exercise
+      const idx = i
+      const prevEx = idx > 0 ? exercises[idx - 1] : null
+      const nextEx = idx < exercises.length - 1 ? exercises[idx + 1] : null
+
+      // Only offer pairing with an adjacent exercise that is itself standalone
+      const canPairPrev = !!prevEx && !prevEx.superset_group && !ex.superset_group
+      const canPairNext = !!nextEx && !nextEx.superset_group && !ex.superset_group
+
+      nodes.push(
+        <SetLogger
+          key={idx}
+          exerciseIndex={idx}
+          exercise={ex}
+          onReplaceExercise={() => opts.onReplaceExercise(idx)}
+          onOpenPlateCalc={opts.onOpenPlateCalc}
+          onRestTimerStart={opts.onRestTimerStart}
+          isCollapsed={opts.isRoutineWorkout && opts.expandedIndex !== idx}
+          onExpand={() => opts.onExpand(idx)}
+          onSupersetWithPrev={canPairPrev ? () => opts.onPairAsSuperset(idx - 1, idx) : undefined}
+          onSupersetWithNext={canPairNext ? () => opts.onPairAsSuperset(idx, idx + 1) : undefined}
+          prevExerciseName={prevEx?.exercise.name}
+          nextExerciseName={nextEx?.exercise.name}
+        />
+      )
+      i++
+    } else {
+      // Collect all exercises that share this superset_group
+      const groupStart = i
+      const group: { ex: ActiveExercise; idx: number }[] = []
+      while (i < exercises.length && exercises[i].superset_group === groupId) {
+        group.push({ ex: exercises[i], idx: i })
+        i++
+      }
+
+      nodes.push(
+        <SupersetWrapper key={groupId}>
+          {group.map(({ ex: gex, idx }, pos) => (
+            <SetLogger
+              key={idx}
+              exerciseIndex={idx}
+              exercise={gex}
+              onReplaceExercise={() => opts.onReplaceExercise(idx)}
+              onOpenPlateCalc={opts.onOpenPlateCalc}
+              // Rest timer only fires after the last exercise in the group completes a set
+              onRestTimerStart={pos === group.length - 1 ? opts.onRestTimerStart : () => {}}
+              isCollapsed={opts.isRoutineWorkout && opts.expandedIndex !== idx}
+              onExpand={() => opts.onExpand(idx)}
+              onUnpairSuperset={() => opts.onUnpairSuperset(idx)}
+            />
+          ))}
+        </SupersetWrapper>
+      )
+    }
+  }
+
+  return nodes
+}
 
 export default function WorkoutPage() {
   const router = useRouter()
-  const { activeWorkout, startWorkout, startFromTemplate, finishWorkout, discardWorkout, addExercise, updateTitle, completeAllSets } = useWorkoutStore()
+  const { activeWorkout, startWorkout, startFromTemplate, finishWorkout, discardWorkout, addExercise, updateTitle, completeAllSets, pairAsSuperset, unpairSuperset } = useWorkoutStore()
   const dialog = useDialog()
 
   const handleDiscard = async () => {
@@ -293,18 +375,16 @@ export default function WorkoutPage() {
             <p className="t-caption">Add an exercise to start tracking.</p>
           </div>
         ) : (
-          activeWorkout.exercises.map((ex, i) => (
-            <SetLogger
-              key={ex.exercise.id || i}
-              exerciseIndex={i}
-              exercise={ex}
-              onReplaceExercise={() => setAddingExerciseMode({ mode: 'replace', index: i })}
-              onOpenPlateCalc={handleOpenPlateCalc}
-              onRestTimerStart={handleRestTimerStart}
-              isCollapsed={isRoutineWorkout && expandedIndex !== i}
-              onExpand={() => setExpandedIndex(i)}
-            />
-          ))
+          renderExercises(activeWorkout.exercises, {
+            isRoutineWorkout,
+            expandedIndex,
+            onExpand: setExpandedIndex,
+            onReplaceExercise: (i) => setAddingExerciseMode({ mode: 'replace', index: i }),
+            onOpenPlateCalc: handleOpenPlateCalc,
+            onRestTimerStart: handleRestTimerStart,
+            onPairAsSuperset: pairAsSuperset,
+            onUnpairSuperset: (i) => unpairSuperset(i),
+          })
         )}
 
         {/* ── Suggest-next chips — blank workouts only ──────────────────── */}

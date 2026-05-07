@@ -25,6 +25,12 @@ interface SetLoggerProps {
   onRestTimerStart: (restSeconds: number) => void
   isCollapsed?: boolean
   onExpand?:    () => void
+  // Superset controls — provided by the parent workout page
+  onSupersetWithPrev?: () => void
+  onSupersetWithNext?: () => void
+  onUnpairSuperset?:   () => void
+  prevExerciseName?:   string
+  nextExerciseName?:   string
 }
 
 export function SetLogger({
@@ -35,6 +41,11 @@ export function SetLogger({
   onRestTimerStart,
   isCollapsed = false,
   onExpand,
+  onSupersetWithPrev,
+  onSupersetWithNext,
+  onUnpairSuperset,
+  prevExerciseName,
+  nextExerciseName,
 }: SetLoggerProps) {
   const { updateSet, markSetDone, addSet, addWarmupSet, removeExercise, removeSet, moveExerciseUp, moveExerciseDown, updateExerciseRestSeconds } = useWorkoutStore()
   const { loadPRsForExercises, checkLocalPR } = usePRStore()
@@ -203,6 +214,9 @@ export function SetLogger({
                     { label: 'Replace Exercise', action: () => { onReplaceExercise?.(); setMenuOpen(false) } },
                     { label: 'Move Up',          action: () => { moveExerciseUp(exerciseIndex); setMenuOpen(false) } },
                     { label: 'Move Down',        action: () => { moveExerciseDown(exerciseIndex); setMenuOpen(false) } },
+                    ...(onSupersetWithPrev ? [{ label: `Superset with ${prevExerciseName ?? 'previous'}`, action: () => { onSupersetWithPrev(); setMenuOpen(false) } }] : []),
+                    ...(onSupersetWithNext ? [{ label: `Superset with ${nextExerciseName ?? 'next'}`, action: () => { onSupersetWithNext(); setMenuOpen(false) } }] : []),
+                    ...(onUnpairSuperset   ? [{ label: 'Remove from Superset', action: () => { onUnpairSuperset(); setMenuOpen(false) } }] : []),
                   ].map(item => (
                     <button
                       key={item.label}

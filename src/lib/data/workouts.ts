@@ -275,9 +275,10 @@ export async function saveActiveWorkout(userId: string, workout: ActiveWorkout) 
     const { data: weData, error: weErr } = await supabase
       .from('workout_exercises')
       .insert({
-        workout_id: workoutData.id,
-        exercise_id: ex.exercise.id,
-        order_index: exerciseIndex,
+        workout_id:      workoutData.id,
+        exercise_id:     ex.exercise.id,
+        order_index:     exerciseIndex,
+        superset_group:  ex.superset_group ?? null,
       })
       .select()
       .single()
