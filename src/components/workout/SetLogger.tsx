@@ -17,6 +17,11 @@ import { cn } from '@/lib/utils'
 
 const DEFAULT_REST = 90
 
+interface SupersetCandidate {
+  index: number
+  name: string
+}
+
 interface SetLoggerProps {
   exerciseIndex: number
   exercise: ActiveExercise
@@ -26,11 +31,9 @@ interface SetLoggerProps {
   isCollapsed?: boolean
   onExpand?:    () => void
   // Superset controls — provided by the parent workout page
-  onSupersetWithPrev?: () => void
-  onSupersetWithNext?: () => void
+  onSupersetWith?:   (otherIndex: number) => void
+  supersetCandidates?: SupersetCandidate[]
   onUnpairSuperset?:   () => void
-  prevExerciseName?:   string
-  nextExerciseName?:   string
 }
 
 export function SetLogger({
@@ -41,16 +44,15 @@ export function SetLogger({
   onRestTimerStart,
   isCollapsed = false,
   onExpand,
-  onSupersetWithPrev,
-  onSupersetWithNext,
+  onSupersetWith,
+  supersetCandidates,
   onUnpairSuperset,
-  prevExerciseName,
-  nextExerciseName,
 }: SetLoggerProps) {
   const { updateSet, markSetDone, addSet, addWarmupSet, removeExercise, removeSet, moveExerciseUp, moveExerciseDown, updateExerciseRestSeconds } = useWorkoutStore()
   const { loadPRsForExercises, checkLocalPR } = usePRStore()
-  const [menuOpen,           setMenuOpen]           = useState(false)
-  const [showDurationPicker, setShowDurationPicker] = useState(false)
+  const [menuOpen,            setMenuOpen]            = useState(false)
+  const [showDurationPicker,  setShowDurationPicker]  = useState(false)
+  const [showSupersetPicker,  setShowSupersetPicker]  = useState(false)
   const [activePRs,          setActivePRs]          = useState<PRCheckResult[]>([])
   const dialog = useDialog()
 
@@ -214,9 +216,10 @@ export function SetLogger({
                     { label: 'Replace Exercise', action: () => { onReplaceExercise?.(); setMenuOpen(false) } },
                     { label: 'Move Up',          action: () => { moveExerciseUp(exerciseIndex); setMenuOpen(false) } },
                     { label: 'Move Down',        action: () => { moveExerciseDown(exerciseIndex); setMenuOpen(false) } },
-                    ...(onSupersetWithPrev ? [{ label: `Superset with ${prevExerciseName ?? 'previous'}`, action: () => { onSupersetWithPrev(); setMenuOpen(false) } }] : []),
-                    ...(onSupersetWithNext ? [{ label: `Superset with ${nextExerciseName ?? 'next'}`, action: () => { onSupersetWithNext(); setMenuOpen(false) } }] : []),
-                    ...(onUnpairSuperset   ? [{ label: 'Remove from Superset', action: () => { onUnpairSuperset(); setMenuOpen(false) } }] : []),
+                    ...(onSupersetWith && supersetCandidates && supersetCandidates.length > 0
+                      ? [{ label: 'Superset with…', action: () => { setMenuOpen(false); setShowSupersetPicker(true) } }]
+                      : []),
+                    ...(onUnpairSuperset ? [{ label: 'Remove from Superset', action: () => { onUnpairSuperset(); setMenuOpen(false) } }] : []),
                   ].map(item => (
                     <button
                       key={item.label}
@@ -341,6 +344,26 @@ export function SetLogger({
         onChange={handleRestSecondsChange}
         onClose={() => setShowDurationPicker(false)}
       />
+
+      {/* ── Superset picker ──────────────────────────────────────────────── */}
+      <BottomSheet
+        isOpen={showSupersetPicker}
+        onClose={() => setShowSupersetPicker(false)}
+        title="Superset with…"
+      >
+        <div className="space-y-2">
+          {(supersetCandidates ?? []).map(candidate => (
+            <button
+              key={candidate.index}
+              onClick={() => { onSupersetWith?.(candidate.index); setShowSupersetPicker(false) }}
+              className="w-full text-left px-4 py-3 rounded-[var(--radius-inner)] text-[13px] text-[var(--text-hi)] hover:bg-white/[0.06] transition-colors"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}
+            >
+              {candidate.name}
+            </button>
+          ))}
+        </div>
+      </BottomSheet>
 
       {/* ── PR celebration ──────────────────────────────────────────────── */}
       {activePRs.length > 0 && (

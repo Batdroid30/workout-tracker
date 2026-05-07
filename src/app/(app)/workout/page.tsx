@@ -37,50 +37,52 @@ interface RenderOptions {
 
 function renderExercises(exercises: ActiveExercise[], opts: RenderOptions) {
   const nodes: React.ReactNode[] = []
-  let i = 0
+  const seen = new Set<number>()
 
-  while (i < exercises.length) {
+  // Pre-collect all group members so non-adjacent pairs don't produce duplicate keys
+  const groupMembers = new Map<string, number[]>()
+  exercises.forEach((ex, idx) => {
+    if (ex.superset_group) {
+      const arr = groupMembers.get(ex.superset_group) ?? []
+      arr.push(idx)
+      groupMembers.set(ex.superset_group, arr)
+    }
+  })
+
+  const standaloneCandidates = exercises
+    .map((ex, idx) => ({ index: idx, name: ex.exercise.name }))
+    .filter((_, idx) => !exercises[idx].superset_group)
+
+  for (let i = 0; i < exercises.length; i++) {
+    if (seen.has(i)) continue
+
     const ex = exercises[i]
     const groupId = ex.superset_group
 
     if (!groupId) {
-      // Standalone exercise
-      const idx = i
-      const prevEx = idx > 0 ? exercises[idx - 1] : null
-      const nextEx = idx < exercises.length - 1 ? exercises[idx + 1] : null
-
-      // Only offer pairing with an adjacent exercise that is itself standalone
-      const canPairPrev = !!prevEx && !prevEx.superset_group && !ex.superset_group
-      const canPairNext = !!nextEx && !nextEx.superset_group && !ex.superset_group
-
+      const candidates = standaloneCandidates.filter(c => c.index !== i)
       nodes.push(
         <SetLogger
-          key={idx}
-          exerciseIndex={idx}
+          key={i}
+          exerciseIndex={i}
           exercise={ex}
-          onReplaceExercise={() => opts.onReplaceExercise(idx)}
+          onReplaceExercise={() => opts.onReplaceExercise(i)}
           onOpenPlateCalc={opts.onOpenPlateCalc}
           onRestTimerStart={opts.onRestTimerStart}
-          isCollapsed={opts.isRoutineWorkout && opts.expandedIndex !== idx}
-          onExpand={() => opts.onExpand(idx)}
-          onSupersetWithPrev={canPairPrev ? () => opts.onPairAsSuperset(idx - 1, idx) : undefined}
-          onSupersetWithNext={canPairNext ? () => opts.onPairAsSuperset(idx, idx + 1) : undefined}
-          prevExerciseName={prevEx?.exercise.name}
-          nextExerciseName={nextEx?.exercise.name}
+          isCollapsed={opts.isRoutineWorkout && opts.expandedIndex !== i}
+          onExpand={() => opts.onExpand(i)}
+          onSupersetWith={candidates.length > 0 ? (otherIdx) => opts.onPairAsSuperset(i, otherIdx) : undefined}
+          supersetCandidates={candidates}
         />
       )
-      i++
     } else {
-      // Collect all exercises that share this superset_group
-      const groupStart = i
-      const group: { ex: ActiveExercise; idx: number }[] = []
-      while (i < exercises.length && exercises[i].superset_group === groupId) {
-        group.push({ ex: exercises[i], idx: i })
-        i++
-      }
+      const indices = groupMembers.get(groupId) ?? [i]
+      indices.forEach(idx => seen.add(idx))
+      const group = indices.map(idx => ({ ex: exercises[idx], idx }))
+      const exerciseNames = group.map(g => g.ex.exercise.name)
 
       nodes.push(
-        <SupersetWrapper key={groupId}>
+        <SupersetWrapper key={groupId} exerciseNames={exerciseNames}>
           {group.map(({ ex: gex, idx }, pos) => (
             <SetLogger
               key={idx}
@@ -88,7 +90,6 @@ function renderExercises(exercises: ActiveExercise[], opts: RenderOptions) {
               exercise={gex}
               onReplaceExercise={() => opts.onReplaceExercise(idx)}
               onOpenPlateCalc={opts.onOpenPlateCalc}
-              // Rest timer only fires after the last exercise in the group completes a set
               onRestTimerStart={pos === group.length - 1 ? opts.onRestTimerStart : () => {}}
               isCollapsed={opts.isRoutineWorkout && opts.expandedIndex !== idx}
               onExpand={() => opts.onExpand(idx)}

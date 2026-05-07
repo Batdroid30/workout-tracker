@@ -2,19 +2,16 @@ import { type ReactNode } from 'react'
 
 interface SupersetWrapperProps {
   children: ReactNode
+  exerciseNames: string[]
 }
 
-/**
- * Visual container for exercises that share a superset_group.
- * Draws a left accent rail and a SUPERSET badge above the group.
- */
-export function SupersetWrapper({ children }: SupersetWrapperProps) {
+export function SupersetWrapper({ children, exerciseNames }: SupersetWrapperProps) {
   return (
     <div className="relative mb-4">
-      {/* Badge */}
-      <div className="flex items-center gap-2 mb-1.5 pl-3">
+      {/* Badge + exercise names */}
+      <div className="flex items-center gap-2 mb-1.5 pl-3 flex-wrap">
         <span
-          className="inline-flex items-center h-5 px-2 rounded-full text-[9px] font-bold tracking-widest uppercase"
+          className="inline-flex items-center h-5 px-2 rounded-full text-[9px] font-bold tracking-widest uppercase shrink-0"
           style={{
             background: 'var(--accent-soft)',
             border:     '1px solid var(--accent-line)',
@@ -22,6 +19,9 @@ export function SupersetWrapper({ children }: SupersetWrapperProps) {
           }}
         >
           Superset
+        </span>
+        <span className="text-[10px] text-[var(--text-faint)] truncate">
+          {exerciseNames.join(' · ')}
         </span>
       </div>
 

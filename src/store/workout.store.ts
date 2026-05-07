@@ -292,8 +292,20 @@ export const useWorkoutStore = create<WorkoutStore>()(
     if (!state.activeWorkout) return state
     const exercises = [...state.activeWorkout.exercises]
     const groupId = crypto.randomUUID()
-    exercises[indexA] = { ...exercises[indexA], superset_group: groupId }
-    exercises[indexB] = { ...exercises[indexB], superset_group: groupId }
+    const lo = Math.min(indexA, indexB)
+    const hi = Math.max(indexA, indexB)
+
+    // Move the higher-index exercise to be immediately after the lower one
+    // so the superset group is always consecutive in the list.
+    if (hi !== lo + 1) {
+      const [moved] = exercises.splice(hi, 1)
+      exercises.splice(lo + 1, 0, moved)
+    }
+
+    exercises[lo]     = { ...exercises[lo],     superset_group: groupId }
+    exercises[lo + 1] = { ...exercises[lo + 1], superset_group: groupId }
+    exercises.forEach((ex, i) => { ex.order_index = i })
+
     return { activeWorkout: { ...state.activeWorkout, exercises } }
   }),
 
