@@ -64,9 +64,11 @@ export default async function RoutinesPage() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 stagger-children">
             {routines.map(routine => (
-              <RoutineCard key={routine.id} routine={routine} />
+              <div key={routine.id} className="fade-up">
+                <RoutineCard routine={routine} />
+              </div>
             ))}
           </div>
         )}

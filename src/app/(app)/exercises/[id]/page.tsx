@@ -74,10 +74,10 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
         </div>
       </div>
 
-      <div className="p-4 space-y-6 mt-2">
+      <div className="p-4 space-y-6 mt-2 stagger-children">
 
         {/* ── PRs ──────────────────────────────────────────────────────── */}
-        <section>
+        <section className="fade-up">
           <h2 className="t-label mb-3">Personal Records</h2>
           <div className="grid grid-cols-2 gap-3">
             <div className="glass p-4 text-center">
@@ -116,7 +116,7 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
 
         {/* ── e1RM Progression chart ────────────────────────────────────── */}
         {chartData1RM.length > 1 && (
-          <section>
+          <section className="fade-up">
             <h2 className="t-label mb-3">Est. 1RM Progression</h2>
             <div className="glass p-4">
               <div className="h-[180px] w-full">
@@ -128,7 +128,7 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
 
         {/* ── Max Weight Progression chart ─────────────────────────────── */}
         {chartDataWeight.length > 1 && (
-          <section>
+          <section className="fade-up">
             <h2 className="t-label mb-3">Max Weight Progression</h2>
             <div className="glass p-4">
               <div className="h-[180px] w-full">
@@ -140,7 +140,7 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
 
         {/* ── Session Volume chart ──────────────────────────────────── */}
         {chartDataVolume.length > 1 && (
-          <section>
+          <section className="fade-up">
             <h2 className="t-label mb-3">Session Volume</h2>
             <div className="glass p-4">
               <div className="h-[180px] w-full">
@@ -163,7 +163,7 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
 
         {/* ── Coach Insights ────────────────────────────────────────── */}
         {insights.length > 0 && (
-          <section>
+          <section className="fade-up">
             <h2 className="t-label mb-3">Coach Insights</h2>
             <div className="space-y-2">
               {insights.map((insight, i) => (
