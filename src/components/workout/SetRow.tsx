@@ -11,6 +11,8 @@ interface SetRowProps {
   set: ActiveSet
   prevSetText?: string
   suggestion?: OverloadSuggestion
+  /** DUP week RPE target — used as fallback when there is no suggestion (first-time exercises). */
+  defaultRpe?: number
   onChange: (updates: Partial<ActiveSet>) => void
   onDone: () => void
   onRemove: () => void
@@ -18,7 +20,7 @@ interface SetRowProps {
 
 // ─── Active set ───────────────────────────────────────────────────────────────
 
-function ActiveSetRow({ set, prevSetText, suggestion, onChange, onDone, onRemove }: SetRowProps) {
+function ActiveSetRow({ set, prevSetText, suggestion, defaultRpe, onChange, onDone, onRemove }: SetRowProps) {
   const [weightStr, setWeightStr] = useState(() => set.weight_kg > 0 ? String(set.weight_kg) : '')
   const [rpeStr,    setRpeStr]    = useState(() => set.rpe !== null ? String(set.rpe) : '')
   const weightFocused = useRef(false)
@@ -32,16 +34,17 @@ function ActiveSetRow({ set, prevSetText, suggestion, onChange, onDone, onRemove
     if (!rpeFocused.current) setRpeStr(set.rpe !== null ? String(set.rpe) : '')
   }, [set.rpe])
 
-  // Pre-fill RPE from the suggestion target when the field is still empty.
-  // Commits to state so it's saved even if the user never touches the input.
+  // Pre-fill RPE from the suggestion target (returning exercises) or the DUP
+  // week target (first-time exercises). Commits to state so it's saved even if
+  // the user never touches the input.
   useEffect(() => {
-    if (set.rpe !== null || rpeFocused.current || !suggestion?.rpe_target) return
-    const target = suggestion.rpe_target
+    if (set.rpe !== null || rpeFocused.current) return
+    const target = suggestion?.rpe_target ?? defaultRpe
+    if (!target) return
     setRpeStr(String(target))
     onChange({ rpe: target })
-  // onChange identity is stable (useCallback in parent) — suggestion changes drive this
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [suggestion?.rpe_target])
+  }, [suggestion?.rpe_target, defaultRpe])
 
   // Undo-delete
   const [pendingDelete, setPendingDelete] = useState(false)
@@ -335,9 +338,9 @@ function CompletedSetRow({ set, onDone, onRemove }: CompletedSetRowProps) {
 
 // ─── Public export ────────────────────────────────────────────────────────────
 
-export function SetRow({ set, prevSetText = '-', suggestion, onChange, onDone, onRemove }: SetRowProps) {
+export function SetRow({ set, prevSetText = '-', suggestion, defaultRpe, onChange, onDone, onRemove }: SetRowProps) {
   if (set.completed) {
     return <CompletedSetRow set={set} onDone={onDone} onRemove={onRemove} />
   }
-  return <ActiveSetRow set={set} prevSetText={prevSetText} suggestion={suggestion} onChange={onChange} onDone={onDone} onRemove={onRemove} />
+  return <ActiveSetRow set={set} prevSetText={prevSetText} suggestion={suggestion} defaultRpe={defaultRpe} onChange={onChange} onDone={onDone} onRemove={onRemove} />
 }

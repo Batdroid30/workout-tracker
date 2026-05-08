@@ -13,6 +13,7 @@ import { useLastWorkoutSets }   from '@/hooks/useLastWorkoutSets'
 import { useDialog }            from '@/providers/DialogProvider'
 import { getSupabaseClient }    from '@/lib/supabase/client'
 import { upsertExercisePreference } from '@/lib/data/exercise-preferences'
+import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 import { cn } from '@/lib/utils'
 
 const DEFAULT_REST = 90
@@ -102,6 +103,7 @@ export function SetLogger({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restSeconds, onRestTimerStart])
 
+  const dupRpeTarget  = getCurrentDUPScheme().rpeTarget
   const workingWeight = exercise.sets.find(s => !s.is_warmup && s.weight_kg > 0)?.weight_kg ?? 0
 
   const sessionVolume = exercise.sets
@@ -283,6 +285,7 @@ export function SetLogger({
               set={set}
               prevSetText={prevText}
               suggestion={lastSetAtPosition?.suggestion}
+              defaultRpe={dupRpeTarget}
               onChange={updates => updateSet(exerciseIndex, setIndex, updates)}
               onDone={() => {
                 const currentSet = exercise.sets[setIndex]
