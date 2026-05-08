@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth'
 import { getExerciseProgression } from '@/lib/data/stats'
 import { getProfile } from '@/lib/data/profile'
 import { getExerciseById } from '@/lib/data/exercises'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { Trophy, TrendingUp, AlertTriangle, Info } from 'lucide-react'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
 import { BackButton } from '@/components/ui/BackButton'
@@ -14,7 +14,8 @@ import type { MuscleGroup, MovementPattern, ExperienceLevel } from '@/types/data
 export default async function ExerciseDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const session = await auth()
-  const userId  = session?.user?.id as string
+  if (!session?.user?.id) redirect('/login')
+  const userId = session.user.id
 
   const [exercise, { prs, progression }, profile] = await Promise.all([
     getExerciseById(id),
@@ -31,7 +32,7 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
   const bestWeight = prs.find(p => p.pr_type === 'best_weight')?.value ?? maxWeightFromHistory
   const best1RM    = prs.find(p => p.pr_type === 'best_1rm')?.value    ?? best1RMFromHistory
 
-  const display = (v: number | null | undefined) => v ? Math.round(Number(v)) : '—'
+  const display = (v: number | null | undefined) => v != null ? Math.round(Number(v)) : '—'
 
   const chartData1RM    = progression.map(p => ({ date: p.date, value: p.best1RM }))
   const chartDataWeight = progression.map(p => ({ date: p.date, value: p.maxWeight }))

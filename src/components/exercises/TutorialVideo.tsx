@@ -7,8 +7,15 @@ interface TutorialVideoProps {
   videoId: string
 }
 
+// YouTube video IDs are always exactly 11 characters: letters, digits, _ or -
+const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/
+
 export function TutorialVideo({ videoId }: TutorialVideoProps) {
   const [open, setOpen] = useState(false)
+
+  // Guard against malformed IDs before embedding — returns nothing rather than
+  // pointing an iframe at an unintended URL.
+  if (!YOUTUBE_ID_RE.test(videoId)) return null
 
   return (
     <section className="fade-up">

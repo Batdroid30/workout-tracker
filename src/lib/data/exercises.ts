@@ -6,7 +6,7 @@ export const getExercises = cache(async (): Promise<Exercise[]> => {
   const supabase = getSupabaseAdmin()
   const { data, error } = await supabase
     .from('exercises')
-    .select('*')
+    .select('id, name, muscle_group, secondary_muscles, equipment, movement_pattern, is_custom, created_by, created_at, youtube_video_id')
     .order('name', { ascending: true })
 
   if (error) {
@@ -20,7 +20,7 @@ export const getExerciseById = cache(async (id: string): Promise<Exercise | null
   const supabase = getSupabaseAdmin()
   const { data, error } = await supabase
     .from('exercises')
-    .select('*')
+    .select('id, name, muscle_group, secondary_muscles, equipment, movement_pattern, is_custom, created_by, created_at, youtube_video_id')
     .eq('id', id)
     .single()
 

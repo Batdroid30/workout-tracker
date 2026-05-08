@@ -6,7 +6,7 @@ const fetchExercises = async (): Promise<Exercise[]> => {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('exercises')
-    .select('*')
+    .select('id, name, muscle_group, secondary_muscles, equipment, movement_pattern, is_custom, created_by, created_at, youtube_video_id')
     .order('name', { ascending: true })
 
   if (error) throw error
