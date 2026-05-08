@@ -1,55 +1,93 @@
 import { Skeleton } from '@/components/ui/Skeleton'
 
-export default function ActiveWorkoutLoading() {
+export default function WorkoutHistoryDetailLoading() {
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
+    <div className="min-h-screen pb-24">
+
+      {/* Sticky header: back button + title + action buttons */}
       <div
-        className="flex items-center justify-between p-4 sticky top-0 z-10"
-        style={{ borderBottom: '1px solid var(--glass-border)', background: 'rgba(6,7,13,0.85)', backdropFilter: 'blur(20px)' }}
+        className="sticky top-0 z-30 px-4 py-3 flex items-center justify-between"
+        style={{ background: 'rgba(6,7,13,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid var(--glass-border)' }}
       >
-        <Skeleton className="h-6 w-32" />
-        <Skeleton className="h-8 w-20 rounded-[var(--radius-pill)]" />
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-9 h-9 rounded-[var(--radius-inner)] shrink-0" />
+          <Skeleton className="h-4 w-40" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="w-9 h-9 rounded-[var(--radius-inner)]" />
+          <Skeleton className="w-9 h-9 rounded-[var(--radius-inner)]" />
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 pb-32">
-        <div className="space-y-6">
-          {[3, 2].map((sets, blockIdx) => (
-            <div key={blockIdx} className="glass overflow-hidden">
-              <div
-                className="p-4 flex justify-between items-center"
-                style={{ borderBottom: '1px solid var(--glass-border)' }}
-              >
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-6 w-6 rounded-[var(--radius-inner)]" />
-              </div>
-              <div className="p-2 space-y-2">
-                <div className="grid grid-cols-[40px_1fr_1fr_40px] gap-2 px-2 py-1">
-                  <Skeleton className="h-3 w-6" />
-                  <Skeleton className="h-3 w-10 mx-auto" />
-                  <Skeleton className="h-3 w-10 mx-auto" />
-                  <Skeleton className="h-3 w-6" />
-                </div>
-                {[...Array(sets)].map((_, i) => (
-                  <div key={i} className="grid grid-cols-[40px_1fr_1fr_40px] gap-2 items-center p-2 rounded-[var(--radius-inner)]" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <Skeleton className="h-6 w-6 rounded-[var(--radius-inner)]" />
-                    <Skeleton className="h-10 w-full rounded-[var(--radius-inner)]" />
-                    <Skeleton className="h-10 w-full rounded-[var(--radius-inner)]" />
-                    <Skeleton className="h-8 w-8 rounded-full ml-auto" />
-                  </div>
-                ))}
-                <div className="p-2 pt-4">
-                  <Skeleton className="h-4 w-28 mx-auto" />
-                </div>
+      <div className="p-4 space-y-5 mt-1">
+
+        {/* Meta card: title + date */}
+        <div className="glass p-4">
+          <Skeleton className="h-6 w-48 mb-2 rounded" />
+          <Skeleton className="h-3 w-52 rounded" />
+        </div>
+
+        {/* Stat tiles: Duration + Volume */}
+        <div className="grid grid-cols-2 gap-3">
+          {[1, 2].map(i => (
+            <div key={i} className="glass p-4 flex items-center gap-3">
+              <Skeleton className="w-9 h-9 rounded-[var(--radius-inner)] shrink-0" />
+              <div>
+                <Skeleton className="h-3 w-16 mb-1.5 rounded" />
+                <Skeleton className="h-6 w-12 rounded" />
               </div>
             </div>
           ))}
         </div>
-        <Skeleton className="h-12 w-full rounded-[var(--radius-inner)] mt-6" />
-      </div>
 
-      <div className="fixed bottom-[72px] left-0 right-0 p-4">
-        <Skeleton className="h-14 w-full rounded-[var(--radius-pill)]" />
+        {/* Exercise log */}
+        <div className="space-y-4">
+          <Skeleton className="h-3 w-28 rounded" />
+
+          {[3, 2].map((sets, blockIdx) => (
+            <div key={blockIdx} className="glass overflow-hidden">
+
+              {/* Exercise header: name + muscle group + delete */}
+              <div
+                className="px-4 py-3 flex items-center justify-between"
+                style={{ background: 'var(--bg-1)', borderBottom: '1px solid var(--glass-border)' }}
+              >
+                <div>
+                  <Skeleton className="h-4 w-40 mb-1.5 rounded" />
+                  <Skeleton className="h-3 w-20 rounded" />
+                </div>
+                <Skeleton className="w-8 h-8 rounded-[var(--radius-inner)]" />
+              </div>
+
+              {/* Column headers: Set | kg | Reps | PR */}
+              <div
+                className="flex py-2 px-4"
+                style={{ borderBottom: '1px solid var(--glass-border)' }}
+              >
+                <div className="w-10"><Skeleton className="h-2 w-6 rounded" /></div>
+                <div className="flex-1 flex justify-center"><Skeleton className="h-2 w-5 rounded" /></div>
+                <div className="flex-1 flex justify-center"><Skeleton className="h-2 w-8 rounded" /></div>
+                <div className="w-10" />
+              </div>
+
+              {/* Set rows */}
+              {[...Array(sets)].map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center py-3 px-4"
+                  style={{ borderBottom: '1px solid var(--glass-border)' }}
+                >
+                  <div className="w-10"><Skeleton className="w-6 h-6 rounded-lg" /></div>
+                  <div className="flex-1 flex justify-center"><Skeleton className="h-4 w-10 rounded" /></div>
+                  <div className="flex-1 flex justify-center"><Skeleton className="h-4 w-8 rounded" /></div>
+                  <div className="w-10" />
+                </div>
+              ))}
+
+            </div>
+          ))}
+        </div>
+
       </div>
     </div>
   )

@@ -79,6 +79,7 @@ export type Database = {
           muscle_group: string
           name: string
           secondary_muscles: string[] | null
+          youtube_video_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -90,6 +91,7 @@ export type Database = {
           muscle_group: string
           name: string
           secondary_muscles?: string[] | null
+          youtube_video_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -101,6 +103,7 @@ export type Database = {
           muscle_group?: string
           name?: string
           secondary_muscles?: string[] | null
+          youtube_video_id?: string | null
         }
         Relationships: []
       }

@@ -45,6 +45,7 @@ export interface Exercise {
   is_custom: boolean | null
   created_by: string | null
   created_at: string | null
+  youtube_video_id: string | null
 }
 
 export interface Workout {

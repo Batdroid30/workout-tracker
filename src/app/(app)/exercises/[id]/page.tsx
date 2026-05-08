@@ -8,6 +8,7 @@ import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
 import { BackButton } from '@/components/ui/BackButton'
 import { ExerciseMetaEditor } from '@/components/exercises/ExerciseMetaEditor'
 import { deriveExerciseInsights } from '@/lib/algorithms'
+import { TutorialVideo } from '@/components/exercises/TutorialVideo'
 import type { MuscleGroup, MovementPattern, ExperienceLevel } from '@/types/database'
 
 export default async function ExerciseDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -75,6 +76,11 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
       </div>
 
       <div className="p-4 space-y-6 mt-2 stagger-children">
+
+        {/* ── Tutorial video ───────────────────────────────────────────── */}
+        {!exercise.is_custom && exercise.youtube_video_id && (
+          <TutorialVideo videoId={exercise.youtube_video_id} />
+        )}
 
         {/* ── PRs ──────────────────────────────────────────────────────── */}
         <section className="fade-up">

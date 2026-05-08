@@ -18,6 +18,17 @@ export default function ExerciseDetailLoading() {
 
       <div className="p-4 space-y-6 mt-2">
 
+        {/* Tutorial video collapsible row */}
+        <section>
+          <div className="flex items-center justify-between py-1">
+            <div className="flex items-center gap-2">
+              <Skeleton className="w-4 h-4 rounded" />
+              <Skeleton className="h-3 w-32 rounded" />
+            </div>
+            <Skeleton className="w-4 h-4 rounded" />
+          </div>
+        </section>
+
         {/* PR grid */}
         <section>
           <Skeleton className="h-3 w-32 mb-3 rounded" />
@@ -32,8 +43,8 @@ export default function ExerciseDetailLoading() {
           </div>
         </section>
 
-        {/* Chart placeholders */}
-        {[1, 2].map(i => (
+        {/* Chart placeholders — real page shows up to 3 */}
+        {[1, 2, 3].map(i => (
           <section key={i}>
             <Skeleton className="h-3 w-40 mb-3 rounded" />
             <div className="glass p-4 rounded-[var(--radius-card)]">
@@ -46,7 +57,7 @@ export default function ExerciseDetailLoading() {
         <section>
           <Skeleton className="h-3 w-28 mb-3 rounded" />
           <div className="space-y-2">
-            {[1, 2].map(i => (
+            {[1, 2, 3].map(i => (
               <div key={i} className="glass p-4 flex items-start gap-3 rounded-[var(--radius-card)]">
                 <Skeleton className="w-4 h-4 rounded shrink-0 mt-0.5" />
                 <div className="flex-1">
@@ -57,6 +68,7 @@ export default function ExerciseDetailLoading() {
             ))}
           </div>
         </section>
+
       </div>
     </div>
   )
