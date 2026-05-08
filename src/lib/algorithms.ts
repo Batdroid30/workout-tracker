@@ -146,6 +146,7 @@ export function calculateEpley1RM(weight: number, reps: number): number {
 export interface OverloadSuggestion {
   weight_kg:   number
   target_reps: number
+  rpe_target:  number
   reason:      string
 }
 
@@ -211,10 +212,12 @@ export function suggestNextSet({
   // week label and rep range shown in the workout header.
   const range     = dupRepRange ?? REP_RANGES[trainingGoal ?? 'muscle']
   const increment = WEIGHT_INCREMENTS[experienceLevel ?? 'intermediate'][exerciseType]
+  // Resolved RPE target — shared across all return paths so it can be included
+  // in the suggestion and used to pre-fill the RPE input in the UI.
+  const targetRPE = dupRpeTarget ?? TARGET_RPE[trainingGoal ?? 'both']
 
   // ── RPE calibration ───────────────────────────────────────────────────────
   if (lastRPE != null) {
-    const targetRPE = dupRpeTarget ?? TARGET_RPE[trainingGoal ?? 'both']
     const deviation = lastRPE - targetRPE
 
     if (deviation > 1.5) {
@@ -225,6 +228,7 @@ export function suggestNextSet({
       return {
         weight_kg:   Math.max(adjustedWeight, lastWeight - increment * 2),
         target_reps: range.min,
+        rpe_target:  targetRPE,
         reason:      `RPE ${lastRPE} last session was above target — consolidate at reduced load before progressing.`,
       }
     }
@@ -235,12 +239,14 @@ export function suggestNextSet({
         return {
           weight_kg:   lastWeight + increment,
           target_reps: range.min + 1, // start 1 above minimum since capacity is clearly there
+          rpe_target:  targetRPE,
           reason:      `RPE ${lastRPE} was well below target — progress the load with confidence.`,
         }
       }
       return {
         weight_kg:   lastWeight,
         target_reps: Math.min(lastReps + 2, range.max), // add 2 reps instead of 1
+        rpe_target:  targetRPE,
         reason:      `RPE ${lastRPE} was below target — push for ${Math.min(lastReps + 2, range.max)} reps.`,
       }
     }
@@ -252,6 +258,7 @@ export function suggestNextSet({
     return {
       weight_kg:   lastWeight + increment,
       target_reps: range.min,
+      rpe_target:  targetRPE,
       reason: `Hit ${range.max} reps — add ${increment}kg and reset to ${range.min} reps.`,
     }
   }
@@ -260,6 +267,7 @@ export function suggestNextSet({
     return {
       weight_kg:   lastWeight,
       target_reps: lastReps + 1,
+      rpe_target:  targetRPE,
       reason: `Keep weight steady. Push for ${lastReps + 1} reps this set.`,
     }
   }
@@ -267,6 +275,7 @@ export function suggestNextSet({
   return {
     weight_kg:   Math.max(0, lastWeight - increment),
     target_reps: range.max,
+    rpe_target:  targetRPE,
     reason: `Fell below ${range.min} reps — drop ${increment}kg and rebuild to ${range.max}.`,
   }
 }

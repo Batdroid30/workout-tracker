@@ -32,6 +32,17 @@ function ActiveSetRow({ set, prevSetText, suggestion, onChange, onDone, onRemove
     if (!rpeFocused.current) setRpeStr(set.rpe !== null ? String(set.rpe) : '')
   }, [set.rpe])
 
+  // Pre-fill RPE from the suggestion target when the field is still empty.
+  // Commits to state so it's saved even if the user never touches the input.
+  useEffect(() => {
+    if (set.rpe !== null || rpeFocused.current || !suggestion?.rpe_target) return
+    const target = suggestion.rpe_target
+    setRpeStr(String(target))
+    onChange({ rpe: target })
+  // onChange identity is stable (useCallback in parent) — suggestion changes drive this
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suggestion?.rpe_target])
+
   // Undo-delete
   const [pendingDelete, setPendingDelete] = useState(false)
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
