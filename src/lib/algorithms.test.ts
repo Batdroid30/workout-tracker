@@ -70,15 +70,66 @@ describe('suggestNextSet', () => {
     })
     expect(out.weight_kg).toBeGreaterThanOrEqual(0)
   })
+
+  it('always includes rpe_target matching the goal-based target', () => {
+    // muscle goal → TARGET_RPE['muscle'] = 7.5
+    const out = suggestNextSet({
+      lastWeight: 80,
+      lastReps: 10,
+      trainingGoal: 'muscle',
+      experienceLevel: 'intermediate',
+    })
+    expect(out.rpe_target).toBe(7.5)
+  })
+
+  it('uses dupRpeTarget when provided, overriding the goal-based value', () => {
+    const out = suggestNextSet({
+      lastWeight: 80,
+      lastReps: 10,
+      trainingGoal: 'muscle',
+      experienceLevel: 'intermediate',
+      dupRpeTarget: 7.0,
+    })
+    expect(out.rpe_target).toBe(7.0)
+  })
+
+  it('backs off weight when last RPE was well above target', () => {
+    // deviation = 9.5 - 7.5 = +2.0 > 1.5 → reduce load
+    const out = suggestNextSet({
+      lastWeight: 100,
+      lastReps: 8,
+      lastRPE: 9.5,
+      trainingGoal: 'muscle',
+      experienceLevel: 'intermediate',
+    })
+    expect(out.weight_kg).toBeLessThan(100)
+    expect(out.rpe_target).toBe(7.5)
+  })
+
+  it('progresses more aggressively when last RPE was well below target', () => {
+    // deviation = 5.5 - 7.5 = -2.0 < -1.5 → push harder
+    const out = suggestNextSet({
+      lastWeight: 100,
+      lastReps: 12,
+      lastRPE: 5.5,
+      trainingGoal: 'muscle',
+      experienceLevel: 'intermediate',
+    })
+    // Either more reps or more weight — either counts as "pushed harder"
+    const progressedWeight = out.weight_kg > 100
+    const progressedReps   = out.target_reps > 12
+    expect(progressedWeight || progressedReps).toBe(true)
+  })
 })
 
 describe('generateDeloadRoutine', () => {
-  it('drops weight to ~60% rounded to 2.5kg and trims 2 reps', () => {
+  // medium confidence (default): intensityFactor = 0.65, sets = 3, repReduction = 2
+  it('drops weight to 65% rounded to nearest 2.5kg and trims 2 reps (medium confidence)', () => {
     const [out] = generateDeloadRoutine([
       { exerciseId: 'a', exerciseName: 'Squat', muscleGroup: 'legs', lastWeight: 100, lastReps: 8 },
     ])
-    expect(out.weight_kg).toBe(60)         // 100 * 0.6 = 60, already on plate
-    expect(out.reps).toBe(6)                // 8 - 2
+    expect(out.weight_kg).toBe(65)   // 100 * 0.65 = 65, already on a plate
+    expect(out.reps).toBe(6)          // 8 - 2
     expect(out.sets).toBe(3)
   })
 
@@ -86,15 +137,34 @@ describe('generateDeloadRoutine', () => {
     const [out] = generateDeloadRoutine([
       { exerciseId: 'a', exerciseName: 'Curl', muscleGroup: 'arms', lastWeight: 20, lastReps: 5 },
     ])
-    expect(out.reps).toBe(5)                // max(5, 5-2) = 5
+    expect(out.reps).toBe(5)          // max(5, 5 - 2) = 5
   })
 
   it('rounds the deload weight to the nearest 2.5kg plate', () => {
     const [out] = generateDeloadRoutine([
       { exerciseId: 'a', exerciseName: 'Row', muscleGroup: 'back', lastWeight: 77.5, lastReps: 8 },
     ])
-    // 77.5 * 0.6 = 46.5 → nearest 2.5 = 47.5
-    expect(out.weight_kg).toBe(47.5)
+    // 77.5 * 0.65 = 50.375 → nearest 2.5 = 50
+    expect(out.weight_kg).toBe(50)
+  })
+
+  it('applies a shallower taper under low confidence', () => {
+    // low confidence: intensityFactor = 0.75
+    const [out] = generateDeloadRoutine([
+      { exerciseId: 'a', exerciseName: 'Squat', muscleGroup: 'legs', lastWeight: 100, lastReps: 8 },
+    ], 'low')
+    expect(out.weight_kg).toBe(75)   // 100 * 0.75 = 75
+    expect(out.sets).toBe(3)
+  })
+
+  it('applies a deeper deload and fewer sets under high confidence', () => {
+    // high confidence: intensityFactor = 0.55, sets = 2, repReduction = 3
+    const [out] = generateDeloadRoutine([
+      { exerciseId: 'a', exerciseName: 'Squat', muscleGroup: 'legs', lastWeight: 100, lastReps: 8 },
+    ], 'high')
+    expect(out.weight_kg).toBe(55)   // 100 * 0.55 = 55
+    expect(out.sets).toBe(2)
+    expect(out.reps).toBe(5)          // 8 - 3 = 5
   })
 
   it('returns an empty array for empty input', () => {
