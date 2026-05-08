@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Sparkles, X, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Sparkles, X, Loader2, Activity } from 'lucide-react'
 import { InsightCard } from './InsightCard'
 import type { FatigueAssessment, DeloadPrescription } from '@/lib/algorithms'
 import { getDeloadRoutineAction } from '@/app/(app)/dashboard/actions'
@@ -36,7 +36,7 @@ export function DeloadCard({ assessment }: DeloadCardProps) {
 
   return (
     <>
-      <InsightCard title="Recovery Check" icon="🔋" variant="warning" dismissKey="deload_dismissed_at">
+      <InsightCard title="Recovery Check" icon={<Activity className="w-3.5 h-3.5" style={{ color: 'var(--rose)' }} />} variant="warning" dismissKey="deload_dismissed_at">
         <p className="text-[13px] text-[var(--text-hi)] leading-relaxed mb-3">
           {CONFIDENCE_COPY[assessment.confidence]}
         </p>
@@ -44,7 +44,7 @@ export function DeloadCard({ assessment }: DeloadCardProps) {
         <div className="space-y-1.5 mb-3">
           {assessment.signals.map((signal, i) => (
             <div key={i} className="flex items-start gap-2">
-              <span className="text-[var(--rose)] text-xs mt-0.5">✦</span>
+              <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 block" style={{ background: 'var(--rose)' }} />
               <p className="text-[11px] text-[var(--text-mid)]">{signal}</p>
             </div>
           ))}

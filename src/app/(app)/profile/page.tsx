@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth'
 import { getProfile } from '@/lib/data/profile'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { ProfileTabs } from './ProfileTabs'
+import { ProfileContent } from '@/components/profile/ProfileContent'
 import { ProfileForm } from './ProfileForm'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
 import { WeeklyMuscleRadarChart } from '@/components/ui/WeeklyMuscleRadarChart'
@@ -12,7 +12,7 @@ import { getWeeklyMuscleGroupStats, getTopPersonalRecords } from '@/lib/data/sta
 import { getExercises } from '@/lib/data/exercises'
 import { TopPRsTable }       from '@/components/profile/TopPRsTable'
 import { WorkoutHistoryList } from '@/components/workout/WorkoutHistoryList'
-import { User } from 'lucide-react'
+import { User, Award, Trophy } from 'lucide-react'
 import { ClearDataButton } from '@/components/profile/ClearDataButton'
 import { RecalculatePRsButton } from '@/components/profile/RecalculatePRsButton'
 
@@ -36,9 +36,9 @@ export default async function ProfilePage({
     <div className="min-h-screen pb-24">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="pt-4 px-5 pb-5">
+      <div className="pt-4 px-5 pb-3">
         <div className="t-label mb-1.5">Profile</div>
-        <div className="flex items-center gap-4 mb-5">
+        <div className="flex items-center gap-4">
           <div
             className="w-14 h-14 rounded-[var(--radius-inner)] overflow-hidden flex items-center justify-center shrink-0"
             style={{ background: 'var(--bg-2)', border: '2px solid var(--accent-line)' }}
@@ -58,17 +58,18 @@ export default async function ProfilePage({
             <p className="t-caption mt-0.5">{session.user.email}</p>
           </div>
         </div>
-        <ProfileTabs activeTab={tab} />
       </div>
 
-      <div className="px-5">
-        <Suspense fallback={<ProfileTabSkeleton tab={tab} />}>
+      {/* ── Tab bar + content (client component handles instant skeleton) ── */}
+      <ProfileContent activeTab={tab}>
+        {/* Suspense lets RSC stream — ProfileContent already shows the skeleton */}
+        <Suspense fallback={null}>
           {tab === 'stats'     && <StatsTab userId={userId} />}
           {tab === 'history'   && <HistoryTab userId={userId} />}
           {tab === 'exercises' && <ExercisesTab />}
           {tab === 'account'   && <ProfileForm profile={profile} userEmail={session.user.email || ''} />}
         </Suspense>
-      </div>
+      </ProfileContent>
     </div>
   )
 }
@@ -87,10 +88,10 @@ async function StatsTab({ userId }: { userId: string }) {
   }))
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 stagger-children">
 
       {/* ── Personal Records ─────────────────────────────────────────── */}
-      <section>
+      <section className="fade-up">
         <div className="flex items-center justify-between mb-3">
           <h2 className="t-display-s">Personal Records</h2>
           <div className="flex items-center gap-3">
@@ -107,7 +108,7 @@ async function StatsTab({ userId }: { userId: string }) {
       </section>
 
       {/* ── Volume Trend ─────────────────────────────────────────────── */}
-      <section>
+      <section className="fade-up scroll-reveal">
         <div className="flex items-center justify-between mb-3">
           <h2 className="t-display-s">Volume Trend</h2>
           <span
@@ -142,7 +143,7 @@ async function StatsTab({ userId }: { userId: string }) {
       </section>
 
       {/* ── Muscle Focus ─────────────────────────────────────────────── */}
-      <section>
+      <section className="fade-up scroll-reveal">
         <div className="flex items-center justify-between mb-3">
           <h2 className="t-display-s">Muscle Focus</h2>
           <span
@@ -163,7 +164,7 @@ async function StatsTab({ userId }: { userId: string }) {
       </section>
 
       {/* ── Tonnage Milestones ───────────────────────────────────────── */}
-      <section>
+      <section className="fade-up scroll-reveal">
         <h2 className="t-display-s mb-3">Tonnage Milestones</h2>
         <TonnageMilestones totalVolume={totalVolume} />
       </section>
@@ -215,12 +216,13 @@ function TonnageMilestones({ totalVolume }: { totalVolume: number }) {
             <span className="text-sm ml-1" style={{ color: 'var(--text-faint)' }}>kg lifted</span>
           </p>
           {achieved.length > 0 && (
-            <p
-              className="text-[10px] font-semibold uppercase tracking-widest mt-1"
+            <div
+              className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest mt-1"
               style={{ color: 'var(--accent)' }}
             >
-              ✦ {achieved[achieved.length - 1].label} achieved
-            </p>
+              <Award className="w-3 h-3 shrink-0" />
+              <span>{achieved[achieved.length - 1].label} achieved</span>
+            </div>
           )}
         </div>
       </div>
@@ -245,12 +247,13 @@ function TonnageMilestones({ totalVolume }: { totalVolume: number }) {
           </p>
         </>
       ) : (
-        <p
-          className="text-[10px] font-semibold uppercase tracking-widest"
+        <div
+          className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest"
           style={{ color: 'var(--accent)' }}
         >
-          All milestones achieved 🚀
-        </p>
+          <Trophy className="w-3 h-3 shrink-0" />
+          <span>All milestones achieved</span>
+        </div>
       )}
     </div>
   )

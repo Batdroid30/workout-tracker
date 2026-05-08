@@ -239,6 +239,7 @@ body {
   }
 }
 
+
 /* ─── Scrollbar (subtle) ────────────────────────────────────────────────*/
 ::-webkit-scrollbar        { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track  { background: var(--bg-1); }

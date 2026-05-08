@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { TrendingUp, TrendingDown, Minus, Loader2 } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, Loader2, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { InsightCard } from './InsightCard'
 import { updateTrainingProfileAction } from '@/app/(app)/profile/actions'
@@ -57,7 +57,7 @@ export function PhaseTransitionCard({ experienceLevel, trainingPhase, phaseStart
   }
 
   return (
-    <InsightCard title="Time to switch phases?" icon="🔄" variant="warning" dismissKey="phase_transition_dismissed_at">
+    <InsightCard title="Time to switch phases?" icon={<RefreshCw className="w-3.5 h-3.5" style={{ color: 'var(--rose)' }} />} variant="warning" dismissKey="phase_transition_dismissed_at">
       <p className="text-[13px] text-[var(--text-hi)] leading-relaxed mb-3">
         You've been <span className="text-[var(--text-hi)] font-medium">{trainingPhase}</span> for{' '}
         <span className="text-[var(--text-hi)] font-medium">{Math.floor(weeksInPhase)} weeks</span>.

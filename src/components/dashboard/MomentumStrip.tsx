@@ -1,4 +1,8 @@
-import { Trophy, Flame, Award, Dumbbell } from 'lucide-react'
+import {
+  Trophy, Flame, Award, Dumbbell,
+  Zap, Shield, BarChart2, Target, TrendingUp, Crown,
+  type LucideIcon,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { RecentPR, TrainingStreak } from '@/lib/data/insights'
 import type { Badge } from '@/lib/data/achievements'
@@ -8,6 +12,19 @@ interface MomentumStripProps {
   streak:      TrainingStreak
   badges:      Badge[]
   totalVolume: number
+}
+
+// Maps the icon string stored in Badge data to its Lucide component.
+const BADGE_ICON_MAP: Record<string, LucideIcon> = {
+  'dumbbell':    Dumbbell,
+  'zap':         Zap,
+  'shield':      Shield,
+  'bar-chart-2': BarChart2,
+  'trophy':      Trophy,
+  'crown':       Crown,
+  'target':      Target,
+  'trending-up': TrendingUp,
+  'flame':       Flame,
 }
 
 export function MomentumStrip({ prs, streak, badges, totalVolume }: MomentumStripProps) {
@@ -72,9 +89,16 @@ function BadgesTile({ badges }: { badges: Badge[] }) {
         {earned.length}
         <span className="text-xs text-[var(--text-low)] ml-1">/ {total}</span>
       </p>
-      <div className="flex gap-1 mt-2 min-h-[18px]">
+      <div className="flex gap-1.5 mt-2 min-h-[18px] items-center">
         {recent.length > 0 ? (
-          recent.map(b => <span key={b.id} title={b.label} className="text-base leading-none">{b.emoji}</span>)
+          recent.map(b => {
+            const Icon = BADGE_ICON_MAP[b.icon] ?? Award
+            return (
+              <span key={b.id} title={b.label}>
+                <Icon className="w-4 h-4" style={{ color: b.color }} />
+              </span>
+            )
+          })
         ) : (
           <span className="text-[10px] text-[var(--text-faint)]">None unlocked yet</span>
         )}

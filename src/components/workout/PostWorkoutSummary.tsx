@@ -182,7 +182,12 @@ export function PostWorkoutSummary({ workout, prs, onDone }: PostWorkoutSummaryP
           className="w-full h-14 rounded-[var(--radius-pill)] text-[13px] font-semibold uppercase tracking-widest transition-all active:scale-95 hover:opacity-90"
           style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
         >
-          {uniquePRs.length > 0 ? 'Hell Yeah 🔥' : 'Done'}
+          {uniquePRs.length > 0 ? (
+            <span className="flex items-center justify-center gap-2">
+              <Trophy className="w-4 h-4" />
+              Hell Yeah
+            </span>
+          ) : 'Done'}
         </button>
       </div>
     </div>
