@@ -163,6 +163,14 @@ export default function WorkoutPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkout?.started_at])
 
+  // Defer finishWorkout() until after PostWorkoutSummary has rendered. Calling it
+  // synchronously while setSummary is still pending causes a Zustand re-render where
+  // both are null, which remounts the summary screen and blacks out the fade-in.
+  useEffect(() => {
+    if (summary) finishWorkout()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summary])
+
   // Accordion for routine workouts — one exercise expanded at a time
   const isRoutineWorkout = !!activeWorkout?.routine_id
   const [expandedIndex,  setExpandedIndex] = useState<number | null>(null)
@@ -242,7 +250,8 @@ export default function WorkoutPage() {
       const result = await finishWorkoutAction(finalWorkout)
       if (result.success) {
         setSummary({ workout: finalWorkout, prs: result.prs ?? [] })
-        finishWorkout()
+        // finishWorkout() is called via useEffect once summary is committed,
+        // avoiding a race where Zustand clears activeWorkout before React renders PostWorkoutSummary.
         if (result.prError) {
           dialog.alert({
             title: 'Workout saved',
