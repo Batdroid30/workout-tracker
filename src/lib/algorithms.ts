@@ -175,6 +175,11 @@ interface SuggestNextSetParams {
    * calibrated against a goal target (muscle=7.5, both=8.0) that doesn't match.
    */
   dupRpeTarget?:   number | null
+  /**
+   * When true, overrides normal progression with deload-appropriate loads:
+   * ~60% of last weight, 5–8 reps, RPE 6.0.
+   */
+  isDeloadWeek?: boolean
 }
 
 /**
@@ -207,7 +212,19 @@ export function suggestNextSet({
   experienceLevel = null,
   dupRepRange     = null,
   dupRpeTarget    = null,
+  isDeloadWeek    = false,
 }: SuggestNextSetParams): OverloadSuggestion {
+  // ── Deload week override ─────────────────────────────────────────────────────
+  if (isDeloadWeek) {
+    const deloadWeight = Math.max(0, Math.round(lastWeight * 0.6 / 2.5) * 2.5)
+    return {
+      weight_kg:   deloadWeight,
+      target_reps: Math.max(5, Math.min(8, lastReps - 2)),
+      rpe_target:  6.0,
+      reason:      'Deload week — reduce load to ~60% and focus on technique and recovery.',
+    }
+  }
+
   // DUP scheme range takes precedence — keeps suggestions coherent with the
   // week label and rep range shown in the workout header.
   const range     = dupRepRange ?? REP_RANGES[trainingGoal ?? 'muscle']

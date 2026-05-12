@@ -2,7 +2,7 @@ import { cache } from 'react'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { calculateEpley1RM, suggestNextSet } from '@/lib/algorithms'
-import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
+import { getCurrentDUPScheme, isCurrentWeekDeload } from '@/lib/workout-intelligence'
 import type { RecentExerciseLoad } from '@/lib/algorithms'
 import {
   getAdjustedLandmarks,
@@ -23,8 +23,10 @@ import type {
 import type {
   MuscleGroup,
   Profile,
+  TrainingGoal,
   TrainingPhase,
   TrainingStyle,
+  ExperienceLevel,
 } from '@/types/database'
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -412,7 +414,12 @@ export interface BuildMissionsInput {
   pushPullBalance:  PushPullBalance
   keyLifts:         KeyLift[]
   recentLoads:      RecentExerciseLoad[]
-  profile: Pick<Profile, 'training_goal' | 'experience_level'> | null
+  profile?: {
+    training_goal:    TrainingGoal    | null
+    experience_level: ExperienceLevel | null
+    phase_started_at: string          | null
+    training_phase:   TrainingPhase   | null
+  } | null
 }
 
 const PRIORITY_ORDER: Record<MissionPriority, number> = {
@@ -517,7 +524,8 @@ export function buildThisWeekMissions(input: BuildMissionsInput): Mission[] {
     .filter((entry): entry is { lift: KeyLift; load: RecentExerciseLoad } => !!entry.load)
     .slice(0, 2)
 
-  const dupScheme = getCurrentDUPScheme()
+  const dupScheme    = getCurrentDUPScheme()
+  const deloadActive = isCurrentWeekDeload(input.profile ?? null)
 
   for (const { lift, load } of overloadPicks) {
     const suggestion = suggestNextSet({
@@ -528,6 +536,7 @@ export function buildThisWeekMissions(input: BuildMissionsInput): Mission[] {
       experienceLevel: input.profile?.experience_level ?? null,
       dupRepRange:     dupScheme.repRange,
       dupRpeTarget:    dupScheme.rpeTarget,
+      isDeloadWeek:    deloadActive,
     })
     missions.push({
       id:       `overload-${lift.exerciseId}`,

@@ -311,7 +311,7 @@ export const STALL_VARIATION_ADVICE: Partial<Record<MovementKey, string[]>> = {
   ],
 }
 
-// ── Daily Undulating Periodization (DUP) rep schemes ─────────────────────────
+// ── Weekly Undulating Periodization (WUP) rep schemes ────────────────────────
 //
 // Rotating rep schemes week-to-week produces better long-term results than
 // fixed rep ranges for intermediate and advanced lifters (Rhea et al., 2002).
@@ -319,14 +319,17 @@ export const STALL_VARIATION_ADVICE: Partial<Record<MovementKey, string[]>> = {
 // Cycle length: 3 weeks (strength → hypertrophy → metabolic stress → repeat).
 // Week index is derived from ISO week number modulo 3.
 
-export interface DUPScheme {
+export interface WUPScheme {
   label:      string
   repRange:   RepRange
   rpeTarget:  number
   rationale:  string
 }
 
-export const DUP_CYCLE: DUPScheme[] = [
+/** @deprecated Use WUPScheme */
+export type DUPScheme = WUPScheme
+
+export const WUP_CYCLE: WUPScheme[] = [
   {
     label:     'Strength Week',
     repRange:  { min: 3, max: 5 },
@@ -347,15 +350,41 @@ export const DUP_CYCLE: DUPScheme[] = [
   },
 ]
 
+/** @deprecated Use WUP_CYCLE */
+export const DUP_CYCLE = WUP_CYCLE
+
 /**
- * Returns the DUP scheme for the current ISO week.
+ * Returns the WUP scheme for the current ISO week.
  * The cycle resets every 3 weeks automatically — no user configuration needed.
+ * Accepts an optional `now` date for testability; defaults to the current time.
  */
-export function getCurrentDUPScheme(): DUPScheme {
-  const now       = new Date()
-  const startOfYear = new Date(now.getUTCFullYear(), 0, 1)
-  const isoWeek   = Math.ceil(((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getUTCDay() + 1) / 7)
-  return DUP_CYCLE[isoWeek % 3]
+export function getCurrentWUPScheme(now: Date = new Date()): WUPScheme {
+  const date = new Date(now)
+  const dayOfWeek = date.getUTCDay() || 7
+  date.setUTCDate(date.getUTCDate() + 4 - dayOfWeek)
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1))
+  const isoWeek = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+  return WUP_CYCLE[isoWeek % 3]
+}
+
+/** @deprecated Use getCurrentWUPScheme */
+export const getCurrentDUPScheme = getCurrentWUPScheme
+
+/**
+ * Returns true when the user is at or past their recommended deload threshold.
+ * Used to override progression suggestions with recovery-appropriate loads.
+ */
+export function isCurrentWeekDeload(profile: {
+  phase_started_at:  string | null
+  experience_level:  ExperienceLevel | null
+  training_phase:    TrainingPhase   | null
+} | null): boolean {
+  if (!profile?.phase_started_at) return false
+  const experience  = profile.experience_level ?? 'intermediate'
+  const phase       = profile.training_phase   ?? 'maingaining'
+  const threshold   = DELOAD_THRESHOLDS[experience][phase]
+  const weeksInPhase = (Date.now() - new Date(profile.phase_started_at).getTime()) / (7 * 24 * 60 * 60 * 1000)
+  return weeksInPhase >= threshold
 }
 
 // ── Workout focus defaults — by muscle group ──────────────────────────────────

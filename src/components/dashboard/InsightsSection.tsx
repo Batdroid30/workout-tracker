@@ -18,6 +18,7 @@ import {
   buildThisWeekMissions,
 } from '@/lib/data/phase-coach'
 import { getWeeksInPhase, buildMesocycleTimeline } from '@/lib/phase-coach'
+import { isCurrentWeekDeload } from '@/lib/workout-intelligence'
 import { getBadges } from '@/lib/data/achievements'
 import { getProfile } from '@/lib/data/profile'
 
@@ -80,6 +81,9 @@ export async function InsightsSection({
     training_phase:   profile.training_phase,
     phase_started_at: profile.phase_started_at,
   } : null)
+  const isDeloadWeek = fatigue.shouldSuggest || isCurrentWeekDeload(profile
+    ? { phase_started_at: profile.phase_started_at ?? null, experience_level: profile.experience_level, training_phase: profile.training_phase }
+    : null)
   const nextWorkout     = deriveNextWorkoutSuggestion(neglectedMuscles)
   const mesocycle       = buildMesocycleTimeline({
     phaseStartedAt:     profile?.phase_started_at ?? null,
@@ -97,7 +101,12 @@ export async function InsightsSection({
     keyLifts,
     recentLoads,
     profile: profile
-      ? { training_goal: profile.training_goal, experience_level: profile.experience_level }
+      ? {
+          training_goal:    profile.training_goal,
+          experience_level: profile.experience_level,
+          phase_started_at: profile.phase_started_at ?? null,
+          training_phase:   profile.training_phase   ?? null,
+        }
       : null,
   })
 
@@ -120,6 +129,7 @@ export async function InsightsSection({
         weeklySummary={weeklySummary}
         missions={missions}
         nextWorkout={nextWorkout}
+        isDeloadWeek={isDeloadWeek}
       />
 
       {/* Phase Coach — strength index, volume landmarks, most improved */}

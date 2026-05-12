@@ -15,6 +15,7 @@ interface ThisWeekCardProps {
   weeklySummary:  WeeklySummary
   missions:       Mission[]
   nextWorkout:    NextWorkoutSuggestion | null
+  isDeloadWeek?:  boolean
 }
 
 const PRIORITY_BAR: Record<MissionPriority, string> = {
@@ -29,6 +30,7 @@ export function ThisWeekCard({
   weeklySummary,
   missions,
   nextWorkout,
+  isDeloadWeek = false,
 }: ThisWeekCardProps) {
   const [editing,   setEditing]   = useState(false)
   const [draftGoal, setDraftGoal] = useState(goalSessions)
@@ -54,14 +56,25 @@ export function ThisWeekCard({
           <Target className="w-3.5 h-3.5 text-[var(--accent)]" />
           <h3 className="t-label">This Week</h3>
         </div>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--accent-soft)] border border-[var(--accent-line)]">
-          <span className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-widest">
-            {dupScheme.label}
-          </span>
-          <span className="text-[10px] text-[var(--text-low)]">
-            {dupScheme.repRange.min}–{dupScheme.repRange.max} reps
-          </span>
-        </div>
+        {isDeloadWeek ? (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--accent-soft)] border border-[var(--accent-line)]">
+            <span className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-widest">
+              Deload Week
+            </span>
+            <span className="text-[10px] text-[var(--text-low)]">
+              recover &amp; rebuild
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--accent-soft)] border border-[var(--accent-line)]">
+            <span className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-widest">
+              {dupScheme.label}
+            </span>
+            <span className="text-[10px] text-[var(--text-low)]">
+              {dupScheme.repRange.min}–{dupScheme.repRange.max} reps
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Sessions + progress */}

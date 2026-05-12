@@ -10,6 +10,7 @@ type Props = {
 export default async function LoginPage({ searchParams }: Props) {
   const resolvedParams = await searchParams
   const error = resolvedParams?.error as string | undefined
+  const message = resolvedParams?.message as string | undefined
 
   return (
     <form action={loginUser} className="space-y-4">
@@ -17,6 +18,12 @@ export default async function LoginPage({ searchParams }: Props) {
         <h2 className="t-display-s">Welcome back</h2>
         <p className="t-caption mt-1">Sign in to continue your journey.</p>
       </div>
+
+      {message && (
+        <div className="p-3 bg-[var(--accent-soft)] border border-[var(--accent-line)] text-[var(--accent)] text-xs font-medium rounded-[var(--radius-inner)]">
+          {decodeURIComponent(message)}
+        </div>
+      )}
 
       {error && (
         <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium rounded-[var(--radius-inner)]">
@@ -29,7 +36,12 @@ export default async function LoginPage({ searchParams }: Props) {
         <Input type="email" name="email" placeholder="you@example.com" required />
       </div>
       <div className="space-y-1.5">
-        <label className="t-label block">Password</label>
+        <div className="flex items-center justify-between">
+          <label className="t-label block">Password</label>
+          <Link href="/forgot-password" className="text-[10px] font-medium hover:underline" style={{ color: 'var(--accent)' }}>
+            Forgot password?
+          </Link>
+        </div>
         <Input type="password" name="password" placeholder="••••••••" required />
       </div>
 

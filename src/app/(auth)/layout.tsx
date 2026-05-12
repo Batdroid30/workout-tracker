@@ -1,6 +1,8 @@
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="aurora-page flex min-h-screen flex-col items-center justify-center p-4">
+    <div className="relative min-h-screen flex flex-col items-center justify-center p-4 bg-[var(--bg-0)]">
+      {/* Aurora background — pointer-events:none so it never blocks inputs */}
+      <div className="aurora-page" aria-hidden="true" />
 
       <div className="w-full max-w-sm space-y-8 relative z-10">
         <div className="text-center">
