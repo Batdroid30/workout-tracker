@@ -7,7 +7,7 @@ export default auth((req) => {
   // single source of truth for whether the user is logged in.
   const isLoggedIn = !!req.auth
 
-  const isAuthPage = nextUrl.pathname === '/login' || nextUrl.pathname === '/signup'
+  const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(nextUrl.pathname)
   const isPublicFile = nextUrl.pathname.includes('.')
 
   // Unauthenticated user hitting a protected route → send to login
