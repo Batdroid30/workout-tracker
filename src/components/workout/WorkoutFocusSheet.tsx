@@ -56,6 +56,14 @@ export function WorkoutFocusSheet({
     if (isOpen) load()
   }, [isOpen, load])
 
+  // Lock body scroll while sheet is open so the underlying page can't scroll through the overlay
+  useEffect(() => {
+    if (!isOpen) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previous }
+  }, [isOpen])
+
   const frequencyMap = useMemo(
     () => new Map(Object.entries(usageFrequency)),
     [usageFrequency],
@@ -137,7 +145,10 @@ export function WorkoutFocusSheet({
       </div>
 
       {/* ── Skip ── */}
-      <div className="p-4" style={{ borderTop: '1px solid var(--glass-border)' }}>
+      <div
+        className="px-4 pt-4"
+        style={{ borderTop: '1px solid var(--glass-border)', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+      >
         <button
           onClick={handleSkip}
           className="w-full h-11 flex items-center justify-center text-xs font-medium uppercase tracking-wider transition-colors hover:opacity-80"
