@@ -233,6 +233,27 @@ export function suggestNextSet({
   // in the suggestion and used to pre-fill the RPE input in the UI.
   const targetRPE = dupRpeTarget ?? TARGET_RPE[trainingGoal ?? 'both']
 
+  // ── Cross-phase WUP transition ──────────────────────────────────────────────
+  // lastReps outside the current range means the WUP week changed (e.g. Hyp → Volume).
+  // Fixed-increment adjustments produce nonsensical load/rep combinations across phases.
+  // Use e1RM to back-calculate a sensible starting load for the new rep range instead.
+  if (lastReps < range.min || lastReps > range.max) {
+    // Account for reps in reserve when RPE is known — gives a more accurate e1RM.
+    const repsToFailure = lastRPE != null ? lastReps + (10 - lastRPE) : lastReps
+    // Epley is accurate within ±3.5% up to ~10 reps and degrades above that, but it
+    // still produces far more realistic cross-phase suggestions than fixed increments.
+    const e1rm = lastWeight * (1 + repsToFailure / 30)
+    // At targetRPE the lifter has (10 - targetRPE) reps in reserve on the final rep.
+    const targetRepsToFailure = range.min + (10 - targetRPE)
+    const targetWeight = roundToPlate(e1rm / (1 + targetRepsToFailure / 30))
+    return {
+      weight_kg:   targetWeight,
+      target_reps: range.min,
+      rpe_target:  targetRPE,
+      reason:      `Week changed to ${range.min}–${range.max} reps — starting weight estimated from your recent performance.`,
+    }
+  }
+
   // ── RPE calibration ───────────────────────────────────────────────────────
   if (lastRPE != null) {
     const deviation = lastRPE - targetRPE
@@ -280,20 +301,11 @@ export function suggestNextSet({
     }
   }
 
-  if (lastReps >= range.min) {
-    return {
-      weight_kg:   lastWeight,
-      target_reps: lastReps + 1,
-      rpe_target:  targetRPE,
-      reason: `Keep weight steady. Push for ${lastReps + 1} reps this set.`,
-    }
-  }
-
   return {
-    weight_kg:   Math.max(0, lastWeight - increment),
-    target_reps: range.max,
+    weight_kg:   lastWeight,
+    target_reps: lastReps + 1,
     rpe_target:  targetRPE,
-    reason: `Fell below ${range.min} reps — drop ${increment}kg and rebuild to ${range.max}.`,
+    reason: `Keep weight steady. Push for ${lastReps + 1} reps this set.`,
   }
 }
 

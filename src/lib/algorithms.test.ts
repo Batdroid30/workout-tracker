@@ -120,6 +120,33 @@ describe('suggestNextSet', () => {
     const progressedReps   = out.target_reps > 12
     expect(progressedWeight || progressedReps).toBe(true)
   })
+
+  it('uses e1RM to suggest weight when WUP phase changes to a higher rep range', () => {
+    // Hyp week: 27.5kg × 10 reps. Now Volume Week (13–20 reps, RPE 7.0).
+    // Old behaviour would suggest 25kg × 20 — physically impossible.
+    const out = suggestNextSet({
+      lastWeight: 27.5,
+      lastReps: 10,
+      dupRepRange: { min: 13, max: 20 },
+      dupRpeTarget: 7.0,
+    })
+    expect(out.target_reps).toBe(13)
+    expect(out.weight_kg).toBeLessThan(27.5)
+    expect(out.weight_kg).toBeGreaterThanOrEqual(20)
+  })
+
+  it('uses e1RM to suggest weight when WUP phase changes to a lower rep range', () => {
+    // Volume week: 25kg × 18 reps. Now Strength Week (3–5 reps, RPE 8.5).
+    // e1RM ≈ 40kg → target ~35kg, well above the old +2.5kg suggestion.
+    const out = suggestNextSet({
+      lastWeight: 25,
+      lastReps: 18,
+      dupRepRange: { min: 3, max: 5 },
+      dupRpeTarget: 8.5,
+    })
+    expect(out.target_reps).toBe(3)
+    expect(out.weight_kg).toBeGreaterThan(25)
+  })
 })
 
 describe('generateDeloadRoutine', () => {
