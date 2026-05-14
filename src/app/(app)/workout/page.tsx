@@ -6,7 +6,6 @@ import { PlateCalculator } from '@/components/workout/PlateCalculator'
 import { RestTimer } from '@/components/workout/RestTimer'
 import { Plus, Dumbbell, ChevronLeft } from 'lucide-react'
 import { AddExerciseModal } from '@/components/workout/AddExerciseModal'
-import { PostWorkoutSummary } from '@/components/workout/PostWorkoutSummary'
 import { SuggestNextChip } from '@/components/workout/SuggestNextChip'
 import { useExerciseStore } from '@/store/exercise.store'
 import { finishWorkoutAction, getUserExerciseFrequency } from './actions'
@@ -15,7 +14,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useDialog } from '@/providers/DialogProvider'
 import { cn } from '@/lib/utils'
-import type { PREvaluationResult } from '@/lib/data/stats'
 import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 import { WorkoutFocusSheet } from '@/components/workout/WorkoutFocusSheet'
 import { SupersetWrapper } from '@/components/workout/SupersetWrapper'
@@ -124,10 +122,6 @@ export default function WorkoutPage() {
 
   const [addingExerciseMode, setAddingExerciseMode] = useState<{ mode: 'add' } | { mode: 'replace', index: number } | null>(null)
   const [isFinishing,        setIsFinishing]        = useState(false)
-  const [summary, setSummary] = useState<{
-    workout: NonNullable<typeof activeWorkout>
-    prs:     PREvaluationResult[]
-  } | null>(null)
 
   // Plate calculator + rest timer state live here so they render outside
   // backdrop-filter cards (which break fixed positioning on WebKit).
@@ -162,14 +156,6 @@ export default function WorkoutPage() {
     getUserExerciseFrequency().then(setUsageFrequency)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkout?.started_at])
-
-  // Defer finishWorkout() until after PostWorkoutSummary has rendered. Calling it
-  // synchronously while setSummary is still pending causes a Zustand re-render where
-  // both are null, which remounts the summary screen and blacks out the fade-in.
-  useEffect(() => {
-    if (summary) finishWorkout()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [summary])
 
   // Accordion for routine workouts — one exercise expanded at a time
   const isRoutineWorkout = !!activeWorkout?.routine_id
@@ -249,15 +235,8 @@ export default function WorkoutPage() {
 
       const result = await finishWorkoutAction(finalWorkout)
       if (result.success) {
-        setSummary({ workout: finalWorkout, prs: result.prs ?? [] })
-        // finishWorkout() is called via useEffect once summary is committed,
-        // avoiding a race where Zustand clears activeWorkout before React renders PostWorkoutSummary.
-        if (result.prError) {
-          dialog.alert({
-            title: 'Workout saved',
-            description: 'Your workout was saved, but we couldn\'t check for personal records. They\'ll be picked up next time stats are recalculated.',
-          })
-        }
+        finishWorkout()
+        router.push('/dashboard')
       } else {
         dialog.alert({ title: 'Error', description: 'Failed to save workout: ' + result.error })
       }
@@ -269,16 +248,6 @@ export default function WorkoutPage() {
   }
 
   const dupScheme = getCurrentDUPScheme()
-
-  if (summary) {
-    return (
-      <PostWorkoutSummary
-        workout={summary.workout}
-        prs={summary.prs}
-        onDone={() => { setSummary(null); router.push('/dashboard') }}
-      />
-    )
-  }
 
   if (!activeWorkout) {
     return (
