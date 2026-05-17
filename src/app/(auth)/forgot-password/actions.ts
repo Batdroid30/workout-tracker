@@ -8,12 +8,15 @@ export async function forgotPassword(formData: FormData) {
   const email = formData.get('email') as string
   if (!email) redirect('/forgot-password?error=Email+is+required')
 
-  // Derive origin from the incoming request — works correctly in every environment
+  // NEXT_PUBLIC_SITE_URL is the authoritative source in production (set this in Vercel env vars).
+  // Trailing slash stripped so redirectTo never becomes "https://app.vercel.app//reset-password".
+  // Header-based derivation is the fallback for preview/local environments.
   const headersList = await headers()
-  const origin = headersList.get('origin') ??
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
+  const origin = siteUrl ??
     (headersList.get('x-forwarded-host')
       ? `https://${headersList.get('x-forwarded-host')}`
-      : 'http://localhost:3000')
+      : headersList.get('origin') ?? 'http://localhost:3000')
 
   const supabase = await getSupabaseServer()
   await supabase.auth.resetPasswordForEmail(email, {

@@ -18,12 +18,12 @@ interface PhaseCoachCardProps {
 }
 
 const VOLUME_STATUS_STYLES: Record<VolumeStatus, { dot: string; text: string; label: string }> = {
-  below_mv:    { dot: 'bg-[var(--rose)]',    text: 'text-[var(--rose)]',    label: 'Below MV'    },
+  below_mv:    { dot: 'bg-[var(--rose)]',    text: 'text-[var(--rose)]',    label: 'Not enough'  },
   maintenance: { dot: 'bg-orange-400',       text: 'text-orange-400',       label: 'Maintaining' },
-  sub_optimal: { dot: 'bg-yellow-400',       text: 'text-yellow-400',       label: 'Sub-optimal' },
-  optimal:     { dot: 'bg-[var(--accent)]',  text: 'text-[var(--accent)]',  label: 'Optimal'     },
-  high:        { dot: 'bg-orange-400',       text: 'text-orange-400',       label: 'High'        },
-  over_mrv:    { dot: 'bg-[var(--rose)]',    text: 'text-[var(--rose)]',    label: 'Over MRV'    },
+  sub_optimal: { dot: 'bg-yellow-400',       text: 'text-yellow-400',       label: 'Below target'},
+  optimal:     { dot: 'bg-[var(--accent)]',  text: 'text-[var(--accent)]',  label: 'On target'   },
+  high:        { dot: 'bg-orange-400',       text: 'text-orange-400',       label: 'Near limit'  },
+  over_mrv:    { dot: 'bg-[var(--rose)]',    text: 'text-[var(--rose)]',    label: 'Too much'    },
 }
 
 const STATUS_PRIORITY: Record<VolumeStatus, number> = {
@@ -61,7 +61,9 @@ export function PhaseCoachCard({
           <span className="t-label text-[var(--accent)] bg-[var(--accent-soft)] border border-[var(--accent-line)] rounded px-2 py-0.5">
             {phaseLabel}
             {weeksInPhase && cycleLength
-              ? ` · WK ${Math.min(weeksInPhase, cycleLength + 4)} / ${cycleLength}`
+              ? weeksInPhase > cycleLength
+                ? ` · WK ${cycleLength}+`
+                : ` · WK ${weeksInPhase} / ${cycleLength}`
               : weeksInPhase ? ` · WK ${weeksInPhase}` : ''}
           </span>
         )}
@@ -79,7 +81,7 @@ export function PhaseCoachCard({
       <div className="mt-5 mb-4">
         <div className="flex items-center justify-between mb-2">
           <p className="t-label">Volume · This Week</p>
-          <p className="t-caption">sets / week</p>
+          <p className="t-caption">sets this week</p>
         </div>
         <div className="space-y-2.5">
           {sortedLandmarks.map(point => (
@@ -96,7 +98,7 @@ export function PhaseCoachCard({
               <p className="t-label mb-1">Most Improved</p>
               <p className="text-[13px] font-medium text-[var(--text-hi)] truncate">{topImproved.exerciseName}</p>
               <p className="mono text-[10px] text-[var(--text-low)] mt-0.5 tabular-nums">
-                {topImproved.previousBest.toFixed(1)} → {topImproved.recentBest.toFixed(1)} kg e1RM
+                {topImproved.previousBest.toFixed(1)} → {topImproved.recentBest.toFixed(1)} kg est. 1RM
               </p>
             </div>
             <div className="flex items-center gap-1 shrink-0">
@@ -174,7 +176,7 @@ function StrengthIndexSection({ summary }: { summary: StrengthIndexSummary }) {
         </div>
       </div>
       <p className="text-[9px] text-[var(--text-faint)] mt-2">
-        Avg across {summary.liftCount} key lift{summary.liftCount === 1 ? '' : 's'}, weekly best e1RM, normalised to phase start.
+        Based on your {summary.liftCount} most-trained lift{summary.liftCount === 1 ? '' : 's'} — estimated 1RM each week, from your phase start.
       </p>
     </div>
   )
@@ -232,7 +234,7 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
         <div className="flex items-center gap-2 shrink-0">
           <span className="mono text-[10px] tabular-nums text-[var(--text-mid)]">
             {setCount}
-            <span className="text-[var(--text-faint)] ml-1">/ {landmarks.mev}–{landmarks.mav.max}</span>
+            <span className="text-[var(--text-faint)] ml-1">· aim {landmarks.mev}–{landmarks.mav.max}</span>
           </span>
           <span className={cn('text-[8px] font-medium uppercase tracking-widest w-[58px] text-right', styles.text)}>
             {styles.label}

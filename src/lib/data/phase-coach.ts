@@ -444,14 +444,19 @@ export function buildThisWeekMissions(input: BuildMissionsInput): Mission[] {
       priority: 'critical',
       icon:     '🚨',
       headline: `Cut back on ${m.muscleGroup}`,
-      detail:   `${m.setCount} sets this week — above your recoverable max (${m.landmarks.mrv}). Drop a set on your next session.`,
+      detail:   `${m.setCount} sets this week — more than your body can recover from (recommended max: ${m.landmarks.mrv}). Drop a set on your next session.`,
     })
   }
 
   // ── High: stalls (max 2) ───────────────────────────────────────────────────
   const stalledNames = new Set(input.stalledMovements.map(s => s.exerciseName))
   for (const s of input.stalledMovements.slice(0, 2)) {
-    const sign = s.pctPerWeek >= 0 ? '+' : ''
+    // Format first, then sanitise: values like -0.04 survive the === 0 guard but
+    // toFixed(1) still produces "-0.0". Checking the string catches every case.
+    const formatted = s.pctPerWeek.toFixed(1)
+    const rateLabel = formatted === '-0.0'
+      ? '0.0%/wk'
+      : `${s.pctPerWeek > 0 ? '+' : ''}${formatted}%/wk`
     missions.push({
       id:       `stall-${s.exerciseName}`,
       type:     'stall',
@@ -459,8 +464,8 @@ export function buildThisWeekMissions(input: BuildMissionsInput): Mission[] {
       icon:     '📉',
       headline: `${s.exerciseName} is stalled`,
       detail:   s.advice.length > 0
-        ? `${sign}${s.pctPerWeek.toFixed(1)}%/wk over 3 weeks. ${s.advice[0]}`
-        : `${sign}${s.pctPerWeek.toFixed(1)}%/wk over 3 weeks. Switch rep range — try 5×5 if you've been doing 8–12, or vice versa.`,
+        ? `${rateLabel} over 3 weeks. ${s.advice[0]}`
+        : `${rateLabel} over 3 weeks. Switch rep range — try 5×5 if you've been doing 8–12, or vice versa.`,
     })
   }
 
@@ -502,14 +507,14 @@ export function buildThisWeekMissions(input: BuildMissionsInput): Mission[] {
     const needed   = Math.max(1, m.landmarks.mev - m.setCount)
     const daysSince = neglectedDays.get(m.muscleGroup)
     const detail = daysSince !== undefined
-      ? `Last trained ${daysSince} days ago. Add ${needed} set${needed === 1 ? '' : 's'} this week to hit MEV (${m.landmarks.mev}).`
-      : `${m.setCount} of ${m.landmarks.mev} sets needed for growth. Add ${needed} more this week.`
+      ? `Last trained ${daysSince} days ago. Add ${needed} more set${needed === 1 ? '' : 's'} this week — ${m.landmarks.mev} sets/week is the minimum needed for growth.`
+      : `Only ${m.setCount} of ${m.landmarks.mev} sets done this week. Add ${needed} more to hit the minimum for growth.`
     missions.push({
       id:       `gap-${m.muscleGroup}`,
       type:     'volume_gap',
       priority: 'high',
       icon:     '⚠️',
-      headline: `${m.muscleGroup} below MEV`,
+      headline: `${m.muscleGroup} needs more volume`,
       detail,
     })
   }
