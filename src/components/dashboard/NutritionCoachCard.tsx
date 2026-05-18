@@ -112,6 +112,9 @@ export function NutritionCoachCard({ profile, bwHistory, weeklyGoal }: Nutrition
             : `${targets.targetCalories.toLocaleString()} kcal/day at maintenance · ${targets.proteinGrams}g protein.`
           }
         </p>
+        <p className="text-[9px] text-[var(--text-faint)] leading-relaxed mt-1" style={{ opacity: 0.6 }}>
+          Estimate only — formulas carry ±10–15% individual variance and don't account for daily non-gym activity. Track for 2 weeks, observe your weight trend, then adjust by ±100–200 kcal as needed.
+        </p>
       </div>
     </InsightCard>
   )
