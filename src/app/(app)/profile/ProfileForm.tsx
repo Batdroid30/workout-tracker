@@ -101,6 +101,9 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
   const [firstName,    setFirstName]    = useState(profile?.first_name  || '')
   const [lastName,     setLastName]     = useState(profile?.last_name   || '')
   const [avatarUrl,    setAvatarUrl]    = useState(profile?.avatar_url  || '')
+  const [heightCm,     setHeightCm]     = useState(profile?.height_cm ? String(profile.height_cm) : '')
+  const [ageYears,     setAgeYears]     = useState(profile?.age_years   ? String(profile.age_years)  : '')
+  const [sex,          setSex]          = useState<'male' | 'female' | null>(profile?.sex ?? null)
   const [isSaving,     setIsSaving]     = useState(false)
   const [isUploading,  setIsUploading]  = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -124,6 +127,9 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
     const formData = new FormData()
     formData.append('firstName', firstName)
     formData.append('lastName',  lastName)
+    if (heightCm) formData.append('heightCm', heightCm)
+    if (ageYears)  formData.append('ageYears',  ageYears)
+    if (sex)       formData.append('sex',       sex)
     const result = await updateProfileAction(formData)
     if (result.success) {
       dialog.alert({ title: 'Success', description: 'Profile updated!' })
@@ -254,6 +260,66 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
                   color: 'var(--text-hi)',
                 }}
               />
+            </div>
+          </div>
+
+          {/* Body stats — used for TDEE / nutrition coaching */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="t-label block">Height (cm)</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={heightCm}
+                onChange={e => setHeightCm(e.target.value)}
+                placeholder="e.g. 178"
+                min={100}
+                max={250}
+                className="w-full rounded-[var(--radius-inner)] px-3 py-2.5 text-sm focus:outline-none transition-colors"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-hi)',
+                }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="t-label block">Age</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={ageYears}
+                onChange={e => setAgeYears(e.target.value)}
+                placeholder="e.g. 28"
+                min={13}
+                max={100}
+                className="w-full rounded-[var(--radius-inner)] px-3 py-2.5 text-sm focus:outline-none transition-colors"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-hi)',
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="t-label block">Sex</label>
+            <div className="grid grid-cols-2 gap-2">
+              {(['male', 'female'] as const).map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSex(s)}
+                  className="h-9 rounded-[var(--radius-inner)] text-[11px] font-medium uppercase tracking-widest transition-colors"
+                  style={sex === s
+                    ? { background: 'var(--accent)', color: 'var(--accent-on)', border: '1px solid var(--accent)' }
+                    : { background: 'rgba(255,255,255,0.04)', color: 'var(--text-mid)', border: '1px solid var(--glass-border)' }
+                  }
+                >
+                  {s === 'male' ? 'Male' : 'Female'}
+                </button>
+              ))}
             </div>
           </div>
         </div>

@@ -57,11 +57,26 @@ export const VOLUME_LANDMARKS: Record<MuscleGroup, VolumeLandmarks> = {
   core:       { mv: 4, mev: 6,  mav: { min: 8,  max: 16 }, mrv: 25 },
 }
 
-// Phase shifts the whole landmark band. In a cut you stay around MV/MEV
-// (preservation); in a bulk you can push toward MAV/MRV.
+// During a cut, the MV floor can be slightly reduced (recovery is impaired),
+// but the upper targets (MEV/MAV/MRV) stay at full — the evidence shows
+// maintaining ≥10 sets/muscle/week during caloric restriction preserves lean
+// mass; reducing those targets causes muscle loss (Barakat et al., 2020).
+export const PHASE_MV_MULTIPLIER: Record<TrainingPhase, number> = {
+  bulking:     1.0,
+  cutting:     0.85,  // slight floor reduction only
+  maingaining: 0.9,
+}
+
+export const PHASE_UPPER_MULTIPLIER: Record<TrainingPhase, number> = {
+  bulking:     1.0,
+  cutting:     1.0,   // fight to keep MEV/MAV/MRV high during a cut
+  maingaining: 0.9,
+}
+
+/** @deprecated Use PHASE_MV_MULTIPLIER / PHASE_UPPER_MULTIPLIER */
 export const PHASE_LANDMARK_MULTIPLIER: Record<TrainingPhase, number> = {
   bulking:     1.0,
-  cutting:     0.7,
+  cutting:     1.0,
   maingaining: 0.9,
 }
 
@@ -86,16 +101,18 @@ export function getAdjustedLandmarks(
   style:  TrainingStyle,
   phase:  TrainingPhase,
 ): VolumeLandmarks {
-  const base = VOLUME_LANDMARKS[muscle]
-  const k    = PHASE_LANDMARK_MULTIPLIER[phase] * INTENSITY_LANDMARK_MULTIPLIER[style]
+  const base     = VOLUME_LANDMARKS[muscle]
+  const styleK   = INTENSITY_LANDMARK_MULTIPLIER[style]
+  const mvK      = PHASE_MV_MULTIPLIER[phase]    * styleK
+  const upperK   = PHASE_UPPER_MULTIPLIER[phase] * styleK
   return {
-    mv:  Math.round(base.mv  * k),
-    mev: Math.round(base.mev * k),
+    mv:  Math.round(base.mv  * mvK),
+    mev: Math.round(base.mev * upperK),
     mav: {
-      min: Math.round(base.mav.min * k),
-      max: Math.round(base.mav.max * k),
+      min: Math.round(base.mav.min * upperK),
+      max: Math.round(base.mav.max * upperK),
     },
-    mrv: Math.round(base.mrv * k),
+    mrv: Math.round(base.mrv * upperK),
   }
 }
 

@@ -16,6 +16,8 @@ export const getRoutines = cache(async (userId: string) => {
         order_index,
         target_sets,
         target_reps,
+        progression_model,
+        rep_sum_target,
         exercise:exercises ( id, name, muscle_group )
       )
     `)
@@ -47,6 +49,8 @@ export const getRoutineById = cache(async (routineId: string, userId: string) =>
         order_index,
         target_sets,
         target_reps,
+        progression_model,
+        rep_sum_target,
         exercise:exercises ( id, name, muscle_group )
       )
     `)
@@ -72,6 +76,8 @@ export interface CreateRoutineInput {
     exercise_id: string
     target_sets: number
     target_reps: number
+    progression_model?: 'double' | 'rep_sum'
+    rep_sum_target?: number | null
   }[]
 }
 
@@ -88,16 +94,19 @@ export async function createRoutine(userId: string, input: CreateRoutineInput) {
 
   if (input.exercises.length > 0) {
     const routineExercises = input.exercises.map((ex, index) => ({
-      routine_id: routineData.id,
-      exercise_id: ex.exercise_id,
-      order_index: index,
-      target_sets: ex.target_sets,
-      target_reps: ex.target_reps,
+      routine_id:       routineData.id,
+      exercise_id:      ex.exercise_id,
+      order_index:      index,
+      target_sets:      ex.target_sets,
+      target_reps:      ex.target_reps,
+      progression_model: ex.progression_model ?? 'double',
+      rep_sum_target:   ex.rep_sum_target ?? null,
     }))
 
+    // Cast needed until Supabase types regenerate after the migration is applied.
     const { error: exercisesErr } = await supabase
       .from('routine_exercises')
-      .insert(routineExercises)
+      .insert(routineExercises as any)
 
     if (exercisesErr) throw new DatabaseError('Failed to add routine exercises', exercisesErr)
   }
@@ -128,6 +137,14 @@ export async function updateRoutine(routineId: string, userId: string, input: Cr
 
   if (routineErr) throw new DatabaseError('Failed to update routine', routineErr)
 
+  // Snapshot existing exercises before deleting so we can restore on insert failure.
+  const { data: snapshot, error: snapshotErr } = await supabase
+    .from('routine_exercises')
+    .select('exercise_id, order_index, target_sets, target_reps, progression_model, rep_sum_target')
+    .eq('routine_id', routineId)
+
+  if (snapshotErr) throw new DatabaseError('Failed to snapshot routine exercises', snapshotErr)
+
   const { error: delErr } = await supabase
     .from('routine_exercises')
     .delete()
@@ -137,17 +154,27 @@ export async function updateRoutine(routineId: string, userId: string, input: Cr
 
   if (input.exercises.length > 0) {
     const routineExercises = input.exercises.map((ex, index) => ({
-      routine_id: routineId,
-      exercise_id: ex.exercise_id,
-      order_index: index,
-      target_sets: ex.target_sets,
-      target_reps: ex.target_reps,
+      routine_id:        routineId,
+      exercise_id:       ex.exercise_id,
+      order_index:       index,
+      target_sets:       ex.target_sets,
+      target_reps:       ex.target_reps,
+      progression_model: ex.progression_model ?? 'double',
+      rep_sum_target:    ex.rep_sum_target ?? null,
     }))
 
+    // Cast needed until Supabase types regenerate after the migration is applied.
     const { error: exercisesErr } = await supabase
       .from('routine_exercises')
-      .insert(routineExercises)
+      .insert(routineExercises as any)
 
-    if (exercisesErr) throw new DatabaseError('Failed to add new routine exercises', exercisesErr)
+    if (exercisesErr) {
+      // Insert failed — restore the snapshot to avoid leaving the routine with no exercises.
+      if (snapshot && snapshot.length > 0) {
+        const restoreRows = (snapshot as any[]).map(r => ({ ...r, routine_id: routineId }))
+        await supabase.from('routine_exercises').insert(restoreRows as any)
+      }
+      throw new DatabaseError('Failed to add new routine exercises — previous exercises restored', exercisesErr)
+    }
   }
 }

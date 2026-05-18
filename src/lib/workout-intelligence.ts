@@ -68,8 +68,6 @@ export const WEIGHT_INCREMENTS: Record<ExperienceLevel, WeightIncrement> = {
 //
 // Volume style: spread volume across more sets, moderate effort per set.
 // Intensity style: fewer total sets, each one taken close to failure.
-//
-// Targets are also scaled down ~20% during a cut (handled in the card layer).
 
 export const WEEKLY_SET_TARGETS: Record<MuscleGroup, Record<TrainingStyle, WeeklySetTarget>> = {
   chest:      { volume: { min: 10, max: 16 }, intensity: { min: 4, max: 8 } },
@@ -87,10 +85,12 @@ export const WEEKLY_SET_TARGETS: Record<MuscleGroup, Record<TrainingStyle, Weekl
   core:       { volume: { min: 6,  max: 10 }, intensity: { min: 2, max: 5 } },
 }
 
-// Phase multipliers applied to the targets above
+// Phase multipliers applied to the targets above.
+// During a cut, volume targets are maintained — evidence shows ≥10 sets/muscle/week
+// is required to preserve lean mass during caloric restriction.
 export const PHASE_VOLUME_MULTIPLIER: Record<TrainingPhase, number> = {
   bulking:     1.1,   // slightly more volume — surplus supports recovery
-  cutting:     0.8,   // reduced volume — preservation mode
+  cutting:     1.0,   // maintain volume — fight to keep sets high during a cut
   maingaining: 1.0,   // steady
 }
 

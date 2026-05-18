@@ -29,6 +29,10 @@ export interface Profile {
   training_style:   TrainingStyle   | null
   experience_level: ExperienceLevel | null
   phase_started_at: string          | null
+  // Body stats — used for TDEE / nutrition coaching card
+  height_cm:        number          | null
+  age_years:        number          | null
+  sex:              'male' | 'female' | null
 }
 
 // Mirrors the public.exercises table. Note muscle_group / movement_pattern
@@ -134,6 +138,8 @@ export interface ActiveExercise {
   order_index: number
   rest_seconds?: number    // per-exercise rest override (null = use global default)
   superset_group?: string  // shared UUID links exercises in the same superset
+  progression_model?: 'double' | 'rep_sum'
+  rep_sum_target?: number | null
 }
 
 export interface ActiveWorkout {
@@ -160,5 +166,7 @@ export interface RoutineExercise {
   order_index: number
   target_sets: number
   target_reps: number
+  progression_model: 'double' | 'rep_sum'
+  rep_sum_target: number | null
   exercise?: Exercise           // populated via JOIN
 }

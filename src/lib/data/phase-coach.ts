@@ -1,7 +1,7 @@
 import { cache } from 'react'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
-import { calculateEpley1RM, suggestNextSet } from '@/lib/algorithms'
+import { calculate1RM, suggestNextSet } from '@/lib/algorithms'
 import { getCurrentDUPScheme, isCurrentWeekDeload } from '@/lib/workout-intelligence'
 import type { RecentExerciseLoad } from '@/lib/algorithms'
 import {
@@ -209,7 +209,7 @@ export const getStrengthIndex = cache(async (
     if (!exerciseId || !workout?.started_at) continue
 
     const weekKey = getMondayOf(new Date(workout.started_at))
-    const e1rm    = calculateEpley1RM(Number(row.weight_kg), Number(row.reps))
+    const e1rm    = calculate1RM(Number(row.weight_kg), Number(row.reps))
 
     let weekMap = liftWeekly.get(exerciseId)
     if (!weekMap) { weekMap = new Map(); liftWeekly.set(exerciseId, weekMap) }

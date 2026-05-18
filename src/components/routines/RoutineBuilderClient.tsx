@@ -16,6 +16,8 @@ interface RoutineExerciseBuilder {
   exercise: Exercise
   target_sets: number
   target_reps: number
+  progression_model: 'double' | 'rep_sum'
+  rep_sum_target: number
 }
 
 interface RoutineBuilderProps {
@@ -37,9 +39,11 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
 
   const [exercises, setExercises] = useState<RoutineExerciseBuilder[]>(
     initialRoutine?.routine_exercises.map(re => ({
-      exercise:    re.exercise,
-      target_sets: re.target_sets,
-      target_reps: re.target_reps,
+      exercise:          re.exercise,
+      target_sets:       re.target_sets,
+      target_reps:       re.target_reps,
+      progression_model: (re.progression_model as 'double' | 'rep_sum') ?? 'double',
+      rep_sum_target:    re.rep_sum_target ?? re.target_sets * re.target_reps,
     })) || [],
   )
 
@@ -48,7 +52,7 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
 
   // Adds one or more exercises at once (multi-select from modal)
   const handleAddExercises = (selected: Exercise[]) => {
-    const newEntries = selected.map(ex => ({ exercise: ex, target_sets: 3, target_reps: 10 }))
+    const newEntries = selected.map(ex => ({ exercise: ex, target_sets: 3, target_reps: 10, progression_model: 'double' as const, rep_sum_target: 30 }))
     setExercises(prev => [...prev, ...newEntries])
   }
 
@@ -76,9 +80,11 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
         title,
         notes,
         exercises: exercises.map(ex => ({
-          exercise_id: ex.exercise.id,
-          target_sets: ex.target_sets,
-          target_reps: ex.target_reps,
+          exercise_id:       ex.exercise.id,
+          target_sets:       ex.target_sets,
+          target_reps:       ex.target_reps,
+          progression_model: ex.progression_model,
+          rep_sum_target:    ex.progression_model === 'rep_sum' ? ex.rep_sum_target : null,
         })),
       }
 
@@ -206,34 +212,73 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
                 </button>
               </div>
 
-              <div className="p-4 grid grid-cols-2 gap-3">
-                <div className="min-w-0">
+              <div className="p-4 space-y-3">
+                {/* Progression model toggle */}
+                <div>
                   <label
-                    className="block text-[9px] font-medium uppercase tracking-widest mb-2 text-center"
+                    className="block text-[9px] font-medium uppercase tracking-widest mb-2"
                     style={{ color: 'var(--text-faint)' }}
                   >
-                    Sets
+                    Progression
                   </label>
-                  <NumberStepper
-                    value={ex.target_sets}
-                    onChange={val => handleUpdateExercise(i, { target_sets: val })}
-                    min={1}
-                    max={10}
-                  />
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {(['double', 'rep_sum'] as const).map(model => (
+                      <button
+                        key={model}
+                        type="button"
+                        onClick={() => handleUpdateExercise(i, { progression_model: model })}
+                        className="h-8 rounded-[var(--radius-inner)] text-[10px] font-medium uppercase tracking-widest transition-colors"
+                        style={ex.progression_model === model
+                          ? { background: 'var(--accent)', color: 'var(--accent-on)', border: '1px solid var(--accent)' }
+                          : { background: 'rgba(255,255,255,0.04)', color: 'var(--text-mid)', border: '1px solid var(--glass-border)' }
+                        }
+                      >
+                        {model === 'double' ? 'Double' : 'Rep Bank'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <label
-                    className="block text-[9px] font-medium uppercase tracking-widest mb-2 text-center"
-                    style={{ color: 'var(--text-faint)' }}
-                  >
-                    Reps
-                  </label>
-                  <NumberStepper
-                    value={ex.target_reps}
-                    onChange={val => handleUpdateExercise(i, { target_reps: val })}
-                    min={1}
-                    max={50}
-                  />
+
+                {/* Sets + Reps / Rep bank target */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="min-w-0">
+                    <label
+                      className="block text-[9px] font-medium uppercase tracking-widest mb-2 text-center"
+                      style={{ color: 'var(--text-faint)' }}
+                    >
+                      Sets
+                    </label>
+                    <NumberStepper
+                      value={ex.target_sets}
+                      onChange={val => handleUpdateExercise(i, { target_sets: val })}
+                      min={1}
+                      max={10}
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <label
+                      className="block text-[9px] font-medium uppercase tracking-widest mb-2 text-center"
+                      style={{ color: 'var(--text-faint)' }}
+                    >
+                      {ex.progression_model === 'rep_sum' ? 'Total Reps' : 'Reps'}
+                    </label>
+                    {ex.progression_model === 'rep_sum' ? (
+                      <NumberStepper
+                        value={ex.rep_sum_target}
+                        onChange={val => handleUpdateExercise(i, { rep_sum_target: val })}
+                        min={5}
+                        max={200}
+                        step={5}
+                      />
+                    ) : (
+                      <NumberStepper
+                        value={ex.target_reps}
+                        onChange={val => handleUpdateExercise(i, { target_reps: val })}
+                        min={1}
+                        max={50}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

@@ -14,7 +14,13 @@ export interface LastWorkoutSetInfo {
   suggestion: OverloadSuggestion
 }
 
-async function fetchLastWorkoutSets(exerciseId: string): Promise<LastWorkoutSetInfo[]> {
+interface FetchParams {
+  exerciseId:       string
+  progressionModel: 'double' | 'rep_sum' | null
+  repSumTarget:     number | null
+}
+
+async function fetchLastWorkoutSets({ exerciseId, progressionModel, repSumTarget }: FetchParams): Promise<LastWorkoutSetInfo[]> {
   const supabase = getSupabaseClient()
 
   // Fetch the 30 most recent completed working sets for this exercise.
@@ -60,20 +66,38 @@ async function fetchLastWorkoutSets(exerciseId: string): Promise<LastWorkoutSetI
   // chained array methods and all fields are accessed as numbers/strings anyway.
   const dupScheme = getCurrentDUPScheme()
 
-  return (data as any[])
+  const lastSets = (data as any[])
     .filter((set: any) => resolveWorkoutId(set) === latestWorkoutId)
     .sort((a: any, b: any) => (a.set_number ?? 0) - (b.set_number ?? 0))
-    .map((set: any) => {
-      const w   = Number(set.weight_kg)
-      const r   = Number(set.reps)
-      const rpe = set.rpe != null ? Number(set.rpe) : undefined
-      return {
-        weight_kg: w,
-        reps:      r,
-        rpe,
-        suggestion: suggestNextSet({ lastWeight: w, lastReps: r, lastRPE: rpe, dupRepRange: dupScheme.repRange, dupRpeTarget: dupScheme.rpeTarget }),
-      }
-    })
+
+  // For rep-sum mode, compute the total reps from the previous session so
+  // suggestNextSet can decide whether to bump the weight.
+  // undefined (not 0) when there's no history — prevents "Rep bank: 0/25" on first session.
+  const prevTotalReps: number | undefined =
+    progressionModel === 'rep_sum' && lastSets.length > 0
+      ? lastSets.reduce((sum: number, s: any) => sum + Number(s.reps), 0)
+      : undefined
+
+  return lastSets.map((set: any) => {
+    const w   = Number(set.weight_kg)
+    const r   = Number(set.reps)
+    const rpe = set.rpe != null ? Number(set.rpe) : undefined
+    return {
+      weight_kg: w,
+      reps:      r,
+      rpe,
+      suggestion: suggestNextSet({
+        lastWeight:      w,
+        lastReps:        r,
+        lastRPE:         rpe,
+        dupRepRange:     dupScheme.repRange,
+        dupRpeTarget:    dupScheme.rpeTarget,
+        progressionModel,
+        repSumTarget,
+        prevTotalReps,
+      }),
+    }
+  })
 }
 
 /**
@@ -85,10 +109,17 @@ async function fetchLastWorkoutSets(exerciseId: string): Promise<LastWorkoutSetI
  *
  * Replaces both `useExerciseHistory` and `useOverloadSuggestion`.
  */
-export function useLastWorkoutSets(exerciseId: string) {
+export function useLastWorkoutSets(
+  exerciseId:       string,
+  progressionModel: 'double' | 'rep_sum' | null = null,
+  repSumTarget:     number | null               = null,
+) {
+  // Normalise the model key — null and 'double' both fetch identical data,
+  // so they must share a cache entry to prevent duplicate network requests.
+  const modelKey = progressionModel === 'rep_sum' ? 'rep_sum' : 'double'
   const { data, isLoading } = useSWR(
-    exerciseId ? `last-workout-sets-${exerciseId}` : null,
-    () => fetchLastWorkoutSets(exerciseId),
+    exerciseId ? `last-workout-sets-${exerciseId}-${modelKey}-${repSumTarget ?? 0}` : null,
+    () => fetchLastWorkoutSets({ exerciseId, progressionModel, repSumTarget }),
     { revalidateOnFocus: false },
   )
 

@@ -2,6 +2,7 @@
 
 import { create } from 'zustand'
 import { getSupabaseClient } from '@/lib/supabase/client'
+import { calculate1RM } from '@/lib/algorithms'
 import type { PersonalRecord, PRCheckResult, PRType } from '@/types/database'
 
 interface PRStore {
@@ -55,7 +56,7 @@ export const usePRStore = create<PRStore>((set, get) => ({
     const checks: { type: PRType; value: number }[] = [
       { type: 'best_weight', value: weight },
       { type: 'best_volume', value: weight * reps },
-      { type: 'best_1rm',    value: weight * (1 + reps / 30) },
+      { type: 'best_1rm',    value: calculate1RM(weight, reps) },
     ]
 
     const results: PRCheckResult[] = []

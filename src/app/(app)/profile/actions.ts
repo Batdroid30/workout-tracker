@@ -14,10 +14,19 @@ export async function updateProfileAction(formData: FormData) {
   const userId = session.user.id
 
   try {
-    await updateProfileData(userId, {
+    const heightRaw = formData.get('heightCm') as string | null
+    const ageRaw    = formData.get('ageYears')  as string | null
+    const sexRaw    = formData.get('sex')       as string | null
+
+    const updates: Parameters<typeof updateProfileData>[1] = {
       first_name: formData.get('firstName') as string,
       last_name:  formData.get('lastName')  as string,
-    })
+    }
+    if (heightRaw) updates.height_cm = parseInt(heightRaw, 10)
+    if (ageRaw)    updates.age_years  = parseInt(ageRaw,    10)
+    if (sexRaw === 'male' || sexRaw === 'female') updates.sex = sexRaw
+
+    await updateProfileData(userId, updates)
     revalidateAll()
     return { success: true }
   } catch (error: any) {

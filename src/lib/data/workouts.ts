@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
+import { calculate1RM } from '@/lib/algorithms'
 import type { ActiveWorkout, PRType } from '@/types/database'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -182,7 +183,7 @@ export const getExercise1RMHistory = cache(async (
   const best1RMByDate = data.reduce((acc: Record<string, number>, set) => {
     if (!set.completed_at) return acc
     const date = new Date(set.completed_at).toISOString().split('T')[0]
-    const e1rm = (set.weight_kg || 0) * (1 + (set.reps || 0) / 30)
+    const e1rm = calculate1RM(set.weight_kg || 0, set.reps || 0)
     if (!acc[date] || e1rm > acc[date]) acc[date] = e1rm
     return acc
   }, {})

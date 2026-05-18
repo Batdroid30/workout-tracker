@@ -1,8 +1,9 @@
 'use client'
 
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback, useEffect, memo } from 'react'
 import { Check, Trash2, X, Zap } from 'lucide-react'
 import type { ActiveSet } from '@/types/database'
+import { rpeToRIR, calculate1RM } from '@/lib/algorithms'
 import type { OverloadSuggestion } from '@/lib/algorithms'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/providers/ToastProvider'
@@ -19,8 +20,9 @@ interface SetRowProps {
 }
 
 // ─── Active set ───────────────────────────────────────────────────────────────
-
-function ActiveSetRow({ set, prevSetText, suggestion, defaultRpe, onChange, onDone, onRemove }: SetRowProps) {
+// memo: every keystroke in any set's weight/reps input replaces the Zustand
+// exercises array reference — memo prevents sibling rows re-rendering on each char.
+const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, defaultRpe, onChange, onDone, onRemove }: SetRowProps) {
   const [weightStr, setWeightStr] = useState(() => set.weight_kg > 0 ? String(set.weight_kg) : '')
   const [rpeStr,    setRpeStr]    = useState(() => set.rpe !== null ? String(set.rpe) : '')
   const weightFocused = useRef(false)
@@ -164,6 +166,9 @@ function ActiveSetRow({ set, prevSetText, suggestion, defaultRpe, onChange, onDo
           <span className="mono text-[11px] tabular-nums" style={{ color: 'var(--accent)' }}>
             {suggestion.weight_kg}kg × {suggestion.target_reps}
           </span>
+          <span className="mono text-[10px] tabular-nums" style={{ color: 'var(--accent)' }}>
+            · RPE {suggestion.rpe_target} ({rpeToRIR(suggestion.rpe_target)} RIR)
+          </span>
           <span className="text-[10px] text-[var(--text-low)] truncate flex-1 text-left">
             {suggestion.reason}
           </span>
@@ -223,7 +228,7 @@ function ActiveSetRow({ set, prevSetText, suggestion, defaultRpe, onChange, onDo
       )}
     </div>
   )
-}
+})
 
 // ─── Completed set ────────────────────────────────────────────────────────────
 
@@ -233,9 +238,9 @@ interface CompletedSetRowProps {
   onRemove: () => void
 }
 
-function CompletedSetRow({ set, onDone, onRemove }: CompletedSetRowProps) {
+const CompletedSetRow = memo(function CompletedSetRow({ set, onDone, onRemove }: CompletedSetRowProps) {
   const e1rm = !set.is_warmup && set.weight_kg > 0 && set.reps > 1
-    ? Math.round(set.weight_kg * (1 + set.reps / 30))
+    ? Math.round(calculate1RM(set.weight_kg, set.reps))
     : null
 
   const [pendingDelete, setPendingDelete] = useState(false)
@@ -317,7 +322,7 @@ function CompletedSetRow({ set, onDone, onRemove }: CompletedSetRowProps) {
             {set.reps > 0 ? set.reps : '—'}
             {e1rm && <span className="text-[9px] text-[var(--text-faint)] ml-1.5">· ~{e1rm}kg</span>}
             {!set.is_warmup && set.rpe !== null && (
-              <span className="text-[10px] text-[var(--text-faint)] ml-1.5">· RPE {set.rpe}</span>
+              <span className="text-[10px] text-[var(--text-faint)] ml-1.5">· RPE {set.rpe} ({rpeToRIR(set.rpe)} RIR)</span>
             )}
           </span>
 
@@ -334,13 +339,13 @@ function CompletedSetRow({ set, onDone, onRemove }: CompletedSetRowProps) {
       </div>
     </div>
   )
-}
+})
 
 // ─── Public export ────────────────────────────────────────────────────────────
 
-export function SetRow({ set, prevSetText = '-', suggestion, defaultRpe, onChange, onDone, onRemove }: SetRowProps) {
+export const SetRow = memo(function SetRow({ set, prevSetText = '-', suggestion, defaultRpe, onChange, onDone, onRemove }: SetRowProps) {
   if (set.completed) {
     return <CompletedSetRow set={set} onDone={onDone} onRemove={onRemove} />
   }
   return <ActiveSetRow set={set} prevSetText={prevSetText} suggestion={suggestion} defaultRpe={defaultRpe} onChange={onChange} onDone={onDone} onRemove={onRemove} />
-}
+})

@@ -10,7 +10,9 @@ import {
   getRecentExerciseLoads,
   deriveWeeklySummary,
   deriveNextWorkoutSuggestion,
+  detectHypertrophicDissociation,
 } from '@/lib/data/insights'
+import { getBodyweightHistory } from '@/lib/data/bodyweight'
 import {
   getKeyLifts,
   getVolumeLandmarksByMuscle,
@@ -22,11 +24,13 @@ import { isCurrentWeekDeload } from '@/lib/workout-intelligence'
 import { getBadges } from '@/lib/data/achievements'
 import { getProfile } from '@/lib/data/profile'
 
-import { DeloadCard }           from './DeloadCard'
-import { ThisWeekCard }         from './ThisWeekCard'
-import { PhaseCoachCard }       from './PhaseCoachCard'
-import { MomentumStrip }        from './MomentumStrip'
-import { PhaseTransitionCard }  from './PhaseTransitionCard'
+import { DeloadCard }                    from './DeloadCard'
+import { ThisWeekCard }                  from './ThisWeekCard'
+import { PhaseCoachCard }                from './PhaseCoachCard'
+import { MomentumStrip }                 from './MomentumStrip'
+import { PhaseTransitionCard }           from './PhaseTransitionCard'
+import { HypertrophicDissociationCard }  from './HypertrophicDissociationCard'
+import { NutritionCoachCard }            from './NutritionCoachCard'
 
 interface InsightsSectionProps {
   userId: string
@@ -53,6 +57,7 @@ export async function InsightsSection({
     profile,
     keyLifts,
     recentLoads,
+    bwHistory,
   ] = await Promise.all([
     getWeeklyTrainingSummary(userId),
     getRecentPRs(userId, 60),
@@ -65,6 +70,7 @@ export async function InsightsSection({
     getProfile(userId),
     getKeyLifts(userId),
     getRecentExerciseLoads(userId),
+    getBodyweightHistory(userId, 4),
   ])
 
   // Both depend on profile — fetch in parallel after profile resolves.
@@ -74,6 +80,7 @@ export async function InsightsSection({
     getStrengthIndex(userId, profile),
   ])
 
+  const dissociation    = detectHypertrophicDissociation(bwHistory, strengthIndex.pctPerWeek, profile?.training_phase ?? null)
   const weeklySummary   = deriveWeeklySummary(weeks)
   const daysSinceLastPR = recentPRs.length > 0 ? recentPRs[0].daysAgo : null
   const fatigue         = assessFatigueLevel(weeks, daysSinceLastPR, profile ? {
@@ -115,6 +122,9 @@ export async function InsightsSection({
       {/* Deload — highest priority, shown first when active */}
       {fatigue.shouldSuggest && <DeloadCard assessment={fatigue} />}
 
+      {/* Hypertrophic dissociation — surplus too large, gains are fat not muscle */}
+      <HypertrophicDissociationCard dissociation={dissociation} />
+
       {/* Phase transition prompt — fires when user is well overdue for a phase swap */}
       <PhaseTransitionCard
         experienceLevel={profile?.experience_level ?? null}
@@ -149,6 +159,13 @@ export async function InsightsSection({
         streak={streak}
         badges={badges}
         totalVolume={totalVolume}
+      />
+
+      {/* Nutrition — TDEE + phase-adjusted calorie and protein targets */}
+      <NutritionCoachCard
+        profile={profile}
+        bwHistory={bwHistory}
+        weeklyGoal={weeklyGoalSessions}
       />
     </div>
   )

@@ -1,7 +1,7 @@
 import { cache } from 'react'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
-import { calculateEpley1RM, type WeekSummary } from '@/lib/algorithms'
+import { calculate1RM, type WeekSummary } from '@/lib/algorithms'
 import { STALL_VARIATION_ADVICE, type MovementKey } from '@/lib/workout-intelligence'
 import type { PRType } from '@/types/database'
 
@@ -176,6 +176,7 @@ export const getMostImprovedExercises = cache(async (userId: string): Promise<Im
     .eq('workout_exercises.workouts.user_id', userId)
     .gte('completed_at', ninetyDaysAgo.toISOString())
     .eq('is_warmup', false)
+    .limit(2000)
 
   if (error) throw new DatabaseError('Failed to fetch sets for improvement analysis', error)
   if (!data || data.length === 0) return []
@@ -189,7 +190,7 @@ export const getMostImprovedExercises = cache(async (userId: string): Promise<Im
     const exercise = Array.isArray(we?.exercise) ? we.exercise[0] : we?.exercise
     if (!exercise?.name) return
     const key = exercise.name
-    const e1rm = calculateEpley1RM(Number(set.weight_kg), Number(set.reps))
+    const e1rm = calculate1RM(Number(set.weight_kg), Number(set.reps))
     const isRecent = new Date(set.completed_at).getTime() >= thirtyDaysAgo
     if (!exerciseMap[key]) exerciseMap[key] = { name: exercise.name, muscleGroup: exercise.muscle_group ?? '', recentBest: 0, previousBest: 0 }
     if (isRecent) { if (e1rm > exerciseMap[key].recentBest) exerciseMap[key].recentBest = e1rm }
@@ -279,7 +280,7 @@ export const getStalledMovements = cache(async (userId: string): Promise<Stalled
     const workout  = Array.isArray(we?.workouts)  ? we.workouts[0]  : we?.workouts
     if (!exercise?.name || !workout?.started_at) return
     const key      = exercise.name as string
-    const e1rm     = calculateEpley1RM(Number(set.weight_kg), Number(set.reps))
+    const e1rm     = calculate1RM(Number(set.weight_kg), Number(set.reps))
     const setMs    = new Date(set.completed_at).getTime()
     const dateStr  = workout.started_at.split('T')[0] as string
     const isRecent = setMs >= threeWeeksAgoMs
@@ -333,6 +334,7 @@ export const getTrainingStreak = cache(async (userId: string): Promise<TrainingS
     .select('started_at')
     .eq('user_id', userId)
     .order('started_at', { ascending: false })
+    .limit(400)
 
   if (error) throw new DatabaseError('Failed to fetch workouts for streak', error)
   if (!data || data.length === 0) return { currentStreak: 0, longestStreak: 0 }
@@ -581,3 +583,69 @@ export const getPushPullBalance = cache(async (userId: string): Promise<PushPull
 
   return { pushSets, pullSets, ratio }
 })
+
+// ── Hypertrophic dissociation detection ──────────────────────────────────────
+//
+// Detects the pattern: bodyweight rising fast + strength flat/declining during
+// a bulk. This signals the surplus is too aggressive — gains are fat, not muscle.
+// Science: a plateau in absolute strength while weight climbs = signal to reduce
+// surplus to 5–10% above maintenance (meta-analytical evidence, Barakat 2020).
+
+export interface HypertrophicDissociationResult {
+  detected:          boolean
+  bwTrendKgPerWeek:  number | null
+  message:           string | null
+}
+
+/**
+ * Pure function — no DB, no async. Call with pre-fetched data.
+ *
+ * @param bwHistory         Bodyweight readings ordered oldest-first
+ * @param strengthPctPerWeek  Composite strength index % per week (from getStrengthIndex)
+ * @param trainingPhase     User's current training phase
+ */
+export function detectHypertrophicDissociation(
+  bwHistory:          { date: string; weight_kg: number }[],
+  strengthPctPerWeek: number | null,
+  trainingPhase:      string | null,
+): HypertrophicDissociationResult {
+  const none: HypertrophicDissociationResult = { detected: false, bwTrendKgPerWeek: null, message: null }
+
+  if (trainingPhase !== 'bulking') return none
+  if (bwHistory.length < 3)        return none
+  if (strengthPctPerWeek === null)  return none
+
+  // Linear regression on daily readings → slope in kg/week
+  const baseMs = new Date(bwHistory[0].date + 'T00:00:00Z').getTime()
+  const pts = bwHistory.map(p => ({
+    x: (new Date(p.date + 'T00:00:00Z').getTime() - baseMs) / (7 * 86_400_000),
+    y: p.weight_kg,
+  }))
+
+  const n     = pts.length
+  const meanX = pts.reduce((s, p) => s + p.x, 0) / n
+  const meanY = pts.reduce((s, p) => s + p.y, 0) / n
+
+  let num = 0, den = 0
+  for (const p of pts) {
+    num += (p.x - meanX) * (p.y - meanY)
+    den += (p.x - meanX) ** 2
+  }
+  if (den === 0) return none
+
+  const bwSlopePerWeek = num / den
+
+  if (bwSlopePerWeek <= 0.5 || strengthPctPerWeek > 0) {
+    return { ...none, bwTrendKgPerWeek: bwSlopePerWeek }
+  }
+
+  const strengthLabel = strengthPctPerWeek >= 0
+    ? `+${strengthPctPerWeek.toFixed(2)}%/wk`
+    : `${strengthPctPerWeek.toFixed(2)}%/wk`
+
+  return {
+    detected:         true,
+    bwTrendKgPerWeek: bwSlopePerWeek,
+    message: `Weight is climbing (+${bwSlopePerWeek.toFixed(2)} kg/wk) but strength is flat (${strengthLabel}). This pattern suggests the surplus is too large — excess calories are being stored as fat. Reduce your caloric surplus to 5–10% above maintenance and ensure protein intake is 1.6–2.2 g/kg bodyweight.`,
+  }
+}

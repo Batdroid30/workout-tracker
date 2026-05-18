@@ -1,5 +1,6 @@
 import { cache } from 'react'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
+import { calculate1RM } from '@/lib/algorithms'
 import type { PRType, PRCheckResult } from '@/types/database'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -23,10 +24,7 @@ export interface TopPR {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function calculate1RM(weight: number, reps: number): number {
-  if (reps === 1) return weight
-  return weight * (1 + reps / 30)
-}
+// calculate1RM is imported from @/lib/algorithms (Epley + Brzycki averaged)
 
 // ── Cached read functions ─────────────────────────────────────────────────────
 
@@ -321,7 +319,7 @@ export async function evaluateAndSaveAllPRs(userId: string): Promise<void> {
     const checks = [
       { type: 'best_weight' as PRType, value: weight },
       { type: 'best_volume' as PRType, value: weight * reps },
-      { type: 'best_1rm'    as PRType, value: weight * (1 + reps / 30) },
+      { type: 'best_1rm'    as PRType, value: calculate1RM(weight, reps) },
     ]
     for (const check of checks) {
       const key = `${exerciseId}|${check.type}`

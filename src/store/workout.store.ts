@@ -77,7 +77,9 @@ export const useWorkoutStore = create<WorkoutStore>()(
               workout_exercise_id: null,
               exercise: re.exercise,
               order_index: idx,
-              sets
+              sets,
+              progression_model: re.progression_model ?? 'double',
+              rep_sum_target:    re.rep_sum_target ?? null,
             }
           })
         }

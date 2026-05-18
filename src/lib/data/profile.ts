@@ -1,5 +1,6 @@
 import { cache } from 'react'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
+import { DatabaseError } from '@/lib/errors'
 import type { Profile } from '@/types/database'
 
 export const getProfile = cache(async (userId: string): Promise<Profile | null> => {
@@ -37,6 +38,9 @@ export const getProfile = cache(async (userId: string): Promise<Profile | null> 
     training_style:   null,
     experience_level: null,
     phase_started_at: null,
+    height_cm:        null,
+    age_years:        null,
+    sex:              null,
   }
 })
 
@@ -51,9 +55,10 @@ export async function updateProfile(userId: string, updates: Partial<Profile>) {
     updated_at: new Date().toISOString(),
   }
 
+  // Cast needed until Supabase types regenerate after the nutrition migration is applied.
   const { data: profileData, error: profileError } = await supabase
     .from('profiles')
-    .upsert(upsertPayload)
+    .upsert(upsertPayload as any)
     .select()
     .single()
 
@@ -65,6 +70,6 @@ export async function updateProfile(userId: string, updates: Partial<Profile>) {
   const { error: authError } = await supabase.auth.updateUser({ data: authUpdates })
   if (authError) console.error('Error updating auth metadata:', authError.message)
 
-  if (!profileError) return profileData
-  return { id: userId, ...updates } as Profile
+  if (profileError) throw new DatabaseError('Failed to update profile', profileError)
+  return profileData
 }

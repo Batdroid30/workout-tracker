@@ -143,6 +143,103 @@ export function calculateEpley1RM(weight: number, reps: number): number {
   return Number((weight * (1 + reps / 30)).toFixed(1))
 }
 
+/**
+ * Brzycki formula for estimated 1-rep max.
+ * Complementary to Epley — averaging both reduces population-specific bias.
+ * Only valid for 1–10 reps; degrades significantly above that.
+ */
+export function calculateBrzycki1RM(weight: number, reps: number): number {
+  if (reps <= 1) return weight
+  if (reps >= 37) return weight  // denominator approaches zero — formula breaks down
+  return Number((weight * (36 / (37 - reps))).toFixed(1))
+}
+
+/**
+ * Averaged Epley + Brzycki 1RM estimate.
+ * Falls back to Epley alone above 10 reps where Brzycki degrades.
+ * Use this everywhere a 1RM estimate is needed.
+ */
+export function calculate1RM(weight: number, reps: number): number {
+  if (reps <= 1) return weight
+  if (reps > 10) return calculateEpley1RM(weight, reps)
+  return Number(((calculateEpley1RM(weight, reps) + calculateBrzycki1RM(weight, reps)) / 2).toFixed(1))
+}
+
+/**
+ * Converts an RPE value to Reps In Reserve.
+ * RPE 10 = 0 RIR (failure), RPE 8 = 2 RIR (optimal sweet spot), etc.
+ */
+export function rpeToRIR(rpe: number): number {
+  return Math.max(0, Math.round(10 - rpe))
+}
+
+// ─── TDEE / Nutrition targets ─────────────────────────────────────────────────
+//
+// Mifflin-St Jeor (1990) is the most validated BMR formula for general
+// populations (Thomas 2016 meta-analysis: lowest mean bias across BMI ranges).
+//
+// Activity multiplier is estimated from weekly session count — using a
+// fixed "moderate" 1.55 would underestimate for high-frequency athletes.
+//
+// Calorie targets per phase (Israetel 2019, Helms 2015):
+//   Bulk: TDEE + 250 kcal  — lean bulk aiming for ~0.3–0.5% BW/week gain
+//   Cut:  TDEE − 500 kcal  — moderate deficit, ~0.5 kg/week loss
+//   Maingain: TDEE         — maintenance with slight natural surplus
+//
+// Protein targets (Stokes 2018, Morton 2018 meta-analysis):
+//   Bulk/Maingain: 1.8 g/kg — adequate for muscle protein synthesis
+//   Cut:           2.2 g/kg — higher to preserve lean mass in deficit
+
+export interface NutritionTargets {
+  tdee:          number   // maintenance calories (kcal/day)
+  targetCalories: number  // phase-adjusted calorie target
+  proteinGrams:  number   // daily protein target (g)
+  surplusDeficit: number  // positive = surplus, negative = deficit
+}
+
+export function calculateNutritionTargets({
+  weightKg,
+  heightCm,
+  ageYears,
+  sex,
+  weeklyGoalSessions,
+  trainingPhase,
+}: {
+  weightKg:           number
+  heightCm:           number
+  ageYears:           number
+  sex:                'male' | 'female'
+  weeklyGoalSessions: number
+  trainingPhase:      'bulking' | 'cutting' | 'maingaining' | null
+}): NutritionTargets | null {
+  // Mifflin-St Jeor BMR
+  const sexOffset = sex === 'male' ? 5 : -161
+  const bmr       = 10 * weightKg + 6.25 * heightCm - 5 * ageYears + sexOffset
+
+  // Extreme-but-valid inputs (e.g. age 90, weight 45 kg) can produce a BMR
+  // too low to be meaningful — guard before multiplying by activity factor.
+  if (bmr < 800) return null
+
+  // Activity multiplier from session frequency
+  const activityFactor =
+    weeklyGoalSessions <= 2 ? 1.375 :
+    weeklyGoalSessions <= 4 ? 1.55  :
+    weeklyGoalSessions <= 6 ? 1.725 : 1.9
+
+  const tdee = Math.round(bmr * activityFactor)
+
+  const surplusDeficit =
+    trainingPhase === 'bulking'  ?  250 :
+    trainingPhase === 'cutting'  ? -500 : 0
+
+  const targetCalories = tdee + surplusDeficit
+
+  const proteinMultiplier = trainingPhase === 'cutting' ? 2.2 : 1.8
+  const proteinGrams      = Math.round(weightKg * proteinMultiplier)
+
+  return { tdee, targetCalories, proteinGrams, surplusDeficit }
+}
+
 export interface OverloadSuggestion {
   weight_kg:   number
   target_reps: number
@@ -180,6 +277,20 @@ interface SuggestNextSetParams {
    * ~60% of last weight, 5–8 reps, RPE 6.0.
    */
   isDeloadWeek?: boolean
+  /**
+   * Progression model from the routine exercise. 'rep_sum' uses total reps
+   * across all sets as the progression trigger instead of per-set rep ranges.
+   */
+  progressionModel?: 'double' | 'rep_sum' | null
+  /**
+   * Target total reps across all working sets for this exercise (rep_sum mode).
+   */
+  repSumTarget?: number | null
+  /**
+   * Total working reps completed for this exercise in the previous session.
+   * undefined = no history yet (first session). Used in rep_sum mode only.
+   */
+  prevTotalReps?: number
 }
 
 /**
@@ -207,21 +318,60 @@ export function suggestNextSet({
   lastWeight,
   lastReps,
   lastRPE,
-  exerciseType    = 'compound',
-  trainingGoal    = null,
-  experienceLevel = null,
-  dupRepRange     = null,
-  dupRpeTarget    = null,
-  isDeloadWeek    = false,
+  exerciseType      = 'compound',
+  trainingGoal      = null,
+  experienceLevel   = null,
+  dupRepRange       = null,
+  dupRpeTarget      = null,
+  isDeloadWeek      = false,
+  progressionModel  = null,
+  repSumTarget      = null,
+  prevTotalReps,
 }: SuggestNextSetParams): OverloadSuggestion {
   // ── Deload week override ─────────────────────────────────────────────────────
+  // Science: reduce VOLUME (sets), maintain INTENSITY (weight).
+  // Dropping both causes neuromuscular detraining — slow return next block.
+  // Weight stays at ~87% of recent load; sets are cut at the session level.
   if (isDeloadWeek) {
-    const deloadWeight = Math.max(0, Math.round(lastWeight * 0.6 / 2.5) * 2.5)
+    const deloadWeight = roundToPlate(lastWeight * 0.87)
     return {
-      weight_kg:   deloadWeight,
-      target_reps: Math.max(5, Math.min(8, lastReps - 2)),
-      rpe_target:  6.0,
-      reason:      'Deload week — reduce load to ~60% and focus on technique and recovery.',
+      weight_kg:   Math.max(deloadWeight, 2.5),
+      target_reps: lastReps,
+      rpe_target:  7.0,
+      reason:      'Deload week — maintain load at ~87%, cut total sets. Preserve strength, let fatigue clear.',
+    }
+  }
+
+  // ── Rep-sum progression ───────────────────────────────────────────────────────
+  // Progression trigger: total reps across all sets crosses repSumTarget.
+  // Science: accumulating reps is more relevant for hypertrophy than per-set
+  // rep ranges (Schoenfeld, 2017). This mode suits exercises where per-set
+  // rep variance is high (e.g. bodyweight rows, dips).
+  if (progressionModel === 'rep_sum' && repSumTarget != null) {
+    const increment = WEIGHT_INCREMENTS[experienceLevel ?? 'intermediate'][exerciseType]
+    const targetRPE = dupRpeTarget ?? TARGET_RPE[trainingGoal ?? 'both']
+    if (prevTotalReps === undefined) {
+      return {
+        weight_kg:   lastWeight,
+        target_reps: lastReps,
+        rpe_target:  targetRPE,
+        reason:      `Rep bank target: ${repSumTarget} total reps. First session — build your baseline.`,
+      }
+    }
+    if (prevTotalReps >= repSumTarget) {
+      return {
+        weight_kg:   lastWeight + increment,
+        target_reps: lastReps,
+        rpe_target:  targetRPE,
+        reason:      `Hit ${repSumTarget} total reps last session — add ${increment}kg and rebuild.`,
+      }
+    }
+    const remaining = repSumTarget - prevTotalReps
+    return {
+      weight_kg:   lastWeight,
+      target_reps: lastReps,
+      rpe_target:  targetRPE,
+      reason:      `Rep bank: ${prevTotalReps}/${repSumTarget} last session — ${remaining} more reps to earn a weight bump.`,
     }
   }
 
@@ -240,9 +390,7 @@ export function suggestNextSet({
   if (lastReps < range.min || lastReps > range.max) {
     // Account for reps in reserve when RPE is known — gives a more accurate e1RM.
     const repsToFailure = lastRPE != null ? lastReps + (10 - lastRPE) : lastReps
-    // Epley is accurate within ±3.5% up to ~10 reps and degrades above that, but it
-    // still produces far more realistic cross-phase suggestions than fixed increments.
-    const e1rm = lastWeight * (1 + repsToFailure / 30)
+    const e1rm = calculate1RM(lastWeight, repsToFailure)
     // At targetRPE the lifter has (10 - targetRPE) reps in reserve on the final rep.
     const targetRepsToFailure = range.min + (10 - targetRPE)
     const targetWeight = roundToPlate(e1rm / (1 + targetRepsToFailure / 30))
@@ -311,11 +459,12 @@ export function suggestNextSet({
 
 // ─── Deload routine generator ─────────────────────────────────────────────────
 //
-// Standard deload prescription (well-supported by the literature):
+// Evidence-based deload prescription:
 //   • Same exercises and frequency as the previous training week
-//   • Working weight reduced to ~60% of last load (rounded to 2.5kg)
-//   • 2 fewer reps per set (or floor of 5) — keeping bar speed crisp
-//   • 3 sets per exercise — enough to maintain motor patterns, not to fatigue
+//   • Volume cut 30–50%: fewer sets (2–3), reps maintained
+//   • Intensity maintained: weight stays at 82–92% of last load
+//   • Dropping both volume AND intensity causes neuromuscular detraining
+//     and a sluggish return to the following mesocycle (Israetel, 2019)
 //
 // Pure function — takes the user's recent loads and emits a prescription.
 // No DB access here; the caller fetches the inputs.
@@ -345,17 +494,17 @@ function roundToPlate(weight: number): number {
 }
 
 // Deload depth scales with how fatigued the athlete actually is.
-// Research supports 40–60% load reduction; the exact depth depends on
-// accumulated fatigue. Over-deloading when the signal is weak causes
-// unnecessary detraining. Under-deloading when the signal is strong
-// fails to restore the CNS and joints.
+// Volume (sets) is reduced; intensity (weight) is maintained to preserve
+// neuromuscular efficiency for the next training block.
+// Over-deloading when the signal is weak causes unnecessary detraining.
+// Under-deloading when the signal is strong fails to restore the CNS and joints.
 const DELOAD_PARAMS: Record<
   FatigueAssessment['confidence'],
   { intensityFactor: number; sets: number; repReduction: number }
 > = {
-  low:    { intensityFactor: 0.75, sets: 3, repReduction: 2 }, // light taper
-  medium: { intensityFactor: 0.65, sets: 3, repReduction: 2 }, // standard deload
-  high:   { intensityFactor: 0.55, sets: 2, repReduction: 3 }, // deep recovery week
+  low:    { intensityFactor: 0.92, sets: 3, repReduction: 0 }, // light taper — mostly sets reduced
+  medium: { intensityFactor: 0.87, sets: 3, repReduction: 0 }, // standard deload
+  high:   { intensityFactor: 0.82, sets: 2, repReduction: 0 }, // deep recovery — cut to 2 sets
 }
 
 /**
@@ -376,7 +525,7 @@ export function generateDeloadRoutine(
     muscleGroup:  load.muscleGroup,
     sets,
     weight_kg:    roundToPlate(load.lastWeight * intensityFactor),
-    reps:         Math.max(5, load.lastReps - repReduction),
+    reps:         load.lastReps,  // maintain reps — only sets are cut
   }))
 }
 

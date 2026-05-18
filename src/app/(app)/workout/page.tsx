@@ -18,6 +18,7 @@ import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 import { WorkoutFocusSheet } from '@/components/workout/WorkoutFocusSheet'
 import { SupersetWrapper } from '@/components/workout/SupersetWrapper'
 import { buildWorkoutTemplate } from '@/lib/template-generator'
+import { FailureTrainingTip } from '@/components/workout/FailureTrainingTip'
 import type { Exercise, ActiveExercise } from '@/types/database'
 
 // ── Superset grouping ─────────────────────────────────────────────────────────
@@ -340,6 +341,9 @@ export default function WorkoutPage() {
       </div>
 
       <div className="p-4 space-y-2">
+
+        {/* ── Failure training guidance ─────────────────────────────────── */}
+        <FailureTrainingTip exercises={activeWorkout.exercises} />
 
         {/* ── Empty exercise state ──────────────────────────────────────── */}
         {activeWorkout.exercises.length === 0 ? (

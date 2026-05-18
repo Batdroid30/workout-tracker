@@ -57,7 +57,11 @@ export function SetLogger({
   const [activePRs,          setActivePRs]          = useState<PRCheckResult[]>([])
   const dialog = useDialog()
 
-  const { sets: lastWorkoutSets } = useLastWorkoutSets(exercise.exercise.id)
+  const { sets: lastWorkoutSets } = useLastWorkoutSets(
+    exercise.exercise.id,
+    exercise.progression_model ?? null,
+    exercise.rep_sum_target ?? null,
+  )
 
   useEffect(() => {
     loadPRsForExercises([exercise.exercise.id])
@@ -109,6 +113,12 @@ export function SetLogger({
   const sessionVolume = exercise.sets
     .filter(s => s.completed && !s.is_warmup && s.weight_kg > 0 && s.reps > 0)
     .reduce((sum, s) => sum + s.weight_kg * s.reps, 0)
+
+  const isRepSum          = exercise.progression_model === 'rep_sum'
+  const repSumTarget      = exercise.rep_sum_target ?? 0
+  const sessionRepsLogged = exercise.sets
+    .filter(s => s.completed && !s.is_warmup && s.reps > 0)
+    .reduce((sum, s) => sum + s.reps, 0)
 
   const restLabel = restSeconds >= 60
     ? `${Math.floor(restSeconds / 60)}:${String(restSeconds % 60).padStart(2, '0')}`
@@ -325,8 +335,33 @@ export function SetLogger({
           </button>
         </div>
 
+        {/* ── Rep bank progress (rep-sum mode) ────────────────────────── */}
+        {isRepSum && repSumTarget > 0 && (
+          <div
+            className="mt-3 pt-2.5"
+            style={{ borderTop: '1px solid var(--glass-border)' }}
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[9px] font-medium text-[var(--text-faint)] uppercase tracking-widest">Rep bank</span>
+              <span className="mono text-xs tabular-nums" style={{ color: sessionRepsLogged >= repSumTarget ? 'var(--accent)' : 'var(--text-mid)' }}>
+                {sessionRepsLogged}
+                <span className="text-[9px] text-[var(--text-faint)]">/{repSumTarget}</span>
+              </span>
+            </div>
+            <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${Math.min(100, (sessionRepsLogged / repSumTarget) * 100)}%`,
+                  background: sessionRepsLogged >= repSumTarget ? 'var(--accent)' : 'var(--accent-line)',
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* ── Session volume ──────────────────────────────────────────── */}
-        {sessionVolume > 0 && (
+        {sessionVolume > 0 && !isRepSum && (
           <div
             className="flex items-center justify-between mt-3 pt-2.5"
             style={{ borderTop: '1px solid var(--glass-border)' }}
