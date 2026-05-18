@@ -45,8 +45,9 @@ export function RestTimer({ seconds = 90, onSkip, onComplete }: RestTimerProps) 
 
   return (
     <div
-      className="fixed bottom-[72px] left-0 right-0 px-4 py-3 z-40"
+      className="fixed bottom-0 left-0 right-0 px-4 pt-3 z-40"
       style={{
+        paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
         background: 'rgba(6,7,13,0.92)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',

@@ -214,8 +214,8 @@ body {
 /* Page transition — replayed on every route change via PageTransition component */
 .page-in { animation: page-in 220ms ease-out both; }
 @keyframes page-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: none; }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* Staggered list — add .stagger-children to a <ul> / <div> list container.
