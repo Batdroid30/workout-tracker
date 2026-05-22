@@ -389,7 +389,10 @@ export function suggestNextSet({
   // Use e1RM to back-calculate a sensible starting load for the new rep range instead.
   if (lastReps < range.min || lastReps > range.max) {
     // Account for reps in reserve when RPE is known — gives a more accurate e1RM.
-    const repsToFailure = lastRPE != null ? lastReps + (10 - lastRPE) : lastReps
+    // When no RPE was logged, assume RPE 8 (2 RIR) as a working-set default rather
+    // than treating the last rep as failure, which underestimates e1RM and produces
+    // a weight that feels too light when transitioning to a lower-rep phase.
+    const repsToFailure = lastRPE != null ? lastReps + (10 - lastRPE) : lastReps + 2
     const e1rm = calculate1RM(lastWeight, repsToFailure)
     // At targetRPE the lifter has (10 - targetRPE) reps in reserve on the final rep.
     const targetRepsToFailure = range.min + (10 - targetRPE)
@@ -477,6 +480,8 @@ export interface RecentExerciseLoad {
   lastWeight: number
   /** Last working set reps. */
   lastReps:   number
+  /** RPE logged on the last working set — enables RPE calibration in suggestions. */
+  lastRPE?:   number
 }
 
 export interface DeloadPrescription {
@@ -488,9 +493,9 @@ export interface DeloadPrescription {
   reps:         number
 }
 
-/** Round to nearest 2.5 kg — matches gym plate granularity. */
+/** Round to nearest 2.5 kg — matches gym plate granularity. Minimum 2.5 kg. */
 function roundToPlate(weight: number): number {
-  return Math.max(0, Math.round(weight / 2.5) * 2.5)
+  return Math.max(2.5, Math.round(weight / 2.5) * 2.5)
 }
 
 // Deload depth scales with how fatigued the athlete actually is.

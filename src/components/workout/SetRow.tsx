@@ -286,7 +286,7 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, onDone, onRemove }:
       <div className="relative group overflow-hidden rounded-[var(--radius-inner)] mb-1">
         {/* Swipe delete bg */}
         <div className="absolute inset-y-0 right-0 w-16 flex items-center justify-center rounded-r-[var(--radius-inner)]"
-          style={{ background: 'rgba(230,163,154,0.12)' }}>
+          style={{ background: swipeOffset < 0 ? 'rgba(230,163,154,0.12)' : 'transparent' }}>
           <button onClick={handleRemove} className="w-full h-full flex items-center justify-center" style={{ color: 'var(--rose)' }}>
             <Trash2 className="w-4 h-4" />
           </button>
@@ -316,7 +316,7 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, onDone, onRemove }:
           </span>
 
           {/* Summary */}
-          <span className="flex-1 mono text-sm text-[var(--text-low)] tracking-tight">
+          <span className="flex-1 min-w-0 mono text-sm text-[var(--text-low)] tracking-tight">
             {set.weight_kg > 0 ? `${set.weight_kg}kg` : '—'}
             {' × '}
             {set.reps > 0 ? set.reps : '—'}

@@ -3,7 +3,8 @@
 import useSWR from 'swr'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { suggestNextSet, type OverloadSuggestion } from '@/lib/algorithms'
-import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
+import { getCurrentDUPScheme, isCurrentWeekDeload } from '@/lib/workout-intelligence'
+import type { TrainingGoal, ExperienceLevel, TrainingPhase } from '@/types/database'
 
 export interface LastWorkoutSetInfo {
   weight_kg: number
@@ -16,11 +17,41 @@ export interface LastWorkoutSetInfo {
 
 interface FetchParams {
   exerciseId:       string
+  exerciseType:     'compound' | 'isolation'
   progressionModel: 'double' | 'rep_sum' | null
   repSumTarget:     number | null
 }
 
-async function fetchLastWorkoutSets({ exerciseId, progressionModel, repSumTarget }: FetchParams): Promise<LastWorkoutSetInfo[]> {
+interface UserProfile {
+  training_goal:    TrainingGoal    | null
+  experience_level: ExperienceLevel | null
+  training_phase:   TrainingPhase   | null
+  phase_started_at: string          | null
+}
+
+async function fetchProfile(): Promise<UserProfile> {
+  const supabase = getSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { training_goal: null, experience_level: null, training_phase: null, phase_started_at: null }
+
+  const { data } = await supabase
+    .from('profiles')
+    .select('training_goal, experience_level, training_phase, phase_started_at')
+    .eq('id', user.id)
+    .single()
+
+  return {
+    training_goal:    (data?.training_goal    as TrainingGoal    | null) ?? null,
+    experience_level: (data?.experience_level as ExperienceLevel | null) ?? null,
+    training_phase:   (data?.training_phase   as TrainingPhase   | null) ?? null,
+    phase_started_at: data?.phase_started_at ?? null,
+  }
+}
+
+async function fetchLastWorkoutSets(
+  { exerciseId, exerciseType, progressionModel, repSumTarget }: FetchParams,
+  profile: UserProfile,
+): Promise<LastWorkoutSetInfo[]> {
   const supabase = getSupabaseClient()
 
   // Fetch the 30 most recent completed working sets for this exercise.
@@ -61,10 +92,8 @@ async function fetchLastWorkoutSets({ exerciseId, progressionModel, repSumTarget
   const latestWorkoutId = resolveWorkoutId(data[0])
   if (!latestWorkoutId) return []
 
-  // Keep only sets from that workout, then sort by position.
-  // Cast to any[] here — the Supabase inferred type becomes too narrow after
-  // chained array methods and all fields are accessed as numbers/strings anyway.
-  const dupScheme = getCurrentDUPScheme()
+  const dupScheme    = getCurrentDUPScheme()
+  const isDeloadWeek = isCurrentWeekDeload(profile)
 
   const lastSets = (data as any[])
     .filter((set: any) => resolveWorkoutId(set) === latestWorkoutId)
@@ -90,8 +119,12 @@ async function fetchLastWorkoutSets({ exerciseId, progressionModel, repSumTarget
         lastWeight:      w,
         lastReps:        r,
         lastRPE:         rpe,
+        exerciseType,
+        trainingGoal:    profile.training_goal,
+        experienceLevel: profile.experience_level,
         dupRepRange:     dupScheme.repRange,
         dupRpeTarget:    dupScheme.rpeTarget,
+        isDeloadWeek,
         progressionModel,
         repSumTarget,
         prevTotalReps,
@@ -111,15 +144,32 @@ async function fetchLastWorkoutSets({ exerciseId, progressionModel, repSumTarget
  */
 export function useLastWorkoutSets(
   exerciseId:       string,
+  exerciseType:     'compound' | 'isolation' = 'compound',
   progressionModel: 'double' | 'rep_sum' | null = null,
   repSumTarget:     number | null               = null,
 ) {
+  // Profile is fetched once and shared across all hook instances via SWR's
+  // deduplication — the 'user-profile-for-suggestions' key ensures only one
+  // in-flight request no matter how many exercises are on screen.
+  const { data: profile } = useSWR<UserProfile>(
+    'user-profile-for-suggestions',
+    fetchProfile,
+    { revalidateOnFocus: false },
+  )
+
   // Normalise the model key — null and 'double' both fetch identical data,
   // so they must share a cache entry to prevent duplicate network requests.
   const modelKey = progressionModel === 'rep_sum' ? 'rep_sum' : 'double'
   const { data, isLoading } = useSWR(
-    exerciseId ? `last-workout-sets-${exerciseId}-${modelKey}-${repSumTarget ?? 0}` : null,
-    () => fetchLastWorkoutSets({ exerciseId, progressionModel, repSumTarget }),
+    // Wait for profile to load before fetching sets, so suggestions are always
+    // calibrated to the user's goal and experience level.
+    exerciseId && profile
+      ? `last-workout-sets-${exerciseId}-${exerciseType}-${modelKey}-${repSumTarget ?? 0}`
+      : null,
+    () => fetchLastWorkoutSets(
+      { exerciseId, exerciseType, progressionModel, repSumTarget },
+      profile!,
+    ),
     { revalidateOnFocus: false },
   )
 

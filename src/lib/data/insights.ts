@@ -482,7 +482,7 @@ export const getRecentExerciseLoads = cache(async (userId: string): Promise<Rece
   const { data, error } = await supabase
     .from('sets')
     .select(`
-      weight_kg, reps, completed_at, is_warmup,
+      weight_kg, reps, rpe, completed_at, is_warmup,
       workout_exercises!inner (
         exercise:exercises ( id, name, muscle_group ),
         workouts!inner ( user_id )
@@ -511,6 +511,7 @@ export const getRecentExerciseLoads = cache(async (userId: string): Promise<Rece
       muscleGroup:  exercise.muscle_group ?? '',
       lastWeight:   Number(set.weight_kg),
       lastReps:     Number(set.reps),
+      lastRPE:      set.rpe != null ? Number(set.rpe) : undefined,
     })
   }
 

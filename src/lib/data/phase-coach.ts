@@ -536,6 +536,7 @@ export function buildThisWeekMissions(input: BuildMissionsInput): Mission[] {
     const suggestion = suggestNextSet({
       lastWeight:      load.lastWeight,
       lastReps:        load.lastReps,
+      lastRPE:         load.lastRPE,
       exerciseType:    'compound',
       trainingGoal:    input.profile?.training_goal    ?? null,
       experienceLevel: input.profile?.experience_level ?? null,

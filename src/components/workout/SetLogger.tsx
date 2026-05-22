@@ -57,8 +57,10 @@ export function SetLogger({
   const [activePRs,          setActivePRs]          = useState<PRCheckResult[]>([])
   const dialog = useDialog()
 
+  const exerciseType = exercise.exercise.movement_pattern === 'isolation' ? 'isolation' : 'compound'
   const { sets: lastWorkoutSets } = useLastWorkoutSets(
     exercise.exercise.id,
+    exerciseType,
     exercise.progression_model ?? null,
     exercise.rep_sum_target ?? null,
   )
