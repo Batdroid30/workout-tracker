@@ -25,143 +25,6 @@ const BADGE_ICON_MAP: Record<string, LucideIcon> = {
   'flame':       Flame,
 }
 
-export function MomentumStrip({ prs, streak, badges, totalVolume }: MomentumStripProps) {
-  return (
-    <div>
-      <h2 className="t-display-s mb-3">Momentum</h2>
-      <div className="grid grid-cols-2 gap-3">
-        <PRsTile prs={prs} />
-        <StreakTile streak={streak} />
-        <BadgesTile badges={badges} />
-        <TonnageTile totalVolume={totalVolume} />
-      </div>
-    </div>
-  )
-}
-
-function PRsTile({ prs }: { prs: RecentPR[] }) {
-  const latest = prs[0]
-  return (
-    <Tile
-      label="Recent PRs"
-      icon={<Trophy className="w-3 h-3" style={{ color: 'var(--accent)' }} />}
-      highlight={prs.length > 0}
-    >
-      <p
-        className="mono text-3xl font-bold tracking-tighter tabular-nums"
-        style={{
-          color: 'var(--text-hi)',
-          textShadow: prs.length > 0 ? '0 0 24px var(--accent-glow)' : 'none',
-        }}
-      >
-        {prs.length}
-        <span
-          className="text-xs font-normal ml-1.5"
-          style={{ color: 'var(--text-faint)', textShadow: 'none' }}
-        >
-          in 60d
-        </span>
-      </p>
-      <p
-        className="text-[10px] mt-1.5 truncate"
-        style={{ color: latest ? 'var(--accent)' : 'var(--text-faint)' }}
-      >
-        {latest
-          ? latest.exerciseName.toLowerCase()
-          : 'No PRs yet — go set one'}
-      </p>
-    </Tile>
-  )
-}
-
-function StreakTile({ streak }: { streak: TrainingStreak }) {
-  const { currentStreak, longestStreak } = streak
-  const dots = Array.from({ length: 8 }, (_, i) => i < currentStreak)
-  return (
-    <Tile
-      label="Streak"
-      icon={<Flame className="w-3 h-3" style={{ color: 'var(--accent)' }} />}
-      highlight={currentStreak >= 4}
-    >
-      <p
-        className="mono text-3xl font-bold tracking-tighter tabular-nums"
-        style={{
-          color: 'var(--text-hi)',
-          textShadow: currentStreak > 0 ? '0 0 24px var(--accent-glow)' : 'none',
-        }}
-      >
-        {currentStreak}
-        <span className="text-xs font-normal ml-1" style={{ color: 'var(--text-faint)', textShadow: 'none' }}>
-          {currentStreak === 1 ? 'wk' : 'wks'}
-        </span>
-      </p>
-      <div className="flex gap-0.5 mt-2">
-        {dots.map((active, i) => (
-          <div
-            key={i}
-            className="h-1.5 flex-1 rounded-full"
-            style={{
-              background: active ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
-              boxShadow:  active ? '0 0 6px var(--accent-glow)' : 'none',
-            }}
-          />
-        ))}
-      </div>
-      <p className="text-[10px] mt-1 truncate" style={{ color: 'var(--text-faint)' }}>
-        {longestStreak > currentStreak
-          ? `Best ever ${longestStreak}w`
-          : currentStreak > 0
-          ? 'New personal best'
-          : 'Start one this week'}
-      </p>
-    </Tile>
-  )
-}
-
-function BadgesTile({ badges }: { badges: Badge[] }) {
-  const earned = badges.filter(b => b.earned)
-  const recent = earned.slice(-3)
-  return (
-    <Tile
-      label="Achievements"
-      icon={<Award className="w-3 h-3" style={{ color: 'var(--accent)' }} />}
-      highlight={earned.length > 0}
-    >
-      <p className="mono text-3xl font-bold tracking-tighter tabular-nums" style={{ color: 'var(--text-hi)' }}>
-        {earned.length}
-        <span className="text-xs font-normal ml-1" style={{ color: 'var(--text-faint)' }}>
-          / {badges.length}
-        </span>
-      </p>
-      <div className="flex gap-2 mt-2 min-h-[20px] items-center">
-        {recent.length > 0 ? (
-          recent.map(b => {
-            const Icon = BADGE_ICON_MAP[b.icon] ?? Award
-            return (
-              <span
-                key={b.id}
-                title={b.label}
-                style={{ filter: `drop-shadow(0 0 4px ${b.color}80)` }}
-              >
-                <Icon className="w-4 h-4" style={{ color: b.color }} />
-              </span>
-            )
-          })
-        ) : (
-          <span className="text-[10px]" style={{ color: 'var(--text-faint)' }}>
-            None unlocked yet
-          </span>
-        )}
-      </div>
-      <p className="text-[10px] mt-1 truncate" style={{ color: 'var(--text-faint)' }}>
-        {earned.length === 0
-          ? 'Complete a workout'
-          : `${badges.length - earned.length} more to unlock`}
-      </p>
-    </Tile>
-  )
-}
-
 const MILESTONES = [
   { threshold: 1_000,     label: '1k'   },
   { threshold: 5_000,     label: '5k'   },
@@ -177,71 +40,210 @@ const MILESTONES = [
 function formatVolume(kg: number): string {
   if (kg >= 1_000_000) return `${(kg / 1_000_000).toFixed(1)}M`
   if (kg >= 1_000)     return `${(kg / 1_000).toFixed(1)}k`
-  return String(kg)
+  return String(Math.round(kg))
 }
 
-function TonnageTile({ totalVolume }: { totalVolume: number }) {
+export function MomentumStrip({ prs, streak, badges, totalVolume }: MomentumStripProps) {
+  const { currentStreak, longestStreak } = streak
+  const earned      = badges.filter(b => b.earned)
+  const recentBadges = earned.slice(-4)
+  const latestPR    = prs[0]
+  const hasStreak   = currentStreak > 0
+
   const next     = MILESTONES.find(m => totalVolume < m.threshold)
   const previous = [...MILESTONES].reverse().find(m => totalVolume >= m.threshold)
   const progressPct = next
     ? previous
-      ? Math.min(100, Math.round(
-          ((totalVolume - previous.threshold) / (next.threshold - previous.threshold)) * 100
-        ))
+      ? Math.min(100, Math.round(((totalVolume - previous.threshold) / (next.threshold - previous.threshold)) * 100))
       : Math.min(100, Math.round((totalVolume / next.threshold) * 100))
     : 100
 
-  return (
-    <Tile
-      label="Lifetime"
-      icon={<Dumbbell className="w-3 h-3" style={{ color: 'var(--accent)' }} />}
-      highlight={false}
-    >
-      <p className="mono text-3xl font-bold tracking-tighter tabular-nums" style={{ color: 'var(--text-hi)' }}>
-        {formatVolume(totalVolume)}
-        <span className="text-xs font-normal ml-1" style={{ color: 'var(--text-faint)' }}>kg</span>
-      </p>
-      <div
-        className="h-1.5 rounded-full overflow-hidden mt-2"
-        style={{ background: 'rgba(255,255,255,0.06)' }}
-      >
-        <div
-          className="h-full rounded-full"
-          style={{
-            width:     `${progressPct}%`,
-            background: 'var(--accent)',
-            boxShadow: '0 0 8px var(--accent-glow)',
-          }}
-        />
-      </div>
-      <p className="text-[10px] mt-1 truncate" style={{ color: 'var(--text-faint)' }}>
-        {next ? `Next: ${next.label} Club` : 'All milestones reached'}
-      </p>
-    </Tile>
-  )
-}
+  const streakSubtext =
+    longestStreak > currentStreak
+      ? `Best ever ${longestStreak}w`
+      : currentStreak > 0
+      ? 'Personal best streak'
+      : 'Start one this week'
 
-function Tile({
-  label,
-  icon,
-  highlight,
-  children,
-}: {
-  label:     string
-  icon:      React.ReactNode
-  highlight: boolean
-  children:  React.ReactNode
-}) {
+  const DOTS = 10
+  const dots = Array.from({ length: DOTS }, (_, i) => i < currentStreak)
+
   return (
     <div
-      className="glass p-3.5"
-      style={highlight ? { borderColor: 'var(--accent-line)' } : undefined}
+      className="glass p-4"
+      style={hasStreak ? {
+        borderColor: 'var(--accent-line)',
+        background:  'linear-gradient(150deg, rgba(243,192,138,0.06) 0%, rgba(243,192,138,0.01) 50%, transparent 100%)',
+      } : undefined}
     >
-      <div className="flex items-center gap-1.5 mb-2.5">
-        {icon}
-        <p className="t-label">{label}</p>
+      {/* ── Header ── */}
+      <div className="flex items-center gap-2 mb-5">
+        <Flame
+          className="w-4 h-4"
+          style={{
+            color:  hasStreak ? 'var(--accent)' : 'var(--text-faint)',
+            filter: hasStreak ? 'drop-shadow(0 0 8px var(--accent-glow))' : 'none',
+          }}
+        />
+        <h2 className="t-display-s">Momentum</h2>
       </div>
-      {children}
+
+      {/* ── Streak hero ── */}
+      <div className="mb-5">
+        <div className="flex items-end justify-between mb-3">
+          <div>
+            <p className="t-label mb-1">Streak</p>
+            <p
+              className="mono font-bold tracking-tighter tabular-nums leading-none"
+              style={{
+                fontSize:   '3.5rem',
+                color:      'var(--text-hi)',
+                textShadow: hasStreak ? '0 0 40px var(--accent-glow)' : 'none',
+              }}
+            >
+              {currentStreak}
+              <span
+                className="text-lg font-normal ml-2"
+                style={{ color: 'var(--text-faint)', textShadow: 'none' }}
+              >
+                {currentStreak === 1 ? 'wk' : 'wks'}
+              </span>
+            </p>
+            <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-faint)' }}>
+              {streakSubtext}
+            </p>
+          </div>
+
+          {/* Dot grid: 2 rows of 5 */}
+          <div className="flex flex-col gap-1.5 items-end shrink-0">
+            {[0, 5].map(offset => (
+              <div key={offset} className="flex gap-1.5">
+                {Array.from({ length: 5 }, (_, i) => {
+                  const active = dots[offset + i]
+                  return (
+                    <div
+                      key={i}
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{
+                        background: active ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
+                        boxShadow:  active ? '0 0 8px var(--accent-glow)' : 'none',
+                      }}
+                    />
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Stats row ── */}
+      <div
+        className="grid grid-cols-2 gap-0 mb-5 rounded-2xl overflow-hidden"
+        style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+      >
+        {/* PRs */}
+        <div className="p-3.5" style={{ borderRight: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.015)' }}>
+          <div className="flex items-center gap-1.5 mb-2">
+            <Trophy className="w-3 h-3" style={{ color: 'var(--accent)' }} />
+            <span className="t-label">Recent PRs</span>
+          </div>
+          <p
+            className="mono text-3xl font-bold tabular-nums tracking-tighter leading-none mb-1"
+            style={{
+              color:      'var(--text-hi)',
+              textShadow: prs.length > 0 ? '0 0 24px var(--accent-glow)' : 'none',
+            }}
+          >
+            {prs.length}
+            <span className="text-xs font-normal ml-1.5" style={{ color: 'var(--text-faint)', textShadow: 'none' }}>
+              in 60d
+            </span>
+          </p>
+          <p
+            className="text-[10px] truncate"
+            style={{ color: latestPR ? 'var(--accent)' : 'var(--text-faint)' }}
+          >
+            {latestPR ? latestPR.exerciseName.toLowerCase() : 'No PRs yet'}
+          </p>
+        </div>
+
+        {/* Badges */}
+        <div className="p-3.5" style={{ background: 'rgba(255,255,255,0.015)' }}>
+          <div className="flex items-center gap-1.5 mb-2">
+            <Award className="w-3 h-3" style={{ color: 'var(--accent)' }} />
+            <span className="t-label">Achievements</span>
+          </div>
+          <p className="mono text-3xl font-bold tabular-nums tracking-tighter leading-none mb-1" style={{ color: 'var(--text-hi)' }}>
+            {earned.length}
+            <span className="text-xs font-normal ml-1" style={{ color: 'var(--text-faint)' }}>
+              / {badges.length}
+            </span>
+          </p>
+          {recentBadges.length > 0 ? (
+            <div className="flex gap-2 items-center">
+              {recentBadges.map(b => {
+                const Icon = BADGE_ICON_MAP[b.icon] ?? Award
+                return (
+                  <span
+                    key={b.id}
+                    title={b.label}
+                    style={{ filter: `drop-shadow(0 0 5px ${b.color}90)` }}
+                  >
+                    <Icon className="w-3.5 h-3.5" style={{ color: b.color }} />
+                  </span>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="text-[10px]" style={{ color: 'var(--text-faint)' }}>
+              {badges.length - earned.length} to unlock
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* ── Lifetime tonnage ── */}
+      <div>
+        <div className="flex items-end justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            <Dumbbell className="w-3 h-3" style={{ color: 'var(--accent)' }} />
+            <span className="t-label">Lifetime</span>
+          </div>
+          <p
+            className="mono text-2xl font-bold tabular-nums tracking-tighter leading-none"
+            style={{ color: 'var(--text-hi)' }}
+          >
+            {formatVolume(totalVolume)}
+            <span className="text-xs font-normal ml-1" style={{ color: 'var(--text-faint)' }}>kg</span>
+          </p>
+        </div>
+
+        <div
+          className="h-2 rounded-full overflow-hidden mb-1.5"
+          style={{ background: 'rgba(255,255,255,0.06)' }}
+        >
+          <div
+            className="h-full rounded-full"
+            style={{
+              width:      `${progressPct}%`,
+              background: 'var(--accent)',
+              boxShadow:  '0 0 10px var(--accent-glow)',
+            }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <p className="text-[9px] mono tabular-nums" style={{ color: 'var(--text-faint)' }}>
+            {previous ? previous.label : '0'} Club
+          </p>
+          <p className="text-[9px]" style={{ color: 'var(--text-faint)' }}>
+            {next
+              ? `${progressPct}% → ${next.label} Club`
+              : 'All milestones reached'}
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

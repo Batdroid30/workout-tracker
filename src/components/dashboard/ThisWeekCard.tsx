@@ -89,18 +89,30 @@ export function ThisWeekCard({
           />
         ) : (
           <div>
-            <div className="flex items-end justify-between mb-2">
-              <div className="flex items-baseline gap-1.5">
-                <span className="mono text-3xl font-medium text-[var(--text-hi)] tabular-nums">{thisWeekCount}</span>
-                <span className="text-sm text-[var(--text-faint)]">/ {goalSessions}</span>
-                <span className="text-[10px] text-[var(--text-low)] ml-1">sessions</span>
+            <div className="flex items-end justify-between mb-3">
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span
+                    className="mono font-bold tabular-nums tracking-tighter leading-none"
+                    style={{
+                      fontSize:   '3.25rem',
+                      color:      'var(--text-hi)',
+                      textShadow: reached ? '0 0 40px var(--accent-glow)' : thisWeekCount > 0 ? '0 0 24px var(--accent-glow)' : 'none',
+                    }}
+                  >
+                    {thisWeekCount}
+                  </span>
+                  <span className="text-base" style={{ color: 'var(--text-faint)' }}>/ {goalSessions}</span>
+                </div>
+                <p className="text-[10px] mt-1" style={{ color: 'var(--text-low)' }}>sessions this week</p>
               </div>
               <button
                 onClick={() => setEditing(true)}
-                className="text-[var(--text-faint)] hover:text-[var(--accent)] transition-colors p-1.5 rounded-lg"
+                className="transition-colors p-2 rounded-xl hover:bg-white/[0.04]"
+                style={{ color: 'var(--text-faint)' }}
                 aria-label="Edit weekly goal"
               >
-                <Pencil className="w-3 h-3" />
+                <Pencil className="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -134,16 +146,23 @@ export function ThisWeekCard({
       {/* Missions */}
       {missions.length > 0 && (
         <div className="mb-4">
-          <p className="t-label mb-2">Missions</p>
+          <p className="t-label mb-2.5">Missions</p>
           <div className="space-y-2">
             {missions.map(m => (
-              <div key={m.id} className="flex gap-3 py-1.5">
+              <div
+                key={m.id}
+                className="flex gap-3 p-3 rounded-xl"
+                style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border:     '1px solid rgba(255,255,255,0.04)',
+                }}
+              >
                 <div className="w-0.5 rounded-full self-stretch shrink-0" style={PRIORITY_BAR_STYLE[m.priority]} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-[var(--text-hi)]">{m.headline}</p>
-                  <p className="text-[11px] text-[var(--text-low)] mt-0.5 leading-relaxed">{m.detail}</p>
+                  <p className="text-[12px] font-semibold" style={{ color: 'var(--text-hi)' }}>{m.headline}</p>
+                  <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--text-low)' }}>{m.detail}</p>
                 </div>
-                <span className="text-base shrink-0 leading-none mt-0.5">{m.icon}</span>
+                <span className="text-lg shrink-0 leading-none mt-0.5">{m.icon}</span>
               </div>
             ))}
           </div>

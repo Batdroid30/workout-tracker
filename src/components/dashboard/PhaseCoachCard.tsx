@@ -263,18 +263,32 @@ export function PhaseCoachCard({
 
       {/* ── Most improved ───────────────────────────────────────────────────── */}
       {topImproved && (
-        <div className="flex items-center justify-between gap-3 pt-4 border-t border-white/[0.05]">
+        <div
+          className="flex items-center justify-between gap-3 pt-4"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+        >
           <div className="min-w-0">
             <p className="t-label mb-1">Most Improved</p>
-            <p className="text-[13px] font-medium text-[var(--text-hi)] truncate">{topImproved.exerciseName}</p>
-            <p className="mono text-[10px] text-[var(--text-low)] mt-0.5 tabular-nums">
+            <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-hi)' }}>
+              {topImproved.exerciseName}
+            </p>
+            <p className="mono text-[10px] mt-0.5 tabular-nums" style={{ color: 'var(--text-low)' }}>
               {topImproved.previousBest.toFixed(1)} → {topImproved.recentBest.toFixed(1)} kg e1RM
             </p>
           </div>
-          <div className="flex items-center gap-1 shrink-0 px-3 py-2 rounded-xl"
-            style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }}>
-            <TrendingUp className="w-3.5 h-3.5 text-[var(--accent)]" />
-            <span className="mono text-sm font-semibold text-[var(--accent)]">
+          <div
+            className="flex items-center gap-1.5 shrink-0 px-3.5 py-2.5 rounded-xl"
+            style={{
+              background: 'var(--accent-soft)',
+              border:     '1px solid var(--accent-line)',
+              boxShadow:  '0 0 16px var(--accent-glow)',
+            }}
+          >
+            <TrendingUp className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
+            <span
+              className="mono text-lg font-bold tabular-nums"
+              style={{ color: 'var(--accent)', textShadow: '0 0 12px var(--accent-glow)' }}
+            >
               +{topImproved.improvementPct}%
             </span>
           </div>
@@ -323,17 +337,31 @@ function StrengthIndexSection({ summary }: { summary: StrengthIndexSummary }) {
   const TrendIcon = pctPerWeek === null ? Minus : isPositive ? TrendingUp : TrendingDown
 
   return (
-    <div className="rounded-2xl p-3.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-      <div className="flex items-start justify-between mb-3">
+    <div
+      className="rounded-2xl p-4"
+      style={{
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+      }}
+    >
+      <div className="flex items-start justify-between mb-1">
         <div>
           <p className="t-label">Strength Index</p>
-          <p className="text-[9px] text-[var(--text-faint)] mt-0.5">
+          <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-faint)' }}>
             {summary.liftCount} lift{summary.liftCount === 1 ? '' : 's'} · from phase start
           </p>
         </div>
         <div className="text-right">
-          <p className="mono text-xl font-semibold tabular-nums leading-none" style={{ color: trendColor }}>
-            {totalPct >= 0 ? '+' : ''}{totalPct.toFixed(1)}<span className="text-xs text-[var(--text-faint)] ml-0.5">%</span>
+          <p
+            className="mono font-bold tabular-nums leading-none tracking-tighter"
+            style={{
+              fontSize:   '2rem',
+              color:      trendColor,
+              textShadow: `0 0 32px ${trendColor}80`,
+            }}
+          >
+            {totalPct >= 0 ? '+' : ''}{totalPct.toFixed(1)}
+            <span className="text-base font-normal ml-0.5" style={{ color: 'var(--text-faint)', textShadow: 'none' }}>%</span>
           </p>
           {pctPerWeek !== null && (
             <div className="flex items-center justify-end gap-1 mt-1">
@@ -345,7 +373,7 @@ function StrengthIndexSection({ summary }: { summary: StrengthIndexSummary }) {
           )}
         </div>
       </div>
-      <div className="h-10">
+      <div className="h-14 mt-2">
         <Sparkline points={summary.history.map(p => p.index)} color={trendColor} />
       </div>
     </div>
