@@ -1,22 +1,20 @@
 @import "tailwindcss";
 
-/* ─── Warm theme tokens ─────────────────────────────────────────────────
-   Lifts 2.0 — Warm. Midnight base with warm-bronze aurora orbs blooming
-   via screen blend. The dark bg-0 is intentional — screen blend needs
-   near-black to produce vivid warm glows from the bronze orb colors.
-   ─────────────────────────────────────────────────────────────────────── */
+/* ─── Design tokens ─────────────────────────────────────────────────────────
+   AMOLED-first: pure black surfaces, warm amber accent.
+   ─────────────────────────────────────────────────────────────────────────── */
 :root {
-  /* Surfaces · midnight (same as base — screen blend needs near-black) */
-  --bg-0: #06070d;
-  --bg-1: #0a0d18;
-  --bg-2: #0e1320;
+  /* Surfaces */
+  --bg-0: #000000;
+  --bg-1: #0a0a0a;
+  --bg-2: #111111;
 
-  /* Glass material — low-opacity white lets the amber page gradient read through */
-  --glass-fill:           rgba(255, 255, 255, 0.028);
-  --glass-fill-strong:    rgba(255, 255, 255, 0.055);
-  --glass-border:         rgba(255, 255, 255, 0.09);
-  --glass-border-strong:  rgba(255, 255, 255, 0.16);
-  --glass-highlight:      rgba(255, 255, 255, 0.20);
+  /* Glass material — more opaque over pure black */
+  --glass-fill:           rgba(255, 255, 255, 0.07);
+  --glass-fill-strong:    rgba(255, 255, 255, 0.12);
+  --glass-border:         rgba(255, 255, 255, 0.12);
+  --glass-border-strong:  rgba(255, 255, 255, 0.22);
+  --glass-highlight:      rgba(255, 255, 255, 0.18);
   --glass-blur: 28px;
 
   /* Text scale */
@@ -25,55 +23,29 @@
   --text-low:   rgba(255, 255, 255, 0.38);
   --text-faint: rgba(255, 255, 255, 0.22);
 
-  /* Single warm-amber accent + on-accent ink */
+  /* Warm amber accent — pops against pure black */
   --accent:       #f3c08a;
   --accent-soft:  rgba(243, 192, 138, 0.14);
-  --accent-line:  rgba(243, 192, 138, 0.32);
+  --accent-line:  rgba(243, 192, 138, 0.28);
   --accent-glow:  rgba(243, 192, 138, 0.40);
   --accent-on:    #1a1408;
 
-  /* Whisper status colors — only for state (volume zones, PRs, deload) */
+  /* Status colors */
   --teal: #7fd9c8;
   --rose: #e6a39a;
 
-  /* Aurora orb tints (warm — bronze/amber) — bright enough for screen blend */
-  --orb-1: #7a3030;
-  --orb-2: #b05520;
-  --orb-3: #d07828;
-
-  /* Radii — three sizes only */
+  /* Radii */
   --radius-card:  22px;
   --radius-inner: 14px;
   --radius-pill:  999px;
 
-  /* Motion — flick · settle · unfold */
+  /* Motion */
   --t-flick:  150ms ease-out;
   --t-settle: 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
   --t-unfold: 500ms ease;
 }
 
-/* ─── AMOLED theme overrides ────────────────────────────────────────────────
-   Pure-black surfaces for OLED power saving. Glass effects and radii are
-   unchanged — only the backgrounds and aurora are swapped out.
-   ─────────────────────────────────────────────────────────────────────────── */
-[data-theme="amoled"] {
-  --bg-0: #000000;
-  --bg-1: #0a0a0a;
-  --bg-2: #111111;
-
-  /* More opaque glass — pure black has no backdrop to blur through */
-  --glass-fill:           rgba(255, 255, 255, 0.07);
-  --glass-fill-strong:    rgba(255, 255, 255, 0.12);
-  --glass-border:         rgba(255, 255, 255, 0.14);
-  --glass-border-strong:  rgba(255, 255, 255, 0.24);
-  --glass-highlight:      rgba(255, 255, 255, 0.28);
-}
-
-/* Hide aurora and neutralise the warm gradient wash in AMOLED mode */
-[data-theme="amoled"] .aurora-page   { display: none; }
-[data-theme="amoled"] .page-gradient { background: none !important; }
-
-/* Tailwind v4 theme bridge — exposes tokens as Tailwind utilities */
+/* Tailwind v4 theme bridge */
 @theme inline {
   --font-display: var(--font-space-grotesk), system-ui, sans-serif;
   --font-sans:    var(--font-lexend), system-ui, sans-serif;
@@ -111,56 +83,9 @@ body {
   font-family: var(--font-sans);
 }
 
-/* ─── Aurora background ─────────────────────────────────────────────────
-   Slow drifting orbs over a midnight radial. Wallpaper, not signal —
-   never use to indicate UI focus. Pointer-events: none everywhere.
-   ─────────────────────────────────────────────────────────────────────── */
-.aurora-page {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  /*
-    Warm amber radial wash at the top — this is the primary visible glow.
-    The midnight bg-0 forms the base; orbs add local warmth via screen blend.
-  */
-  background:
-    /* Primary warm wash — amber crown bleeding down from the top */
-    radial-gradient(ellipse 160% 65% at 60% -10%, rgba(220, 115, 25, 0.60) 0%, transparent 55%),
-    /* Secondary fill — stops the centre going dead-black */
-    radial-gradient(ellipse 80%  40% at 30%  10%, rgba(180,  80, 20, 0.25) 0%, transparent 60%),
-    var(--bg-0);
-  overflow: hidden;
-}
-
-.aurora-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(70px);
-  opacity: 0.65;
-  mix-blend-mode: screen;
-}
-.aurora-orb.a { top: -25%;    left:  -8%;  width: 75%; aspect-ratio: 1; background: var(--orb-1); animation: drift-a 22s ease-in-out infinite alternate; }
-.aurora-orb.b { top:   0%;    right: -20%; width: 80%; aspect-ratio: 1; background: var(--orb-2); animation: drift-b 26s ease-in-out infinite alternate; }
-.aurora-orb.c { bottom: -30%; left:  10%;  width: 85%; aspect-ratio: 1; background: var(--orb-3); opacity: 0.45; animation: drift-c 18s ease-in-out infinite alternate; }
-
-@keyframes drift-a { from { transform: translate(0, 0) scale(1); } to { transform: translate(4%, 6%) scale(1.05); } }
-@keyframes drift-b { from { transform: translate(0, 0) scale(1); } to { transform: translate(-5%, 3%) scale(0.95); } }
-@keyframes drift-c { from { transform: translate(0, 0) scale(1); } to { transform: translate(3%, -4%) scale(1.08); } }
-
-.aurora-grain {
-  position: absolute;
-  inset: 0;
-  opacity: 0.4;
-  mix-blend-mode: overlay;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='0.4'/></svg>");
-}
-
-/* ─── Glass material ────────────────────────────────────────────────────
-   Two strengths. Defined as much by what's missing as what's there:
-   barely-there fill, hairline border, top shimmer line, soft shadow.
-   ─────────────────────────────────────────────────────────────────────── */
+/* ─── Glass material ────────────────────────────────────────────────────────
+   Two strengths. Hairline border, top shimmer, soft shadow.
+   ─────────────────────────────────────────────────────────────────────────── */
 .glass {
   position: relative;
   background: var(--glass-fill);
@@ -171,14 +96,14 @@ body {
   box-shadow:
     inset 0  1px 0 var(--glass-highlight),
     inset 0 -1px 0 rgba(0, 0, 0, 0.30),
-    0 6px 24px rgba(0, 0, 0, 0.35);
+    0 6px 24px rgba(0, 0, 0, 0.45);
 }
 .glass::before {
   content: '';
   position: absolute;
   top: 0; left: 12%; right: 12%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
   pointer-events: none;
 }
 
@@ -187,9 +112,7 @@ body {
   border-color: var(--glass-border-strong);
 }
 
-/* ─── Type utilities ────────────────────────────────────────────────────
-   Editorial display, athletic mono. Italics reserved for one-word accents.
-   ─────────────────────────────────────────────────────────────────────── */
+/* ─── Type utilities ─────────────────────────────────────────────────────── */
 .t-display-xl { font-family: var(--font-display); font-size: 56px; font-weight: 700; letter-spacing: -0.04em; line-height: 0.95; color: var(--text-hi); }
 .t-display-l  { font-family: var(--font-display); font-size: 44px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.0;  color: var(--text-hi); }
 .t-display-m  { font-family: var(--font-display); font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1;  color: var(--text-hi); }
@@ -204,22 +127,19 @@ body {
 .mono   { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .t-mono { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.02em; color: var(--accent); font-variant-numeric: tabular-nums; }
 
-/* ─── Motion presets ────────────────────────────────────────────────────*/
+/* ─── Motion presets ────────────────────────────────────────────────────── */
 .fade-up { animation: fade-up var(--t-unfold) both; }
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: none; }
 }
 
-/* Page transition — replayed on every route change via PageTransition component */
 .page-in { animation: page-in 220ms ease-out both; }
 @keyframes page-in {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
 
-/* Staggered list — add .stagger-children to a <ul> / <div> list container.
-   Children must also have .fade-up so they have the animation to delay.      */
 .stagger-children > *                  { animation-fill-mode: both; }
 .stagger-children > *:nth-child(1)     { animation-delay:   0ms; }
 .stagger-children > *:nth-child(2)     { animation-delay:  60ms; }
@@ -228,9 +148,6 @@ body {
 .stagger-children > *:nth-child(5)     { animation-delay: 240ms; }
 .stagger-children > *:nth-child(n+6)   { animation-delay: 300ms; }
 
-/* Scroll-reveal — elements animate as they enter the viewport.
-   Supported in Chrome 115+, Firefox 114+, Safari 18+.
-   Falls back gracefully (element is visible) on older browsers.              */
 @supports (animation-timeline: view()) {
   .scroll-reveal {
     animation: fade-up linear both;
@@ -239,8 +156,7 @@ body {
   }
 }
 
-
-/* ─── Scrollbar (subtle) ────────────────────────────────────────────────*/
+/* ─── Scrollbar ─────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar        { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track  { background: var(--bg-1); }
 ::-webkit-scrollbar-thumb  { background: var(--glass-border-strong); border-radius: 10px; }

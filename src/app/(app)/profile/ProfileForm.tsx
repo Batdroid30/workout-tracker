@@ -14,7 +14,6 @@ import {
 } from './actions'
 import { Button } from '@/components/ui/Button'
 import { useDialog } from '@/providers/DialogProvider'
-import { useThemeStore, type Theme } from '@/store/theme.store'
 
 interface ProfileFormProps {
   profile: Profile | null
@@ -109,8 +108,6 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dialog = useDialog()
-
-  const { theme, setTheme } = useThemeStore()
 
   const [trainingGoal,    setTrainingGoal]    = useState<TrainingGoal    | null>(profile?.training_goal    ?? null)
   const [trainingPhase,   setTrainingPhase]   = useState<TrainingPhase   | null>(profile?.training_phase   ?? null)
@@ -388,37 +385,6 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
           These settings personalise your rep targets, weekly volume goals, and recovery suggestions.
           You can update them any time.
         </p>
-      </div>
-
-      {/* ── Appearance ───────────────────────────────────────────────── */}
-      <div className="glass p-4 space-y-3">
-        <h3 className="t-label">Appearance</h3>
-        <div className="grid grid-cols-2 gap-2">
-          {([
-            { value: 'warm'  as Theme, label: 'Warm',  description: 'Amber aurora', emoji: '🌅' },
-            { value: 'amoled' as Theme, label: 'AMOLED', description: 'Pure black',   emoji: '🖤' },
-          ]).map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setTheme(opt.value)}
-              className="flex flex-col items-center gap-1 p-3 rounded-[var(--radius-inner)] transition-all text-center active:scale-95"
-              style={theme === opt.value
-                ? { border: '1px solid var(--accent-line)', background: 'var(--accent-soft)' }
-                : { border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.03)' }
-              }
-            >
-              <span className="text-lg">{opt.emoji}</span>
-              <span
-                className="text-[10px] font-semibold uppercase tracking-tight leading-tight"
-                style={{ color: theme === opt.value ? 'var(--accent)' : 'var(--text-mid)' }}
-              >
-                {opt.label}
-              </span>
-              <span className="t-caption leading-tight">{opt.description}</span>
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* ── Account Actions ───────────────────────────────────────────── */}

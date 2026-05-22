@@ -3,7 +3,6 @@ import {
   Zap, Shield, BarChart2, Target, TrendingUp, Crown,
   type LucideIcon,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import type { RecentPR, TrainingStreak } from '@/lib/data/insights'
 import type { Badge } from '@/lib/data/achievements'
 
@@ -14,7 +13,6 @@ interface MomentumStripProps {
   totalVolume: number
 }
 
-// Maps the icon string stored in Badge data to its Lucide component.
 const BADGE_ICON_MAP: Record<string, LucideIcon> = {
   'dumbbell':    Dumbbell,
   'zap':         Zap,
@@ -44,13 +42,33 @@ export function MomentumStrip({ prs, streak, badges, totalVolume }: MomentumStri
 function PRsTile({ prs }: { prs: RecentPR[] }) {
   const latest = prs[0]
   return (
-    <Tile label="Recent PRs" icon={<Trophy className="w-3 h-3 text-[var(--accent)]" />} positive={prs.length > 0}>
-      <p className="mono text-3xl font-medium text-[var(--text-hi)] tracking-tighter tabular-nums">
+    <Tile
+      label="Recent PRs"
+      icon={<Trophy className="w-3 h-3" style={{ color: 'var(--accent)' }} />}
+      highlight={prs.length > 0}
+    >
+      <p
+        className="mono text-3xl font-bold tracking-tighter tabular-nums"
+        style={{
+          color: 'var(--text-hi)',
+          textShadow: prs.length > 0 ? '0 0 24px var(--accent-glow)' : 'none',
+        }}
+      >
         {prs.length}
-        <span className="text-xs text-[var(--text-low)] ml-1.5">in 60d</span>
+        <span
+          className="text-xs font-normal ml-1.5"
+          style={{ color: 'var(--text-faint)', textShadow: 'none' }}
+        >
+          in 60d
+        </span>
       </p>
-      <p className="text-[10px] text-[var(--text-low)] mt-1 truncate">
-        {latest ? `Latest: ${latest.exerciseName.toLowerCase()}` : 'No PRs yet — go set one'}
+      <p
+        className="text-[10px] mt-1.5 truncate"
+        style={{ color: latest ? 'var(--accent)' : 'var(--text-faint)' }}
+      >
+        {latest
+          ? latest.exerciseName.toLowerCase()
+          : 'No PRs yet — go set one'}
       </p>
     </Tile>
   )
@@ -60,20 +78,41 @@ function StreakTile({ streak }: { streak: TrainingStreak }) {
   const { currentStreak, longestStreak } = streak
   const dots = Array.from({ length: 8 }, (_, i) => i < currentStreak)
   return (
-    <Tile label="Streak" icon={<Flame className="w-3 h-3 text-[var(--accent)]" />} positive={currentStreak >= 4}>
-      <p className="mono text-3xl font-medium text-[var(--text-hi)] tracking-tighter tabular-nums">
+    <Tile
+      label="Streak"
+      icon={<Flame className="w-3 h-3" style={{ color: 'var(--accent)' }} />}
+      highlight={currentStreak >= 4}
+    >
+      <p
+        className="mono text-3xl font-bold tracking-tighter tabular-nums"
+        style={{
+          color: 'var(--text-hi)',
+          textShadow: currentStreak > 0 ? '0 0 24px var(--accent-glow)' : 'none',
+        }}
+      >
         {currentStreak}
-        <span className="text-xs text-[var(--text-low)] ml-1">{currentStreak === 1 ? 'wk' : 'wks'}</span>
+        <span className="text-xs font-normal ml-1" style={{ color: 'var(--text-faint)', textShadow: 'none' }}>
+          {currentStreak === 1 ? 'wk' : 'wks'}
+        </span>
       </p>
       <div className="flex gap-0.5 mt-2">
         {dots.map((active, i) => (
-          <div key={i} className={cn('h-1 flex-1 rounded-full', active ? 'bg-[var(--accent)]' : 'bg-white/[0.06]')}
-            style={active ? { boxShadow: '0 0 4px var(--accent-glow)' } : undefined} />
+          <div
+            key={i}
+            className="h-1.5 flex-1 rounded-full"
+            style={{
+              background: active ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
+              boxShadow:  active ? '0 0 6px var(--accent-glow)' : 'none',
+            }}
+          />
         ))}
       </div>
-      <p className="text-[10px] text-[var(--text-low)] mt-1 truncate">
-        {longestStreak > currentStreak ? `Best ever ${longestStreak}w` :
-         currentStreak > 0 ? 'New personal best' : 'Start one this week'}
+      <p className="text-[10px] mt-1 truncate" style={{ color: 'var(--text-faint)' }}>
+        {longestStreak > currentStreak
+          ? `Best ever ${longestStreak}w`
+          : currentStreak > 0
+          ? 'New personal best'
+          : 'Start one this week'}
       </p>
     </Tile>
   )
@@ -81,41 +120,58 @@ function StreakTile({ streak }: { streak: TrainingStreak }) {
 
 function BadgesTile({ badges }: { badges: Badge[] }) {
   const earned = badges.filter(b => b.earned)
-  const total  = badges.length
   const recent = earned.slice(-3)
   return (
-    <Tile label="Achievements" icon={<Award className="w-3 h-3 text-[var(--accent)]" />} positive={earned.length > 0}>
-      <p className="mono text-3xl font-medium text-[var(--text-hi)] tracking-tighter tabular-nums">
+    <Tile
+      label="Achievements"
+      icon={<Award className="w-3 h-3" style={{ color: 'var(--accent)' }} />}
+      highlight={earned.length > 0}
+    >
+      <p className="mono text-3xl font-bold tracking-tighter tabular-nums" style={{ color: 'var(--text-hi)' }}>
         {earned.length}
-        <span className="text-xs text-[var(--text-low)] ml-1">/ {total}</span>
+        <span className="text-xs font-normal ml-1" style={{ color: 'var(--text-faint)' }}>
+          / {badges.length}
+        </span>
       </p>
-      <div className="flex gap-1.5 mt-2 min-h-[18px] items-center">
+      <div className="flex gap-2 mt-2 min-h-[20px] items-center">
         {recent.length > 0 ? (
           recent.map(b => {
             const Icon = BADGE_ICON_MAP[b.icon] ?? Award
             return (
-              <span key={b.id} title={b.label}>
+              <span
+                key={b.id}
+                title={b.label}
+                style={{ filter: `drop-shadow(0 0 4px ${b.color}80)` }}
+              >
                 <Icon className="w-4 h-4" style={{ color: b.color }} />
               </span>
             )
           })
         ) : (
-          <span className="text-[10px] text-[var(--text-faint)]">None unlocked yet</span>
+          <span className="text-[10px]" style={{ color: 'var(--text-faint)' }}>
+            None unlocked yet
+          </span>
         )}
       </div>
-      <p className="text-[10px] text-[var(--text-low)] mt-1 truncate">
-        {earned.length === 0 ? 'Complete a workout' : `${total - earned.length} more to unlock`}
+      <p className="text-[10px] mt-1 truncate" style={{ color: 'var(--text-faint)' }}>
+        {earned.length === 0
+          ? 'Complete a workout'
+          : `${badges.length - earned.length} more to unlock`}
       </p>
     </Tile>
   )
 }
 
 const MILESTONES = [
-  { threshold: 1_000, label: '1k' }, { threshold: 5_000, label: '5k' },
-  { threshold: 10_000, label: '10k' }, { threshold: 25_000, label: '25k' },
-  { threshold: 50_000, label: '50k' }, { threshold: 100_000, label: '100k' },
-  { threshold: 250_000, label: '250k' }, { threshold: 500_000, label: '500k' },
-  { threshold: 1_000_000, label: '1M' },
+  { threshold: 1_000,     label: '1k'   },
+  { threshold: 5_000,     label: '5k'   },
+  { threshold: 10_000,    label: '10k'  },
+  { threshold: 25_000,    label: '25k'  },
+  { threshold: 50_000,    label: '50k'  },
+  { threshold: 100_000,   label: '100k' },
+  { threshold: 250_000,   label: '250k' },
+  { threshold: 500_000,   label: '500k' },
+  { threshold: 1_000_000, label: '1M'   },
 ] as const
 
 function formatVolume(kg: number): string {
@@ -129,29 +185,59 @@ function TonnageTile({ totalVolume }: { totalVolume: number }) {
   const previous = [...MILESTONES].reverse().find(m => totalVolume >= m.threshold)
   const progressPct = next
     ? previous
-      ? Math.min(100, Math.round(((totalVolume - previous.threshold) / (next.threshold - previous.threshold)) * 100))
+      ? Math.min(100, Math.round(
+          ((totalVolume - previous.threshold) / (next.threshold - previous.threshold)) * 100
+        ))
       : Math.min(100, Math.round((totalVolume / next.threshold) * 100))
     : 100
+
   return (
-    <Tile label="Lifetime" icon={<Dumbbell className="w-3 h-3 text-[var(--accent)]" />} positive={false}>
-      <p className="mono text-3xl font-medium text-[var(--text-hi)] tracking-tighter tabular-nums">
+    <Tile
+      label="Lifetime"
+      icon={<Dumbbell className="w-3 h-3" style={{ color: 'var(--accent)' }} />}
+      highlight={false}
+    >
+      <p className="mono text-3xl font-bold tracking-tighter tabular-nums" style={{ color: 'var(--text-hi)' }}>
         {formatVolume(totalVolume)}
-        <span className="text-xs text-[var(--text-low)] ml-1">kg</span>
+        <span className="text-xs font-normal ml-1" style={{ color: 'var(--text-faint)' }}>kg</span>
       </p>
-      <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden mt-2">
-        <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${progressPct}%`, boxShadow: '0 0 6px var(--accent-glow)' }} />
+      <div
+        className="h-1.5 rounded-full overflow-hidden mt-2"
+        style={{ background: 'rgba(255,255,255,0.06)' }}
+      >
+        <div
+          className="h-full rounded-full"
+          style={{
+            width:     `${progressPct}%`,
+            background: 'var(--accent)',
+            boxShadow: '0 0 8px var(--accent-glow)',
+          }}
+        />
       </div>
-      <p className="text-[10px] text-[var(--text-low)] mt-1 truncate">
+      <p className="text-[10px] mt-1 truncate" style={{ color: 'var(--text-faint)' }}>
         {next ? `Next: ${next.label} Club` : 'All milestones reached'}
       </p>
     </Tile>
   )
 }
 
-function Tile({ label, icon, positive, children }: { label: string; icon: React.ReactNode; positive: boolean; children: React.ReactNode }) {
+function Tile({
+  label,
+  icon,
+  highlight,
+  children,
+}: {
+  label:     string
+  icon:      React.ReactNode
+  highlight: boolean
+  children:  React.ReactNode
+}) {
   return (
-    <div className={cn('glass p-3', positive && 'border-[var(--accent-line)]')}>
-      <div className="flex items-center gap-1.5 mb-2">
+    <div
+      className="glass p-3.5"
+      style={highlight ? { borderColor: 'var(--accent-line)' } : undefined}
+    >
+      <div className="flex items-center gap-1.5 mb-2.5">
         {icon}
         <p className="t-label">{label}</p>
       </div>

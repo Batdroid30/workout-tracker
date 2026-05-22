@@ -131,7 +131,7 @@ function StatCell({ label, value, unit, highlight = false }: {
       className="rounded-[var(--radius-inner)] p-2.5 text-center"
       style={{ background: highlight ? 'var(--accent-soft)' : 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}
     >
-      <p className="mono text-base font-semibold tabular-nums leading-none mb-0.5" style={{ color: highlight ? 'var(--accent)' : 'var(--text-hi)' }}>
+      <p className="mono text-base font-semibold tabular-nums leading-none mb-0.5" style={{ color: highlight ? 'var(--accent)' : 'var(--text-hi)', textShadow: highlight ? '0 0 16px var(--accent-glow)' : 'none' }}>
         {value}
       </p>
       <p className="text-[9px] text-[var(--text-faint)] uppercase tracking-wide leading-tight">{unit}</p>

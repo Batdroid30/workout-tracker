@@ -205,9 +205,15 @@ function StrengthIndexBlock({ summary, chartData }: StrengthIndexBlockProps) {
       {/* Headline numbers */}
       <div className="flex items-end justify-between mt-1 mb-3">
         <div>
-          <p className="mono text-3xl tabular-nums tracking-tighter" style={{ color: 'var(--text-hi)' }}>
+          <p
+            className="mono text-3xl tabular-nums tracking-tighter"
+            style={{
+              color: 'var(--text-hi)',
+              textShadow: totalPct >= 0 ? '0 0 24px var(--accent-glow)' : 'none',
+            }}
+          >
             {totalPct >= 0 ? '+' : ''}{totalPct.toFixed(1)}
-            <span className="text-base ml-0.5" style={{ color: 'var(--text-faint)' }}>%</span>
+            <span className="text-base ml-0.5" style={{ color: 'var(--text-faint)', textShadow: 'none' }}>%</span>
           </p>
           <p className="t-label mt-0.5">Since phase start</p>
         </div>
@@ -313,7 +319,7 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
         </div>
       </div>
 
-      <div className="relative h-2 rounded-full overflow-visible" style={{ background: 'var(--bg-1)' }}>
+      <div className="relative h-2.5 rounded-full overflow-visible" style={{ background: 'var(--bg-1)' }}>
         <div className="absolute top-0 h-full bg-orange-400/15 rounded-full"
              style={{ left: `${mvPct}%`, width: `${Math.max(0, mevPct - mvPct)}%` }} />
         <div className="absolute top-0 h-full bg-yellow-400/20"
@@ -324,8 +330,10 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
              style={{ left: `${mavMaxPct}%`, width: `${Math.max(0, mrvPct - mavMaxPct)}%` }} />
         <div className="absolute top-0 h-full bg-red-500/30 rounded-r-full"
              style={{ left: `${mrvPct}%`, right: 0 }} />
-        <div className={cn('absolute -top-0.5 bottom-[-2px] w-0.5 rounded-full', styles.dot)}
-             style={{ left: `${markerPct}%`, transform: 'translateX(-50%)' }} />
+        <div
+          className={cn('absolute -top-0.5 bottom-[-2px] w-0.5 rounded-full', styles.dot)}
+          style={{ left: `${markerPct}%`, transform: 'translateX(-50%)', filter: 'drop-shadow(0 0 4px currentColor)' }}
+        />
       </div>
     </div>
   )

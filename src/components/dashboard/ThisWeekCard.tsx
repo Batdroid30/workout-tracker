@@ -18,10 +18,10 @@ interface ThisWeekCardProps {
   isDeloadWeek?:  boolean
 }
 
-const PRIORITY_BAR: Record<MissionPriority, string> = {
-  critical: 'bg-[var(--rose)]',
-  high:     'bg-orange-400',
-  normal:   'bg-[var(--accent)]/40',
+const PRIORITY_BAR_STYLE: Record<MissionPriority, React.CSSProperties> = {
+  critical: { background: 'var(--rose)',   boxShadow: '0 0 6px rgba(230,163,154,0.6)' },
+  high:     { background: '#fb923c',       boxShadow: '0 0 6px rgba(251,146,60,0.5)'  },
+  normal:   { background: 'rgba(243,192,138,0.35)' },
 }
 
 export function ThisWeekCard({
@@ -109,9 +109,12 @@ export function ThisWeekCard({
                 className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${sessionPct}%`,
-                  background: reached ? 'var(--accent)' : 'var(--accent)',
-                  opacity: reached ? 1 : 0.5,
-                  boxShadow: reached ? '0 0 12px var(--accent-glow)' : 'none',
+                  background: 'var(--accent)',
+                  boxShadow: reached
+                    ? '0 0 16px var(--accent-glow)'
+                    : sessionPct > 0
+                    ? '0 0 8px var(--accent-glow)'
+                    : 'none',
                 }}
               />
             </div>
@@ -135,7 +138,7 @@ export function ThisWeekCard({
           <div className="space-y-2">
             {missions.map(m => (
               <div key={m.id} className="flex gap-3 py-1.5">
-                <div className={cn('w-0.5 rounded-full self-stretch shrink-0', PRIORITY_BAR[m.priority])} />
+                <div className="w-0.5 rounded-full self-stretch shrink-0" style={PRIORITY_BAR_STYLE[m.priority]} />
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-medium text-[var(--text-hi)]">{m.headline}</p>
                   <p className="text-[11px] text-[var(--text-low)] mt-0.5 leading-relaxed">{m.detail}</p>

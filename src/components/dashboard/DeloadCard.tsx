@@ -44,7 +44,7 @@ export function DeloadCard({ assessment }: DeloadCardProps) {
         <div className="space-y-1.5 mb-3">
           {assessment.signals.map((signal, i) => (
             <div key={i} className="flex items-start gap-2">
-              <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 block" style={{ background: 'var(--rose)' }} />
+              <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 block" style={{ background: 'var(--rose)', boxShadow: '0 0 5px rgba(230,163,154,0.5)' }} />
               <p className="text-[11px] text-[var(--text-mid)]">{signal}</p>
             </div>
           ))}

@@ -46,8 +46,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#0b0804",
-  width: "device-width",
+  themeColor:   "#000000",
+  width:        "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
@@ -61,38 +61,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      data-theme="warm"
       suppressHydrationWarning
       className={`${spaceGrotesk.variable} ${lexend.variable} ${geistMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col bg-[var(--bg-0)] text-[var(--text-hi)] font-sans selection:bg-[var(--accent)] selection:text-[var(--accent-on)]">
-        {/* Aurora — wallpaper, never signal */}
-        <div className="aurora-page" aria-hidden>
-          <div className="aurora-orb a" />
-          <div className="aurora-orb b" />
-          <div className="aurora-orb c" />
-          <div className="aurora-grain" />
-        </div>
-
-        {/*
-          Page gradient — scrolls with content so every glass card on the page
-          sees warm amber behind it, not just the ones at the very top of the viewport.
-          Fades: amber-tinted dark at top → transparent at ~480px → pure bg-0 below.
-        */}
-        <div
-          className="page-gradient relative z-[1] flex-1 flex flex-col min-h-full"
-          style={{
-            background: 'linear-gradient(180deg, rgba(200,100,28,0.13) 0%, rgba(200,100,28,0.04) 280px, transparent 480px)',
-          }}
-        >
-          <ThemeProvider>
-            <DialogProvider>
-              <ToastProvider>
-                {children}
-              </ToastProvider>
-            </DialogProvider>
-          </ThemeProvider>
-        </div>
+        <ThemeProvider>
+          <DialogProvider>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </DialogProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
