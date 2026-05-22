@@ -17,11 +17,11 @@ const VARIANT_STYLE: Record<NonNullable<InsightCardProps['variant']>, React.CSSP
   neutral:  {},
   positive: {
     borderColor: 'var(--accent-line)',
-    background:  'linear-gradient(145deg, rgba(243,192,138,0.07) 0%, rgba(243,192,138,0.02) 100%)',
+    background:  'linear-gradient(145deg, rgba(247,37,133,0.07) 0%, rgba(247,37,133,0.02) 100%)',
   },
   warning: {
-    borderColor: 'rgba(230,163,154,0.40)',
-    background:  'linear-gradient(145deg, rgba(230,163,154,0.07) 0%, rgba(230,163,154,0.02) 100%)',
+    borderColor: 'rgba(181,23,158,0.40)',
+    background:  'linear-gradient(145deg, rgba(181,23,158,0.07) 0%, rgba(181,23,158,0.02) 100%)',
   },
 }
 

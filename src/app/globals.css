@@ -1,71 +1,170 @@
 @import "tailwindcss";
 
-/* ─── Design tokens ─────────────────────────────────────────────────────────
-   AMOLED-first: pure black surfaces, warm amber accent.
+/* ─── Spectrum design tokens ─────────────────────────────────────────────────
+   Cool-leaning deep-indigo surfaces. Pink→cyan intensity ramp.
+   Higher spectrum number = more effort / intensity.
    ─────────────────────────────────────────────────────────────────────────── */
 :root {
-  /* Surfaces */
-  --bg-0: #000000;
-  --bg-1: #0a0a0a;
-  --bg-2: #111111;
+  /* ── Spectrum ramp ── */
+  --spectrum-100:  #4CC9F0;   /* Cyan       — recovery, rest, success       */
+  --spectrum-200:  #4895EF;   /* Sky        — easy effort, secondary data   */
+  --spectrum-300:  #4361EE;   /* Azure      — endurance, links, CTAs        */
+  --spectrum-400:  #3F37C9;   /* Periwinkle — tempo, chart fills, rings     */
+  --spectrum-500:  #3A0CA3;   /* Indigo     — threshold, structural fills   */
+  --spectrum-600:  #480CA8;   /* Royal      — strength, heavy lifts         */
+  --spectrum-700:  #560BAD;   /* Violet     — power, secondary brand        */
+  --spectrum-800:  #7209B7;   /* Plum       — anaerobic, critical           */
+  --spectrum-900:  #B5179E;   /* Magenta    — VO2 max, warning              */
+  --spectrum-1000: #F72585;   /* Neon       — peak, PRs, primary brand      */
 
-  /* Glass material — more opaque over pure black */
-  --glass-fill:           rgba(255, 255, 255, 0.07);
-  --glass-fill-strong:    rgba(255, 255, 255, 0.12);
-  --glass-border:         rgba(255, 255, 255, 0.12);
-  --glass-border-strong:  rgba(255, 255, 255, 0.22);
-  --glass-highlight:      rgba(255, 255, 255, 0.18);
+  /* ── Surfaces (cool-leaning deep indigo-black) ── */
+  --ink:       #07061A;
+  --surface:   #11102B;
+  --surface-2: #1A1942;
+  --surface-3: #232255;
+
+  /* backward-compatible aliases */
+  --bg-0: var(--ink);
+  --bg-1: var(--surface);
+  --bg-2: var(--surface-2);
+
+  /* ── Borders ── */
+  --border:      #2A2960;
+  --border-soft: #1F1E48;
+
+  /* ── Text ── */
+  --text:       #ECEDFA;
+  --text-muted: #9596C5;
+  --text-dim:   #6566A0;
+
+  /* backward-compatible aliases */
+  --text-hi:    var(--text);
+  --text-mid:   var(--text-muted);
+  --text-low:   var(--text-dim);
+  --text-faint: rgba(101, 102, 160, 0.55);
+
+  /* ── Glass material (tuned for cool-leaning indigo surfaces) ── */
+  --glass-fill:          rgba(255, 255, 255, 0.05);
+  --glass-fill-strong:   rgba(255, 255, 255, 0.09);
+  --glass-border:        var(--border-soft);
+  --glass-border-strong: var(--border);
+  --glass-highlight:     rgba(255, 255, 255, 0.10);
   --glass-blur: 28px;
 
-  /* Text scale */
-  --text-hi:    rgba(255, 255, 255, 0.95);
-  --text-mid:   rgba(255, 255, 255, 0.62);
-  --text-low:   rgba(255, 255, 255, 0.38);
-  --text-faint: rgba(255, 255, 255, 0.22);
+  /* ── Brand accent — Neon pink (spectrum-1000) ── */
+  --accent:       var(--spectrum-1000);
+  --accent-soft:  rgba(247, 37, 133, 0.14);
+  --accent-line:  rgba(247, 37, 133, 0.28);
+  --accent-glow:  rgba(247, 37, 133, 0.40);
+  --accent-on:    #ffffff;
 
-  /* Warm amber accent — pops against pure black */
-  --accent:       #f3c08a;
-  --accent-soft:  rgba(243, 192, 138, 0.14);
-  --accent-line:  rgba(243, 192, 138, 0.28);
-  --accent-glow:  rgba(243, 192, 138, 0.40);
-  --accent-on:    #1a1408;
+  /* ── Semantic roles ── */
+  --brand:       var(--spectrum-1000);  /* #F72585 — primary brand, PRs, peak   */
+  --brand-deep:  var(--spectrum-700);   /* #560BAD — hover/pressed, gradient    */
+  --accent-cool: var(--spectrum-100);   /* #4CC9F0 — recovery, success, calm    */
+  --info:        var(--spectrum-300);   /* #4361EE — links, neutral info        */
+  --warning:     var(--spectrum-900);   /* #B5179E — elevated RPE, attention    */
+  --critical:    var(--spectrum-800);   /* #7209B7 — missed session, error      */
+  --success:     var(--spectrum-100);   /* #4CC9F0 — on-target, goal achieved   */
 
-  /* Status colors */
-  --teal: #7fd9c8;
-  --rose: #e6a39a;
+  /* backward-compatible aliases */
+  --teal: var(--accent-cool);
+  --rose: var(--warning);
+  --blue: var(--info);
+  --blue-soft: rgba(67, 97, 238, 0.14);
 
-  /* Radii */
+  /* ── HR zones ── */
+  --zone-1: var(--spectrum-100);    /* Recovery   50–60% */
+  --zone-2: var(--spectrum-300);    /* Endurance  60–70% */
+  --zone-3: var(--spectrum-700);    /* Tempo      70–80% */
+  --zone-4: var(--spectrum-900);    /* Threshold  80–90% */
+  --zone-5: var(--spectrum-1000);   /* Max        90–100% */
+
+  /* ── Chart series (categorical — max hue separation) ── */
+  --chart-1: var(--spectrum-1000);
+  --chart-2: var(--spectrum-100);
+  --chart-3: var(--spectrum-800);
+  --chart-4: var(--spectrum-200);
+  --chart-5: var(--spectrum-900);
+  --chart-6: var(--spectrum-300);
+
+  /* ── Gradient recipes ── */
+  --g-aurora: linear-gradient(120deg, #F72585, #7209B7 45%, #3A0CA3 70%, #4CC9F0);
+  --g-sunset: linear-gradient(135deg, #F72585, #B5179E 50%, #7209B7);
+  --g-ocean:  linear-gradient(135deg, #4361EE, #4895EF 50%, #4CC9F0);
+  --g-deep:   linear-gradient(160deg, #560BAD, #3A0CA3 50%, #07061A);
+  --g-pulse:  radial-gradient(120% 80% at 20% 30%, #F72585, #7209B7 50%, #11102B);
+
+  /* backward-compatible gradient aliases */
+  --gradient-vivid: var(--g-aurora);
+  --gradient-cool:  var(--g-ocean);
+
+  /* ── Radii ── */
   --radius-card:  22px;
   --radius-inner: 14px;
   --radius-pill:  999px;
 
-  /* Motion */
+  /* ── Motion ── */
   --t-flick:  150ms ease-out;
   --t-settle: 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
   --t-unfold: 500ms ease;
 }
 
-/* Tailwind v4 theme bridge */
+/* ─── Tailwind v4 theme bridge ───────────────────────────────────────────── */
 @theme inline {
   --font-display: var(--font-space-grotesk), system-ui, sans-serif;
   --font-sans:    var(--font-lexend), system-ui, sans-serif;
   --font-mono:    var(--font-geist-mono), ui-monospace, monospace;
 
+  /* Surfaces */
   --color-bg-0: var(--bg-0);
   --color-bg-1: var(--bg-1);
   --color-bg-2: var(--bg-2);
 
+  /* Text */
   --color-text-hi:    var(--text-hi);
   --color-text-mid:   var(--text-mid);
   --color-text-low:   var(--text-low);
   --color-text-faint: var(--text-faint);
 
+  /* Accent */
   --color-accent:      var(--accent);
   --color-accent-on:   var(--accent-on);
   --color-accent-soft: var(--accent-soft);
   --color-accent-line: var(--accent-line);
-  --color-teal:        var(--teal);
-  --color-rose:        var(--rose);
+
+  /* Status */
+  --color-teal:      var(--teal);
+  --color-rose:      var(--rose);
+  --color-blue:      var(--blue);
+  --color-blue-soft: var(--blue-soft);
+
+  /* Spectrum ramp */
+  --color-spectrum-100:  var(--spectrum-100);
+  --color-spectrum-200:  var(--spectrum-200);
+  --color-spectrum-300:  var(--spectrum-300);
+  --color-spectrum-400:  var(--spectrum-400);
+  --color-spectrum-500:  var(--spectrum-500);
+  --color-spectrum-600:  var(--spectrum-600);
+  --color-spectrum-700:  var(--spectrum-700);
+  --color-spectrum-800:  var(--spectrum-800);
+  --color-spectrum-900:  var(--spectrum-900);
+  --color-spectrum-1000: var(--spectrum-1000);
+
+  /* Zones */
+  --color-zone-1: var(--zone-1);
+  --color-zone-2: var(--zone-2);
+  --color-zone-3: var(--zone-3);
+  --color-zone-4: var(--zone-4);
+  --color-zone-5: var(--zone-5);
+
+  /* Charts */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
 }
 
 :root {
@@ -73,8 +172,8 @@
 }
 
 html, body {
-  background: var(--bg-0);
-  color: var(--text-hi);
+  background: var(--ink);
+  color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
@@ -83,14 +182,30 @@ body {
   font-family: var(--font-sans);
 }
 
-/* ─── Glass material ────────────────────────────────────────────────────────
+/* ─── Atmospheric background glow ───────────────────────────────────────────
+   Fixed radial gradients behind all content. Matches the palette's energy:
+   pink top-left (brand), cyan top-right (cool), purple bottom (depth).
+   ─────────────────────────────────────────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(60% 50% at 12% 0%,   rgba(247, 37,  133, 0.10), transparent 60%),
+    radial-gradient(50% 40% at 100% 30%, rgba(76,  201, 240, 0.08), transparent 60%),
+    radial-gradient(40% 30% at 50% 100%, rgba(114, 9,   183, 0.12), transparent 60%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ─── Glass material ─────────────────────────────────────────────────────────
    Two strengths. Hairline border, top shimmer, soft shadow.
    ─────────────────────────────────────────────────────────────────────────── */
 .glass {
   position: relative;
   background: var(--glass-fill);
-  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-card);
   box-shadow:
@@ -103,7 +218,7 @@ body {
   position: absolute;
   top: 0; left: 12%; right: 12%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
   pointer-events: none;
 }
 
@@ -113,16 +228,16 @@ body {
 }
 
 /* ─── Type utilities ─────────────────────────────────────────────────────── */
-.t-display-xl { font-family: var(--font-display); font-size: 56px; font-weight: 700; letter-spacing: -0.04em; line-height: 0.95; color: var(--text-hi); }
-.t-display-l  { font-family: var(--font-display); font-size: 44px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.0;  color: var(--text-hi); }
-.t-display-m  { font-family: var(--font-display); font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1;  color: var(--text-hi); }
-.t-display-s  { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.15; color: var(--text-hi); }
+.t-display-xl { font-family: var(--font-display); font-size: 56px; font-weight: 700; letter-spacing: -0.04em; line-height: 0.95; color: var(--text); }
+.t-display-l  { font-family: var(--font-display); font-size: 44px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.0;  color: var(--text); }
+.t-display-m  { font-family: var(--font-display); font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1;  color: var(--text); }
+.t-display-s  { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.15; color: var(--text); }
 .t-display-em { font-style: italic; font-weight: 500; color: var(--accent); }
 
-.t-body-l  { font-family: var(--font-sans); font-size: 17px; font-weight: 400; line-height: 1.5;  color: var(--text-hi); }
-.t-body    { font-family: var(--font-sans); font-size: 14px; font-weight: 400; line-height: 1.55; color: var(--text-mid); }
-.t-caption { font-family: var(--font-sans); font-size: 12px; font-weight: 500; line-height: 1.4;  color: var(--text-low); }
-.t-label   { font-family: var(--font-sans); font-size: 10px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-low); }
+.t-body-l  { font-family: var(--font-sans); font-size: 17px; font-weight: 400; line-height: 1.5;  color: var(--text); }
+.t-body    { font-family: var(--font-sans); font-size: 14px; font-weight: 400; line-height: 1.55; color: var(--text-muted); }
+.t-caption { font-family: var(--font-sans); font-size: 12px; font-weight: 500; line-height: 1.4;  color: var(--text-dim); }
+.t-label   { font-family: var(--font-sans); font-size: 10px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); }
 
 .mono   { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .t-mono { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.02em; color: var(--accent); font-variant-numeric: tabular-nums; }
@@ -158,8 +273,8 @@ body {
 
 /* ─── Scrollbar ─────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar        { width: 4px; height: 4px; }
-::-webkit-scrollbar-track  { background: var(--bg-1); }
-::-webkit-scrollbar-thumb  { background: var(--glass-border-strong); border-radius: 10px; }
+::-webkit-scrollbar-track  { background: var(--surface); }
+::-webkit-scrollbar-thumb  { background: var(--border); border-radius: 10px; }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }

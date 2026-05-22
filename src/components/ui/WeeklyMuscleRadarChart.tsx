@@ -34,22 +34,22 @@ export function WeeklyMuscleRadarChart({ data }: { data: MuscleGroupData[] }) {
         <Tooltip
           contentStyle={{
             backgroundColor: '#050505',
-            border: '1px solid rgba(243,192,138,0.25)',
+            border: '1px solid rgba(247,37,133,0.25)',
             borderRadius: 12,
             padding: '8px 12px',
           }}
-          itemStyle={{ color: '#f3c08a', fontFamily: 'monospace', fontSize: 13, fontWeight: 600 }}
+          itemStyle={{ color: '#F72585', fontFamily: 'monospace', fontSize: 13, fontWeight: 600 }}
           labelStyle={{ color: 'rgba(255,255,255,0.38)', fontSize: 9 }}
           formatter={(value: any) => [`${Number(value)} sets`, '']}
         />
         <Radar
           name="Muscle Sets"
           dataKey="A"
-          stroke="#f3c08a"
+          stroke="#F72585"
           strokeWidth={1.5}
-          fill="#f3c08a"
+          fill="#F72585"
           fillOpacity={0.12}
-          style={{ filter: 'drop-shadow(0 0 6px rgba(243,192,138,0.55))' }}
+          style={{ filter: 'drop-shadow(0 0 6px rgba(247,37,133,0.55))' }}
         />
       </RadarChart>
     </ResponsiveContainer>

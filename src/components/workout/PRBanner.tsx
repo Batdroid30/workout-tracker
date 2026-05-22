@@ -12,9 +12,9 @@ interface PRBannerProps {
 }
 
 const PR_CONFIG: Record<PRType, { label: string; color: string; bg: string }> = {
-  best_weight: { label: 'Weight PR', color: 'text-yellow-300', bg: 'bg-yellow-400/15' },
-  best_1rm:    { label: 'Est. 1RM',  color: 'text-sky-300',    bg: 'bg-sky-400/15'    },
-  best_volume: { label: 'Volume',    color: 'text-violet-300', bg: 'bg-violet-400/15' },
+  best_weight: { label: 'Weight PR', color: 'text-spectrum-1000', bg: 'bg-spectrum-1000/15' },
+  best_1rm:    { label: 'Est. 1RM',  color: 'text-spectrum-100',  bg: 'bg-spectrum-100/15'  },
+  best_volume: { label: 'Volume',    color: 'text-spectrum-900',  bg: 'bg-spectrum-900/15'  },
 }
 
 function formatValue(prType: PRType, value: number): string {
@@ -60,10 +60,10 @@ export function PRBanner({ prs, exerciseName, onDismiss, duration = 5000 }: PRBa
       <div
         className="rounded-[var(--radius-card)] shadow-2xl shadow-black/60 overflow-hidden"
         style={{
-          background: 'rgba(10,13,24,0.97)',
+          background: 'rgba(7,6,26,0.97)',
           backdropFilter: 'blur(28px)',
           border: '1px solid var(--accent-line)',
-          boxShadow: '0 0 40px rgba(243,192,138,0.12)',
+          boxShadow: '0 0 40px rgba(247,37,133,0.18)',
         }}
       >
         {/* Header */}

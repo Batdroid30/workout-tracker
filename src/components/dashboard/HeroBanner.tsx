@@ -32,7 +32,7 @@ export function HeroBanner({
       className="glass p-5 mb-5 fade-up"
       style={{
         borderColor: 'var(--accent-line)',
-        background: 'linear-gradient(145deg, rgba(243,192,138,0.07) 0%, rgba(243,192,138,0.02) 100%)',
+        background: 'linear-gradient(145deg, rgba(247,37,133,0.07) 0%, rgba(247,37,133,0.02) 100%)',
       }}
     >
       {/* Header */}

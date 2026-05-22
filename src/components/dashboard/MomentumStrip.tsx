@@ -73,7 +73,7 @@ export function MomentumStrip({ prs, streak, badges, totalVolume }: MomentumStri
       className="glass p-4"
       style={hasStreak ? {
         borderColor: 'var(--accent-line)',
-        background:  'linear-gradient(150deg, rgba(243,192,138,0.06) 0%, rgba(243,192,138,0.01) 50%, transparent 100%)',
+        background:  'linear-gradient(150deg, rgba(247,37,133,0.06) 0%, rgba(247,37,133,0.01) 50%, transparent 100%)',
       } : undefined}
     >
       {/* ── Header ── */}

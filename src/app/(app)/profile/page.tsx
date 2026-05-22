@@ -134,7 +134,7 @@ async function StatsTab({ userId }: { userId: string }) {
           </div>
           {chartData.length > 1 ? (
             <div className="h-[180px] w-full">
-              <ProgressionLineChart data={chartData} color="#f3c08a" formatType="volume" />
+              <ProgressionLineChart data={chartData} formatType="volume" />
             </div>
           ) : (
             <p className="t-caption text-center py-8">Log more workouts to see your trend.</p>

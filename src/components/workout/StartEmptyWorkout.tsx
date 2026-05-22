@@ -44,9 +44,9 @@ export function StartEmptyWorkout({ trainingPhase = null }: StartEmptyWorkoutPro
         onClick={handleOpenSheet}
         className="w-full group relative overflow-hidden rounded-[var(--radius-card)] p-5 flex items-center gap-4 text-left active:scale-[0.98] transition-transform"
         style={{
-          background: 'linear-gradient(135deg, rgba(243,192,138,0.18) 0%, rgba(243,192,138,0.06) 100%)',
+          background: 'linear-gradient(135deg, rgba(247,37,133,0.14) 0%, rgba(247,37,133,0.05) 100%)',
           border: '1px solid var(--accent-line)',
-          boxShadow: '0 0 40px rgba(243,192,138,0.08)',
+          boxShadow: '0 0 40px rgba(247,37,133,0.10)',
         }}
       >
         {/* Ambient glow */}

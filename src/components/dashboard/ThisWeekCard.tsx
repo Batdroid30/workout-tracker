@@ -19,9 +19,9 @@ interface ThisWeekCardProps {
 }
 
 const PRIORITY_BAR_STYLE: Record<MissionPriority, React.CSSProperties> = {
-  critical: { background: 'var(--rose)',   boxShadow: '0 0 6px rgba(230,163,154,0.6)' },
-  high:     { background: '#fb923c',       boxShadow: '0 0 6px rgba(251,146,60,0.5)'  },
-  normal:   { background: 'rgba(243,192,138,0.35)' },
+  critical: { background: 'var(--critical)', boxShadow: '0 0 6px rgba(114,9,183,0.6)'  },
+  high:     { background: 'var(--warning)',  boxShadow: '0 0 6px rgba(181,23,158,0.5)' },
+  normal:   { background: 'rgba(247,37,133,0.25)' },
 }
 
 export function ThisWeekCard({

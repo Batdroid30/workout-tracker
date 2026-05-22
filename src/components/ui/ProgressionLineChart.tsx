@@ -29,7 +29,7 @@ function fmt(value: number, formatType: string): string {
 
 export function ProgressionLineChart({
   data,
-  color = '#f3c08a',
+  color = '#F72585',
   formatType = 'number',
 }: ProgressionLineChartProps) {
   if (!data || data.length === 0) {
@@ -46,8 +46,9 @@ export function ProgressionLineChart({
   const gradId   = `lg-${colorKey}`
 
   const glowColor =
-    color === '#f3c08a' ? 'rgba(243,192,138,0.75)' :
-    color === '#7fd9c8' ? 'rgba(127,217,200,0.75)' :
+    color === '#F72585' ? 'rgba(247,37,133,0.75)'  :
+    color === '#4CC9F0' ? 'rgba(76,201,240,0.75)'  :
+    color === '#B5179E' ? 'rgba(181,23,158,0.75)'  :
     `${color}bb`
 
   return (

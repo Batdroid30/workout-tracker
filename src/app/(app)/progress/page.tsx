@@ -114,7 +114,7 @@ export default async function ProgressPage() {
           <div className="glass p-4">
             {chartData.length > 1 ? (
               <div className="h-[200px] w-full">
-                <ProgressionLineChart data={chartData} color="#f3c08a" formatType="volume" />
+                <ProgressionLineChart data={chartData} formatType="volume" />
               </div>
             ) : (
               <div className="h-[120px] flex items-center justify-center">

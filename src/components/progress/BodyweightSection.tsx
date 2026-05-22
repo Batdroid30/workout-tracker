@@ -53,7 +53,7 @@ export function BodyweightSection({
         {/* ── Trend chart ────────────────────────────────────────────── */}
         {chartData.length > 1 ? (
           <div className="h-[160px] w-full">
-            <ProgressionLineChart data={chartData} color="#f3c08a" formatType="number" />
+            <ProgressionLineChart data={chartData} formatType="number" />
           </div>
         ) : (
           <div className="h-[60px] flex items-center justify-center">

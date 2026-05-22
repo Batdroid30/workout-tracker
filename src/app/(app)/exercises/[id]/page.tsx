@@ -127,7 +127,7 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
             <h2 className="t-label mb-3">Est. 1RM Progression</h2>
             <div className="glass p-4">
               <div className="h-[180px] w-full">
-                <ProgressionLineChart data={chartData1RM} color="#f3c08a" formatType="number" />
+                <ProgressionLineChart data={chartData1RM} formatType="number" />
               </div>
             </div>
           </section>

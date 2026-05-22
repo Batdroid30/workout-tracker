@@ -139,7 +139,7 @@ export function RoutineCard({ routine }: RoutineCardProps) {
           'w-full h-10 rounded-[var(--radius-inner)] flex items-center justify-center gap-2',
           'text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-[0.97]',
           'bg-[var(--accent)] text-[var(--accent-on)] hover:opacity-90',
-          'shadow-[0_4px_20px_rgba(243,192,138,0.25)]',
+          'shadow-[0_4px_20px_rgba(247,37,133,0.30)]',
         )}
       >
         <Play className="w-3.5 h-3.5 fill-current" /> Start Routine
