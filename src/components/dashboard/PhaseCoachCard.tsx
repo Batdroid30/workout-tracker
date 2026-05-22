@@ -34,12 +34,12 @@ const ARC_LENGTH = RING_CIRCUMFERENCE * ARC_FRACTION  // ≈ 122.522
 const ARC_ROTATION = 135  // degrees — rotates circle so gap is at bottom
 
 const STATUS_COLOR: Record<VolumeStatus, string> = {
-  below_mv:    'var(--rose)',
-  over_mrv:    'var(--rose)',
-  maintenance: 'rgba(255,255,255,0.20)',
+  below_mv:    '#ef4444',
+  over_mrv:    '#ef4444',
+  maintenance: '#f97316',
   sub_optimal: '#facc15',
-  high:        'var(--accent)',
-  optimal:     'var(--accent)',
+  high:        '#f97316',
+  optimal:     '#10b981',
 }
 
 // ── Pure tick geometry helper ──────────────────────────────────────────────────
@@ -65,25 +65,33 @@ function GlowDefs() {
   return (
     <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
       <defs>
-        {/* Accent glow — teal/gold for optimal/high */}
-        <filter id="pc-glow-accent" x="-60%" y="-60%" width="220%" height="220%">
+        {/* Green glow — for optimal */}
+        <filter id="pc-glow-green" x="-60%" y="-60%" width="220%" height="220%">
           <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
           <feMerge>
             <feMergeNode in="blur"/>
             <feMergeNode in="SourceGraphic"/>
           </feMerge>
         </filter>
-        {/* Rose glow — red for below_mv / over_mrv */}
-        <filter id="pc-glow-rose" x="-60%" y="-60%" width="220%" height="220%">
+        {/* Orange glow — for maintenance / high */}
+        <filter id="pc-glow-orange" x="-60%" y="-60%" width="220%" height="220%">
           <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
           <feMerge>
             <feMergeNode in="blur"/>
             <feMergeNode in="SourceGraphic"/>
           </feMerge>
         </filter>
-        {/* Yellow glow — amber for sub_optimal */}
+        {/* Yellow glow — for sub_optimal */}
         <filter id="pc-glow-yellow" x="-60%" y="-60%" width="220%" height="220%">
           <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+        {/* Red glow — for below_mv / over_mrv */}
+        <filter id="pc-glow-red" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
           <feMerge>
             <feMergeNode in="blur"/>
             <feMergeNode in="SourceGraphic"/>
@@ -108,9 +116,10 @@ function MuscleRingCell({ point }: { point: MuscleVolumeLandmarkPoint }) {
   const mavTick     = ringTickCoords(mavFraction)
 
   const filterId =
-    status === 'optimal' || status === 'high'        ? 'pc-glow-accent'
+    status === 'optimal'                             ? 'pc-glow-green'
+    : status === 'high' || status === 'maintenance'  ? 'pc-glow-orange'
     : status === 'sub_optimal'                       ? 'pc-glow-yellow'
-    : status === 'below_mv' || status === 'over_mrv' ? 'pc-glow-rose'
+    : status === 'below_mv' || status === 'over_mrv' ? 'pc-glow-red'
     : null
 
   // Gap = circumference - fill so SVG doesn't repeat the dash pattern unexpectedly

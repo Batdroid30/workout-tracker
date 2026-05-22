@@ -33,7 +33,7 @@ const VOLUME_STATUS_STYLES: Record<VolumeStatus, { dot: string; text: string; la
   below_mv:    { dot: 'bg-red-400',              text: 'text-red-400',              label: 'Below MV'    },
   maintenance: { dot: 'bg-orange-400',           text: 'text-orange-400',           label: 'Maintaining' },
   sub_optimal: { dot: 'bg-yellow-400',           text: 'text-yellow-400',           label: 'Sub-optimal' },
-  optimal:     { dot: 'bg-[var(--teal)]',        text: 'text-[var(--teal)]',        label: 'Optimal'     },
+  optimal:     { dot: 'bg-emerald-500',          text: 'text-emerald-400',          label: 'Optimal'     },
   high:        { dot: 'bg-orange-400',           text: 'text-orange-400',           label: 'High'        },
   over_mrv:    { dot: 'bg-red-500',              text: 'text-red-500',              label: 'Over MRV'    },
 }
@@ -257,7 +257,7 @@ function VolumeLegend() {
         <span className="w-2 h-2 rounded-sm bg-yellow-400/40" /> MEV → MAV (growing)
       </span>
       <span className="flex items-center gap-1">
-        <span className="w-2 h-2 rounded-sm" style={{ background: 'rgba(127,217,200,0.40)' }} /> MAV (optimal)
+        <span className="w-2 h-2 rounded-sm" style={{ background: 'rgba(16,185,129,0.40)' }} /> MAV (optimal)
       </span>
       <span className="flex items-center gap-1">
         <span className="w-2 h-2 rounded-sm bg-orange-400/40" /> MAV → MRV (high)
@@ -325,7 +325,7 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
         <div className="absolute top-0 h-full bg-yellow-400/20"
              style={{ left: `${mevPct}%`, width: `${Math.max(0, mavMinPct - mevPct)}%` }} />
         <div className="absolute top-0 h-full"
-             style={{ left: `${mavMinPct}%`, width: `${Math.max(0, mavMaxPct - mavMinPct)}%`, background: 'rgba(127,217,200,0.25)' }} />
+             style={{ left: `${mavMinPct}%`, width: `${Math.max(0, mavMaxPct - mavMinPct)}%`, background: 'rgba(16,185,129,0.25)' }} />
         <div className="absolute top-0 h-full bg-orange-400/20"
              style={{ left: `${mavMaxPct}%`, width: `${Math.max(0, mrvPct - mavMaxPct)}%` }} />
         <div className="absolute top-0 h-full bg-red-500/30 rounded-r-full"
