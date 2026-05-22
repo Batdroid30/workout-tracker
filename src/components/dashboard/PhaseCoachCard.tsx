@@ -1,11 +1,14 @@
-import { Compass, TrendingUp, Info, TrendingDown, Minus } from 'lucide-react'
+import { Compass, TrendingUp, Info, TrendingDown, Minus, Flame, Award } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { DELOAD_THRESHOLDS } from '@/lib/workout-intelligence'
 import type { VolumeStatus, Mesocycle } from '@/lib/phase-coach'
 import type { StrengthIndexSummary, MuscleVolumeLandmarkPoint } from '@/lib/data/phase-coach'
 import type { ImprovedExercise } from '@/lib/data/insights'
-import type { TrainingPhase, ExperienceLevel } from '@/types/database'
+import type { TrainingPhase, ExperienceLevel, Profile } from '@/types/database'
+import type { BodyweightPoint } from '@/lib/data/bodyweight'
 import { MesocycleTimeline } from '@/components/phase-coach/MesocycleTimeline'
+import { calculateNutritionTargets } from '@/lib/algorithms'
+import Link from 'next/link'
 
 interface PhaseCoachCardProps {
   trainingPhase:   TrainingPhase   | null
@@ -15,6 +18,9 @@ interface PhaseCoachCardProps {
   volumeLandmarks: MuscleVolumeLandmarkPoint[]
   mostImproved:    ImprovedExercise[]
   mesocycle:       Mesocycle       | null
+  profile:         Profile         | null
+  bwHistory:       BodyweightPoint[]
+  weeklyGoal:      number
 }
 
 // Priority for sorting — problems first
@@ -58,10 +64,6 @@ function ringTickCoords(fraction: number) {
 // ── Shared SVG glow filters ────────────────────────────────────────────────────
 
 function GlowDefs() {
-  // Filter IDs are unique per component tree instance. The dashboard renders
-  // PhaseCoachCard once so collisions are not a risk in production.
-  // feMerge: blur node first (behind), SourceGraphic node second (on top) —
-  // this is the correct Porter-Duff order for a neon glow effect.
   return (
     <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
       <defs>
@@ -122,7 +124,6 @@ function MuscleRingCell({ point }: { point: MuscleVolumeLandmarkPoint }) {
     : status === 'below_mv' || status === 'over_mrv' ? 'pc-glow-red'
     : null
 
-  // Gap = circumference - fill so SVG doesn't repeat the dash pattern unexpectedly
   const dashArray = `${fillLen.toFixed(2)} ${(RING_CIRCUMFERENCE - fillLen).toFixed(2)}`
   const trackDash = `${ARC_LENGTH.toFixed(2)} ${(RING_CIRCUMFERENCE - ARC_LENGTH).toFixed(2)}`
   const label = point.muscleGroup.charAt(0).toUpperCase() + point.muscleGroup.slice(1)
@@ -150,60 +151,56 @@ function MuscleRingCell({ point }: { point: MuscleVolumeLandmarkPoint }) {
             strokeDasharray={dashArray}
             transform={`rotate(${ARC_ROTATION} ${RING_CX} ${RING_CY})`}
             strokeLinecap="round"
-            filter={filterId ? `url(#${filterId})` : undefined}
+            style={filterId ? { filter: `url(#${filterId})` } : undefined}
           />
         )}
-        {/* MEV tick — dimmed when no sets logged so it reads as a target, not an achievement */}
+        {/* MEV Tick */}
         <line
-          x1={mevTick.x1.toFixed(2)} y1={mevTick.y1.toFixed(2)}
-          x2={mevTick.x2.toFixed(2)} y2={mevTick.y2.toFixed(2)}
-          stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeLinecap="round"
-          opacity={setCount === 0 ? 0.4 : 1}
+          x1={mevTick.x1} y1={mevTick.y1}
+          x2={mevTick.x2} y2={mevTick.y2}
+          stroke="rgba(255,255,255,0.25)"
+          strokeWidth={1.5}
         />
-        {/* MAV tick */}
+        {/* MAV End Tick */}
         <line
-          x1={mavTick.x1.toFixed(2)} y1={mavTick.y1.toFixed(2)}
-          x2={mavTick.x2.toFixed(2)} y2={mavTick.y2.toFixed(2)}
-          stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" strokeLinecap="round"
-          opacity={setCount === 0 ? 0.4 : 1}
+          x1={mavTick.x1} y1={mavTick.y1}
+          x2={mavTick.x2} y2={mavTick.y2}
+          stroke="rgba(255,255,255,0.45)"
+          strokeWidth={1.5}
         />
-        {/* Set count */}
+        {/* Value Label */}
         <text
-          x={RING_CX} y={RING_CY + 1}
-          textAnchor="middle" dominantBaseline="middle"
-          fontSize="13" fontWeight="600" fontFamily="monospace"
-          fill={setCount > 0 ? color : 'rgba(255,255,255,0.2)'}
+          x={RING_CX} y={RING_CY + 4}
+          textAnchor="middle"
+          className="mono font-bold tabular-nums"
+          fill="var(--text-hi)"
+          fontSize="15px"
         >
           {setCount}
         </text>
       </svg>
-      {/* Muscle name */}
-      <span
-        className="text-[9px] text-center leading-tight max-w-[60px] truncate"
-        style={{ color: setCount > 0 ? 'var(--text-mid)' : 'var(--text-faint)' }}
-      >
+      <span className="text-[9px] font-semibold text-[var(--text-mid)] truncate max-w-[56px]" title={label}>
         {label}
       </span>
     </div>
   )
 }
 
-// ── Volume ring grid ───────────────────────────────────────────────────────────
-
 function VolumeRingGrid({ points }: { points: MuscleVolumeLandmarkPoint[] }) {
+  const visible = points
+  if (visible.length === 0) return null
+
   return (
     <div>
       <GlowDefs />
-      <div className="grid grid-cols-4 gap-x-1 gap-y-3">
-        {points.map(point => (
-          <MuscleRingCell key={point.muscleGroup} point={point} />
+      <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+        {visible.map(p => (
+          <MuscleRingCell key={p.muscleGroup} point={p} />
         ))}
       </div>
     </div>
   )
 }
-
-// ── Main card ─────────────────────────────────────────────────────────────────
 
 export function PhaseCoachCard({
   trainingPhase,
@@ -213,6 +210,9 @@ export function PhaseCoachCard({
   volumeLandmarks,
   mostImproved,
   mesocycle,
+  profile,
+  bwHistory,
+  weeklyGoal,
 }: PhaseCoachCardProps) {
   const phaseLabel  = trainingPhase ? trainingPhase.charAt(0).toUpperCase() + trainingPhase.slice(1) : null
   const cycleLength = (trainingPhase && experienceLevel)
@@ -225,107 +225,195 @@ export function PhaseCoachCard({
 
   const topImproved = mostImproved[0] ?? null
 
-  return (
-    <div className="glass p-4 space-y-5">
+  // ── Calculate Nutrition Targets ──
+  const latestWeight = bwHistory[0]?.weight_kg ?? null
+  const height = profile?.height_cm
+  const age = profile?.age_years
+  const sex = profile?.sex
+  const hasNutritionStats = !!(height && age && sex && latestWeight !== null)
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Compass className="w-3.5 h-3.5 text-[var(--accent)]" />
-          <h3 className="t-label">Phase Coach</h3>
-        </div>
-        {phaseLabel && (
-          <div className="flex items-center gap-1.5">
-            <span className="t-label text-[var(--accent)]">{phaseLabel}</span>
-            {weeksInPhase && cycleLength && (
-              <span className="text-[10px] text-[var(--text-faint)] mono tabular-nums">
-                wk {Math.min(weeksInPhase, cycleLength)}/{cycleLength}
+  const targets = (hasNutritionStats && height && age && sex && latestWeight !== null)
+    ? calculateNutritionTargets({
+        weightKg:           latestWeight,
+        heightCm:           height,
+        ageYears:           age,
+        sex:                sex as 'male' | 'female',
+        weeklyGoalSessions: weeklyGoal,
+        trainingPhase:      profile?.training_phase ?? null,
+      })
+    : null
+
+  const nutPhaseLabel =
+    profile?.training_phase === 'bulking'  ? 'Bulk'     :
+    profile?.training_phase === 'cutting'  ? 'Cut'      : 'Maingain'
+
+  const surplusLabel = targets
+    ? (targets.surplusDeficit > 0 ? `+${targets.surplusDeficit} surplus` :
+       targets.surplusDeficit < 0 ? `${targets.surplusDeficit} deficit`  : 'maintenance')
+    : ''
+
+  return (
+    <div className="space-y-4">
+      {/* ── Vertical Stacking ── */}
+      <div className="flex flex-col gap-4">
+        
+        {/* CARD 1: MESOCYCLE TIMELINE */}
+        <div className="glass p-4 flex flex-col justify-between min-h-[150px] w-full">
+          <div className="flex items-center justify-between mb-2">
+            <span className="t-label">Mesocycle Progress</span>
+            {phaseLabel && (
+              <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider bg-[var(--accent-soft)] px-2 py-0.5 rounded-md border border-[var(--accent-line)]">
+                {phaseLabel}
               </span>
             )}
           </div>
-        )}
-      </div>
-
-      {/* ── Mesocycle timeline ──────────────────────────────────────────────── */}
-      {mesocycle && <MesocycleTimeline mesocycle={mesocycle} compact />}
-
-      {/* ── Strength index ──────────────────────────────────────────────────── */}
-      <StrengthIndexSection summary={strengthIndex} />
-
-      {/* ── Volume landmarks ────────────────────────────────────────────────── */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <p className="t-label">Volume · This Week</p>
-          <div className="flex items-center gap-3 text-[9px] text-[var(--text-faint)] uppercase tracking-widest">
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-px h-3 bg-white/25 rounded-full" />
-              MEV
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-px h-3 bg-white/45 rounded-full" />
-              MAV
-            </span>
+          <div className="my-auto">
+            {mesocycle ? (
+              <MesocycleTimeline mesocycle={mesocycle} compact />
+            ) : (
+              <p className="text-xs text-[var(--text-low)] leading-relaxed">
+                No active mesocycle. Complete your training profile setup to initialize tracking.
+              </p>
+            )}
+          </div>
+          <div className="text-[8px] text-[var(--text-faint)] flex justify-between mt-2 pt-1 border-t border-white/[0.02]">
+            <span>Cycle limit: {cycleLength ?? '?'} wks</span>
+            <span>Week {weeksInPhase ?? '?'} active</span>
           </div>
         </div>
-        <VolumeRingGrid points={sortedLandmarks} />
+
+        {/* CARD 2: STRENGTH INDEX */}
+        <div className="glass p-4 flex flex-col justify-between min-h-[150px] w-full">
+          <StrengthIndexSection summary={strengthIndex} />
+        </div>
+
+        {/* CARD 3: VOLUME LANDMARKS */}
+        <div className="glass p-4 flex flex-col justify-between min-h-[150px] w-full">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="t-label">Volume Rings</span>
+              <div className="flex items-center gap-2 text-[8px] text-[var(--text-faint)] uppercase tracking-widest">
+                <span>MEV | MAV</span>
+              </div>
+            </div>
+            <VolumeRingGrid points={sortedLandmarks} />
+          </div>
+          <div className="text-[8px] text-[var(--text-faint)] mt-2 pt-1 border-t border-white/[0.02] leading-relaxed flex items-center justify-between">
+            <span>Gauging set counts vs targets</span>
+            <span className="text-[var(--accent)] font-semibold">All groups</span>
+          </div>
+        </div>
+
+        {/* CARD 4: NUTRITION TARGETS */}
+        <div className="glass p-4 flex flex-col justify-between min-h-[150px] w-full">
+          <div className="flex items-center justify-between mb-2">
+            <span className="t-label">Nutrition Targets</span>
+            <Flame className="w-3.5 h-3.5" style={{ color: 'var(--rose)' }} />
+          </div>
+          
+          {!hasNutritionStats ? (
+            <div className="my-auto">
+              <p className="text-[11px] text-[var(--text-low)] leading-relaxed">
+                Add height, age, and sex in{' '}
+                <Link href="/profile" className="underline font-semibold" style={{ color: 'var(--accent)' }}>
+                  your profile
+                </Link>{' '}
+                to calculate custom calorie & protein targets.
+              </p>
+            </div>
+          ) : !targets ? (
+            <div className="my-auto">
+              <p className="text-[11px] text-[var(--text-low)] leading-relaxed">
+                Unable to estimate targets. Check that your height, age, and weight are correct.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col justify-between h-full pt-1">
+              <div>
+                <p className="text-[9px] uppercase tracking-wider text-[var(--text-faint)] mb-2">
+                  {nutPhaseLabel} Phase · {latestWeight}kg
+                </p>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div className="p-1.5 rounded-lg bg-white/[0.02] border border-white/[0.04] text-center">
+                    <p className="mono text-sm font-bold text-[var(--text-hi)]">
+                      {targets.targetCalories.toLocaleString()}
+                    </p>
+                    <p className="text-[8px] text-[var(--text-faint)] uppercase">kcal/day</p>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-white/[0.02] border border-white/[0.04] text-center">
+                    <p className="mono text-sm font-bold text-[var(--text-hi)]">
+                      {targets.proteinGrams}g
+                    </p>
+                    <p className="text-[8px] text-[var(--text-faint)] uppercase">protein/day</p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-[8.5px] text-[var(--text-faint)] leading-normal pt-1 border-t border-white/[0.02]">
+                {surplusLabel !== 'maintenance'
+                  ? `${targets.targetCalories.toLocaleString()} kcal (${surplusLabel}) to support goals.`
+                  : `${targets.targetCalories.toLocaleString()} kcal at maintenance TDEE.`}
+              </p>
+            </div>
+          )}
+        </div>
+
       </div>
 
-      {/* ── Most improved ───────────────────────────────────────────────────── */}
-      {topImproved && (
-        <div
-          className="flex items-center justify-between gap-3 pt-4"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
-        >
-          <div className="min-w-0">
-            <p className="t-label mb-1">Most Improved</p>
-            <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-hi)' }}>
-              {topImproved.exerciseName}
+      {/* ── Most Improved & Disclaimer ── */}
+      {(topImproved || true) && (
+        <div className="glass p-4 space-y-4">
+          {topImproved && (
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="t-label mb-1">Most Improved Lift</p>
+                <p className="text-[13px] font-semibold truncate text-[var(--text-hi)]">
+                  {topImproved.exerciseName}
+                </p>
+                <p className="mono text-[10px] mt-0.5 tabular-nums text-[var(--text-low)]">
+                  {topImproved.previousBest.toFixed(1)} → {topImproved.recentBest.toFixed(1)} kg e1RM
+                </p>
+              </div>
+              <div
+                className="flex items-center gap-1.5 shrink-0 px-3.5 py-2.5 rounded-xl bg-[var(--accent-soft)] border border-[var(--accent-line)] shadow-[0_0_16px_var(--accent-glow)]"
+              >
+                <TrendingUp className="w-3.5 h-3.5 text-[var(--accent)]" />
+                <span
+                  className="mono text-lg font-bold tabular-nums text-[var(--accent)]"
+                  style={{ textShadow: '0 0 12px var(--accent-glow)' }}
+                >
+                  +{topImproved.improvementPct}%
+                </span>
+              </div>
+            </div>
+          )}
+          <div className="flex items-start gap-2 pt-3 border-t border-white/[0.04]">
+            <Info className="w-3 h-3 text-[var(--text-faint)] shrink-0 mt-0.5" />
+            <p className="text-[9.5px] text-[var(--text-faint)] leading-normal">
+              Strength gain is a reliable proxy for muscle gain. Track bodyweight logs and photos regularly to monitor progression.
             </p>
-            <p className="mono text-[10px] mt-0.5 tabular-nums" style={{ color: 'var(--text-low)' }}>
-              {topImproved.previousBest.toFixed(1)} → {topImproved.recentBest.toFixed(1)} kg e1RM
-            </p>
-          </div>
-          <div
-            className="flex items-center gap-1.5 shrink-0 px-3.5 py-2.5 rounded-xl"
-            style={{
-              background: 'var(--accent-soft)',
-              border:     '1px solid var(--accent-line)',
-              boxShadow:  '0 0 16px var(--accent-glow)',
-            }}
-          >
-            <TrendingUp className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
-            <span
-              className="mono text-lg font-bold tabular-nums"
-              style={{ color: 'var(--accent)', textShadow: '0 0 12px var(--accent-glow)' }}
-            >
-              +{topImproved.improvementPct}%
-            </span>
           </div>
         </div>
       )}
-
-      {/* ── Disclaimer ──────────────────────────────────────────────────────── */}
-      <div className="flex items-start gap-2 pt-1">
-        <Info className="w-3 h-3 text-[var(--text-faint)] shrink-0 mt-0.5" />
-        <p className="text-[10px] text-[var(--text-faint)] leading-relaxed">
-          Strength gain is a proxy for muscle gain. Also track bodyweight and photos.
-        </p>
-      </div>
     </div>
   )
 }
 
-// ── Strength Index ─────────────────────────────────────────────────────────────
+// ── Strength Index Section ──
 
 function StrengthIndexSection({ summary }: { summary: StrengthIndexSummary }) {
   if (summary.history.length < 3) {
     return (
-      <div className="rounded-2xl p-3.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <p className="t-label mb-1">Strength Index</p>
-        <p className="text-[11px] text-[var(--text-low)] leading-relaxed">
-          {summary.liftCount < 3
-            ? 'Train 3+ compound lifts to unlock your Strength Index.'
-            : 'Log a few more weeks to start tracking your Index.'}
+      <div className="flex flex-col justify-between h-full">
+        <div>
+          <p className="t-label mb-1.5">Strength Index</p>
+          <p className="text-[10.5px] text-[var(--text-low)] leading-relaxed">
+            {summary.liftCount < 3
+              ? 'Train 3+ compound lifts to unlock your Strength Index tracker.'
+              : 'Log a few more weeks of training to start calculating your index.'}
+          </p>
+        </div>
+        <p className="text-[8px] text-[var(--text-faint)] mt-2">
+          Lifts tracked: {summary.liftCount}
         </p>
       </div>
     )
@@ -346,43 +434,35 @@ function StrengthIndexSection({ summary }: { summary: StrengthIndexSummary }) {
   const TrendIcon = pctPerWeek === null ? Minus : isPositive ? TrendingUp : TrendingDown
 
   return (
-    <div
-      className="rounded-2xl p-4"
-      style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
-      }}
-    >
-      <div className="flex items-start justify-between mb-1">
+    <div className="flex flex-col justify-between h-full w-full">
+      <div className="flex items-start justify-between">
         <div>
           <p className="t-label">Strength Index</p>
-          <p className="text-[9px] mt-0.5" style={{ color: 'var(--text-faint)' }}>
-            {summary.liftCount} lift{summary.liftCount === 1 ? '' : 's'} · from phase start
+          <p className="text-[8px] mt-0.5 text-[var(--text-faint)]">
+            {summary.liftCount} lifts · from phase start
           </p>
         </div>
         <div className="text-right">
           <p
-            className="mono font-bold tabular-nums leading-none tracking-tighter"
+            className="mono font-bold tabular-nums leading-none tracking-tighter text-xl"
             style={{
-              fontSize:   '2rem',
               color:      trendColor,
-              textShadow: `0 0 32px ${trendColor}80`,
+              textShadow: `0 0 24px ${trendColor}60`,
             }}
           >
-            {totalPct >= 0 ? '+' : ''}{totalPct.toFixed(1)}
-            <span className="text-base font-normal ml-0.5" style={{ color: 'var(--text-faint)', textShadow: 'none' }}>%</span>
+            {totalPct >= 0 ? '+' : ''}{totalPct.toFixed(1)}%
           </p>
           {pctPerWeek !== null && (
-            <div className="flex items-center justify-end gap-1 mt-1">
-              <TrendIcon className="w-3 h-3" style={{ color: trendColor }} />
-              <span className="mono text-[10px] tabular-nums" style={{ color: trendColor }}>
+            <div className="flex items-center justify-end gap-0.5 mt-0.5">
+              <TrendIcon className="w-2.5 h-2.5" style={{ color: trendColor }} />
+              <span className="mono text-[8.5px] tabular-nums" style={{ color: trendColor }}>
                 {isPositive ? '+' : ''}{pctPerWeek.toFixed(2)}%/wk
               </span>
             </div>
           )}
         </div>
       </div>
-      <div className="h-14 mt-2">
+      <div className="h-12 mt-2">
         <Sparkline points={summary.history.map(p => p.index)} color={trendColor} />
       </div>
     </div>
@@ -402,7 +482,6 @@ function Sparkline({ points, color }: { points: number[]; color: string }) {
 
   const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ')
 
-  // Area fill path
   const area = [
     `M ${pts[0].x.toFixed(2)} 100`,
     ...pts.map(p => `L ${p.x.toFixed(2)} ${p.y.toFixed(2)}`),
@@ -411,7 +490,7 @@ function Sparkline({ points, color }: { points: number[]; color: string }) {
   ].join(' ')
 
   return (
-    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full">
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible">
       <defs>
         <linearGradient id="pc-sparkGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.15" />

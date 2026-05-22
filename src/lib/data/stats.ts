@@ -168,7 +168,10 @@ export const getWeeklyMuscleGroupStats = cache(async (userId: string) => {
     .eq('user_id', userId)
     .gte('started_at', sevenDaysAgo.toISOString())
 
-  const muscleCounts: Record<string, number> = {}
+  const muscleCounts: Record<string, number> = {
+    chest: 0, back: 0, shoulders: 0, biceps: 0, triceps: 0, forearms: 0,
+    quads: 0, hamstrings: 0, glutes: 0, calves: 0, core: 0, traps: 0, lats: 0
+  }
   workouts?.forEach(w => {
     // @ts-ignore
     w.workout_exercises.forEach(we => {
@@ -176,7 +179,9 @@ export const getWeeklyMuscleGroupStats = cache(async (userId: string) => {
       const group = we.exercise?.muscle_group
       // @ts-ignore
       const validSets = we.sets?.filter(s => !s.is_warmup).length || 0
-      if (group && validSets > 0) muscleCounts[group] = (muscleCounts[group] || 0) + validSets
+      if (group && validSets > 0) {
+        muscleCounts[group] = (muscleCounts[group] || 0) + validSets
+      }
     })
   })
 

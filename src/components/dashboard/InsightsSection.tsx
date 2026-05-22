@@ -151,6 +151,9 @@ export async function InsightsSection({
         volumeLandmarks={volumeLandmarks}
         mostImproved={mostImproved}
         mesocycle={mesocycle}
+        profile={profile}
+        bwHistory={[]}
+        weeklyGoal={3}
       />
 
       {/* Momentum — PRs, streak, badges, lifetime tonnage in one 2x2 strip */}
