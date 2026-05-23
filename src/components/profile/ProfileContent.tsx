@@ -5,10 +5,9 @@ import { useTransition, useState, type ReactNode } from 'react'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
 
-type Tab = 'stats' | 'history' | 'exercises' | 'account'
+type Tab = 'history' | 'exercises' | 'account'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'stats',     label: 'Stats'     },
   { id: 'history',   label: 'History'   },
   { id: 'exercises', label: 'Exercises' },
   { id: 'account',   label: 'Account'   },
@@ -81,67 +80,9 @@ export function ProfileContent({ activeTab, children }: ProfileContentProps) {
 // ─── Per-tab skeletons ────────────────────────────────────────────────────────
 
 function TabSkeleton({ tab }: { tab: Tab }) {
-  if (tab === 'stats') return <StatsSkeleton />
   if (tab === 'history') return <HistorySkeleton />
   if (tab === 'exercises') return <ExercisesSkeleton />
   return <AccountSkeleton />
-}
-
-function StatsSkeleton() {
-  return (
-    <div className="space-y-6">
-      {/* PR table */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <Skeleton className="h-5 w-36 rounded" />
-          <Skeleton className="h-6 w-24 rounded-lg" />
-        </div>
-        <div className="space-y-2">
-          {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="glass flex items-center justify-between p-3 rounded-[var(--radius-card)]">
-              <div className="flex items-center gap-3">
-                <Skeleton className="w-7 h-7 rounded-lg shrink-0" />
-                <Skeleton className="h-4 w-32 rounded" />
-              </div>
-              <Skeleton className="h-4 w-14 rounded" />
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Volume chart */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <Skeleton className="h-5 w-28 rounded" />
-          <Skeleton className="h-6 w-16 rounded-lg" />
-        </div>
-        <div className="glass p-4 rounded-[var(--radius-card)]">
-          <Skeleton className="h-9 w-28 mb-4 rounded" />
-          <Skeleton className="h-[180px] w-full rounded-[var(--radius-inner)]" />
-        </div>
-      </section>
-
-      {/* Radar chart */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <Skeleton className="h-5 w-28 rounded" />
-          <Skeleton className="h-6 w-20 rounded-lg" />
-        </div>
-        <div className="glass p-4 rounded-[var(--radius-card)]">
-          <Skeleton className="h-[240px] w-full rounded-[var(--radius-inner)]" />
-        </div>
-      </section>
-
-      {/* Tonnage */}
-      <section>
-        <Skeleton className="h-5 w-40 rounded mb-3" />
-        <div className="glass p-4 rounded-[var(--radius-card)]">
-          <Skeleton className="h-9 w-32 rounded mb-3" />
-          <Skeleton className="h-1.5 w-full rounded-full" />
-        </div>
-      </section>
-    </div>
-  )
 }
 
 function HistorySkeleton() {

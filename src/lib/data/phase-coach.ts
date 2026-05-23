@@ -272,6 +272,96 @@ export const getStrengthIndex = cache(async (
   }
 })
 
+/**
+ * Pure synchronous version of the Strength Index — accepts pre-computed data
+ * from `getProgressSnapshot` so no extra DB query is needed.
+ *
+ * Window rule: weeks before max(phase_started_at, 12_weeks_ago) are dropped.
+ * If phase_started_at is older than 12 weeks, the snapshot already caps at
+ * 12 weeks and the earliest available week becomes the baseline — the index
+ * measures gain within the captured window, which is acceptable and noted in
+ * the UI disclaimer.
+ */
+export function computeStrengthIndex(
+  exerciseWeeklyE1RM: Map<string, Map<string, number>>,
+  keyLifts:           KeyLift[],
+  profile:            Pick<Profile, 'training_phase' | 'experience_level' | 'phase_started_at'> | null,
+): StrengthIndexSummary {
+  const empty: StrengthIndexSummary = {
+    history: [], pctPerWeek: null, status: null, baselineWeek: null, liftCount: 0,
+  }
+
+  if (keyLifts.length < 3) return empty
+
+  const phaseStartMs   = profile?.phase_started_at ? new Date(profile.phase_started_at).getTime() : 0
+  const fallbackMs     = Date.now() - STRENGTH_INDEX_FALLBACK_WEEKS * 7 * 86400000
+  const windowStartISO = new Date(Math.max(phaseStartMs, fallbackMs)).toISOString().split('T')[0]
+
+  const keyLiftIds = new Set(keyLifts.map(l => l.exerciseId))
+
+  // Filter exerciseWeeklyE1RM to key lifts and the window
+  const liftWeekly = new Map<string, Map<string, number>>()
+  for (const [liftId, weekMap] of exerciseWeeklyE1RM) {
+    if (!keyLiftIds.has(liftId)) continue
+    const filtered = new Map<string, number>()
+    for (const [week, e1rm] of weekMap) {
+      if (week >= windowStartISO) filtered.set(week, e1rm)
+    }
+    if (filtered.size > 0) liftWeekly.set(liftId, filtered)
+  }
+
+  if (liftWeekly.size < 3) return { ...empty, liftCount: keyLifts.length }
+
+  // Per-lift baseline = earliest observed week in the window
+  const baselines = new Map<string, number>()
+  for (const [liftId, weeks] of liftWeekly) {
+    const earliest = Array.from(weeks.keys()).sort()[0]
+    const baseline = earliest ? weeks.get(earliest) : undefined
+    if (baseline && baseline > 0) baselines.set(liftId, baseline)
+  }
+
+  const allWeeks = new Set<string>()
+  for (const weeks of liftWeekly.values()) for (const w of weeks.keys()) allWeeks.add(w)
+  const sortedWeeks = Array.from(allWeeks).sort()
+  if (sortedWeeks.length < 2) return { ...empty, liftCount: keyLifts.length }
+
+  const history: StrengthIndexPoint[] = sortedWeeks.map(week => {
+    let total = 0, count = 0
+    for (const [liftId, weeks] of liftWeekly) {
+      const baseline = baselines.get(liftId)
+      if (!baseline) continue
+      const e1rm = weeks.get(week)
+      if (!e1rm) continue
+      total += e1rm / baseline
+      count += 1
+    }
+    return {
+      weekStart:    week,
+      index:        count > 0 ? Number((total / count).toFixed(4)) : 1,
+      liftsCovered: count,
+    }
+  })
+
+  const slope      = linearSlopePerWeek(history.map(p => ({ weekStart: p.weekStart, value: p.index })))
+  const pctPerWeek = slope === null ? null : Number((slope * 100).toFixed(2))
+
+  let status: StrengthTrendStatus | null = null
+  if (pctPerWeek !== null && profile?.experience_level && profile?.training_phase) {
+    status = classifyStrengthTrend(
+      pctPerWeek,
+      getStrengthExpectation(profile.experience_level, profile.training_phase),
+    )
+  }
+
+  return {
+    history,
+    pctPerWeek,
+    status,
+    baselineWeek: history[0].weekStart,
+    liftCount:    keyLifts.length,
+  }
+}
+
 // ── Volume Landmarks per muscle ──────────────────────────────────────────────
 
 export interface MuscleVolumeLandmarkPoint {
@@ -351,17 +441,19 @@ const getWeeklyMuscleFrequency = cache(async (
  * point: missing muscles are the most common volume problem.
  */
 export const getVolumeLandmarksByMuscle = cache(async (
-  userId: string,
-  profile: Pick<Profile, 'training_style' | 'training_phase'> | null,
+  userId:                    string,
+  profile:                   Pick<Profile, 'training_style' | 'training_phase'> | null,
+  currentWeekSetsByMuscle?:  Record<string, number>,
 ): Promise<MuscleVolumeLandmarkPoint[]> => {
   const style: TrainingStyle = profile?.training_style ?? 'volume'
   const phase: TrainingPhase = profile?.training_phase ?? 'maingaining'
 
-  const [sets, freqMap] = await Promise.all([
-    getWeeklySetsByMuscle(userId),
+  const [setMap, freqMap] = await Promise.all([
+    currentWeekSetsByMuscle
+      ? Promise.resolve(new Map(Object.entries(currentWeekSetsByMuscle)))
+      : getWeeklySetsByMuscle(userId).then(sets => new Map(sets.map(s => [s.muscleGroup, s.setCount]))),
     getWeeklyMuscleFrequency(userId),
   ])
-  const setMap = new Map(sets.map(s => [s.muscleGroup, s.setCount]))
 
   return ALL_MUSCLES.map(muscle => {
     const setCount  = setMap.get(muscle) ?? 0

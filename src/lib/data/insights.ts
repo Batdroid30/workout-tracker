@@ -606,9 +606,9 @@ export interface HypertrophicDissociationResult {
  * @param trainingPhase     User's current training phase
  */
 export function detectHypertrophicDissociation(
-  bwHistory:          { date: string; weight_kg: number }[],
-  strengthPctPerWeek: number | null,
-  trainingPhase:      string | null,
+  bwHistory:           { date: string; weight_kg: number }[],
+  strengthPctPerWeek:  number | null,
+  trainingPhase:       string | null,
 ): HypertrophicDissociationResult {
   const none: HypertrophicDissociationResult = { detected: false, bwTrendKgPerWeek: null, message: null }
 
@@ -650,3 +650,196 @@ export function detectHypertrophicDissociation(
     message: `Weight is climbing (+${bwSlopePerWeek.toFixed(2)} kg/wk) but strength is flat (${strengthLabel}). This pattern suggests the surplus is too large — excess calories are being stored as fat. Reduce your caloric surplus to 5–10% above maintenance and ensure protein intake is 1.6–2.2 g/kg bodyweight.`,
   }
 }
+
+// ── Workout calendar & training age (all-time) ────────────────────────────────
+
+export interface WorkoutCalendarData {
+  /** Each day the user trained, with workout count for that day. */
+  calendarEntries:  { date: string; count: number }[]
+  /** Weeks since the user's very first workout. */
+  trainingAgeWeeks: number
+  currentStreak:    number
+  longestStreak:    number
+}
+
+export const getWorkoutCalendarData = cache(async (userId: string): Promise<WorkoutCalendarData> => {
+  const supabase = getSupabaseAdmin()
+
+  const { data, error } = await supabase
+    .from('workouts')
+    .select('started_at')
+    .eq('user_id', userId)
+    .order('started_at', { ascending: true })
+
+  if (error) throw new DatabaseError('Failed to fetch workout calendar data', error)
+  if (!data || data.length === 0) {
+    return { calendarEntries: [], trainingAgeWeeks: 0, currentStreak: 0, longestStreak: 0 }
+  }
+
+  const dayCounts = new Map<string, number>()
+  const weekSet   = new Set<string>()
+
+  for (const w of data) {
+    const date    = (w.started_at as string).split('T')[0]
+    const weekKey = getMondayOf(new Date(w.started_at))
+    dayCounts.set(date, (dayCounts.get(date) ?? 0) + 1)
+    weekSet.add(weekKey)
+  }
+
+  const calendarEntries = Array.from(dayCounts.entries())
+    .map(([date, count]) => ({ date, count }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  const firstDate        = new Date(data[0].started_at)
+  const trainingAgeWeeks = Math.floor((Date.now() - firstDate.getTime()) / (7 * 86_400_000))
+
+  const weeks = Array.from(weekSet).sort()
+
+  // Longest streak — walk ascending
+  let longestStreak = 0, runningStreak = 0
+  let prevWeek: string | null = null
+  for (const week of weeks) {
+    if (prevWeek === null) {
+      runningStreak = 1
+    } else {
+      const expected = new Date(prevWeek)
+      expected.setUTCDate(expected.getUTCDate() + 7)
+      runningStreak = week === expected.toISOString().split('T')[0] ? runningStreak + 1 : 1
+    }
+    if (runningStreak > longestStreak) longestStreak = runningStreak
+    prevWeek = week
+  }
+
+  // Current streak — walk descending from this week or last week
+  const thisWeek  = getMondayOf(new Date())
+  const lastWeek  = getMondayOf(new Date(Date.now() - 7 * 86_400_000))
+  const weeksDesc = [...weeks].reverse()
+
+  let currentStreak = 0
+  if (weeksDesc[0] === thisWeek || weeksDesc[0] === lastWeek) {
+    let cursor = weeksDesc[0] === thisWeek ? thisWeek : lastWeek
+    for (const week of weeksDesc) {
+      if (week === cursor) {
+        currentStreak++
+        const d = new Date(cursor)
+        d.setUTCDate(d.getUTCDate() - 7)
+        cursor = d.toISOString().split('T')[0]
+      } else { break }
+    }
+  }
+
+  return { calendarEntries, trainingAgeWeeks, currentStreak, longestStreak }
+})
+
+// ── Personal records aggregated data (all-time) ───────────────────────────────
+
+export interface TopPR {
+  exerciseId:     string
+  exerciseName:   string
+  muscleGroup:    string
+  best1RM:        number | null
+  bestWeight:     number | null
+  achievedAt:     string | null
+}
+
+export interface PRHistoryEntry {
+  exerciseName: string
+  muscleGroup:  string
+  prType:       PRType
+  value:        number
+  achievedAt:   string
+}
+
+export interface PersonalRecordsData {
+  /** Top 10 exercises by best e1RM, descending. */
+  topByE1RM:       TopPR[]
+  /** PR count per calendar month (YYYY-MM), ascending. */
+  velocityByMonth: { month: string; count: number }[]
+  /** Full PR log, newest first. */
+  history:         PRHistoryEntry[]
+}
+
+export const getPersonalRecordsData = cache(async (userId: string): Promise<PersonalRecordsData> => {
+  const supabase = getSupabaseAdmin()
+
+  const { data, error } = await supabase
+    .from('personal_records')
+    .select('exercise_id, pr_type, value, achieved_at, exercise:exercises ( name, muscle_group )')
+    .eq('user_id', userId)
+    .order('achieved_at', { ascending: true })
+
+  if (error) throw new DatabaseError('Failed to fetch personal records data', error)
+  if (!data || data.length === 0) {
+    return { topByE1RM: [], velocityByMonth: [], history: [] }
+  }
+
+  // Supabase returns the joined exercise as a single object or a 1-element array
+  // depending on the query planner — normalise to a plain object here.
+  type PRRow = {
+    exercise_id: string
+    pr_type:     string
+    value:       number
+    achieved_at: string
+    exercise:    { name: string; muscle_group: string | null } | { name: string; muscle_group: string | null }[] | null
+  }
+
+  const byExercise = new Map<string, {
+    exerciseName: string
+    muscleGroup:  string
+    best1RM:      number | null
+    bestWeight:   number | null
+    achievedAt:   string | null
+  }>()
+  const monthCounts = new Map<string, number>()
+  const history: PRHistoryEntry[] = []
+
+  for (const row of data as PRRow[]) {
+    const exercise   = Array.isArray(row.exercise) ? row.exercise[0] : row.exercise
+    const exerciseId = row.exercise_id
+    const prType     = row.pr_type as PRType
+    const value      = Number(row.value)
+    const achievedAt = row.achieved_at
+
+    if (!exerciseId || !exercise?.name) continue
+
+    monthCounts.set(achievedAt.slice(0, 7), (monthCounts.get(achievedAt.slice(0, 7)) ?? 0) + 1)
+
+    history.push({
+      exerciseName: exercise.name,
+      muscleGroup:  exercise.muscle_group ?? '',
+      prType, value, achievedAt,
+    })
+
+    if (!byExercise.has(exerciseId)) {
+      byExercise.set(exerciseId, {
+        exerciseName: exercise.name,
+        muscleGroup:  exercise.muscle_group ?? '',
+        best1RM:      null,
+        bestWeight:   null,
+        achievedAt:   null,
+      })
+    }
+    const ex = byExercise.get(exerciseId)!
+
+    if (prType === 'best_1rm') {
+      if (ex.best1RM === null || value > ex.best1RM) {
+        ex.best1RM    = value
+        ex.achievedAt = achievedAt
+      }
+    } else if (prType === 'best_weight') {
+      if (ex.bestWeight === null || value > ex.bestWeight) ex.bestWeight = value
+    }
+  }
+
+  const topByE1RM = Array.from(byExercise.entries())
+    .filter(([_, ex]) => ex.best1RM !== null)
+    .sort((a, b) => (b[1].best1RM ?? 0) - (a[1].best1RM ?? 0))
+    .slice(0, 10)
+    .map(([exerciseId, ex]) => ({ exerciseId, ...ex }))
+
+  const velocityByMonth = Array.from(monthCounts.entries())
+    .map(([month, count]) => ({ month, count }))
+    .sort((a, b) => a.month.localeCompare(b.month))
+
+  return { topByE1RM, velocityByMonth, history: history.reverse() }
+})
