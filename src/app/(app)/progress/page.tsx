@@ -323,8 +323,7 @@ export default async function ProgressPage() {
           <h2 className="t-display-s mb-3">Consistency</h2>
 
           {/* Calendar heatmap */}
-          <div className="glass p-4 mb-3">
-            <div className="t-label mb-3">Training Activity</div>
+          <div className="mb-3">
             <WorkoutCalendar entries={calendarData.calendarEntries} />
           </div>
 

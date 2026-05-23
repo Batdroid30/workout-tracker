@@ -4,21 +4,15 @@ import { getProfile } from '@/lib/data/profile'
 import { getLatestBodyweight, getBodyweightHistory } from '@/lib/data/bodyweight'
 import {
   getTrainingStreak,
-  getWeeklyTrainingSummary,
   deriveWeeklySummary,
   getRecentPRs,
-  getMostImprovedExercises,
   getNeglectedMuscles,
-  getStalledMovements,
-  getPushPullBalance,
-  getRecentExerciseLoads,
   detectHypertrophicDissociation,
   deriveNextWorkoutSuggestion,
 } from '@/lib/data/insights'
 import {
-  getKeyLifts,
+  computeStrengthIndex,
   getVolumeLandmarksByMuscle,
-  getStrengthIndex,
   buildThisWeekMissions,
 } from '@/lib/data/phase-coach'
 import { getWeeksInPhase, buildMesocycleTimeline } from '@/lib/phase-coach'
@@ -26,26 +20,24 @@ import { DELOAD_THRESHOLDS, isCurrentWeekDeload } from '@/lib/workout-intelligen
 import { getBadges } from '@/lib/data/achievements'
 import { assessFatigueLevel } from '@/lib/algorithms'
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
+import { getProgressSnapshot } from '@/lib/data/progress-snapshot'
+import { PUSH_MUSCLES, PULL_MUSCLES } from '@/lib/training-constants'
+import { STALL_VARIATION_ADVICE } from '@/lib/workout-intelligence'
 
 export default async function DashboardPage() {
   const session = await auth()
   const userId = session?.user?.id as string
 
-  // Parallel fetch 1: core queries & metrics
+  // Parallel fetch 1: core queries, metrics, and progress snapshot
   const [
     workoutsSummary,
     recentWorkouts,
     profile,
     latestBodyweight,
     streak,
-    weeks,
+    snapshot,
     recentPRs,
-    mostImproved,
     neglectedMuscles,
-    stalledMovements,
-    pushPull,
-    keyLifts,
-    recentLoads,
     bwHistory,
   ] = await Promise.all([
     getWorkoutsSummary(userId),
@@ -53,30 +45,87 @@ export default async function DashboardPage() {
     getProfile(userId),
     getLatestBodyweight(userId),
     getTrainingStreak(userId),
-    getWeeklyTrainingSummary(userId),
+    getProgressSnapshot(userId),
     getRecentPRs(userId, 60),
-    getMostImprovedExercises(userId),
     getNeglectedMuscles(userId),
-    getStalledMovements(userId),
-    getPushPullBalance(userId),
-    getKeyLifts(userId),
-    getRecentExerciseLoads(userId),
     getBodyweightHistory(userId, 4),
   ])
 
   const totalVolume = workoutsSummary.totalVolume
   const totalWorkouts = workoutsSummary.totalWorkouts
 
+  // Derive sets/volume metrics in memory from the snapshot
+  const weeks = snapshot.weeklyData.map(w => ({
+    week_start:    w.weekStart,
+    total_volume:  w.totalVolume,
+    workout_count: w.sessionCount,
+    avg_rpe:       w.avgRpe,
+  }))
+  const keyLifts = snapshot.keyLifts
+  const recentLoads = snapshot.recentLoads
+  const mostImproved = snapshot.mostImprovedExercises
+
+  // Derive push/pull balance from last 4 weeks of snapshot
+  const pushPull = (() => {
+    let pushSets = 0
+    let pullSets = 0
+    const last4Weeks = snapshot.weeklyData.slice(-4)
+    for (const w of last4Weeks) {
+      for (const [muscle, count] of Object.entries(w.setsByMuscle)) {
+        if (PUSH_MUSCLES.has(muscle))      pushSets += count
+        else if (PULL_MUSCLES.has(muscle)) pullSets += count
+      }
+    }
+    const ratio = pushSets === 0 && pullSets === 0
+      ? null
+      : pullSets === 0
+        ? Infinity
+        : pushSets / pullSets
+    return { pushSets, pullSets, ratio }
+  })()
+
+  // Derive stalled movements in memory from snapshot
+  const stalledMovements = Array.from(snapshot.exerciseStaleness.values())
+    .filter(ex =>
+      ex.previousBest > 0 &&
+      ex.recentBest   > 0 &&
+      ex.recentSessions   >= 2 &&
+      ex.previousSessions >= 2 &&
+      (ex.recentBest - ex.previousBest) / ex.previousBest < 0.03
+    )
+    .map(ex => {
+      const WEEKS_IN_WINDOW = 3
+      const totalKg    = ex.recentBest - ex.previousBest
+      const pctPerWeek = (totalKg / ex.previousBest) * 100 / WEEKS_IN_WINDOW
+      const kgPerWeek  = totalKg / WEEKS_IN_WINDOW
+      const movementKey = `${ex.muscleGroup}-${ex.movementPattern}`
+      return {
+        exerciseName: ex.name,
+        currentBest:  Math.round(ex.recentBest  * 10) / 10,
+        previousBest: Math.round(ex.previousBest * 10) / 10,
+        pctPerWeek:   Math.round(pctPerWeek * 100) / 100,
+        kgPerWeek:    Math.round(kgPerWeek  * 100) / 100,
+        advice:       STALL_VARIATION_ADVICE[movementKey as keyof typeof STALL_VARIATION_ADVICE] ?? [],
+      }
+    })
+    .sort((a, b) => a.pctPerWeek - b.pctPerWeek)
+    .slice(0, 3)
+
   // Parallel fetch 2: queries needing profile resolution
   const [
     volumeLandmarks,
-    strengthIndex,
     badges,
   ] = await Promise.all([
-    getVolumeLandmarksByMuscle(userId, profile),
-    getStrengthIndex(userId, profile),
+    getVolumeLandmarksByMuscle(userId, profile, snapshot.currentWeekSetsByMuscle, snapshot.muscleFrequency),
     getBadges(userId, totalVolume, totalWorkouts),
   ])
+
+  // Pure in-memory calculation for Strength Index
+  const strengthIndex = computeStrengthIndex(
+    snapshot.exerciseWeeklyE1RM,
+    snapshot.keyLifts,
+    profile,
+  )
 
   // Derived coaching calculations
   const weeklySummary      = deriveWeeklySummary(weeks)

@@ -444,6 +444,7 @@ export const getVolumeLandmarksByMuscle = cache(async (
   userId:                    string,
   profile:                   Pick<Profile, 'training_style' | 'training_phase'> | null,
   currentWeekSetsByMuscle?:  Record<string, number>,
+  muscleFrequency?:          Record<string, number>,
 ): Promise<MuscleVolumeLandmarkPoint[]> => {
   const style: TrainingStyle = profile?.training_style ?? 'volume'
   const phase: TrainingPhase = profile?.training_phase ?? 'maingaining'
@@ -452,7 +453,9 @@ export const getVolumeLandmarksByMuscle = cache(async (
     currentWeekSetsByMuscle
       ? Promise.resolve(new Map(Object.entries(currentWeekSetsByMuscle)))
       : getWeeklySetsByMuscle(userId).then(sets => new Map(sets.map(s => [s.muscleGroup, s.setCount]))),
-    getWeeklyMuscleFrequency(userId),
+    muscleFrequency
+      ? Promise.resolve(new Map(Object.entries(muscleFrequency)))
+      : getWeeklyMuscleFrequency(userId),
   ])
 
   return ALL_MUSCLES.map(muscle => {

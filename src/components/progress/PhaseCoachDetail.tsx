@@ -29,13 +29,71 @@ interface PhaseCoachDetailProps {
 
 // ── Status styling — kept identical to PhaseCoachCard for visual consistency ──
 
-const VOLUME_STATUS_STYLES: Record<VolumeStatus, { dot: string; text: string; label: string }> = {
-  below_mv:    { dot: 'bg-red-400',              text: 'text-red-400',              label: 'Below MV'    },
-  maintenance: { dot: 'bg-orange-400',           text: 'text-orange-400',           label: 'Maintaining' },
-  sub_optimal: { dot: 'bg-yellow-400',           text: 'text-yellow-400',           label: 'Sub-optimal' },
-  optimal:     { dot: 'bg-emerald-500',          text: 'text-emerald-400',          label: 'Optimal'     },
-  high:        { dot: 'bg-orange-400',           text: 'text-orange-400',           label: 'High'        },
-  over_mrv:    { dot: 'bg-red-500',              text: 'text-red-500',              label: 'Over MRV'    },
+interface VolumeStatusStyle {
+  dot: string
+  text: string
+  label: string
+  bg: string
+  border: string
+  fillGradient: string
+  glowColor: string
+}
+
+const VOLUME_STATUS_STYLES: Record<VolumeStatus, VolumeStatusStyle> = {
+  below_mv: {
+    dot: 'bg-red-400',
+    text: 'text-red-400',
+    label: 'Below MV',
+    bg: 'bg-red-500/10',
+    border: 'border-red-500/20',
+    fillGradient: 'from-red-500/20 to-red-400/80',
+    glowColor: 'rgba(239, 68, 68, 0.4)',
+  },
+  maintenance: {
+    dot: 'bg-orange-400',
+    text: 'text-orange-400',
+    label: 'Maintaining',
+    bg: 'bg-orange-500/10',
+    border: 'border-orange-500/20',
+    fillGradient: 'from-orange-500/20 to-orange-400/80',
+    glowColor: 'rgba(249, 115, 22, 0.4)',
+  },
+  sub_optimal: {
+    dot: 'bg-yellow-400',
+    text: 'text-yellow-400',
+    label: 'Sub-optimal',
+    bg: 'bg-yellow-500/10',
+    border: 'border-yellow-500/20',
+    fillGradient: 'from-yellow-500/20 to-yellow-400/80',
+    glowColor: 'rgba(234, 179, 8, 0.4)',
+  },
+  optimal: {
+    dot: 'bg-emerald-500',
+    text: 'text-emerald-400',
+    label: 'Optimal',
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/30',
+    fillGradient: 'from-emerald-600/30 to-emerald-400',
+    glowColor: 'rgba(16, 185, 129, 0.5)',
+  },
+  high: {
+    dot: 'bg-orange-400',
+    text: 'text-orange-400',
+    label: 'High Volume',
+    bg: 'bg-orange-500/10',
+    border: 'border-orange-500/20',
+    fillGradient: 'from-orange-500/20 to-orange-400/80',
+    glowColor: 'rgba(249, 115, 22, 0.4)',
+  },
+  over_mrv: {
+    dot: 'bg-red-500',
+    text: 'text-red-500',
+    label: 'Over MRV',
+    bg: 'bg-red-500/10',
+    border: 'border-red-500/30',
+    fillGradient: 'from-red-600/30 to-red-500',
+    glowColor: 'rgba(239, 68, 68, 0.5)',
+  },
 }
 
 const STATUS_PRIORITY: Record<VolumeStatus, number> = {
@@ -249,21 +307,26 @@ function StrengthIndexBlock({ summary, chartData }: StrengthIndexBlockProps) {
 
 function VolumeLegend() {
   return (
-    <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-[9px]" style={{ color: 'var(--text-faint)' }}>
-      <span className="flex items-center gap-1">
-        <span className="w-2 h-2 rounded-sm bg-orange-400/30" /> MV → MEV (maintain)
+    <div className="flex flex-wrap gap-x-4 gap-y-2 text-[9px] p-3.5 bg-ink/30 rounded-xl border border-glass-border/40" style={{ color: 'var(--text-low)' }}>
+      <span className="flex items-center gap-1.5">
+        <span className="w-2 h-2 rounded bg-orange-400/20 border border-orange-400/35" />
+        <span>MV – MEV <span className="ml-0.5 opacity-60">(Maintain)</span></span>
       </span>
-      <span className="flex items-center gap-1">
-        <span className="w-2 h-2 rounded-sm bg-yellow-400/40" /> MEV → MAV (growing)
+      <span className="flex items-center gap-1.5">
+        <span className="w-2 h-2 rounded bg-yellow-400/25 border border-yellow-400/35" />
+        <span>MEV – MAV <span className="ml-0.5 opacity-60">(Growing)</span></span>
       </span>
-      <span className="flex items-center gap-1">
-        <span className="w-2 h-2 rounded-sm" style={{ background: 'rgba(16,185,129,0.40)' }} /> MAV (optimal)
+      <span className="flex items-center gap-1.5">
+        <span className="w-2 h-2 rounded bg-emerald-500/25 border border-emerald-500/35" />
+        <span className="font-semibold text-[var(--teal)]">MAV <span className="ml-0.5 opacity-65">(Optimal)</span></span>
       </span>
-      <span className="flex items-center gap-1">
-        <span className="w-2 h-2 rounded-sm bg-orange-400/40" /> MAV → MRV (high)
+      <span className="flex items-center gap-1.5">
+        <span className="w-2 h-2 rounded bg-orange-500/25 border border-orange-500/35" />
+        <span>MAV – MRV <span className="ml-0.5 opacity-60">(High)</span></span>
       </span>
-      <span className="flex items-center gap-1">
-        <span className="w-2 h-2 rounded-sm bg-red-500/40" /> Above MRV
+      <span className="flex items-center gap-1.5">
+        <span className="w-2 h-2 rounded bg-red-500/25 border border-red-500/35" />
+        <span>Over MRV <span className="ml-0.5 opacity-60">(Fatiguing)</span></span>
       </span>
     </div>
   )
@@ -275,7 +338,7 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
   const { muscleGroup, setCount, weeklyFrequency, landmarks, status } = point
   const styles = VOLUME_STATUS_STYLES[status]
 
-  const scaleMax = Math.max(landmarks.mrv * 1.2, setCount * 1.05, 1)
+  const scaleMax = Math.max(landmarks.mrv * 1.25, setCount * 1.08, 1)
   const pct = (n: number) => Math.min(100, (n / scaleMax) * 100)
 
   const mvPct     = pct(landmarks.mv)
@@ -288,52 +351,119 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
   const freqSessions = weeklyFrequency > 0 ? Math.max(1, Math.round(weeklyFrequency)) : 0
   const freqLabel    = freqSessions > 0 ? `${freqSessions}×/wk` : null
   const freqStyle    = freqSessions >= 2
-    ? { color: 'var(--teal)', background: 'rgba(127,217,200,0.10)' }
-    : { color: '#facc15',     background: 'rgba(250,204,21,0.10)'  }
+    ? 'bg-[var(--teal)]/10 border border-[var(--teal)]/20 text-[var(--teal)]'
+    : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400'
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', styles.dot)} />
-          <span className="text-xs font-semibold uppercase tracking-tight truncate" style={{ color: 'var(--text-hi)' }}>
+    <div className="glass-strong p-3.5 rounded-[var(--radius-inner)] border border-glass-border hover:border-glass-border-strong transition-all duration-300 group">
+      {/* Header Info */}
+      <div className="flex items-center justify-between mb-2.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={cn('w-2 h-2 rounded-full shrink-0 animate-pulse', styles.dot)} />
+          <span className="text-xs font-bold uppercase tracking-wider truncate" style={{ color: 'var(--text-hi)' }}>
             {muscleGroup}
           </span>
           {freqLabel && (
             <span
-              className="text-[8px] font-medium uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0"
-              style={freqStyle}
+              className={cn(
+                "text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0",
+                freqStyle
+              )}
             >
               {freqLabel}
             </span>
           )}
         </div>
+        
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] tabular-nums font-medium" style={{ color: 'var(--text-mid)' }}>
-            {setCount}
-            <span className="ml-1" style={{ color: 'var(--text-faint)' }}>/ MEV {landmarks.mev} · MAV {landmarks.mav.max}</span>
+          <span className="text-[11px] tabular-nums font-semibold" style={{ color: 'var(--text-hi)' }}>
+            {setCount} <span className="text-[9px] font-normal" style={{ color: 'var(--text-low)' }}>sets</span>
           </span>
-          <span className={cn('text-[8px] font-semibold uppercase tracking-widest w-[60px] text-right', styles.text)}>
+          <span
+            className={cn(
+              "text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border shrink-0",
+              styles.bg,
+              styles.border,
+              styles.text
+            )}
+          >
             {styles.label}
           </span>
         </div>
       </div>
 
-      <div className="relative h-2.5 rounded-full overflow-visible" style={{ background: 'var(--bg-1)' }}>
-        <div className="absolute top-0 h-full bg-orange-400/15 rounded-full"
+      {/* Bar visual */}
+      <div className="relative h-2.5 rounded-full overflow-hidden bg-ink/75 border border-border-soft/60">
+        {/* Shaded Landmark Zones */}
+        <div className="absolute top-0 h-full bg-orange-400/5"
              style={{ left: `${mvPct}%`, width: `${Math.max(0, mevPct - mvPct)}%` }} />
-        <div className="absolute top-0 h-full bg-yellow-400/20"
+        <div className="absolute top-0 h-full bg-yellow-400/10"
              style={{ left: `${mevPct}%`, width: `${Math.max(0, mavMinPct - mevPct)}%` }} />
-        <div className="absolute top-0 h-full"
-             style={{ left: `${mavMinPct}%`, width: `${Math.max(0, mavMaxPct - mavMinPct)}%`, background: 'rgba(16,185,129,0.25)' }} />
-        <div className="absolute top-0 h-full bg-orange-400/20"
+        <div className="absolute top-0 h-full bg-emerald-500/15"
+             style={{ left: `${mavMinPct}%`, width: `${Math.max(0, mavMaxPct - mavMinPct)}%` }} />
+        <div className="absolute top-0 h-full bg-orange-400/10"
              style={{ left: `${mavMaxPct}%`, width: `${Math.max(0, mrvPct - mavMaxPct)}%` }} />
-        <div className="absolute top-0 h-full bg-red-500/30 rounded-r-full"
+        <div className="absolute top-0 h-full bg-red-500/20"
              style={{ left: `${mrvPct}%`, right: 0 }} />
+
+        {/* Zone Ticks/Dividers */}
+        {[mvPct, mevPct, mavMinPct, mavMaxPct, mrvPct].map((p, idx) => (
+          <div
+            key={idx}
+            className="absolute top-0 bottom-0 w-[1px] bg-ink/30 z-10"
+            style={{ left: `${p}%` }}
+          />
+        ))}
+
+        {/* User sets progress fill */}
         <div
-          className={cn('absolute -top-0.5 bottom-[-2px] w-0.5 rounded-full', styles.dot)}
-          style={{ left: `${markerPct}%`, transform: 'translateX(-50%)', filter: 'drop-shadow(0 0 4px currentColor)' }}
+          className={cn(
+            "absolute top-0 left-0 h-full rounded-l-full bg-gradient-to-r transition-all duration-500 ease-out",
+            styles.fillGradient
+          )}
+          style={{ width: `${markerPct}%` }}
         />
+
+        {/* Glowing Cursor thumb */}
+        <div
+          className="absolute -top-0.5 bottom-[-2px] w-1 h-[14px] rounded-full bg-white transition-all duration-500 ease-out"
+          style={{
+            left: `${markerPct}%`,
+            transform: 'translateX(-50%)',
+            boxShadow: `0 0 8px ${styles.glowColor}, 0 0 3px #ffffff`
+          }}
+        />
+      </div>
+
+      {/* Threshold Row */}
+      <div className="flex items-center justify-between mt-2.5 px-0.5 text-[9px] font-medium" style={{ color: 'var(--text-low)' }}>
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-400/40" />
+            <span>MV <strong style={{ color: 'var(--text-mid)' }}>{landmarks.mv}</strong></span>
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400/40" />
+            <span>MEV <strong style={{ color: 'var(--text-mid)' }}>{landmarks.mev}</strong></span>
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/40" />
+            <span>MAV <strong style={{ color: 'var(--text-mid)' }}>{landmarks.mav.min}-{landmarks.mav.max}</strong></span>
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500/40" />
+            <span>MRV <strong style={{ color: 'var(--text-mid)' }}>{landmarks.mrv}</strong></span>
+          </span>
+        </div>
+        
+        <span className="text-[9px] tracking-tight font-semibold" style={{ color: 'var(--text-mid)' }}>
+          {status === 'below_mv' && `+${landmarks.mv - setCount} to MV`}
+          {status === 'maintenance' && `+${landmarks.mev - setCount} to MEV`}
+          {status === 'sub_optimal' && `+${landmarks.mav.min - setCount} to MAV`}
+          {status === 'optimal' && `Optimal range`}
+          {status === 'high' && `+${landmarks.mrv - setCount} to MRV`}
+          {status === 'over_mrv' && `${setCount - landmarks.mrv} over MRV`}
+        </span>
       </div>
     </div>
   )

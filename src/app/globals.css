@@ -41,6 +41,7 @@
   --text-hi:    var(--text);
   --text-mid:   var(--text-muted);
   --text-low:   var(--text-dim);
+  --text-lo:    var(--text-low);
   --text-faint: rgba(101, 102, 160, 0.55);
 
   /* ── Glass material (tuned for cool-leaning indigo surfaces) ── */
@@ -125,6 +126,7 @@
   --color-text-hi:    var(--text-hi);
   --color-text-mid:   var(--text-mid);
   --color-text-low:   var(--text-low);
+  --color-text-lo:    var(--text-lo);
   --color-text-faint: var(--text-faint);
 
   /* Accent */

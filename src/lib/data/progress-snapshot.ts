@@ -1,8 +1,9 @@
 import { cache } from 'react'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
-import { calculate1RM } from '@/lib/algorithms'
+import { calculate1RM, type RecentExerciseLoad } from '@/lib/algorithms'
 import type { KeyLift } from '@/lib/data/phase-coach'
+import type { ImprovedExercise } from '@/lib/data/insights'
 import { PUSH_MUSCLES, PULL_MUSCLES, LEG_MUSCLES } from '@/lib/training-constants'
 
 export { PUSH_MUSCLES, PULL_MUSCLES, LEG_MUSCLES }
@@ -54,6 +55,12 @@ export interface ProgressSnapshot {
    * preceding 3 weeks. Used to surface stale lifts.
    */
   exerciseStaleness:       Map<string, StalenessEntry>
+  /** Most recent working set per exercise in the last 14 days. */
+  recentLoads:             RecentExerciseLoad[]
+  /** Muscle training frequency (sessions/week) in the last 28 days. */
+  muscleFrequency:         Record<string, number>
+  /** Top 3 most improved exercises in the last 12 weeks. */
+  mostImprovedExercises:   ImprovedExercise[]
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -76,6 +83,9 @@ function makeEmptySnapshot(): ProgressSnapshot {
     pullSets:                0,
     legSets:                 0,
     exerciseStaleness:       new Map(),
+    recentLoads:             [],
+    muscleFrequency:         {},
+    mostImprovedExercises:   [],
   }
 }
 
@@ -136,6 +146,13 @@ export const getProgressSnapshot = cache(async (userId: string): Promise<Progres
     recentBest: number;   previousBest: number
     recentDates: Set<string>; previousDates: Set<string>
   }>()
+
+  // exerciseId → { completedAt, load }
+  const recentLoadsMap = new Map<string, { completedAt: string; load: RecentExerciseLoad }>()
+  // muscleGroup → distinct training dates in last 28 days
+  const muscleDays28 = new Map<string, Set<string>>()
+  // exerciseName → { name, muscleGroup, recentBest, previousBest }
+  const exerciseMap: Record<string, { name: string; muscleGroup: string; recentBest: number; previousBest: number }> = {}
 
   for (const row of data as any[]) {
     const we       = Array.isArray(row.workout_exercises) ? row.workout_exercises[0] : row.workout_exercises
@@ -226,6 +243,51 @@ export const getProgressSnapshot = cache(async (userId: string): Promise<Progres
         sa.previousDates.add(dateKey)
       }
     }
+
+    // ── Recent loads (last 14 days) ───────────────────────────────────────────
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 86400_000).toISOString()
+    if (completedAt >= fourteenDaysAgo) {
+      const existing = recentLoadsMap.get(exercise.id)
+      if (!existing || completedAt > existing.completedAt) {
+        recentLoadsMap.set(exercise.id, {
+          completedAt,
+          load: {
+            exerciseId:   exercise.id,
+            exerciseName: exercise.name,
+            muscleGroup:  muscle ?? '',
+            lastWeight:   weight,
+            lastReps:     reps,
+            lastRPE:      row.rpe != null ? Number(row.rpe) : undefined,
+          }
+        })
+      }
+    }
+
+    // ── Muscle training frequency (last 28 days) ──────────────────────────────
+    const cutoff28 = new Date(Date.now() - 28 * 86400_000).toISOString()
+    if (muscle && completedAt >= cutoff28) {
+      if (!muscleDays28.has(muscle)) muscleDays28.set(muscle, new Set())
+      muscleDays28.get(muscle)!.add(dateKey)
+    }
+
+    // ── Most improved exercises (last 12 weeks/84 days) ────────────────────────
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400_000).toISOString()
+    if (exercise.name) {
+      if (!exerciseMap[exercise.name]) {
+        exerciseMap[exercise.name] = {
+          name: exercise.name,
+          muscleGroup: muscle ?? '',
+          recentBest: 0,
+          previousBest: 0,
+        }
+      }
+      const exImp = exerciseMap[exercise.name]
+      if (completedAt >= thirtyDaysAgo) {
+        if (e1rm > exImp.recentBest) exImp.recentBest = e1rm
+      } else {
+        if (e1rm > exImp.previousBest) exImp.previousBest = e1rm
+      }
+    }
   }
 
   // ── Build weeklyData (ascending) ─────────────────────────────────────────────
@@ -271,6 +333,28 @@ export const getProgressSnapshot = cache(async (userId: string): Promise<Progres
     })
   }
 
+  const recentLoads = Array.from(recentLoadsMap.values())
+    .map(v => v.load)
+    .sort((a, b) => a.exerciseName.localeCompare(b.exerciseName))
+
+  const muscleFrequency: Record<string, number> = {}
+  for (const [mGroup, days] of muscleDays28) {
+    muscleFrequency[mGroup] = Number((days.size / 4).toFixed(2))
+  }
+
+  const mostImprovedExercises = Object.values(exerciseMap)
+    .filter(ex => ex.previousBest > 0 && ex.recentBest > 0)
+    .map(ex => ({
+      exerciseName: ex.name,
+      muscleGroup: ex.muscleGroup,
+      improvementPct: Math.round(((ex.recentBest - ex.previousBest) / ex.previousBest) * 100),
+      previousBest: Math.round(ex.previousBest * 10) / 10,
+      recentBest: Math.round(ex.recentBest * 10) / 10,
+    }))
+    .filter(ex => ex.improvementPct >= 5)
+    .sort((a, b) => b.improvementPct - a.improvementPct)
+    .slice(0, 3)
+
   return {
     weeklyData,
     exerciseWeeklyE1RM,
@@ -280,5 +364,8 @@ export const getProgressSnapshot = cache(async (userId: string): Promise<Progres
     pullSets,
     legSets,
     exerciseStaleness,
+    recentLoads,
+    muscleFrequency,
+    mostImprovedExercises,
   }
 })
