@@ -53,11 +53,14 @@ const STATUS_COLOR: Record<VolumeStatus, string> = {
 function ringTickCoords(fraction: number) {
   const angleDeg = ARC_ROTATION + fraction * 270
   const rad = (angleDeg * Math.PI) / 180
+  // Round to 3 decimal places: server (Node) and browser JS engines can produce
+  // slightly different last-digit results for sin/cos, causing hydration mismatches.
+  const r = (n: number) => Math.round(n * 1000) / 1000
   return {
-    x1: RING_CX + 22 * Math.cos(rad),
-    y1: RING_CY + 22 * Math.sin(rad),
-    x2: RING_CX + 30 * Math.cos(rad),
-    y2: RING_CY + 30 * Math.sin(rad),
+    x1: r(RING_CX + 22 * Math.cos(rad)),
+    y1: r(RING_CY + 22 * Math.sin(rad)),
+    x2: r(RING_CX + 30 * Math.cos(rad)),
+    y2: r(RING_CY + 30 * Math.sin(rad)),
   }
 }
 

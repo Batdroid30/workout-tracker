@@ -262,15 +262,16 @@ export default function WorkoutPage() {
           </div>
           <h1 className="t-display-m mb-2">Ready to lift?</h1>
           <p className="t-body mb-8 max-w-xs">
-            Start a blank session or pick a routine from the Workout tab.
+            Pick a focus to get starter exercises, or jump straight in blank.
           </p>
           <button
             onClick={() => setFocusSheetOpen(true)}
             className="h-12 px-8 rounded-[var(--radius-pill)] text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95"
             style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
           >
-            Start Session
+            Pick a Focus
           </button>
+
         </div>
 
         <WorkoutFocusSheet

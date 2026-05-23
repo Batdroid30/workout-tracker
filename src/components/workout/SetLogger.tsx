@@ -49,7 +49,10 @@ export function SetLogger({
   supersetCandidates,
   onUnpairSuperset,
 }: SetLoggerProps) {
-  const { updateSet, markSetDone, addSet, addWarmupSet, removeExercise, removeSet, moveExerciseUp, moveExerciseDown, updateExerciseRestSeconds } = useWorkoutStore()
+  const { updateSet, markSetDone, addSet, addWarmupSet, removeExercise, removeSet, insertSet, moveExerciseUp, moveExerciseDown, updateExerciseRestSeconds } = useWorkoutStore()
+
+  const isBodyweight = exercise.exercise.equipment === 'bodyweight' &&
+    !exercise.exercise.name.toLowerCase().includes('weighted')
   const { loadPRsForExercises, checkLocalPR } = usePRStore()
   const [menuOpen,            setMenuOpen]            = useState(false)
   const [showDurationPicker,  setShowDurationPicker]  = useState(false)
@@ -295,6 +298,8 @@ export function SetLogger({
             <SetRow
               key={set.id}
               set={set}
+              setIndex={setIndex}
+              isBodyweight={isBodyweight}
               prevSetText={prevText}
               suggestion={lastSetAtPosition?.suggestion}
               defaultRpe={dupRpeTarget}
@@ -312,6 +317,7 @@ export function SetLogger({
                 }
               }}
               onRemove={() => removeSet(exerciseIndex, setIndex)}
+              onRestore={(restoredSet, position) => insertSet(exerciseIndex, position, restoredSet)}
             />
           )
         })}

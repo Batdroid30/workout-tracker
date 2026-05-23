@@ -14,15 +14,22 @@ interface SetRowProps {
   suggestion?: OverloadSuggestion
   /** DUP week RPE target — used as fallback when there is no suggestion (first-time exercises). */
   defaultRpe?: number
+  /** True for pure bodyweight exercises (pull-ups, dips, push-ups). Hides the weight input. */
+  isBodyweight?: boolean
   onChange: (updates: Partial<ActiveSet>) => void
   onDone: () => void
+  /** Called immediately when the set is deleted. Receives the deleted set and its original index for undo. */
   onRemove: () => void
+  /** Restores a previously removed set at the given position — used by the undo action. */
+  onRestore?: (set: ActiveSet, position: number) => void
+  /** The position (index) of this set in the exercise — needed to restore it on undo. */
+  setIndex?: number
 }
 
 // ─── Active set ───────────────────────────────────────────────────────────────
 // memo: every keystroke in any set's weight/reps input replaces the Zustand
 // exercises array reference — memo prevents sibling rows re-rendering on each char.
-const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, defaultRpe, onChange, onDone, onRemove }: SetRowProps) {
+const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, defaultRpe, isBodyweight, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
   const [weightStr, setWeightStr] = useState(() => set.weight_kg > 0 ? String(set.weight_kg) : '')
   const [rpeStr,    setRpeStr]    = useState(() => set.rpe !== null ? String(set.rpe) : '')
   const weightFocused = useRef(false)
@@ -48,24 +55,37 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [suggestion?.rpe_target, defaultRpe])
 
-  // Undo-delete
-  const [pendingDelete, setPendingDelete] = useState(false)
-  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Undo-delete: animate out for 300ms, then remove from store.
+  // The 300ms window means finish-validation almost never sees a pending set.
+  // Undo re-inserts via onRestore if the store removal already fired.
+  const [removing, setRemoving] = useState(false)
+  const removeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const removedFromStoreRef = useRef(false)
   const toast = useToast()
 
   const handleRemove = useCallback(() => {
-    setPendingDelete(true)
-    undoTimerRef.current = setTimeout(() => onRemove(), 4000)
+    setRemoving(true)
+    removedFromStoreRef.current = false
+    const removedSet = set
+    const removedIndex = setIndex ?? 0
+    removeTimerRef.current = setTimeout(() => {
+      removedFromStoreRef.current = true
+      onRemove()
+    }, 300)
     toast.info('Set removed', {
       duration: 4000,
       action: { label: 'Undo', onClick: () => {
-        if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
-        setPendingDelete(false)
+        if (removeTimerRef.current) clearTimeout(removeTimerRef.current)
+        if (removedFromStoreRef.current) {
+          onRestore?.(removedSet, removedIndex)
+        } else {
+          setRemoving(false)
+        }
       }},
     })
-  }, [onRemove, toast])
+  }, [set, setIndex, onRemove, onRestore, toast])
 
-  useEffect(() => () => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current) }, [])
+  useEffect(() => () => { if (removeTimerRef.current) clearTimeout(removeTimerRef.current) }, [])
 
   // Amber flash on done
   const [ticked, setTicked] = useState(false)
@@ -82,7 +102,7 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
   return (
     <div className={cn(
       'overflow-hidden transition-all duration-300',
-      pendingDelete ? 'max-h-0 opacity-0 mb-0' : 'max-h-64 opacity-100 mb-1.5',
+      removing ? 'max-h-0 opacity-0 mb-0' : 'max-h-64 opacity-100 mb-1.5',
     )}>
 
       {/* Row 1: [set# + prev] · weight · reps · ✓ */}
@@ -100,30 +120,39 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
           <span className="text-[9px] text-[var(--text-faint)] leading-none tabular-nums">{prevSetText}</span>
         </div>
 
-        {/* Weight */}
-        <input
-          type="text"
-          inputMode="decimal"
-          value={weightStr}
-          placeholder="0"
-          className={inputBase}
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
-          onFocus={() => { weightFocused.current = true }}
-          onChange={e => {
-            const str = e.target.value
-            setWeightStr(str)
-            if (str === '' || str === '.') { onChange({ weight_kg: 0 }); return }
-            const v = parseFloat(str)
-            if (!isNaN(v) && !str.endsWith('.')) onChange({ weight_kg: v })
-          }}
-          onBlur={e => {
-            weightFocused.current = false
-            const v = parseFloat(e.target.value)
-            const safe = isNaN(v) ? 0 : v
-            onChange({ weight_kg: safe })
-            setWeightStr(safe > 0 ? String(safe) : '')
-          }}
-        />
+        {/* Weight — hidden for pure bodyweight exercises */}
+        {isBodyweight ? (
+          <div
+            className="flex-1 min-w-0 h-10 rounded-[var(--radius-inner)] flex items-center justify-center text-[11px] font-semibold uppercase tracking-widest"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)', color: 'var(--text-faint)' }}
+          >
+            BW
+          </div>
+        ) : (
+          <input
+            type="text"
+            inputMode="decimal"
+            value={weightStr}
+            placeholder="0"
+            className={inputBase}
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
+            onFocus={() => { weightFocused.current = true }}
+            onChange={e => {
+              const str = e.target.value
+              setWeightStr(str)
+              if (str === '' || str === '.') { onChange({ weight_kg: 0 }); return }
+              const v = parseFloat(str)
+              if (!isNaN(v) && !str.endsWith('.')) onChange({ weight_kg: v })
+            }}
+            onBlur={e => {
+              weightFocused.current = false
+              const v = parseFloat(e.target.value)
+              const safe = isNaN(v) ? 0 : v
+              onChange({ weight_kg: safe })
+              setWeightStr(safe > 0 ? String(safe) : '')
+            }}
+          />
+        )}
 
         {/* Reps */}
         <input
@@ -156,15 +185,18 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
       {suggestion && !set.is_warmup && (
         <button
           onClick={() => {
-            setWeightStr(String(suggestion.weight_kg))
-            onChange({ weight_kg: suggestion.weight_kg, reps: suggestion.target_reps })
+            if (!isBodyweight) setWeightStr(String(suggestion.weight_kg))
+            onChange({
+              weight_kg: isBodyweight ? 0 : suggestion.weight_kg,
+              reps: suggestion.target_reps,
+            })
           }}
           className="w-full flex items-center gap-1.5 px-2 py-1 mb-1 rounded-[var(--radius-inner)] transition-all active:scale-[0.98] group"
           style={{ border: '1px solid var(--accent-line)', background: 'var(--accent-soft)' }}
         >
           <Zap className="w-3 h-3 shrink-0" style={{ color: 'var(--accent)' }} />
           <span className="mono text-[11px] tabular-nums" style={{ color: 'var(--accent)' }}>
-            {suggestion.weight_kg}kg × {suggestion.target_reps}
+            {isBodyweight ? `BW × ${suggestion.target_reps}` : `${suggestion.weight_kg}kg × ${suggestion.target_reps}`}
           </span>
           <span className="mono text-[10px] tabular-nums" style={{ color: 'var(--accent)' }}>
             · RPE {suggestion.rpe_target} ({rpeToRIR(suggestion.rpe_target)} RIR)
@@ -234,32 +266,46 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
 
 interface CompletedSetRowProps {
   set: ActiveSet
+  isBodyweight?: boolean
   onDone: () => void
   onRemove: () => void
+  onRestore?: (set: ActiveSet, position: number) => void
+  setIndex?: number
 }
 
-const CompletedSetRow = memo(function CompletedSetRow({ set, onDone, onRemove }: CompletedSetRowProps) {
+const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, onDone, onRemove, onRestore, setIndex }: CompletedSetRowProps) {
   const e1rm = !set.is_warmup && set.weight_kg > 0 && set.reps > 1
     ? Math.round(calculate1RM(set.weight_kg, set.reps))
     : null
 
   const [pendingDelete, setPendingDelete] = useState(false)
-  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const removeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const removedFromStoreRef = useRef(false)
   const toast = useToast()
 
   const handleRemove = useCallback(() => {
     setPendingDelete(true)
-    undoTimerRef.current = setTimeout(() => onRemove(), 4000)
+    removedFromStoreRef.current = false
+    const removedSet = set
+    const removedIndex = setIndex ?? 0
+    removeTimerRef.current = setTimeout(() => {
+      removedFromStoreRef.current = true
+      onRemove()
+    }, 300)
     toast.info('Set removed', {
       duration: 4000,
       action: { label: 'Undo', onClick: () => {
-        if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
-        setPendingDelete(false)
+        if (removeTimerRef.current) clearTimeout(removeTimerRef.current)
+        if (removedFromStoreRef.current) {
+          onRestore?.(removedSet, removedIndex)
+        } else {
+          setPendingDelete(false)
+        }
       }},
     })
-  }, [onRemove, toast])
+  }, [set, setIndex, onRemove, onRestore, toast])
 
-  useEffect(() => () => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current) }, [])
+  useEffect(() => () => { if (removeTimerRef.current) clearTimeout(removeTimerRef.current) }, [])
 
   // Swipe-to-delete
   const [swipeOffset, setSwipeOffset] = useState(0)
@@ -317,7 +363,7 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, onDone, onRemove }:
 
           {/* Summary */}
           <span className="flex-1 min-w-0 mono text-sm text-[var(--text-low)] tracking-tight">
-            {set.weight_kg > 0 ? `${set.weight_kg}kg` : '—'}
+            {isBodyweight ? 'BW' : set.weight_kg > 0 ? `${set.weight_kg}kg` : '—'}
             {' × '}
             {set.reps > 0 ? set.reps : '—'}
             {e1rm && <span className="text-[9px] text-[var(--text-faint)] ml-1.5">· ~{e1rm}kg</span>}
@@ -343,9 +389,9 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, onDone, onRemove }:
 
 // ─── Public export ────────────────────────────────────────────────────────────
 
-export const SetRow = memo(function SetRow({ set, prevSetText = '-', suggestion, defaultRpe, onChange, onDone, onRemove }: SetRowProps) {
+export const SetRow = memo(function SetRow({ set, prevSetText = '-', suggestion, defaultRpe, isBodyweight, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
   if (set.completed) {
-    return <CompletedSetRow set={set} onDone={onDone} onRemove={onRemove} />
+    return <CompletedSetRow set={set} isBodyweight={isBodyweight} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
   }
-  return <ActiveSetRow set={set} prevSetText={prevSetText} suggestion={suggestion} defaultRpe={defaultRpe} onChange={onChange} onDone={onDone} onRemove={onRemove} />
+  return <ActiveSetRow set={set} prevSetText={prevSetText} suggestion={suggestion} defaultRpe={defaultRpe} isBodyweight={isBodyweight} onChange={onChange} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
 })

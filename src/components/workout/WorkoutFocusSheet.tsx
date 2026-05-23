@@ -109,27 +109,34 @@ export function WorkoutFocusSheet({
 
       {/* ── Focus grid ── */}
       <div className="flex-1 overflow-y-auto p-4">
-        <p className="t-caption mb-4 leading-relaxed">
+        <p className="t-caption leading-relaxed">
           Pick a focus and we'll load 4–5 starter exercises based on what you train most.
           You can change anything before starting.
         </p>
+        <button
+          onClick={handleSkip}
+          className="mt-2 mb-4 text-[11px] font-medium uppercase tracking-wider transition-colors hover:opacity-80"
+          style={{ color: 'var(--accent)' }}
+        >
+          Or start blank →
+        </button>
 
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-3 gap-2">
           {FOCUS_OPTIONS.map(opt => (
             <button
               key={opt.key}
               onClick={() => handlePick(opt.key)}
               disabled={isLoading}
-              className="flex flex-col items-start gap-1 p-4 rounded-[var(--radius-inner)] text-left transition-all active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100 hover:opacity-90"
+              className="flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-[var(--radius-inner)] text-left transition-all active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100 hover:opacity-90"
               style={{
                 background: 'rgba(255,255,255,0.03)',
                 border: '1px solid var(--glass-border)',
               }}
             >
-              <span className="text-base font-semibold uppercase tracking-tight" style={{ color: 'var(--text-hi)' }}>
+              <span className="text-[12px] font-semibold uppercase tracking-tight" style={{ color: 'var(--text-hi)' }}>
                 {opt.label}
               </span>
-              <span className="t-caption leading-snug">{opt.blurb}</span>
+              <span className="text-[10px] text-[var(--text-faint)] leading-snug">{opt.blurb}</span>
             </button>
           ))}
         </div>
@@ -144,19 +151,6 @@ export function WorkoutFocusSheet({
         )}
       </div>
 
-      {/* ── Skip ── */}
-      <div
-        className="px-4 pt-4"
-        style={{ borderTop: '1px solid var(--glass-border)', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
-      >
-        <button
-          onClick={handleSkip}
-          className="w-full h-11 flex items-center justify-center text-xs font-medium uppercase tracking-wider transition-colors hover:opacity-80"
-          style={{ color: 'var(--text-faint)' }}
-        >
-          Skip — start blank
-        </button>
-      </div>
     </div>
   )
 }

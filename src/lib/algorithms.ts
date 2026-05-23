@@ -19,6 +19,12 @@ export interface FatigueAssessment {
   shouldSuggest: boolean
   confidence: 'low' | 'medium' | 'high'
   signals: string[]       // human-readable strings shown in the DeloadCard
+  /**
+   * True when a missed week was detected: the user already got unplanned rest
+   * so a deload suggestion was suppressed. UI should show a ramp-back-up note
+   * instead of a recovery week card.
+   */
+  recoveryMode?: boolean
 }
 
 /**
@@ -53,6 +59,44 @@ export function assessFatigueLevel(
   const sorted = [...weeks].sort(
     (a, b) => new Date(a.week_start).getTime() - new Date(b.week_start).getTime()
   )
+
+  // ── Missed workout detection ─────────────────────────────────────────────────
+  // If the user hasn't trained since at least one full calendar week ago, they
+  // already got unplanned rest. A deload on top of that would cause unnecessary
+  // detraining rather than recovery. Suppress the suggestion and signal
+  // recovery-ramp-up mode to the UI instead.
+  //
+  // We find "last week's Monday" (the most recently completed ISO week) and
+  // compare it to the most recent week in the data. If the data is older than
+  // last week, at least one full week was skipped.
+  const lastWeekMonday = (() => {
+    const today = new Date()
+    const dayOfWeek = today.getUTCDay()
+    const daysToLastMonday = dayOfWeek === 0 ? 13 : dayOfWeek + 6  // go back to Mon of prev week
+    const d = new Date(today)
+    d.setUTCDate(today.getUTCDate() - daysToLastMonday)
+    return d.toISOString().split('T')[0]
+  })()
+
+  const mostRecentWeek = sorted[sorted.length - 1].week_start
+  if (mostRecentWeek < lastWeekMonday) {
+    // Most recent data is older than last week → user missed at least one full week
+    return { shouldSuggest: false, confidence: 'low', signals: [], recoveryMode: true }
+  }
+
+  // Detect missed sessions within the most recent week.
+  // If the user trained significantly less than their usual frequency, volume
+  // decline may be explained by absence rather than accumulated fatigue.
+  // We reduce the score proportionally so false signals don't stack up.
+  const priorWeeks = sorted.slice(0, -1)
+  const priorAvgSessions = priorWeeks.length > 0
+    ? priorWeeks.reduce((s, w) => s + w.workout_count, 0) / priorWeeks.length
+    : 0
+  const recentWeek = sorted[sorted.length - 1]
+  const missedSessions = Math.max(0, Math.round(priorAvgSessions) - recentWeek.workout_count)
+  // 2+ missed sessions: volume-decline and streak signals are unreliable.
+  // We'll track this and subtract from the score at the end.
+  const missedSessionPenalty = missedSessions >= 2 ? 2 : 0
 
   let score = 0
   const signals: string[] = []
@@ -126,10 +170,14 @@ export function assessFatigueLevel(
     }
   }
 
-  if (score < 2) return empty
+  // Apply penalty for missed sessions: subtract from score so signals driven
+  // by absence (volume drop, broken streak) don't incorrectly trigger a deload.
+  const adjustedScore = Math.max(0, score - missedSessionPenalty)
+
+  if (adjustedScore < 2) return empty
 
   const confidence: FatigueAssessment['confidence'] =
-    score >= 4 ? 'high' : score === 3 ? 'medium' : 'low'
+    adjustedScore >= 4 ? 'high' : adjustedScore === 3 ? 'medium' : 'low'
 
   return { shouldSuggest: true, confidence, signals }
 }

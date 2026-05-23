@@ -122,6 +122,21 @@ export async function InsightsSection({
       {/* Deload — highest priority, shown first when active */}
       {fatigue.shouldSuggest && <DeloadCard assessment={fatigue} />}
 
+      {/* Recovery ramp-up — shown when a missed week suppressed the deload card */}
+      {fatigue.recoveryMode && !fatigue.shouldSuggest && (
+        <div className="glass p-4 border border-[var(--accent-line)] rounded-[var(--radius-card)]">
+          <p className="text-[11px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--accent)' }}>
+            Easing Back In
+          </p>
+          <p className="text-[13px] text-[var(--text-hi)] leading-relaxed mb-1">
+            Looks like you had a break last week.
+          </p>
+          <p className="text-[12px] text-[var(--text-low)] leading-relaxed">
+            Start at 70–80% of your usual load this week and ramp back to normal over 2 sessions. Your strength comes back fast.
+          </p>
+        </div>
+      )}
+
       {/* Hypertrophic dissociation — surplus too large, gains are fat not muscle */}
       <HypertrophicDissociationCard dissociation={dissociation} />
 

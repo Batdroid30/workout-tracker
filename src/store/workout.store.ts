@@ -23,6 +23,7 @@ interface WorkoutStore {
   updateExerciseRestSeconds: (exerciseIndex: number, seconds: number) => void
   removeExercise: (exerciseIndex: number) => void
   removeSet: (exerciseIndex: number, setIndex: number) => void
+  insertSet: (exerciseIndex: number, setIndex: number, set: ActiveSet) => void
   pairAsSuperset: (indexA: number, indexB: number) => void
   unpairSuperset: (index: number) => void
   finishWorkout: () => void
@@ -267,6 +268,15 @@ export const useWorkoutStore = create<WorkoutStore>()(
       ...exercises[exerciseIndex],
       sets: exercises[exerciseIndex].sets.filter((_, i) => i !== setIndex)
     }
+    return { activeWorkout: { ...state.activeWorkout, exercises } }
+  }),
+
+  insertSet: (exerciseIndex, setIndex, insertedSet) => set((state) => {
+    if (!state.activeWorkout) return state
+    const exercises = [...state.activeWorkout.exercises]
+    const sets = [...exercises[exerciseIndex].sets]
+    sets.splice(setIndex, 0, insertedSet)
+    exercises[exerciseIndex] = { ...exercises[exerciseIndex], sets }
     return { activeWorkout: { ...state.activeWorkout, exercises } }
   }),
 
