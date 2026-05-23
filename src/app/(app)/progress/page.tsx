@@ -2,9 +2,10 @@ import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
 import { WeeklyMuscleRadarChart } from '@/components/ui/WeeklyMuscleRadarChart'
 import { PhaseCoachDetail } from '@/components/progress/PhaseCoachDetail'
 import { BodyweightSection } from '@/components/progress/BodyweightSection'
+import { TopPRsTable } from '@/components/profile/TopPRsTable'
 import { auth } from '@/lib/auth'
 import { getWorkoutsSummary, getVolumeHistory } from '@/lib/data/workouts'
-import { getWeeklyMuscleGroupStats } from '@/lib/data/stats'
+import { getWeeklyMuscleGroupStats, getTopPersonalRecords } from '@/lib/data/stats'
 import { getProfile } from '@/lib/data/profile'
 import { getWeeklyTrainingSummary } from '@/lib/data/insights'
 import {
@@ -35,9 +36,10 @@ export default async function ProgressPage() {
     getLatestBodyweight(userId),
   ])
 
-  const [strengthIndex, volumeLandmarks] = await Promise.all([
+  const [strengthIndex, volumeLandmarks, topPRs] = await Promise.all([
     getStrengthIndex(userId, profile),
     getVolumeLandmarksByMuscle(userId, profile),
+    getTopPersonalRecords(userId),
   ])
 
   const mesocycle = buildMesocycleTimeline({
@@ -150,6 +152,14 @@ export default async function ProgressPage() {
               Distribution of working sets across muscle groups this week.
             </p>
           </div>
+        </section>
+
+        {/* ── Top Personal Records ──────────────────────────────────────── */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="t-display-s">Top Personal Records</h2>
+          </div>
+          <TopPRsTable prs={topPRs} />
         </section>
 
         {/* ── Exercise drill-down ──────────────────────────────────────── */}

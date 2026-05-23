@@ -11,6 +11,45 @@ interface MuscleGroupData {
   fullMark: number
 }
 
+function CustomTick(props: any) {
+  const { payload, x, y, cx, cy } = props
+
+  // Determine label position relative to center
+  const isLeft = x < cx
+  const isRight = x > cx
+  const isCenterVertical = Math.abs(x - cx) < 10
+
+  // Calculate anchor and offset
+  let anchor: "middle" | "start" | "end" = "middle"
+  let dx = 0
+  let dy = 0
+
+  if (isCenterVertical) {
+    anchor = 'middle'
+    dy = y < cy ? -12 : 12 // Top or bottom labels
+  } else if (isLeft) {
+    anchor = 'end'
+    dx = -15
+  } else if (isRight) {
+    anchor = 'start'
+    dx = 15
+  }
+
+  return (
+    <text
+      x={x + dx}
+      y={y + dy}
+      fill="rgba(255,255,255,0.38)"
+      fontSize={9}
+      fontWeight={600}
+      textAnchor={anchor}
+      dominantBaseline="central"
+    >
+      {payload.value}
+    </text>
+  )
+}
+
 export function WeeklyMuscleRadarChart({ data }: { data: MuscleGroupData[] }) {
   if (!data || data.length === 0) {
     return (
@@ -24,11 +63,11 @@ export function WeeklyMuscleRadarChart({ data }: { data: MuscleGroupData[] }) {
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <RadarChart cx="50%" cy="50%" outerRadius="72%" data={data}>
+      <RadarChart cx="50%" cy="50%" outerRadius="65%" data={data}>
         <PolarGrid stroke="rgba(255,255,255,0.07)" />
         <PolarAngleAxis
           dataKey="subject"
-          tick={{ fill: 'rgba(255,255,255,0.38)', fontSize: 9, fontWeight: 600 }}
+          tick={<CustomTick />}
         />
         <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={false} axisLine={false} />
         <Tooltip
