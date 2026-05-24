@@ -218,7 +218,7 @@ export const getNeglectedMuscles = cache(async (userId: string): Promise<Neglect
 
   const { data, error } = await supabase
     .from('workout_exercises')
-    .select(`exercise:exercises ( muscle_group ), workouts!inner ( user_id, started_at )`)
+    .select(`exercise:exercises ( muscle_group, secondary_muscles ), workouts!inner ( user_id, started_at )`)
     .eq('workouts.user_id', userId)
     .gte('workouts.started_at', twentyEightDaysAgo.toISOString())
 
@@ -227,12 +227,17 @@ export const getNeglectedMuscles = cache(async (userId: string): Promise<Neglect
 
   const lastTrainedMap: Record<string, number> = {}
   data.forEach((we: any) => {
-    const workout  = Array.isArray(we.workouts)  ? we.workouts[0]  : we.workouts
-    const exercise = Array.isArray(we.exercise)  ? we.exercise[0]  : we.exercise
+    const workout     = Array.isArray(we.workouts) ? we.workouts[0] : we.workouts
+    const exercise    = Array.isArray(we.exercise) ? we.exercise[0] : we.exercise
     if (!exercise?.muscle_group || !workout?.started_at) return
-    const ts = new Date(workout.started_at).getTime()
-    const group = exercise.muscle_group as string
+    const ts          = new Date(workout.started_at).getTime()
+    const group       = exercise.muscle_group as string
+    const secondaries = (exercise.secondary_muscles ?? []) as string[]
+
     if (!lastTrainedMap[group] || ts > lastTrainedMap[group]) lastTrainedMap[group] = ts
+    for (const secondary of secondaries) {
+      if (!lastTrainedMap[secondary] || ts > lastTrainedMap[secondary]) lastTrainedMap[secondary] = ts
+    }
   })
 
   const now = Date.now()
@@ -439,7 +444,7 @@ export const getWeeklySetsByMuscle = cache(async (userId: string): Promise<Weekl
     .select(`
       id, is_warmup, completed_at,
       workout_exercises!inner (
-        exercise:exercises ( muscle_group ),
+        exercise:exercises ( muscle_group, secondary_muscles ),
         workouts!inner ( user_id )
       )
     `)
@@ -452,15 +457,20 @@ export const getWeeklySetsByMuscle = cache(async (userId: string): Promise<Weekl
 
   const counts: Record<string, number> = {}
   for (const set of data as any[]) {
-    const we       = Array.isArray(set.workout_exercises) ? set.workout_exercises[0] : set.workout_exercises
-    const exercise = Array.isArray(we?.exercise)          ? we.exercise[0]           : we?.exercise
-    const group    = exercise?.muscle_group as string | undefined
+    const we          = Array.isArray(set.workout_exercises) ? set.workout_exercises[0] : set.workout_exercises
+    const exercise    = Array.isArray(we?.exercise)          ? we.exercise[0]           : we?.exercise
+    const group       = exercise?.muscle_group as string | undefined
+    const secondaries = (exercise?.secondary_muscles ?? []) as string[]
     if (!group) continue
+
     counts[group] = (counts[group] ?? 0) + 1
+    for (const secondary of secondaries) {
+      counts[secondary] = (counts[secondary] ?? 0) + 0.5
+    }
   }
 
   return Object.entries(counts)
-    .map(([muscleGroup, setCount]) => ({ muscleGroup, setCount }))
+    .map(([muscleGroup, setCount]) => ({ muscleGroup, setCount: Math.ceil(setCount) }))
     .sort((a, b) => b.setCount - a.setCount)
 })
 

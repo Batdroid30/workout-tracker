@@ -64,13 +64,18 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
             {exercise.name}
           </h1>
           <div className="flex items-center gap-1 mt-0.5">
-            <p className="t-label">
-              {exercise.muscle_group} · {exercise.movement_pattern}
+            <p className="t-label capitalize">
+              {exercise.muscle_group}
+              {exercise.secondary_muscles && exercise.secondary_muscles.length > 0
+                ? ` · ${exercise.secondary_muscles.join(', ')}`
+                : ''}
+              {' · '}{exercise.movement_pattern}
             </p>
             <ExerciseMetaEditor
               exerciseId={exercise.id}
               currentMuscleGroup={exercise.muscle_group as MuscleGroup}
               currentMovementPattern={exercise.movement_pattern as MovementPattern}
+              currentSecondaryMuscles={(exercise.secondary_muscles ?? []) as MuscleGroup[]}
             />
           </div>
         </div>

@@ -161,7 +161,7 @@ export const getWeeklyMuscleGroupStats = cache(async (userId: string) => {
     .select(`
       started_at,
       workout_exercises (
-        exercise:exercises ( muscle_group ),
+        exercise:exercises ( muscle_group, secondary_muscles ),
         sets ( id, is_warmup )
       )
     `)
@@ -178,17 +178,28 @@ export const getWeeklyMuscleGroupStats = cache(async (userId: string) => {
       // @ts-ignore
       const group = we.exercise?.muscle_group
       // @ts-ignore
+      const secondaries: string[] = we.exercise?.secondary_muscles ?? []
+      // @ts-ignore
       const validSets = we.sets?.filter(s => !s.is_warmup).length || 0
-      if (group && validSets > 0) {
-        muscleCounts[group] = (muscleCounts[group] || 0) + validSets
+      if (!group || validSets === 0) return
+
+      muscleCounts[group] = (muscleCounts[group] || 0) + validSets
+
+      // Secondary muscles credited at 50% — compounds provide a partial stimulus
+      // to secondary movers, not a full training stimulus (RP methodology).
+      // Accumulate as float; ceil is applied once when building the return array.
+      for (const secondary of secondaries) {
+        if (secondary in muscleCounts) {
+          muscleCounts[secondary] = (muscleCounts[secondary] || 0) + validSets * 0.5
+        }
       }
     })
   })
 
   return Object.keys(muscleCounts).map(group => ({
     subject: group.toUpperCase(),
-    A: muscleCounts[group],
-    fullMark: Math.max(10, ...Object.values(muscleCounts)),
+    A: Math.ceil(muscleCounts[group]),
+    fullMark: Math.max(10, ...Object.values(muscleCounts).map(Math.ceil)),
   }))
 })
 

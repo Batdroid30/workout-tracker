@@ -42,7 +42,13 @@ export function AddExerciseModal({ isOpen, onClose, onConfirm }: AddExerciseModa
   const filteredExercises = useMemo(() => {
     return exercises.filter(ex => {
       if (!ex.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
-      if (activeTab !== 'All' && mapToCategory(ex.muscle_group) !== activeTab) return false
+      if (activeTab !== 'All') {
+        const primaryMatches   = mapToCategory(ex.muscle_group) === activeTab
+        const secondaryMatches = (ex.secondary_muscles ?? []).some(
+          sm => mapToCategory(sm) === activeTab
+        )
+        if (!primaryMatches && !secondaryMatches) return false
+      }
       return true
     })
   }, [exercises, searchQuery, activeTab])

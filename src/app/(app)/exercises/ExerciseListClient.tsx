@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Search, ChevronRight } from 'lucide-react'
+import { Search, ChevronRight, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { Exercise } from '@/types/database'
+import { CreateExerciseModal } from '@/components/exercises/CreateExerciseModal'
 
 const MUSCLE_GROUPS = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core']
 
@@ -24,13 +25,22 @@ interface ExerciseListClientProps {
 }
 
 export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseListClientProps) {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [activeTab,   setActiveTab]   = useState('All')
+  const [searchQuery,      setSearchQuery]      = useState('')
+  const [activeTab,        setActiveTab]        = useState('All')
+  const [createModalOpen,  setCreateModalOpen]  = useState(false)
 
   const filteredExercises = useMemo(() => {
     return initialExercises.filter((ex) => {
       if (!ex.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
-      if (activeTab !== 'All' && mapDbMuscleGroupToCategory(ex.muscle_group) !== activeTab) return false
+
+      if (activeTab !== 'All') {
+        const primaryCategory   = mapDbMuscleGroupToCategory(ex.muscle_group)
+        const secondaryMatches  = (ex.secondary_muscles ?? []).some(
+          sm => mapDbMuscleGroupToCategory(sm) === activeTab
+        )
+        if (primaryCategory !== activeTab && !secondaryMatches) return false
+      }
+
       return true
     })
   }, [initialExercises, searchQuery, activeTab])
@@ -46,9 +56,19 @@ export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseList
         }}
       >
         {!hideTitle && (
-          <div>
-            <p className="t-label mb-0.5">Library</p>
-            <h1 className="t-display-m">Exercises</h1>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="t-label mb-0.5">Library</p>
+              <h1 className="t-display-m">Exercises</h1>
+            </div>
+            <button
+              onClick={() => setCreateModalOpen(true)}
+              className="flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-pill)] text-xs font-semibold uppercase tracking-wider transition-all active:scale-95 hover:opacity-90"
+              style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New
+            </button>
           </div>
         )}
 
@@ -98,21 +118,30 @@ export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseList
                     border: '1px solid var(--glass-border)',
                   }}
                 >
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-semibold uppercase tracking-tight text-sm" style={{ color: 'var(--text-hi)' }}>
                       {ex.name}
                     </p>
-                    <p className="t-caption mt-0.5 capitalize">
-                      {ex.muscle_group}{ex.equipment ? ` · ${ex.equipment}` : ''}
+                    <p className="t-caption mt-0.5 capitalize truncate">
+                      {ex.muscle_group}
+                      {ex.secondary_muscles && ex.secondary_muscles.length > 0
+                        ? ` · ${ex.secondary_muscles.slice(0, 2).join(', ')}`
+                        : ''}
+                      {ex.equipment ? ` · ${ex.equipment}` : ''}
                     </p>
                   </div>
-                  <ChevronRight className="w-4 h-4 shrink-0" style={{ color: 'var(--text-faint)' }} />
+                  <ChevronRight className="w-4 h-4 shrink-0 ml-2" style={{ color: 'var(--text-faint)' }} />
                 </div>
               </Link>
             ))
           )}
         </div>
       </div>
+
+      <CreateExerciseModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+      />
     </div>
   )
 }

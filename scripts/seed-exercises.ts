@@ -18,7 +18,6 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 // plus the original starter set, all with is_custom: false so every user sees them.
 const exercises = [
   // ── Chest ──────────────────────────────────────────────────────────────────
-  { name: 'Barbell Bench Press',                   muscle_group: 'chest',      movement_pattern: 'push',      equipment: 'barbell',    is_custom: false },
   { name: 'Bench Press (Barbell)',                  muscle_group: 'chest',      movement_pattern: 'push',      equipment: 'barbell',    is_custom: false },
   { name: 'Bench Press - Close Grip (Barbell)',     muscle_group: 'triceps',    movement_pattern: 'push',      equipment: 'barbell',    is_custom: false },
   { name: 'Incline Bench Press (Dumbbell)',         muscle_group: 'chest',      movement_pattern: 'push',      equipment: 'dumbbell',   is_custom: false },
@@ -36,14 +35,10 @@ const exercises = [
   { name: 'Chest Dip',                              muscle_group: 'chest',      movement_pattern: 'push',      equipment: 'bodyweight', is_custom: false },
   { name: 'Chest Dip (Assisted)',                   muscle_group: 'chest',      movement_pattern: 'push',      equipment: 'machine',    is_custom: false },
   { name: 'Chest Dip (Weighted)',                   muscle_group: 'chest',      movement_pattern: 'push',      equipment: 'bodyweight', is_custom: false },
-  { name: 'Weighted Dips',                          muscle_group: 'chest',      movement_pattern: 'push',      equipment: 'bodyweight', is_custom: false },
-  { name: 'Dips',                                   muscle_group: 'chest',      movement_pattern: 'push',      equipment: 'bodyweight', is_custom: false },
   { name: 'Push Up',                                muscle_group: 'chest',      movement_pattern: 'push',      equipment: 'bodyweight', is_custom: false },
 
   // ── Back ───────────────────────────────────────────────────────────────────
-  { name: 'Deadlift',                               muscle_group: 'back',       movement_pattern: 'hinge',     equipment: 'barbell',    is_custom: false },
   { name: 'Deadlift (Barbell)',                     muscle_group: 'back',       movement_pattern: 'hinge',     equipment: 'barbell',    is_custom: false },
-  { name: 'Barbell Row',                            muscle_group: 'back',       movement_pattern: 'pull',      equipment: 'barbell',    is_custom: false },
   { name: 'Bent Over Row (Barbell)',                muscle_group: 'back',       movement_pattern: 'pull',      equipment: 'barbell',    is_custom: false },
   { name: 'Deficit Dead Barbell Rows',              muscle_group: 'back',       movement_pattern: 'pull',      equipment: 'barbell',    is_custom: false },
   { name: 'Meadows Rows (Barbell)',                 muscle_group: 'back',       movement_pattern: 'pull',      equipment: 'barbell',    is_custom: false },
@@ -51,12 +46,10 @@ const exercises = [
   { name: 'Dumbbell Row',                           muscle_group: 'back',       movement_pattern: 'pull',      equipment: 'dumbbell',   is_custom: false },
   { name: 'Chest Supported Incline Row (Dumbbell)', muscle_group: 'back',       movement_pattern: 'pull',      equipment: 'dumbbell',   is_custom: false },
   { name: 'Chest Supported Incline Row - Wide Grip',muscle_group: 'back',       movement_pattern: 'pull',      equipment: 'barbell',    is_custom: false },
-  { name: 'Pull-ups',                               muscle_group: 'lats',       movement_pattern: 'pull',      equipment: 'bodyweight', is_custom: false },
   { name: 'Pull Up',                                muscle_group: 'lats',       movement_pattern: 'pull',      equipment: 'bodyweight', is_custom: false },
   { name: 'Pull Up (Assisted)',                     muscle_group: 'lats',       movement_pattern: 'pull',      equipment: 'machine',    is_custom: false },
   { name: 'Pull Up (Weighted)',                     muscle_group: 'lats',       movement_pattern: 'pull',      equipment: 'bodyweight', is_custom: false },
   { name: 'Chin Up (Weighted)',                     muscle_group: 'lats',       movement_pattern: 'pull',      equipment: 'bodyweight', is_custom: false },
-  { name: 'Lat Pulldown',                           muscle_group: 'lats',       movement_pattern: 'pull',      equipment: 'cable',      is_custom: false },
   { name: 'Lat Pulldown (Cable)',                   muscle_group: 'lats',       movement_pattern: 'pull',      equipment: 'cable',      is_custom: false },
   { name: 'Behind The Neck Pulldown',               muscle_group: 'lats',       movement_pattern: 'pull',      equipment: 'cable',      is_custom: false },
   { name: 'Reverse Grip Lat Pulldown (Cable)',      muscle_group: 'lats',       movement_pattern: 'pull',      equipment: 'cable',      is_custom: false },
@@ -72,12 +65,10 @@ const exercises = [
   { name: 'Iso-Lateral Low Row',                    muscle_group: 'back',       movement_pattern: 'pull',      equipment: 'machine',    is_custom: false },
 
   // ── Shoulders ──────────────────────────────────────────────────────────────
-  { name: 'Overhead Press',                         muscle_group: 'shoulders',  movement_pattern: 'push',      equipment: 'barbell',    is_custom: false },
   { name: 'Overhead Press (Barbell)',               muscle_group: 'shoulders',  movement_pattern: 'push',      equipment: 'barbell',    is_custom: false },
   { name: 'Overhead Press (Smith Machine)',         muscle_group: 'shoulders',  movement_pattern: 'push',      equipment: 'machine',    is_custom: false },
   { name: 'Shoulder Press (Dumbbell)',              muscle_group: 'shoulders',  movement_pattern: 'push',      equipment: 'dumbbell',   is_custom: false },
   { name: 'Seated Shoulder Press (Machine)',        muscle_group: 'shoulders',  movement_pattern: 'push',      equipment: 'machine',    is_custom: false },
-  { name: 'Lateral Raise',                          muscle_group: 'shoulders',  movement_pattern: 'isolation', equipment: 'dumbbell',   is_custom: false },
   { name: 'Lateral Raise (Dumbbell)',               muscle_group: 'shoulders',  movement_pattern: 'isolation', equipment: 'dumbbell',   is_custom: false },
   { name: 'Lateral Raise (Cable)',                  muscle_group: 'shoulders',  movement_pattern: 'isolation', equipment: 'cable',      is_custom: false },
   { name: 'Lateral Raise (Machine)',                muscle_group: 'shoulders',  movement_pattern: 'isolation', equipment: 'machine',    is_custom: false },
@@ -98,7 +89,6 @@ const exercises = [
   { name: 'Shrug (Machine)',                        muscle_group: 'traps',      movement_pattern: 'pull',      equipment: 'machine',    is_custom: false },
 
   // ── Biceps ─────────────────────────────────────────────────────────────────
-  { name: 'Barbell Curl',                           muscle_group: 'biceps',     movement_pattern: 'isolation', equipment: 'barbell',    is_custom: false },
   { name: 'Bicep Curl (Barbell)',                   muscle_group: 'biceps',     movement_pattern: 'isolation', equipment: 'barbell',    is_custom: false },
   { name: 'Bicep Curl (Dumbbell)',                  muscle_group: 'biceps',     movement_pattern: 'isolation', equipment: 'dumbbell',   is_custom: false },
   { name: 'Bicep Curl (Cable)',                     muscle_group: 'biceps',     movement_pattern: 'isolation', equipment: 'cable',      is_custom: false },
@@ -108,16 +98,13 @@ const exercises = [
   { name: 'Preacher Curl (Barbell)',                muscle_group: 'biceps',     movement_pattern: 'isolation', equipment: 'barbell',    is_custom: false },
   { name: 'Preacher Curl (Dumbbell)',               muscle_group: 'biceps',     movement_pattern: 'isolation', equipment: 'dumbbell',   is_custom: false },
   { name: 'Seated Incline Curl (Dumbbell)',         muscle_group: 'biceps',     movement_pattern: 'isolation', equipment: 'dumbbell',   is_custom: false },
-  { name: 'Hammer Curl',                            muscle_group: 'biceps',     movement_pattern: 'isolation', equipment: 'dumbbell',   is_custom: false },
   { name: 'Hammer Curl (Dumbbell)',                 muscle_group: 'biceps',     movement_pattern: 'isolation', equipment: 'dumbbell',   is_custom: false },
   { name: 'Hammer Curl (Cable)',                    muscle_group: 'biceps',     movement_pattern: 'isolation', equipment: 'cable',      is_custom: false },
   { name: 'Reverse Curl (Barbell)',                 muscle_group: 'biceps',     movement_pattern: 'isolation', equipment: 'barbell',    is_custom: false },
   { name: 'Reverse Curl (Cable)',                   muscle_group: 'biceps',     movement_pattern: 'isolation', equipment: 'cable',      is_custom: false },
 
   // ── Triceps ────────────────────────────────────────────────────────────────
-  { name: 'Skull Crusher',                          muscle_group: 'triceps',    movement_pattern: 'isolation', equipment: 'ez-bar',     is_custom: false },
   { name: 'Skullcrusher (Barbell)',                 muscle_group: 'triceps',    movement_pattern: 'isolation', equipment: 'barbell',    is_custom: false },
-  { name: 'Tricep Pushdown',                        muscle_group: 'triceps',    movement_pattern: 'isolation', equipment: 'cable',      is_custom: false },
   { name: 'Triceps Pushdown',                       muscle_group: 'triceps',    movement_pattern: 'isolation', equipment: 'cable',      is_custom: false },
   { name: 'Triceps Rope Pushdown',                  muscle_group: 'triceps',    movement_pattern: 'isolation', equipment: 'cable',      is_custom: false },
   { name: 'Single Arm Triceps Pushdown (Cable)',    muscle_group: 'triceps',    movement_pattern: 'isolation', equipment: 'cable',      is_custom: false },
@@ -127,11 +114,9 @@ const exercises = [
   { name: 'Triceps Extension (Dumbbell)',           muscle_group: 'triceps',    movement_pattern: 'isolation', equipment: 'dumbbell',   is_custom: false },
 
   // ── Legs ───────────────────────────────────────────────────────────────────
-  { name: 'Squat',                                  muscle_group: 'quads',      movement_pattern: 'squat',     equipment: 'barbell',    is_custom: false },
   { name: 'Squat (Barbell)',                        muscle_group: 'quads',      movement_pattern: 'squat',     equipment: 'barbell',    is_custom: false },
   { name: 'Squat (Smith Machine)',                  muscle_group: 'quads',      movement_pattern: 'squat',     equipment: 'machine',    is_custom: false },
   { name: 'Hack Squat (Machine)',                   muscle_group: 'quads',      movement_pattern: 'squat',     equipment: 'machine',    is_custom: false },
-  { name: 'Leg Press',                              muscle_group: 'quads',      movement_pattern: 'squat',     equipment: 'machine',    is_custom: false },
   { name: 'Leg Press (Machine)',                    muscle_group: 'quads',      movement_pattern: 'squat',     equipment: 'machine',    is_custom: false },
   { name: 'Leg Extension (Machine)',                muscle_group: 'quads',      movement_pattern: 'isolation', equipment: 'machine',    is_custom: false },
   { name: 'Bulgarian Split Squat',                  muscle_group: 'quads',      movement_pattern: 'squat',     equipment: 'dumbbell',   is_custom: false },
@@ -139,11 +124,9 @@ const exercises = [
   { name: 'Lunge (Dumbbell)',                       muscle_group: 'quads',      movement_pattern: 'squat',     equipment: 'dumbbell',   is_custom: false },
   { name: 'Reverse Lunge (Barbell)',                muscle_group: 'quads',      movement_pattern: 'squat',     equipment: 'barbell',    is_custom: false },
   { name: 'Walking Lunge (Dumbbell)',               muscle_group: 'quads',      movement_pattern: 'squat',     equipment: 'dumbbell',   is_custom: false },
-  { name: 'Romanian Deadlift',                      muscle_group: 'hamstrings', movement_pattern: 'hinge',     equipment: 'barbell',    is_custom: false },
   { name: 'Romanian Deadlift (Barbell)',            muscle_group: 'hamstrings', movement_pattern: 'hinge',     equipment: 'barbell',    is_custom: false },
   { name: 'Romanian Deadlift (Dumbbell)',           muscle_group: 'hamstrings', movement_pattern: 'hinge',     equipment: 'dumbbell',   is_custom: false },
   { name: 'Stiff Leg Deadlift (Dumbbell)',          muscle_group: 'hamstrings', movement_pattern: 'hinge',     equipment: 'dumbbell',   is_custom: false },
-  { name: 'Leg Curl',                               muscle_group: 'hamstrings', movement_pattern: 'isolation', equipment: 'machine',    is_custom: false },
   { name: 'Lying Leg Curl (Machine)',               muscle_group: 'hamstrings', movement_pattern: 'isolation', equipment: 'machine',    is_custom: false },
   { name: 'Standing Leg Curls',                     muscle_group: 'hamstrings', movement_pattern: 'isolation', equipment: 'machine',    is_custom: false },
   { name: 'Hip Abduction (Machine)',                muscle_group: 'glutes',     movement_pattern: 'isolation', equipment: 'machine',    is_custom: false },
