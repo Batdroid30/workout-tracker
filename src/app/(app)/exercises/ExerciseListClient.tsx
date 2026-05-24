@@ -56,21 +56,20 @@ export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseList
         }}
       >
         {!hideTitle && (
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="t-label mb-0.5">Library</p>
-              <h1 className="t-display-m">Exercises</h1>
-            </div>
-            <button
-              onClick={() => setCreateModalOpen(true)}
-              className="flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-pill)] text-xs font-semibold uppercase tracking-wider transition-all active:scale-95 hover:opacity-90"
-              style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-            >
-              <Plus className="w-3.5 h-3.5" />
-              New
-            </button>
+          <div>
+            <p className="t-label mb-0.5">Library</p>
+            <h1 className="t-display-m">Exercises</h1>
           </div>
         )}
+
+        <button
+          onClick={() => setCreateModalOpen(true)}
+          className="flex items-center justify-center gap-2 w-full h-11 rounded-[var(--radius-inner)] text-sm font-semibold uppercase tracking-wider transition-all active:scale-95 hover:opacity-90"
+          style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
+        >
+          <Plus className="w-4 h-4" />
+          Create Exercise
+        </button>
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-faint)' }} />
