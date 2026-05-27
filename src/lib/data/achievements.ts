@@ -1,5 +1,5 @@
 import { cache } from 'react'
-import { getSupabaseAdmin } from '@/lib/supabase/server'
+import { resolveSupabaseClient } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -61,8 +61,9 @@ export const getBadges = cache(async (
   userId: string,
   totalVolume: number,
   totalWorkouts: number,
+  accessToken?: string, runAsAdmin: boolean = false,
 ): Promise<Badge[]> => {
-  const supabase = getSupabaseAdmin()
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const [prResult, workoutResult] = await Promise.all([
     supabase.from('personal_records').select('id', { count: 'exact', head: true }).eq('user_id', userId),

@@ -2,7 +2,7 @@
 
 import { auth } from '@/lib/auth'
 import { createRoutine, deleteRoutine, updateRoutine, CreateRoutineInput } from '@/lib/data/routines'
-import { getSupabaseServer } from '@/lib/supabase/server'
+import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 
 export async function createRoutineAction(input: CreateRoutineInput) {
@@ -10,7 +10,8 @@ export async function createRoutineAction(input: CreateRoutineInput) {
   if (!session?.user?.id) throw new Error('Unauthorized')
 
   const userId  = session.user.id
-  const routine = await createRoutine(userId, input)
+  const accessToken = session.supabaseAccessToken as string | undefined
+  const routine = await createRoutine(userId, input, accessToken)
 
   revalidateAll()
 
@@ -22,7 +23,8 @@ export async function deleteRoutineAction(routineId: string) {
   if (!session?.user?.id) throw new Error('Unauthorized')
 
   const userId = session.user.id
-  await deleteRoutine(routineId, userId)
+  const accessToken = session.supabaseAccessToken as string | undefined
+  await deleteRoutine(routineId, userId, accessToken)
 
   revalidateAll()
 }
@@ -32,7 +34,8 @@ export async function updateRoutineExercisesAction(routineId: string, exercises:
   if (!session?.user?.id) throw new Error('Unauthorized')
 
   const userId   = session.user.id
-  const supabase = await getSupabaseServer()
+  const accessToken = session.supabaseAccessToken as string | undefined
+  const supabase = accessToken ? await getSupabaseServer(accessToken) : getSupabaseAdmin()
 
   const { error: delError } = await supabase
     .from('routine_exercises')
@@ -62,7 +65,8 @@ export async function updateRoutineDetailsAction(routineId: string, input: Creat
   if (!session?.user?.id) throw new Error('Unauthorized')
 
   const userId = session.user.id
-  await updateRoutine(routineId, userId, input)
+  const accessToken = session.supabaseAccessToken as string | undefined
+  await updateRoutine(routineId, userId, input, accessToken)
 
   revalidateAll()
 }

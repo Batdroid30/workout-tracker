@@ -13,12 +13,13 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
   const { id } = await params
   const { auth } = await import('@/lib/auth')
   const session = await auth()
-  const workout = await getWorkoutById(id, session?.user?.id ?? '')
+  const accessToken = session?.supabaseAccessToken as string | undefined
+  const workout = await getWorkoutById(id, session?.user?.id ?? '', accessToken)
 
   if (!workout) notFound()
 
   const setIds = workout.workout_exercises.flatMap((we: any) => we.sets?.map((s: any) => s.id) || [])
-  const prMap = await getWorkoutSetPRs(setIds)
+  const prMap = await getWorkoutSetPRs(setIds, accessToken)
 
   const workoutVolume = workout.workout_exercises.reduce((acc: number, we: any) => {
     const weVolume = we.sets?.reduce((sAcc: number, set: any) => sAcc + (set.weight_kg * set.reps), 0) || 0

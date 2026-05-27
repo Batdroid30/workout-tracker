@@ -15,10 +15,11 @@ export const metadata = {
 export default async function RoutinesPage() {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
+  const accessToken = session.supabaseAccessToken as string | undefined
 
   const [routines, profile] = await Promise.all([
-    getRoutines(session.user.id),
-    getProfile(session.user.id),
+    getRoutines(session.user.id, accessToken),
+    getProfile(session.user.id, accessToken),
   ])
 
   return (

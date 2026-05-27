@@ -16,11 +16,12 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
   const userId = session.user.id
+  const accessToken = session.supabaseAccessToken as string | undefined
 
   const [exercise, { prs, progression }, profile] = await Promise.all([
-    getExerciseById(id),
-    getExerciseProgression(userId, id),
-    getProfile(userId),
+    getExerciseById(id, accessToken),
+    getExerciseProgression(userId, id, accessToken),
+    getProfile(userId, accessToken),
   ])
 
   if (!exercise) notFound()

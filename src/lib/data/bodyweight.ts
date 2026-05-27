@@ -1,5 +1,5 @@
 import { cache } from 'react'
-import { getSupabaseAdmin } from '@/lib/supabase/server'
+import { resolveSupabaseClient } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -22,8 +22,9 @@ export interface BodyweightPoint {
 export const getBodyweightHistory = cache(async (
   userId: string,
   weeks = 12,
+  accessToken?: string, runAsAdmin: boolean = false,
 ): Promise<BodyweightPoint[]> => {
-  const supabase = getSupabaseAdmin()
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
   const since = new Date(Date.now() - weeks * 7 * 86400_000)
 
   const { data, error } = await supabase
@@ -47,8 +48,9 @@ export const getBodyweightHistory = cache(async (
  */
 export const getLatestBodyweight = cache(async (
   userId: string,
+  accessToken?: string, runAsAdmin: boolean = false,
 ): Promise<BodyweightPoint | null> => {
-  const supabase = getSupabaseAdmin()
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const { data, error } = await supabase
     .from('bodyweight_log')

@@ -1,5 +1,5 @@
 import { cache } from 'react'
-import { getSupabaseAdmin } from '@/lib/supabase/server'
+import { resolveSupabaseClient } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { calculate1RM, suggestNextSet } from '@/lib/algorithms'
 import { getCurrentDUPScheme, isCurrentWeekDeload } from '@/lib/workout-intelligence'
@@ -73,8 +73,8 @@ export interface KeyLift {
  * Can return fewer (or empty) — callers MUST handle the < 3 case as
  * "not enough data for an Index."
  */
-export const getKeyLifts = cache(async (userId: string): Promise<KeyLift[]> => {
-  const supabase = getSupabaseAdmin()
+export const getKeyLifts = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<KeyLift[]> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
   const since = new Date(Date.now() - KEY_LIFT_WINDOW_DAYS * 86400000)
 
   const { data, error } = await supabase
@@ -163,12 +163,13 @@ export interface StrengthIndexSummary {
 export const getStrengthIndex = cache(async (
   userId: string,
   profile: Pick<Profile, 'training_phase' | 'experience_level' | 'phase_started_at'> | null,
+  accessToken?: string, runAsAdmin: boolean = false,
 ): Promise<StrengthIndexSummary> => {
   const empty: StrengthIndexSummary = {
     history: [], pctPerWeek: null, status: null, baselineWeek: null, liftCount: 0,
   }
 
-  const keyLifts = await getKeyLifts(userId)
+  const keyLifts = await getKeyLifts(userId, accessToken)
   if (keyLifts.length < 3) return empty
 
   const phaseStartMs = profile?.phase_started_at
@@ -177,7 +178,7 @@ export const getStrengthIndex = cache(async (
   const fallbackMs = Date.now() - STRENGTH_INDEX_FALLBACK_WEEKS * 7 * 86400000
   const windowStart = new Date(Math.max(phaseStartMs, fallbackMs))
 
-  const supabase = getSupabaseAdmin()
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
   const liftIds = keyLifts.map(l => l.exerciseId)
 
   const { data, error } = await supabase
@@ -390,8 +391,9 @@ export interface MuscleVolumeLandmarkPoint {
 
 const getWeeklyMuscleFrequency = cache(async (
   userId: string,
+  accessToken?: string, runAsAdmin: boolean = false,
 ): Promise<Map<string, number>> => {
-  const supabase   = getSupabaseAdmin()
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
   const windowStart = new Date(Date.now() - 28 * 86400_000)
 
   const { data, error } = await supabase
@@ -445,6 +447,7 @@ export const getVolumeLandmarksByMuscle = cache(async (
   profile:                   Pick<Profile, 'training_style' | 'training_phase'> | null,
   currentWeekSetsByMuscle?:  Record<string, number>,
   muscleFrequency?:          Record<string, number>,
+  accessToken?: string, runAsAdmin: boolean = false,
 ): Promise<MuscleVolumeLandmarkPoint[]> => {
   const style: TrainingStyle = profile?.training_style ?? 'volume'
   const phase: TrainingPhase = profile?.training_phase ?? 'maingaining'
@@ -452,10 +455,10 @@ export const getVolumeLandmarksByMuscle = cache(async (
   const [setMap, freqMap] = await Promise.all([
     currentWeekSetsByMuscle
       ? Promise.resolve(new Map(Object.entries(currentWeekSetsByMuscle)))
-      : getWeeklySetsByMuscle(userId).then(sets => new Map(sets.map(s => [s.muscleGroup, s.setCount]))),
+      : getWeeklySetsByMuscle(userId, accessToken).then(sets => new Map(sets.map(s => [s.muscleGroup, s.setCount]))),
     muscleFrequency
       ? Promise.resolve(new Map(Object.entries(muscleFrequency)))
-      : getWeeklyMuscleFrequency(userId),
+      : getWeeklyMuscleFrequency(userId, accessToken),
   ])
 
   return ALL_MUSCLES.map(muscle => {

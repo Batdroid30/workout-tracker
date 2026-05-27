@@ -1,5 +1,5 @@
 import { cache } from 'react'
-import { getSupabaseAdmin } from '@/lib/supabase/server'
+import { resolveSupabaseClient } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { calculate1RM, type WeekSummary } from '@/lib/algorithms'
 import { STALL_VARIATION_ADVICE, type MovementKey } from '@/lib/workout-intelligence'
@@ -69,8 +69,8 @@ function getMondayOf(date: Date): string {
 
 // ── Cached read functions ─────────────────────────────────────────────────────
 
-export const getWeeklyTrainingSummary = cache(async (userId: string): Promise<WeekSummary[]> => {
-  const supabase = getSupabaseAdmin()
+export const getWeeklyTrainingSummary = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<WeekSummary[]> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const eightWeeksAgo = new Date()
   eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 56)
@@ -130,8 +130,8 @@ export const getWeeklyTrainingSummary = cache(async (userId: string): Promise<We
     }))
 })
 
-export const getRecentPRs = cache(async (userId: string, days = 30): Promise<RecentPR[]> => {
-  const supabase = getSupabaseAdmin()
+export const getRecentPRs = cache(async (userId: string, days = 30, accessToken?: string, runAsAdmin: boolean = false): Promise<RecentPR[]> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const since = new Date()
   since.setDate(since.getDate() - days)
@@ -158,8 +158,8 @@ export const getRecentPRs = cache(async (userId: string, days = 30): Promise<Rec
   }))
 })
 
-export const getMostImprovedExercises = cache(async (userId: string): Promise<ImprovedExercise[]> => {
-  const supabase = getSupabaseAdmin()
+export const getMostImprovedExercises = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<ImprovedExercise[]> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const ninetyDaysAgo = new Date()
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
@@ -211,8 +211,8 @@ export const getMostImprovedExercises = cache(async (userId: string): Promise<Im
     .slice(0, 3)
 })
 
-export const getNeglectedMuscles = cache(async (userId: string): Promise<NeglectedMuscle[]> => {
-  const supabase = getSupabaseAdmin()
+export const getNeglectedMuscles = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<NeglectedMuscle[]> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const twentyEightDaysAgo = new Date(Date.now() - 28 * 86400000)
 
@@ -247,8 +247,8 @@ export const getNeglectedMuscles = cache(async (userId: string): Promise<Neglect
     .sort((a, b) => b.daysSinceLastTrained - a.daysSinceLastTrained)
 })
 
-export const getStalledMovements = cache(async (userId: string): Promise<StalledMovement[]> => {
-  const supabase = getSupabaseAdmin()
+export const getStalledMovements = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<StalledMovement[]> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const sixWeeksAgo     = new Date(Date.now() - 42 * 86400000)
   const threeWeeksAgoMs = Date.now() - 21 * 86400000
@@ -331,8 +331,8 @@ export const getStalledMovements = cache(async (userId: string): Promise<Stalled
     .slice(0, 3)
 })
 
-export const getTrainingStreak = cache(async (userId: string): Promise<TrainingStreak> => {
-  const supabase = getSupabaseAdmin()
+export const getTrainingStreak = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<TrainingStreak> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const { data, error } = await supabase
     .from('workouts')
@@ -434,8 +434,8 @@ export interface WeeklySetCount {
   setCount:    number
 }
 
-export const getWeeklySetsByMuscle = cache(async (userId: string): Promise<WeeklySetCount[]> => {
-  const supabase = getSupabaseAdmin()
+export const getWeeklySetsByMuscle = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<WeeklySetCount[]> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const monday = new Date(getMondayOf(new Date()) + 'T00:00:00Z')
 
@@ -484,8 +484,8 @@ export const getWeeklySetsByMuscle = cache(async (userId: string): Promise<Weekl
 
 import type { RecentExerciseLoad } from '@/lib/algorithms'
 
-export const getRecentExerciseLoads = cache(async (userId: string): Promise<RecentExerciseLoad[]> => {
-  const supabase = getSupabaseAdmin()
+export const getRecentExerciseLoads = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<RecentExerciseLoad[]> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000)
 
@@ -553,8 +553,8 @@ export interface PushPullBalance {
 // truth means the balance card and the day-classifier always agree on what
 // counts as push vs pull.
 
-export const getPushPullBalance = cache(async (userId: string): Promise<PushPullBalance> => {
-  const supabase = getSupabaseAdmin()
+export const getPushPullBalance = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<PushPullBalance> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const twentyEightDaysAgo = new Date(Date.now() - 28 * 86400000)
 
@@ -672,8 +672,8 @@ export interface WorkoutCalendarData {
   longestStreak:    number
 }
 
-export const getWorkoutCalendarData = cache(async (userId: string): Promise<WorkoutCalendarData> => {
-  const supabase = getSupabaseAdmin()
+export const getWorkoutCalendarData = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<WorkoutCalendarData> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const { data, error } = await supabase
     .from('workouts')
@@ -769,8 +769,8 @@ export interface PersonalRecordsData {
   history:         PRHistoryEntry[]
 }
 
-export const getPersonalRecordsData = cache(async (userId: string): Promise<PersonalRecordsData> => {
-  const supabase = getSupabaseAdmin()
+export const getPersonalRecordsData = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<PersonalRecordsData> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const { data, error } = await supabase
     .from('personal_records')

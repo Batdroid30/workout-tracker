@@ -1,5 +1,5 @@
 import { cache } from 'react'
-import { getSupabaseAdmin } from '@/lib/supabase/server'
+import { resolveSupabaseClient } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { calculate1RM, type RecentExerciseLoad } from '@/lib/algorithms'
 import type { KeyLift } from '@/lib/data/phase-coach'
@@ -101,8 +101,8 @@ function makeEmptySnapshot(): ProgressSnapshot {
  *   sets-per-muscle trend, push/pull/legs balance, per-lift e1RM curves,
  *   stale lift detection, and month-over-month summary.
  */
-export const getProgressSnapshot = cache(async (userId: string): Promise<ProgressSnapshot> => {
-  const supabase = getSupabaseAdmin()
+export const getProgressSnapshot = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<ProgressSnapshot> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
   const since    = new Date(Date.now() - SNAPSHOT_WEEKS * 7 * 86400_000)
 
   const { data, error } = await supabase

@@ -2,6 +2,13 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/supabase'
+import { UnauthorizedError } from '@/lib/errors'
+
+export async function resolveSupabaseClient(accessToken?: string, runAsAdmin: boolean = false) {
+  if (accessToken) return await getSupabaseServer(accessToken)
+  if (runAsAdmin) return getSupabaseAdmin()
+  throw new UnauthorizedError('Unauthorized: No access token provided and runAsAdmin is not explicitly set to true.')
+}
 
 export async function getSupabaseServer(accessToken?: string) {
   const cookieStore = await cookies()

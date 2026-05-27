@@ -1,9 +1,9 @@
 import { cache } from 'react'
-import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
+import { resolveSupabaseClient } from '@/lib/supabase/server'
 import type { Exercise } from '@/types/database'
 
-export const getExercises = cache(async (): Promise<Exercise[]> => {
-  const supabase = getSupabaseAdmin()
+export const getExercises = cache(async (accessToken?: string, runAsAdmin: boolean = false): Promise<Exercise[]> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
   const { data, error } = await supabase
     .from('exercises')
     .select('id, name, muscle_group, secondary_muscles, equipment, movement_pattern, is_custom, created_by, created_at, youtube_video_id')
@@ -16,8 +16,8 @@ export const getExercises = cache(async (): Promise<Exercise[]> => {
   return data
 })
 
-export const getExerciseById = cache(async (id: string): Promise<Exercise | null> => {
-  const supabase = getSupabaseAdmin()
+export const getExerciseById = cache(async (id: string, accessToken?: string, runAsAdmin: boolean = false): Promise<Exercise | null> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
   const { data, error } = await supabase
     .from('exercises')
     .select('id, name, muscle_group, secondary_muscles, equipment, movement_pattern, is_custom, created_by, created_at, youtube_video_id')
@@ -33,8 +33,8 @@ export const getExerciseById = cache(async (id: string): Promise<Exercise | null
 
 // Not cached: relies on the user's Supabase session for RLS and is only
 // used inside SetLogger (client hook) where SWR handles caching.
-export async function getRecentSetsForExercise(exerciseId: string) {
-  const supabase = await getSupabaseServer()
+export async function getRecentSetsForExercise(exerciseId: string, accessToken?: string, runAsAdmin: boolean = false) {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
   const { data, error } = await supabase
     .from('sets')
     .select(`

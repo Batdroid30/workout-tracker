@@ -20,7 +20,8 @@ export async function importHevyCSVAction(formData: FormData) {
 
     if (rows.length === 0) return { success: false, error: 'Empty or invalid CSV file' }
 
-    const results = await importWorkoutsFromHevy(userId, rows)
+    const accessToken = session.supabaseAccessToken as string | undefined
+    const results = await importWorkoutsFromHevy(userId, rows, accessToken)
     return { success: true, count: results.workoutsImported, skipped: results.skipped, errors: results.errors }
   } catch (error: any) {
     console.error('Import failed:', error)
@@ -35,7 +36,8 @@ export async function recalculatePRsAfterImportAction() {
   const userId = session.user.id
 
   try {
-    await evaluateAndSaveAllPRs(userId)
+    const accessToken = session.supabaseAccessToken as string | undefined
+    await evaluateAndSaveAllPRs(userId, accessToken)
     revalidateAll()
     return { success: true }
   } catch (error: any) {

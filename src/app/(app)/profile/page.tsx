@@ -22,11 +22,12 @@ export default async function ProfilePage({
   if (!session?.user?.id) redirect('/login')
 
   const userId = session.user.id
+  const accessToken = session.supabaseAccessToken as string | undefined
   const { tab: rawTab } = await searchParams
   const VALID_TABS: Tab[] = ['history', 'exercises', 'account']
   const tab: Tab = VALID_TABS.includes(rawTab as Tab) ? (rawTab as Tab) : 'history'
 
-  const profile = await getProfile(userId)
+  const profile = await getProfile(userId, accessToken)
 
   return (
     <div className="min-h-screen pb-24">
@@ -60,8 +61,8 @@ export default async function ProfilePage({
       <ProfileContent activeTab={tab}>
         {/* Suspense lets RSC stream — ProfileContent already shows the skeleton */}
         <Suspense fallback={null}>
-          {tab === 'history'   && <HistoryTab userId={userId} />}
-          {tab === 'exercises' && <ExercisesTab />}
+          {tab === 'history'   && <HistoryTab userId={userId} accessToken={accessToken} />}
+          {tab === 'exercises' && <ExercisesTab accessToken={accessToken} />}
           {tab === 'account'   && <ProfileForm profile={profile} userEmail={session.user.email || ''} />}
         </Suspense>
       </ProfileContent>
@@ -69,8 +70,8 @@ export default async function ProfilePage({
   )
 }
 
-async function HistoryTab({ userId }: { userId: string }) {
-  const workouts = await getAllWorkouts(userId)
+async function HistoryTab({ userId, accessToken }: { userId: string; accessToken?: string }) {
+  const workouts = await getAllWorkouts(userId, accessToken)
 
   return (
     <div className="space-y-3">
@@ -82,8 +83,8 @@ async function HistoryTab({ userId }: { userId: string }) {
   )
 }
 
-async function ExercisesTab() {
-  const exercises = await getExercises()
+async function ExercisesTab({ accessToken }: { accessToken?: string }) {
+  const exercises = await getExercises(accessToken)
   return (
     <div className="-mx-5">
       <ExerciseListClient initialExercises={exercises} hideTitle />

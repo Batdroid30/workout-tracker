@@ -1,4 +1,4 @@
-import { getSupabaseServer } from '@/lib/supabase/server'
+import { resolveSupabaseClient } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import type { MuscleGroup, MovementPattern } from '@/types/database'
 
@@ -216,8 +216,8 @@ async function insertInChunks<T extends object>(
   return { data: allData, error: null }
 }
 
-export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[]) {
-  const supabase = await getSupabaseServer()
+export async function importWorkoutsFromHevy(userId: string, rows: HevyRow[], accessToken?: string, runAsAdmin: boolean = false) {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   // ── Step 1: group CSV rows by workout ────────────────────────────────────────
   const workoutEntries: Array<{ key: string; firstRow: HevyRow; allRows: HevyRow[] }> = []

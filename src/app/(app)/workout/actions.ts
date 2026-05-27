@@ -3,7 +3,7 @@
 import { auth } from '@/lib/auth'
 import { saveActiveWorkout, deleteWorkout } from '@/lib/data/workouts'
 import { evaluateAndSavePRs, evaluateAndSaveAllPRs } from '@/lib/data/stats'
-import { getSupabaseAdmin } from '@/lib/supabase/server'
+import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 
 export async function finishWorkoutAction(activeWorkout: any) {
@@ -11,13 +11,14 @@ export async function finishWorkoutAction(activeWorkout: any) {
   if (!session?.user?.id) throw new Error('User not authenticated')
 
   const userId = session.user.id
+  const accessToken = session.supabaseAccessToken as string | undefined
 
   let workoutId: string
   let savedSets: Awaited<ReturnType<typeof saveActiveWorkout>>['savedSets']
   let startedAt: string
 
   try {
-    const result = await saveActiveWorkout(userId, activeWorkout)
+    const result = await saveActiveWorkout(userId, activeWorkout, accessToken)
     workoutId = result.workout.id
     savedSets = result.savedSets
     startedAt = result.workout.started_at
@@ -30,7 +31,7 @@ export async function finishWorkoutAction(activeWorkout: any) {
   // a failure here must not pretend the whole save failed (we'd lose the user's
   // workout in localStorage on the client). Report partial success instead.
   try {
-    const prs = await evaluateAndSavePRs(userId, workoutId, startedAt, savedSets)
+    const prs = await evaluateAndSavePRs(userId, workoutId, startedAt, savedSets, accessToken)
     revalidateAll()
     return { success: true, workoutId, prs }
   } catch (error: any) {
@@ -45,9 +46,10 @@ export async function deleteWorkoutAction(workoutId: string) {
   if (!session?.user?.id) throw new Error('User not authenticated')
 
   const userId = session.user.id
+  const accessToken = session.supabaseAccessToken as string | undefined
 
   try {
-    await deleteWorkout(workoutId, userId)
+    await deleteWorkout(workoutId, userId, accessToken)
 
     // The deleted workout may have contained PR-setting sets. Those set rows are
     // now gone (cascade), but personal_records rows pointing to them are orphaned.
@@ -55,7 +57,7 @@ export async function deleteWorkoutAction(workoutId: string) {
     // reflects reality without requiring a manual recalculate.
     const supabase = getSupabaseAdmin()
     await supabase.from('personal_records').delete().eq('user_id', userId)
-    await evaluateAndSaveAllPRs(userId)
+    await evaluateAndSaveAllPRs(userId, accessToken)
 
     revalidateAll()
 
@@ -83,7 +85,8 @@ export async function getUserExerciseFrequency(): Promise<Record<string, number>
   const session = await auth()
   if (!session?.user?.id) return {}
 
-  const supabase = getSupabaseAdmin()
+  const accessToken = session.supabaseAccessToken as string | undefined
+  const supabase = accessToken ? await getSupabaseServer(accessToken) : getSupabaseAdmin()
   // user_id is server-derived from the session — never trust a client-passed id.
   const { data, error } = await supabase.rpc('get_user_exercise_frequency', {
     p_user_id: session.user.id,

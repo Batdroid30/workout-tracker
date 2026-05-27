@@ -1,5 +1,5 @@
 import { cache } from 'react'
-import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
+import { resolveSupabaseClient } from '@/lib/supabase/server'
 import { calculate1RM } from '@/lib/algorithms'
 import type { PRType, PRCheckResult } from '@/types/database'
 
@@ -28,8 +28,8 @@ export interface TopPR {
 
 // ── Cached read functions ─────────────────────────────────────────────────────
 
-export const getExerciseProgression = cache(async (userId: string, exerciseId: string) => {
-  const supabase = getSupabaseAdmin()
+export const getExerciseProgression = cache(async (userId: string, exerciseId: string, accessToken?: string, runAsAdmin: boolean = false) => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const { data: prs } = await supabase
     .from('personal_records')
@@ -81,10 +81,10 @@ export const getExerciseProgression = cache(async (userId: string, exerciseId: s
  * Used by the workout history detail page to badge individual sets.
  * Short-circuits on empty input — no query issued.
  */
-export async function getWorkoutSetPRs(setIds: string[]): Promise<Map<string, string[]>> {
+export async function getWorkoutSetPRs(setIds: string[], accessToken?: string, runAsAdmin: boolean = false): Promise<Map<string, string[]>> {
   if (setIds.length === 0) return new Map()
 
-  const supabase = getSupabaseAdmin()
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
   const { data, error } = await supabase
     .from('personal_records')
     .select('pr_type, set_id')
@@ -102,8 +102,8 @@ export async function getWorkoutSetPRs(setIds: string[]): Promise<Map<string, st
   return prMap
 }
 
-export const getTopPersonalRecords = cache(async (userId: string): Promise<TopPR[]> => {
-  const supabase = getSupabaseAdmin()
+export const getTopPersonalRecords = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<TopPR[]> => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const { data, error } = await supabase
     .from('personal_records')
@@ -150,8 +150,8 @@ export const getTopPersonalRecords = cache(async (userId: string): Promise<TopPR
     .slice(0, 15)
 })
 
-export const getWeeklyMuscleGroupStats = cache(async (userId: string) => {
-  const supabase = getSupabaseAdmin()
+export const getWeeklyMuscleGroupStats = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false) => {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
@@ -217,9 +217,10 @@ export async function evaluateAndSavePRs(
     reps: number
     is_warmup: boolean
   }>,
+  accessToken?: string, runAsAdmin: boolean = false,
 ): Promise<PREvaluationResult[]> {
   // Use admin client to bypass RLS — we already verified ownership in the action
-  const supabase = getSupabaseAdmin()
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const { data: existingPRs } = await supabase
     .from('personal_records')
@@ -303,8 +304,8 @@ export async function evaluateAndSavePRs(
   return brokenPRs
 }
 
-export async function evaluateAndSaveAllPRs(userId: string): Promise<void> {
-  const supabase = getSupabaseAdmin()
+export async function evaluateAndSaveAllPRs(userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<void> {
+  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
 
   const { data: allSets, error } = await supabase
     .from('sets')

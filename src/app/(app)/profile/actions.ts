@@ -12,6 +12,7 @@ export async function updateProfileAction(formData: FormData) {
   if (!session?.user?.id) throw new Error('Not authenticated')
 
   const userId = session.user.id
+  const accessToken = session.supabaseAccessToken as string | undefined
 
   try {
     const heightRaw = formData.get('heightCm') as string | null
@@ -26,7 +27,7 @@ export async function updateProfileAction(formData: FormData) {
     if (ageRaw)    updates.age_years  = parseInt(ageRaw,    10)
     if (sexRaw === 'male' || sexRaw === 'female') updates.sex = sexRaw
 
-    await updateProfileData(userId, updates)
+    await updateProfileData(userId, updates, accessToken)
     revalidateAll()
     return { success: true }
   } catch (error: any) {
@@ -40,7 +41,8 @@ export async function uploadAvatarAction(base64Image: string, fileName: string) 
   if (!session?.user?.id) throw new Error('Not authenticated')
 
   const userId   = session.user.id
-  const supabase = await getSupabaseServer()
+  const accessToken = session.supabaseAccessToken as string | undefined
+  const supabase = accessToken ? await getSupabaseServer(accessToken) : getSupabaseAdmin()
   const buffer   = Buffer.from(base64Image.split(',')[1], 'base64')
   const path     = `${userId}/${Date.now()}-${fileName}`
 
@@ -57,7 +59,7 @@ export async function uploadAvatarAction(base64Image: string, fileName: string) 
     }
 
     const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
-    await updateProfileData(userId, { avatar_url: publicUrl })
+    await updateProfileData(userId, { avatar_url: publicUrl }, accessToken)
 
     revalidateAll()
 
@@ -78,7 +80,8 @@ export async function updateWeeklyGoalAction(sessions: number) {
 
   const userId   = session.user.id
   const clamped  = Math.max(1, Math.min(14, sessions))
-  const supabase = await getSupabaseServer()
+  const accessToken = session.supabaseAccessToken as string | undefined
+  const supabase = accessToken ? await getSupabaseServer(accessToken) : getSupabaseAdmin()
 
   await supabase
     .from('profiles')
@@ -104,9 +107,10 @@ export async function recalculatePRsAction() {
   if (!session?.user?.id) throw new Error('Not authenticated')
 
   const userId = session.user.id
+  const accessToken = session.supabaseAccessToken as string | undefined
 
   try {
-    await evaluateAndSaveAllPRs(userId)
+    await evaluateAndSaveAllPRs(userId, accessToken)
     revalidateAll()
     return { success: true }
   } catch (error: any) {
@@ -130,7 +134,9 @@ export async function updateTrainingProfileAction(updates: {
     ? { ...updates, phase_started_at: new Date().toISOString() }
     : updates
 
-  await updateProfileData(session.user.id, payload)
+  const accessToken = session.supabaseAccessToken as string | undefined
+
+  await updateProfileData(session.user.id, payload, accessToken)
   revalidateAll()
   return { success: true }
 }
