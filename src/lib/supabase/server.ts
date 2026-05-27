@@ -3,12 +3,18 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/supabase'
 
-export async function getSupabaseServer() {
+export async function getSupabaseServer(accessToken?: string) {
   const cookieStore = await cookies()
+  const headers: Record<string, string> = {}
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`
+  }
+
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: accessToken ? { headers } : undefined,
       cookies: {
         get: (name) => cookieStore.get(name)?.value,
         set: (name, value, options) => {

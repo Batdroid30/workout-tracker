@@ -17,7 +17,11 @@ export const authConfig = {
           password: credentials.password as string,
         })
         if (error || !data.user) return null
-        return { id: data.user.id, email: data.user.email }
+        return {
+          id: data.user.id,
+          email: data.user.email,
+          supabaseAccessToken: data.session?.access_token,
+        }
       }
     })
   ],
@@ -30,12 +34,14 @@ export const authConfig = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
+        token.supabaseAccessToken = (user as any).supabaseAccessToken
       }
       return token
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string
+        (session as any).supabaseAccessToken = token.supabaseAccessToken
       }
       return session
     },

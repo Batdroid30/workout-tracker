@@ -150,13 +150,13 @@ describe('suggestNextSet', () => {
 })
 
 describe('generateDeloadRoutine', () => {
-  // medium confidence (default): intensityFactor = 0.65, sets = 3, repReduction = 2
-  it('drops weight to 65% rounded to nearest 2.5kg and trims 2 reps (medium confidence)', () => {
+  // medium confidence (default): intensityFactor = 0.87, sets = 3, repReduction = 0
+  it('drops weight to 87.5% rounded to nearest 2.5kg and maintains reps (medium confidence)', () => {
     const [out] = generateDeloadRoutine([
       { exerciseId: 'a', exerciseName: 'Squat', muscleGroup: 'legs', lastWeight: 100, lastReps: 8 },
     ])
-    expect(out.weight_kg).toBe(65)   // 100 * 0.65 = 65, already on a plate
-    expect(out.reps).toBe(6)          // 8 - 2
+    expect(out.weight_kg).toBe(87.5) // 100 * 0.87 = 87 -> rounded to 87.5
+    expect(out.reps).toBe(8)          // maintained
     expect(out.sets).toBe(3)
   })
 
@@ -164,34 +164,34 @@ describe('generateDeloadRoutine', () => {
     const [out] = generateDeloadRoutine([
       { exerciseId: 'a', exerciseName: 'Curl', muscleGroup: 'arms', lastWeight: 20, lastReps: 5 },
     ])
-    expect(out.reps).toBe(5)          // max(5, 5 - 2) = 5
+    expect(out.reps).toBe(5)
   })
 
   it('rounds the deload weight to the nearest 2.5kg plate', () => {
     const [out] = generateDeloadRoutine([
       { exerciseId: 'a', exerciseName: 'Row', muscleGroup: 'back', lastWeight: 77.5, lastReps: 8 },
     ])
-    // 77.5 * 0.65 = 50.375 → nearest 2.5 = 50
-    expect(out.weight_kg).toBe(50)
+    // 77.5 * 0.87 = 67.425 → nearest 2.5 = 67.5
+    expect(out.weight_kg).toBe(67.5)
   })
 
   it('applies a shallower taper under low confidence', () => {
-    // low confidence: intensityFactor = 0.75
+    // low confidence: intensityFactor = 0.92
     const [out] = generateDeloadRoutine([
       { exerciseId: 'a', exerciseName: 'Squat', muscleGroup: 'legs', lastWeight: 100, lastReps: 8 },
     ], 'low')
-    expect(out.weight_kg).toBe(75)   // 100 * 0.75 = 75
+    expect(out.weight_kg).toBe(92.5) // 100 * 0.92 = 92 -> rounded to 92.5
     expect(out.sets).toBe(3)
   })
 
   it('applies a deeper deload and fewer sets under high confidence', () => {
-    // high confidence: intensityFactor = 0.55, sets = 2, repReduction = 3
+    // high confidence: intensityFactor = 0.82, sets = 2
     const [out] = generateDeloadRoutine([
       { exerciseId: 'a', exerciseName: 'Squat', muscleGroup: 'legs', lastWeight: 100, lastReps: 8 },
     ], 'high')
-    expect(out.weight_kg).toBe(55)   // 100 * 0.55 = 55
+    expect(out.weight_kg).toBe(82.5) // 100 * 0.82 = 82 -> rounded to 82.5
     expect(out.sets).toBe(2)
-    expect(out.reps).toBe(5)          // 8 - 3 = 5
+    expect(out.reps).toBe(8)          // maintained
   })
 
   it('returns an empty array for empty input', () => {
@@ -207,17 +207,26 @@ describe('assessFatigueLevel', () => {
     avg_rpe: rpe,
   })
 
+  const getMondayOfWeeksAgo = (weeksAgo: number) => {
+    const today = new Date()
+    const dayOfWeek = today.getUTCDay()
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const target = new Date(today)
+    target.setUTCDate(today.getUTCDate() - daysToMonday - (weeksAgo * 7))
+    return target.toISOString().split('T')[0]
+  }
+
   it('returns no suggestion with fewer than 3 weeks of data', () => {
-    const result = assessFatigueLevel([mkWeek('2026-04-20', 5000, 3)], null)
+    const result = assessFatigueLevel([mkWeek(getMondayOfWeeksAgo(0), 5000, 3)], null)
     expect(result.shouldSuggest).toBe(false)
     expect(result.signals).toEqual([])
   })
 
   it('flags volume decline across 3 stable-frequency weeks', () => {
     const weeks: WeekSummary[] = [
-      mkWeek('2026-04-13', 10000, 4),
-      mkWeek('2026-04-20',  8500, 4),
-      mkWeek('2026-04-27',  7000, 4),
+      mkWeek(getMondayOfWeeksAgo(2), 10000, 4),
+      mkWeek(getMondayOfWeeksAgo(1),  8500, 4),
+      mkWeek(getMondayOfWeeksAgo(0),  7000, 4),
     ]
     const result = assessFatigueLevel(weeks, null)
     expect(result.shouldSuggest).toBe(true)
@@ -226,10 +235,10 @@ describe('assessFatigueLevel', () => {
 
   it('flags PR drought when training consistently and no PR for 21+ days', () => {
     const weeks: WeekSummary[] = [
-      mkWeek('2026-04-06', 9000, 3),
-      mkWeek('2026-04-13', 9000, 3),
-      mkWeek('2026-04-20', 9000, 3),
-      mkWeek('2026-04-27', 9000, 3),
+      mkWeek(getMondayOfWeeksAgo(3), 9000, 3),
+      mkWeek(getMondayOfWeeksAgo(2), 9000, 3),
+      mkWeek(getMondayOfWeeksAgo(1), 9000, 3),
+      mkWeek(getMondayOfWeeksAgo(0), 9000, 3),
     ]
     const result = assessFatigueLevel(weeks, 25)
     expect(result.shouldSuggest).toBe(true)
@@ -238,10 +247,10 @@ describe('assessFatigueLevel', () => {
 
   it('does not flag PR drought when frequency is too low to count as consistent', () => {
     const weeks: WeekSummary[] = [
-      mkWeek('2026-04-06', 9000, 1),
-      mkWeek('2026-04-13', 9000, 1),
-      mkWeek('2026-04-20', 9000, 1),
-      mkWeek('2026-04-27', 9000, 1),
+      mkWeek(getMondayOfWeeksAgo(3), 9000, 1),
+      mkWeek(getMondayOfWeeksAgo(2), 9000, 1),
+      mkWeek(getMondayOfWeeksAgo(1), 9000, 1),
+      mkWeek(getMondayOfWeeksAgo(0), 9000, 1),
     ]
     const result = assessFatigueLevel(weeks, 25)
     // PR drought signal needs >=2 sessions/week — should not contribute

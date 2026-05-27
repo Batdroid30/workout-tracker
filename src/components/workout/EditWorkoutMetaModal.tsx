@@ -39,12 +39,13 @@ export function EditWorkoutMetaModal({ workoutId, initialTitle, initialDuration,
 
   return (
     <>
-      <div onClick={() => setIsOpen(true)} className="cursor-pointer group relative inline-block">
+      <div onClick={() => setIsOpen(true)} className="cursor-pointer group relative block w-full">
         {children}
-        <div className="absolute -right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-zinc-800 rounded-md">
+        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-zinc-800 rounded-md">
           <Edit2 className="w-3 h-3 text-zinc-400" />
         </div>
       </div>
+
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">

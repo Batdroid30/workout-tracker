@@ -14,7 +14,8 @@ export async function updateWorkoutMetaAction(
   if (!session?.user?.id) throw new Error('Unauthorized')
 
   const userId   = session.user.id
-  const supabase = await getSupabaseServer()
+  const token    = (session as any).supabaseAccessToken
+  const supabase = await getSupabaseServer(token)
 
   const { error } = await supabase
     .from('workouts')
@@ -36,7 +37,8 @@ export async function updateHistoricalSetAction(
   if (!session?.user?.id) throw new Error('Unauthorized')
 
   const userId   = session.user.id
-  const supabase = await getSupabaseServer()
+  const token    = (session as any).supabaseAccessToken
+  const supabase = await getSupabaseServer(token)
 
   // Verify the set belongs to a workout owned by this user before mutating.
   // RLS is the safety net; this is the primary check.
@@ -66,7 +68,8 @@ export async function deleteHistoricalExerciseAction(workoutExerciseId: string) 
   if (!session?.user?.id) throw new Error('Unauthorized')
 
   const userId   = session.user.id
-  const supabase = await getSupabaseServer()
+  const token    = (session as any).supabaseAccessToken
+  const supabase = await getSupabaseServer(token)
 
   const { data: owner, error: ownerError } = await supabase
     .from('workout_exercises')
