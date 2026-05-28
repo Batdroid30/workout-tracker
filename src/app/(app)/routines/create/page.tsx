@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { RoutineBuilderClient } from '@/components/routines/RoutineBuilderClient'
 
@@ -8,8 +8,7 @@ export const metadata = {
 }
 
 export default async function CreateRoutinePage() {
-  const session = await auth()
-  if (!session?.user?.id) redirect('/login')
+  const { session } = await requireAuth()
 
   return <RoutineBuilderClient userId={session.user.id} />
 }

@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getRoutines } from '@/lib/data/routines'
 import { getProfile } from '@/lib/data/profile'
@@ -13,9 +13,7 @@ export const metadata = {
 }
 
 export default async function RoutinesPage() {
-  const session = await auth()
-  if (!session?.user?.id) redirect('/login')
-  const accessToken = session.supabaseAccessToken as string | undefined
+  const { accessToken, session } = await requireAuth()
 
   const [routines, profile] = await Promise.all([
     getRoutines(session.user.id, accessToken),

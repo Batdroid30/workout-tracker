@@ -1,6 +1,6 @@
 'use server'
 
-import { auth, signOut } from '@/lib/auth'
+import { requireAuth, signOut } from '@/lib/auth'
 import { updateProfile as updateProfileData } from '@/lib/data/profile'
 import { evaluateAndSaveAllPRs } from '@/lib/data/stats'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
@@ -8,11 +8,7 @@ import { revalidateAll } from '@/lib/cache'
 import type { TrainingGoal, TrainingPhase, TrainingStyle, ExperienceLevel } from '@/types/database'
 
 export async function updateProfileAction(formData: FormData) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('Not authenticated')
-
-  const userId = session.user.id
-  const accessToken = session.supabaseAccessToken as string | undefined
+  const { userId, accessToken, session } = await requireAuth()
 
   try {
     const heightRaw = formData.get('heightCm') as string | null
@@ -37,11 +33,7 @@ export async function updateProfileAction(formData: FormData) {
 }
 
 export async function uploadAvatarAction(base64Image: string, fileName: string) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('Not authenticated')
-
-  const userId   = session.user.id
-  const accessToken = session.supabaseAccessToken as string | undefined
+  const { userId, accessToken, session } = await requireAuth()
   const supabase = accessToken ? await getSupabaseServer(accessToken) : getSupabaseAdmin()
   const buffer   = Buffer.from(base64Image.split(',')[1], 'base64')
   const path     = `${userId}/${Date.now()}-${fileName}`
@@ -75,10 +67,7 @@ export async function logoutAction() {
 }
 
 export async function updateWeeklyGoalAction(sessions: number) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('Not authenticated')
-
-  const userId   = session.user.id
+  const { userId, session } = await requireAuth()
   const clamped  = Math.max(1, Math.min(14, sessions))
   const accessToken = session.supabaseAccessToken as string | undefined
   const supabase = accessToken ? await getSupabaseServer(accessToken) : getSupabaseAdmin()
@@ -94,8 +83,7 @@ export async function updateWeeklyGoalAction(sessions: number) {
 }
 
 export async function refreshCacheAction() {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('Not authenticated')
+  const { session } = await requireAuth()
 
   revalidateAll()
 
@@ -103,11 +91,7 @@ export async function refreshCacheAction() {
 }
 
 export async function recalculatePRsAction() {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('Not authenticated')
-
-  const userId = session.user.id
-  const accessToken = session.supabaseAccessToken as string | undefined
+  const { userId, accessToken, session } = await requireAuth()
 
   try {
     await evaluateAndSaveAllPRs(userId, accessToken)
@@ -125,8 +109,7 @@ export async function updateTrainingProfileAction(updates: {
   training_style?:   TrainingStyle
   experience_level?: ExperienceLevel
 }) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('Not authenticated')
+  const { session } = await requireAuth()
 
   // When phase changes, reset the mesocycle clock so deload timing
   // starts fresh from today rather than carrying over from the previous phase.
@@ -142,10 +125,7 @@ export async function updateTrainingProfileAction(updates: {
 }
 
 export async function clearAllWorkoutDataAction() {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('Not authenticated')
-
-  const userId   = session.user.id
+  const { userId, session } = await requireAuth()
   // Admin client: reads here traverse workout_exercises→sets which fail RLS on server client
   const supabase = getSupabaseAdmin()
 

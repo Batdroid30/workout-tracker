@@ -1,6 +1,6 @@
 'use server'
 
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { getRecentExerciseLoads } from '@/lib/data/insights'
 import { generateDeloadRoutine, type DeloadPrescription, type FatigueAssessment } from '@/lib/algorithms'
 
@@ -14,8 +14,7 @@ import { generateDeloadRoutine, type DeloadPrescription, type FatigueAssessment 
 export async function getDeloadRoutineAction(
   confidence: FatigueAssessment['confidence'] = 'medium',
 ): Promise<DeloadPrescription[]> {
-  const session = await auth()
-  if (!session?.user?.id) return []
+  const { session } = await requireAuth()
 
   const loads = await getRecentExerciseLoads(session.user.id)
   return generateDeloadRoutine(loads, confidence)

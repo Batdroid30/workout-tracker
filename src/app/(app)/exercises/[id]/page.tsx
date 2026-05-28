@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { getExerciseProgression } from '@/lib/data/stats'
 import { getProfile } from '@/lib/data/profile'
 import { getExerciseById } from '@/lib/data/exercises'
@@ -13,10 +13,7 @@ import type { MuscleGroup, MovementPattern, ExperienceLevel } from '@/types/data
 
 export default async function ExerciseDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const session = await auth()
-  if (!session?.user?.id) redirect('/login')
-  const userId = session.user.id
-  const accessToken = session.supabaseAccessToken as string | undefined
+  const { userId, accessToken, session } = await requireAuth()
 
   const [exercise, { prs, progression }, profile] = await Promise.all([
     getExerciseById(id, accessToken),

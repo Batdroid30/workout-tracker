@@ -1,4 +1,5 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 import { getWorkoutsSummary, getRecentWorkouts } from '@/lib/data/workouts'
 import { getProfile } from '@/lib/data/profile'
 import { getLatestBodyweight, getBodyweightHistory } from '@/lib/data/bodyweight'
@@ -25,9 +26,7 @@ import { PUSH_MUSCLES, PULL_MUSCLES } from '@/lib/training-constants'
 import { STALL_VARIATION_ADVICE } from '@/lib/workout-intelligence'
 
 export default async function DashboardPage() {
-  const session = await auth()
-  const userId = session?.user?.id as string
-  const accessToken = session?.supabaseAccessToken as string | undefined
+  const { userId, accessToken, session } = await requireAuth()
 
   // Parallel fetch 1: core queries, metrics, and progress snapshot
   const [

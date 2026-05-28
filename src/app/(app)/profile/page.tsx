@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { getProfile } from '@/lib/data/profile'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
@@ -18,11 +18,7 @@ export default async function ProfilePage({
 }: {
   searchParams: Promise<{ tab?: string }>
 }) {
-  const session = await auth()
-  if (!session?.user?.id) redirect('/login')
-
-  const userId = session.user.id
-  const accessToken = session.supabaseAccessToken as string | undefined
+  const { userId, accessToken, session } = await requireAuth()
   const { tab: rawTab } = await searchParams
   const VALID_TABS: Tab[] = ['history', 'exercises', 'account']
   const tab: Tab = VALID_TABS.includes(rawTab as Tab) ? (rawTab as Tab) : 'history'

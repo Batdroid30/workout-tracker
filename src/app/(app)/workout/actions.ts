@@ -1,17 +1,13 @@
 'use server'
 
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { saveActiveWorkout, deleteWorkout } from '@/lib/data/workouts'
 import { evaluateAndSavePRs, evaluateAndSaveAllPRs } from '@/lib/data/stats'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 
 export async function finishWorkoutAction(activeWorkout: any) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('User not authenticated')
-
-  const userId = session.user.id
-  const accessToken = session.supabaseAccessToken as string | undefined
+  const { userId, accessToken, session } = await requireAuth()
 
   let workoutId: string
   let savedSets: Awaited<ReturnType<typeof saveActiveWorkout>>['savedSets']
@@ -42,11 +38,7 @@ export async function finishWorkoutAction(activeWorkout: any) {
 }
 
 export async function deleteWorkoutAction(workoutId: string) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('User not authenticated')
-
-  const userId = session.user.id
-  const accessToken = session.supabaseAccessToken as string | undefined
+  const { userId, accessToken, session } = await requireAuth()
 
   try {
     await deleteWorkout(workoutId, userId, accessToken)
@@ -82,10 +74,7 @@ export async function deleteWorkoutAction(workoutId: string) {
 // Cost: one grouped aggregate per workout-screen mount (cached client-side
 // for the session, so effectively one query per workout).
 export async function getUserExerciseFrequency(): Promise<Record<string, number>> {
-  const session = await auth()
-  if (!session?.user?.id) return {}
-
-  const accessToken = session.supabaseAccessToken as string | undefined
+  const { accessToken, session } = await requireAuth()
   const supabase = accessToken ? await getSupabaseServer(accessToken) : getSupabaseAdmin()
   // user_id is server-derived from the session — never trust a client-passed id.
   const { data, error } = await supabase.rpc('get_user_exercise_frequency', {

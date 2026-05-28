@@ -1,16 +1,12 @@
 'use server'
 
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { createRoutine, deleteRoutine, updateRoutine, CreateRoutineInput } from '@/lib/data/routines'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 
 export async function createRoutineAction(input: CreateRoutineInput) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('Unauthorized')
-
-  const userId  = session.user.id
-  const accessToken = session.supabaseAccessToken as string | undefined
+  const { userId, accessToken, session } = await requireAuth()
   const routine = await createRoutine(userId, input, accessToken)
 
   revalidateAll()
@@ -19,22 +15,14 @@ export async function createRoutineAction(input: CreateRoutineInput) {
 }
 
 export async function deleteRoutineAction(routineId: string) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('Unauthorized')
-
-  const userId = session.user.id
-  const accessToken = session.supabaseAccessToken as string | undefined
+  const { userId, accessToken, session } = await requireAuth()
   await deleteRoutine(routineId, userId, accessToken)
 
   revalidateAll()
 }
 
 export async function updateRoutineExercisesAction(routineId: string, exercises: any[]) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('Unauthorized')
-
-  const userId   = session.user.id
-  const accessToken = session.supabaseAccessToken as string | undefined
+  const { userId, accessToken, session } = await requireAuth()
   const supabase = accessToken ? await getSupabaseServer(accessToken) : getSupabaseAdmin()
 
   const { error: delError } = await supabase
@@ -61,11 +49,7 @@ export async function updateRoutineExercisesAction(routineId: string, exercises:
 }
 
 export async function updateRoutineDetailsAction(routineId: string, input: CreateRoutineInput) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('Unauthorized')
-
-  const userId = session.user.id
-  const accessToken = session.supabaseAccessToken as string | undefined
+  const { userId, accessToken, session } = await requireAuth()
   await updateRoutine(routineId, userId, input, accessToken)
 
   revalidateAll()

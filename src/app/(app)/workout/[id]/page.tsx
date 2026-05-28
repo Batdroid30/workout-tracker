@@ -11,10 +11,10 @@ import { DeleteHistoricalExerciseButton } from '@/components/workout/DeleteHisto
 
 export default async function WorkoutHistoryDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { auth } = await import('@/lib/auth')
-  const session = await auth()
-  const accessToken = session?.supabaseAccessToken as string | undefined
-  const workout = await getWorkoutById(id, session?.user?.id ?? '', accessToken)
+  const { requireAuth } = await import('@/lib/auth')
+  const { redirect } = await import('next/navigation')
+  const { accessToken, session } = await requireAuth()
+  const workout = await getWorkoutById(id, session.user.id, accessToken)
 
   if (!workout) notFound()
 

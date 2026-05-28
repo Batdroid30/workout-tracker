@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { RoutineBuilderClient } from '@/components/routines/RoutineBuilderClient'
 import { getRoutineById } from '@/lib/data/routines'
@@ -9,9 +9,7 @@ export const metadata = {
 }
 
 export default async function EditRoutinePage({ params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  if (!session?.user?.id) redirect('/login')
-  const accessToken = session.supabaseAccessToken as string | undefined
+  const { accessToken, session } = await requireAuth()
 
   const { id } = await params
   

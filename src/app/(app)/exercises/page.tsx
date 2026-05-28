@@ -1,10 +1,10 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 import { getExercises } from '@/lib/data/exercises'
 import { ExerciseListClient } from './ExerciseListClient'
 
 export default async function ExercisesPage() {
-  const session = await auth()
-  const accessToken = session?.supabaseAccessToken as string | undefined
+  const { accessToken, session } = await requireAuth()
   const exercises = await getExercises(accessToken)
 
   return (

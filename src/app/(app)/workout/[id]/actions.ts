@@ -1,6 +1,6 @@
 'use server'
 
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 
@@ -10,10 +10,7 @@ export async function updateWorkoutMetaAction(
   duration_seconds: number | null,
   notes: string | null,
 ) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('Unauthorized')
-
-  const userId   = session.user.id
+  const { userId, session } = await requireAuth()
   const token    = (session as any).supabaseAccessToken
   const supabase = await getSupabaseServer(token)
 
@@ -33,10 +30,7 @@ export async function updateHistoricalSetAction(
   weight_kg: number,
   reps: number,
 ) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('Unauthorized')
-
-  const userId   = session.user.id
+  const { userId, session } = await requireAuth()
   const token    = (session as any).supabaseAccessToken
   const supabase = await getSupabaseServer(token)
 
@@ -64,10 +58,7 @@ export async function updateHistoricalSetAction(
 }
 
 export async function deleteHistoricalExerciseAction(workoutExerciseId: string) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('Unauthorized')
-
-  const userId   = session.user.id
+  const { userId, session } = await requireAuth()
   const token    = (session as any).supabaseAccessToken
   const supabase = await getSupabaseServer(token)
 

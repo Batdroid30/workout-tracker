@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { getSupabaseServer } from '@/lib/supabase/server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { revalidateAll } from '@/lib/cache'
 import type { MuscleGroup, MovementPattern } from '@/types/database'
 
@@ -37,8 +37,7 @@ export async function updateExerciseAction(
   id: string,
   updates: UpdateExerciseMetaParams,
 ): Promise<{ success: true } | { error: string }> {
-  const session = await auth()
-  if (!session?.user?.id) return { error: 'Unauthorized' }
+  const { session } = await requireAuth()
 
   if (!updates.muscle_group && !updates.movement_pattern && updates.secondary_muscles === undefined) {
     return { error: 'No fields to update' }
@@ -61,8 +60,7 @@ export async function updateExerciseAction(
 export async function createExerciseAction(
   params: z.infer<typeof CreateExerciseSchema>,
 ): Promise<{ id: string } | { error: string }> {
-  const session = await auth()
-  if (!session?.user?.id) return { error: 'Unauthorized' }
+  const { session } = await requireAuth()
 
   const parsed = CreateExerciseSchema.safeParse(params)
   if (!parsed.success) return { error: 'Invalid input' }

@@ -1,15 +1,12 @@
 'use server'
 
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { parseHevyCSV, importWorkoutsFromHevy } from '@/lib/data/import'
 import { evaluateAndSaveAllPRs } from '@/lib/data/stats'
 import { revalidateAll } from '@/lib/cache'
 
 export async function importHevyCSVAction(formData: FormData) {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('User not authenticated')
-
-  const userId = session.user.id
+  const { userId, session } = await requireAuth()
   const file   = formData.get('file') as File
 
   if (!file) return { success: false, error: 'No file provided' }
@@ -30,10 +27,7 @@ export async function importHevyCSVAction(formData: FormData) {
 }
 
 export async function recalculatePRsAfterImportAction() {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error('User not authenticated')
-
-  const userId = session.user.id
+  const { userId, session } = await requireAuth()
 
   try {
     const accessToken = session.supabaseAccessToken as string | undefined

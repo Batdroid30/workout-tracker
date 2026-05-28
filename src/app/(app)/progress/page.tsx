@@ -4,7 +4,7 @@ import { WeeklyMuscleRadarChart } from '@/components/ui/WeeklyMuscleRadarChart'
 import { PhaseCoachDetail } from '@/components/progress/PhaseCoachDetail'
 import { BodyweightSection } from '@/components/progress/BodyweightSection'
 import { TopPRsTable } from '@/components/profile/TopPRsTable'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { getWorkoutsSummary } from '@/lib/data/workouts'
 import { getTopPersonalRecords } from '@/lib/data/stats'
 import { getProfile } from '@/lib/data/profile'
@@ -177,10 +177,7 @@ function buildRadarData(setsByMuscle: Record<string, number>) {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function ProgressPage() {
-  const session = await auth()
-  if (!session?.user?.id) redirect('/login')
-  const userId = session.user.id
-  const accessToken = session.supabaseAccessToken as string | undefined
+  const { userId, accessToken, session } = await requireAuth()
 
   // Core queries — run in parallel. Snapshot replaces 6 independent sets scans.
   // calendarData fetches workouts table only (no joins) — very lightweight.
