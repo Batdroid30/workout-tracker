@@ -14,8 +14,8 @@ import { generateDeloadRoutine, type DeloadPrescription, type FatigueAssessment 
 export async function getDeloadRoutineAction(
   confidence: FatigueAssessment['confidence'] = 'medium',
 ): Promise<DeloadPrescription[]> {
-  const { session } = await requireAuth()
+  const { session, accessToken } = await requireAuth()
 
-  const loads = await getRecentExerciseLoads(session.user.id)
+  const loads = await getRecentExerciseLoads(session.user.id, accessToken)
   return generateDeloadRoutine(loads, confidence)
 }

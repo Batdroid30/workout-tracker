@@ -4,11 +4,12 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   const session = await auth()
-  if (!session?.user?.id) {
+  const token = (session as any)?.supabaseAccessToken
+  if (!session?.user?.id || !token) {
     return new NextResponse('Unauthorized', { status: 401 })
   }
 
-  const supabase = await getSupabaseServer()
+  const supabase = await getSupabaseServer(token)
 
   // Fetch all workouts with their exercises and sets
   const { data: workouts, error } = await supabase

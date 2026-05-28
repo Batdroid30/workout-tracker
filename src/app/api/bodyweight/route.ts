@@ -15,7 +15,8 @@ const LogBodyweightSchema = z.object({
 
 export async function POST(req: Request): Promise<Response> {
   const session = await auth()
-  if (!session?.user?.id) {
+  const token = (session as any)?.supabaseAccessToken
+  if (!session?.user?.id || !token) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

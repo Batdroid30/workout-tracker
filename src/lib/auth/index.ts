@@ -6,12 +6,15 @@ export const { auth, handlers, signIn, signOut } = NextAuth(authConfig)
 
 export async function requireAuth() {
   const session = await auth()
-  if (!session?.user?.id) {
+  
+  const token = (session as any)?.supabaseAccessToken
+  if (!session?.user?.id || !token) {
     redirect('/login')
   }
+
   return {
     session,
     userId: session.user.id,
-    accessToken: (session as any).supabaseAccessToken as string | undefined
+    accessToken: token as string
   }
 }

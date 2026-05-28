@@ -5,7 +5,7 @@ export default auth((req) => {
   const { nextUrl } = req
   // NextAuth populates req.auth from its own JWT cookie — this is the
   // single source of truth for whether the user is logged in.
-  const isLoggedIn = !!req.auth
+  const isLoggedIn = !!req.auth && !!(req.auth as any).supabaseAccessToken
 
   const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(nextUrl.pathname)
   const isPublicFile = nextUrl.pathname.includes('.')

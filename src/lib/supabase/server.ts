@@ -7,6 +7,7 @@ import { UnauthorizedError } from '@/lib/errors'
 export async function resolveSupabaseClient(accessToken?: string, runAsAdmin: boolean = false) {
   if (accessToken) return await getSupabaseServer(accessToken)
   if (runAsAdmin) return getSupabaseAdmin()
+  console.error("resolveSupabaseClient failed! Stack trace:", new Error().stack);
   throw new UnauthorizedError('Unauthorized: No access token provided and runAsAdmin is not explicitly set to true.')
 }
 
