@@ -67,6 +67,10 @@ export const authConfig = {
     },
     async session({ session, token }) {
       if (token && session.user) {
+        if (!token.supabaseAccessToken) {
+          // Legacy session without a Supabase token. Invalidate it to force a re-login.
+          return {} as any
+        }
         session.user.id = token.id as string
         (session as any).supabaseAccessToken = token.supabaseAccessToken
       }
