@@ -3,6 +3,10 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import type { NextAuthConfig } from 'next-auth'
 
+// In-memory cache to prevent concurrent refresh requests for the same token
+// This stops parallel requests during SSR from failing due to single-use refresh tokens
+const pendingRefreshes = new Map<string, Promise<any>>()
+
 export const authConfig = {
   providers: [
     CredentialsProvider({
@@ -50,18 +54,31 @@ export const authConfig = {
       }
 
       try {
-        const supabase = await getSupabaseServer()
-        const { data, error } = await supabase.auth.refreshSession({
-          refresh_token: token.supabaseRefreshToken as string,
-        })
+        const refreshToken = token.supabaseRefreshToken as string
+        
+        // If a refresh is already in progress for this token, await its result instead of triggering a new one
+        if (!pendingRefreshes.has(refreshToken)) {
+          const refreshPromise = (async () => {
+            const supabase = await getSupabaseServer()
+            const { data, error } = await supabase.auth.refreshSession({
+              refresh_token: refreshToken,
+            })
+            if (error || !data.session) throw error
+            return data.session
+          })()
+          
+          pendingRefreshes.set(refreshToken, refreshPromise)
+          // Clean up the promise from the map once it resolves or rejects
+          refreshPromise.finally(() => pendingRefreshes.delete(refreshToken))
+        }
 
-        if (error || !data.session) throw error
+        const sessionData = await pendingRefreshes.get(refreshToken)
 
         return {
           ...token,
-          supabaseAccessToken: data.session.access_token,
-          supabaseRefreshToken: data.session.refresh_token,
-          expiresAt: Date.now() + data.session.expires_in * 1000,
+          supabaseAccessToken: sessionData.access_token,
+          supabaseRefreshToken: sessionData.refresh_token,
+          expiresAt: Date.now() + sessionData.expires_in * 1000,
         }
       } catch (err) {
         console.error('Failed to refresh Supabase session token in JWT callback:', err)
