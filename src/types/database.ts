@@ -111,6 +111,16 @@ export interface BodyweightLog {
   created_at: string
 }
 
+export interface ReadinessLog {
+  id: string
+  user_id: string
+  sleep_score: number
+  soreness_score: number
+  energy_score: number
+  logged_at: string
+  created_at: string
+}
+
 export interface WeeklyVolume {
   muscle_group: MuscleGroup
   week_start: string

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getWorkoutsSummary, getRecentWorkouts } from '@/lib/data/workouts'
 import { getProfile } from '@/lib/data/profile'
 import { getLatestBodyweight, getBodyweightHistory } from '@/lib/data/bodyweight'
+import { getRecentReadinessLogs, getTodayReadiness } from '@/lib/data/readiness'
 import {
   getTrainingStreak,
   deriveWeeklySummary,
@@ -39,6 +40,8 @@ export default async function DashboardPage() {
     recentPRs,
     neglectedMuscles,
     bwHistory,
+    recentReadiness,
+    todayReadiness,
   ] = await Promise.all([
     getWorkoutsSummary(userId),
     getRecentWorkouts(userId),
@@ -49,6 +52,8 @@ export default async function DashboardPage() {
     getRecentPRs(userId, 60),
     getNeglectedMuscles(userId),
     getBodyweightHistory(userId, 4),
+    getRecentReadinessLogs(userId, 7),
+    getTodayReadiness(userId),
   ])
 
   const totalVolume = workoutsSummary.totalVolume
@@ -164,7 +169,7 @@ export default async function DashboardPage() {
     experience_level: profile.experience_level,
     training_phase:   profile.training_phase,
     phase_started_at: profile.phase_started_at,
-  } : null)
+  } : null, recentReadiness)
   
   const isDeloadWeek = fatigue.shouldSuggest || isCurrentWeekDeload(profile
     ? { phase_started_at: profile.phase_started_at ?? null, experience_level: profile.experience_level, training_phase: profile.training_phase }
@@ -234,6 +239,7 @@ export default async function DashboardPage() {
         phaseLabel={phaseLabel}
         phaseWeek={phaseWeek}
         cycleLength={cycleLength}
+        todayReadiness={todayReadiness}
       />
     </div>
   )
