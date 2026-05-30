@@ -13,12 +13,12 @@ import type { MuscleGroup, MovementPattern, ExperienceLevel } from '@/types/data
 
 export default async function ExerciseDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { userId, accessToken, session } = await requireAuth()
+  const { userId, session } = await requireAuth()
 
   const [exercise, { prs, progression }, profile] = await Promise.all([
-    getExerciseById(id, accessToken),
-    getExerciseProgression(userId, id, accessToken),
-    getProfile(userId, accessToken),
+    getExerciseById(id),
+    getExerciseProgression(userId, id),
+    getProfile(userId),
   ])
 
   if (!exercise) notFound()

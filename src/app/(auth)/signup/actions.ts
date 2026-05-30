@@ -1,9 +1,7 @@
 'use server'
 
 import { getSupabaseServer } from '@/lib/supabase/server'
-import { signIn } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { AuthError } from 'next-auth'
 
 export async function signupUser(formData: FormData) {
   const email = formData.get('email') as string
@@ -28,17 +26,5 @@ export async function signupUser(formData: FormData) {
     redirect('/signup?error=' + encodeURIComponent(signUpError.message))
   }
 
-  // After successful signup, sign in with NextAuth to create session
-  try {
-    await signIn('credentials', {
-      email,
-      password,
-      redirectTo: '/dashboard',
-    })
-  } catch (error) {
-    if (error instanceof AuthError) {
-      redirect('/login?error=Account created, please sign in')
-    }
-    throw error
-  }
+  redirect('/dashboard')
 }

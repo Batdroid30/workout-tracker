@@ -1,6 +1,6 @@
 'use server'
 
-import { requireAuth, signOut } from '@/lib/auth'
+import { requireAuth, signOutUser } from '@/lib/auth'
 import { updateProfile as updateProfileData } from '@/lib/data/profile'
 import { evaluateAndSaveAllPRs } from '@/lib/data/stats'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
@@ -8,7 +8,7 @@ import { revalidateAll } from '@/lib/cache'
 import type { TrainingGoal, TrainingPhase, TrainingStyle, ExperienceLevel } from '@/types/database'
 
 export async function updateProfileAction(formData: FormData) {
-  const { userId, accessToken, session } = await requireAuth()
+  const { userId, session } = await requireAuth()
 
   try {
     const heightRaw = formData.get('heightCm') as string | null
@@ -23,7 +23,7 @@ export async function updateProfileAction(formData: FormData) {
     if (ageRaw)    updates.age_years  = parseInt(ageRaw,    10)
     if (sexRaw === 'male' || sexRaw === 'female') updates.sex = sexRaw
 
-    await updateProfileData(userId, updates, accessToken)
+    await updateProfileData(userId, updates)
     revalidateAll()
     return { success: true }
   } catch (error: any) {
@@ -33,8 +33,8 @@ export async function updateProfileAction(formData: FormData) {
 }
 
 export async function uploadAvatarAction(base64Image: string, fileName: string) {
-  const { userId, accessToken, session } = await requireAuth()
-  const supabase = accessToken ? await getSupabaseServer(accessToken) : getSupabaseAdmin()
+  const { userId, session } = await requireAuth()
+  const supabase = await getSupabaseServer()
   const buffer   = Buffer.from(base64Image.split(',')[1], 'base64')
   const path     = `${userId}/${Date.now()}-${fileName}`
 
@@ -51,7 +51,7 @@ export async function uploadAvatarAction(base64Image: string, fileName: string) 
     }
 
     const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
-    await updateProfileData(userId, { avatar_url: publicUrl }, accessToken)
+    await updateProfileData(userId, { avatar_url: publicUrl })
 
     revalidateAll()
 
@@ -63,14 +63,13 @@ export async function uploadAvatarAction(base64Image: string, fileName: string) 
 }
 
 export async function logoutAction() {
-  await signOut({ redirectTo: '/login' })
+  await signOutUser()
 }
 
 export async function updateWeeklyGoalAction(sessions: number) {
   const { userId, session } = await requireAuth()
   const clamped  = Math.max(1, Math.min(14, sessions))
-  const accessToken = session.supabaseAccessToken as string | undefined
-  const supabase = accessToken ? await getSupabaseServer(accessToken) : getSupabaseAdmin()
+  const supabase = await getSupabaseServer()
 
   await supabase
     .from('profiles')
@@ -91,10 +90,10 @@ export async function refreshCacheAction() {
 }
 
 export async function recalculatePRsAction() {
-  const { userId, accessToken, session } = await requireAuth()
+  const { userId, session } = await requireAuth()
 
   try {
-    await evaluateAndSaveAllPRs(userId, accessToken)
+    await evaluateAndSaveAllPRs(userId)
     revalidateAll()
     return { success: true }
   } catch (error: any) {
@@ -117,9 +116,9 @@ export async function updateTrainingProfileAction(updates: {
     ? { ...updates, phase_started_at: new Date().toISOString() }
     : updates
 
-  const accessToken = session.supabaseAccessToken as string | undefined
 
-  await updateProfileData(session.user.id, payload, accessToken)
+
+  await updateProfileData(session.user.id, payload)
   revalidateAll()
   return { success: true }
 }

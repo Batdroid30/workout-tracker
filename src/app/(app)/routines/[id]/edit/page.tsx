@@ -9,12 +9,12 @@ export const metadata = {
 }
 
 export default async function EditRoutinePage({ params }: { params: Promise<{ id: string }> }) {
-  const { accessToken, session } = await requireAuth()
+  const {  session } = await requireAuth()
 
   const { id } = await params
   
   try {
-    const routine = await getRoutineById(id, session.user.id, accessToken)
+    const routine = await getRoutineById(id, session.user.id)
     if (routine.user_id !== session.user.id) {
       redirect('/routines')
     }

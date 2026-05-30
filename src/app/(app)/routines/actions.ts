@@ -6,8 +6,8 @@ import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 
 export async function createRoutineAction(input: CreateRoutineInput) {
-  const { userId, accessToken, session } = await requireAuth()
-  const routine = await createRoutine(userId, input, accessToken)
+  const { userId, session } = await requireAuth()
+  const routine = await createRoutine(userId, input)
 
   revalidateAll()
 
@@ -15,15 +15,15 @@ export async function createRoutineAction(input: CreateRoutineInput) {
 }
 
 export async function deleteRoutineAction(routineId: string) {
-  const { userId, accessToken, session } = await requireAuth()
-  await deleteRoutine(routineId, userId, accessToken)
+  const { userId, session } = await requireAuth()
+  await deleteRoutine(routineId, userId)
 
   revalidateAll()
 }
 
 export async function updateRoutineExercisesAction(routineId: string, exercises: any[]) {
-  const { userId, accessToken, session } = await requireAuth()
-  const supabase = accessToken ? await getSupabaseServer(accessToken) : getSupabaseAdmin()
+  const { userId, session } = await requireAuth()
+  const supabase = await getSupabaseServer()
 
   const { error: delError } = await supabase
     .from('routine_exercises')
@@ -49,8 +49,8 @@ export async function updateRoutineExercisesAction(routineId: string, exercises:
 }
 
 export async function updateRoutineDetailsAction(routineId: string, input: CreateRoutineInput) {
-  const { userId, accessToken, session } = await requireAuth()
-  await updateRoutine(routineId, userId, input, accessToken)
+  const { userId, session } = await requireAuth()
+  await updateRoutine(routineId, userId, input)
 
   revalidateAll()
 }

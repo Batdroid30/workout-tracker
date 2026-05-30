@@ -26,7 +26,7 @@ import { PUSH_MUSCLES, PULL_MUSCLES } from '@/lib/training-constants'
 import { STALL_VARIATION_ADVICE } from '@/lib/workout-intelligence'
 
 export default async function DashboardPage() {
-  const { userId, accessToken, session } = await requireAuth()
+  const { userId, session } = await requireAuth()
 
   // Parallel fetch 1: core queries, metrics, and progress snapshot
   const [
@@ -40,15 +40,15 @@ export default async function DashboardPage() {
     neglectedMuscles,
     bwHistory,
   ] = await Promise.all([
-    getWorkoutsSummary(userId, accessToken),
-    getRecentWorkouts(userId, accessToken),
-    getProfile(userId, accessToken),
-    getLatestBodyweight(userId, accessToken),
-    getTrainingStreak(userId, accessToken),
-    getProgressSnapshot(userId, accessToken),
-    getRecentPRs(userId, 60, accessToken),
-    getNeglectedMuscles(userId, accessToken),
-    getBodyweightHistory(userId, 4, accessToken),
+    getWorkoutsSummary(userId),
+    getRecentWorkouts(userId),
+    getProfile(userId),
+    getLatestBodyweight(userId),
+    getTrainingStreak(userId),
+    getProgressSnapshot(userId),
+    getRecentPRs(userId, 60),
+    getNeglectedMuscles(userId),
+    getBodyweightHistory(userId, 4),
   ])
 
   const totalVolume = workoutsSummary.totalVolume
@@ -116,8 +116,8 @@ export default async function DashboardPage() {
     volumeLandmarks,
     badges,
   ] = await Promise.all([
-    getVolumeLandmarksByMuscle(userId, profile, snapshot.currentWeekSetsByMuscle, snapshot.muscleFrequency, accessToken),
-    getBadges(userId, totalVolume, totalWorkouts, accessToken),
+    getVolumeLandmarksByMuscle(userId, profile, snapshot.currentWeekSetsByMuscle, snapshot.muscleFrequency),
+    getBadges(userId, totalVolume, totalWorkouts),
   ])
 
   // Pure in-memory calculation for Strength Index

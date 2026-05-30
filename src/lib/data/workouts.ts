@@ -40,8 +40,8 @@ function attachPRTypes<T extends { workout_exercises: any[] }>(
 // React cache() deduplicates calls within a single request.
 // No persistent server-side cache — every page load gets fresh data.
 
-export const getRecentWorkouts = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false) => {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export const getRecentWorkouts = cache(async (userId: string, runAsAdmin: boolean = false) => {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const [{ data, error }, prSetMap] = await Promise.all([
     supabase
@@ -69,8 +69,8 @@ export const getRecentWorkouts = cache(async (userId: string, accessToken?: stri
 
 const HISTORY_LIMIT = 200
 
-export const getAllWorkouts = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false) => {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export const getAllWorkouts = cache(async (userId: string, runAsAdmin: boolean = false) => {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const [{ data, error }, prSetMap] = await Promise.all([
     supabase
@@ -96,8 +96,8 @@ export const getAllWorkouts = cache(async (userId: string, accessToken?: string,
   return attachPRTypes(data, prSetMap)
 })
 
-export const getWorkoutsSummary = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false) => {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export const getWorkoutsSummary = cache(async (userId: string, runAsAdmin: boolean = false) => {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const { count, error: countErr } = await supabase
     .from('workouts')
@@ -127,10 +127,9 @@ export const getWorkoutsSummary = cache(async (userId: string, accessToken?: str
 
 export const getVolumeHistory = cache(async (
   userId: string,
-  weeks = 8,
-  accessToken?: string, runAsAdmin: boolean = false,
+  weeks = 8, runAsAdmin: boolean = false,
 ): Promise<{ date: string; volume: number }[]> => {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const since = new Date()
   since.setDate(since.getDate() - weeks * 7)
@@ -162,10 +161,9 @@ export const getVolumeHistory = cache(async (
 
 export const getExercise1RMHistory = cache(async (
   userId: string,
-  exerciseId: string,
-  accessToken?: string, runAsAdmin: boolean = false,
+  exerciseId: string, runAsAdmin: boolean = false,
 ): Promise<{ date: string; value: number }[]> => {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const { data, error } = await supabase
     .from('sets')
@@ -193,8 +191,8 @@ export const getExercise1RMHistory = cache(async (
   return Object.entries(best1RMByDate).map(([date, value]) => ({ date, value }))
 })
 
-export const getWorkoutById = cache(async (workoutId: string, userId: string, accessToken?: string, runAsAdmin: boolean = false) => {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export const getWorkoutById = cache(async (workoutId: string, userId: string, runAsAdmin: boolean = false) => {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const { data, error } = await supabase
     .from('workouts')
@@ -246,8 +244,8 @@ export interface SavedSetForPR {
   set_number: number
 }
 
-export async function saveActiveWorkout(userId: string, workout: ActiveWorkout, accessToken?: string, runAsAdmin: boolean = false) {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export async function saveActiveWorkout(userId: string, workout: ActiveWorkout, runAsAdmin: boolean = false) {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   // workout.started_at is a Date in the active-workout store; the DB column
   // is a timestamptz expecting an ISO string. Normalise here, in one place,
@@ -325,8 +323,8 @@ export async function saveActiveWorkout(userId: string, workout: ActiveWorkout, 
   return { workout: workoutData, savedSets }
 }
 
-export async function deleteWorkout(workoutId: string, userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<void> {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export async function deleteWorkout(workoutId: string, userId: string, runAsAdmin: boolean = false): Promise<void> {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const { error } = await supabase
     .from('workouts')

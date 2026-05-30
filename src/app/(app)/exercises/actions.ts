@@ -37,13 +37,13 @@ export async function updateExerciseAction(
   id: string,
   updates: UpdateExerciseMetaParams,
 ): Promise<{ success: true } | { error: string }> {
-  const { session, accessToken } = await requireAuth()
+  const { session } = await requireAuth()
 
   if (!updates.muscle_group && !updates.movement_pattern && updates.secondary_muscles === undefined) {
     return { error: 'No fields to update' }
   }
 
-  const supabase = await getSupabaseServer(accessToken)
+  const supabase = await getSupabaseServer()
 
   const { error } = await supabase
     .from('exercises')
@@ -60,7 +60,7 @@ export async function updateExerciseAction(
 export async function createExerciseAction(
   params: z.infer<typeof CreateExerciseSchema>,
 ): Promise<{ id: string } | { error: string }> {
-  const { session, accessToken } = await requireAuth()
+  const { session } = await requireAuth()
 
   const parsed = CreateExerciseSchema.safeParse(params)
   if (!parsed.success) return { error: 'Invalid input' }
@@ -68,7 +68,7 @@ export async function createExerciseAction(
   const { name, muscle_group, secondary_muscles, movement_pattern, equipment } = parsed.data
   const trimmedName = name.trim()
 
-  const supabase = await getSupabaseServer(accessToken)
+  const supabase = await getSupabaseServer()
 
   // Duplicate check and insert in one round-trip via upsert-style select + insert
   const { data: existing } = await supabase

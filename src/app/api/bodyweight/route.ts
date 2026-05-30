@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 
@@ -14,9 +14,9 @@ const LogBodyweightSchema = z.object({
 // ── POST /api/bodyweight — log a new reading ─────────────────────────────────
 
 export async function POST(req: Request): Promise<Response> {
-  const session = await auth()
-  const token = (session as any)?.supabaseAccessToken
-  if (!session?.user?.id || !token) {
+  const { userId } = await requireAuth()
+  
+  if (!userId) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -39,7 +39,7 @@ export async function POST(req: Request): Promise<Response> {
     const { data, error } = await supabase
       .from('bodyweight_log')
       .insert({
-        user_id:   session.user.id,
+        user_id:   userId,
         weight_kg: result.data.weight_kg,
         logged_at: result.data.logged_at ?? new Date().toISOString(),
       })

@@ -4,8 +4,8 @@ import { DatabaseError } from '@/lib/errors'
 
 // ── Read functions (cached) ───────────────────────────────────────────────────
 
-export const getRoutines = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false) => {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export const getRoutines = cache(async (userId: string, runAsAdmin: boolean = false) => {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const { data, error } = await supabase
     .from('routines')
@@ -37,8 +37,8 @@ export const getRoutines = cache(async (userId: string, accessToken?: string, ru
   }))
 })
 
-export const getRoutineById = cache(async (routineId: string, userId: string, accessToken?: string, runAsAdmin: boolean = false) => {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export const getRoutineById = cache(async (routineId: string, userId: string, runAsAdmin: boolean = false) => {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const { data, error } = await supabase
     .from('routines')
@@ -81,8 +81,8 @@ export interface CreateRoutineInput {
   }[]
 }
 
-export async function createRoutine(userId: string, input: CreateRoutineInput, accessToken?: string, runAsAdmin: boolean = false) {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export async function createRoutine(userId: string, input: CreateRoutineInput, runAsAdmin: boolean = false) {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const { data: routineData, error: routineErr } = await supabase
     .from('routines')
@@ -114,8 +114,8 @@ export async function createRoutine(userId: string, input: CreateRoutineInput, a
   return routineData
 }
 
-export async function deleteRoutine(routineId: string, userId: string, accessToken?: string, runAsAdmin: boolean = false) {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export async function deleteRoutine(routineId: string, userId: string, runAsAdmin: boolean = false) {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const { error } = await supabase
     .from('routines')
@@ -126,8 +126,8 @@ export async function deleteRoutine(routineId: string, userId: string, accessTok
   if (error) throw new DatabaseError('Failed to delete routine', error)
 }
 
-export async function updateRoutine(routineId: string, userId: string, input: CreateRoutineInput, accessToken?: string, runAsAdmin: boolean = false) {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export async function updateRoutine(routineId: string, userId: string, input: CreateRoutineInput, runAsAdmin: boolean = false) {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const { error: routineErr } = await supabase
     .from('routines')

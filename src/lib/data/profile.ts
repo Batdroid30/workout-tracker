@@ -3,8 +3,8 @@ import { resolveSupabaseClient } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import type { Profile } from '@/types/database'
 
-export const getProfile = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<Profile | null> => {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export const getProfile = cache(async (userId: string, runAsAdmin: boolean = false): Promise<Profile | null> => {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const { data: profileData, error: profileError } = await supabase
     .from('profiles')
@@ -46,8 +46,8 @@ export const getProfile = cache(async (userId: string, accessToken?: string, run
 
 // ── Write (never cached) ──────────────────────────────────────────────────────
 
-export async function updateProfile(userId: string, updates: Partial<Profile>, accessToken?: string, runAsAdmin: boolean = false) {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export async function updateProfile(userId: string, updates: Partial<Profile>, runAsAdmin: boolean = false) {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const upsertPayload = {
     id: userId,

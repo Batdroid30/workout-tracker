@@ -2,38 +2,33 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/supabase'
-import { UnauthorizedError } from '@/lib/errors'
 
-export async function resolveSupabaseClient(accessToken?: string, runAsAdmin: boolean = false) {
-  if (accessToken) return await getSupabaseServer(accessToken)
+export async function resolveSupabaseClient(runAsAdmin: boolean = false) {
   if (runAsAdmin) return getSupabaseAdmin()
-  console.error("resolveSupabaseClient failed! Stack trace:", new Error().stack);
-  throw new UnauthorizedError('Unauthorized: No access token provided and runAsAdmin is not explicitly set to true.')
+  return await getSupabaseServer()
 }
 
-export async function getSupabaseServer(accessToken?: string) {
+export async function getSupabaseServer() {
   const cookieStore = await cookies()
-  const headers: Record<string, string> = {}
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`
-  }
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      global: accessToken ? { headers } : undefined,
       cookies: {
-        get: (name) => cookieStore.get(name)?.value,
-        set: (name, value, options) => {
-          try {
-            cookieStore.set({ name, value, ...options })
-          } catch (error) {}
+        getAll() {
+          return cookieStore.getAll()
         },
-        remove: (name, options) => {
+        setAll(cookiesToSet) {
           try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch (error) {}
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options)
+            })
+          } catch (error) {
+            // The `set` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
         },
       },
     }
