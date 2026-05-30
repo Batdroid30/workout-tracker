@@ -60,10 +60,9 @@ function getMondayOf(date: Date): string {
 export const getBadges = cache(async (
   userId: string,
   totalVolume: number,
-  totalWorkouts: number,
-  accessToken?: string, runAsAdmin: boolean = false,
+  totalWorkouts: number, runAsAdmin: boolean = false,
 ): Promise<Badge[]> => {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const [prResult, workoutResult] = await Promise.all([
     supabase.from('personal_records').select('id', { count: 'exact', head: true }).eq('user_id', userId),

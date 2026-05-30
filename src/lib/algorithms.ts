@@ -18,6 +18,7 @@ export interface WeekSummary {
 export interface FatigueAssessment {
   shouldSuggest: boolean
   confidence: 'low' | 'medium' | 'high'
+  score: number           // total fatigue score
   signals: string[]       // human-readable strings shown in the DeloadCard
   /**
    * True when a missed week was detected: the user already got unplanned rest
@@ -52,8 +53,9 @@ export function assessFatigueLevel(
     training_phase:   TrainingPhase   | null
     phase_started_at: string          | null
   } | null,
+  readinessLogs?: { sleep_score: number; soreness_score: number; energy_score: number }[] | null,
 ): FatigueAssessment {
-  const empty: FatigueAssessment = { shouldSuggest: false, confidence: 'low', signals: [] }
+  const empty: FatigueAssessment = { shouldSuggest: false, confidence: 'low', score: 0, signals: [] }
   if (weeks.length < 3) return empty
 
   const sorted = [...weeks].sort(
@@ -81,7 +83,7 @@ export function assessFatigueLevel(
   const mostRecentWeek = sorted[sorted.length - 1].week_start
   if (mostRecentWeek < lastWeekMonday) {
     // Most recent data is older than last week → user missed at least one full week
-    return { shouldSuggest: false, confidence: 'low', signals: [], recoveryMode: true }
+    return { shouldSuggest: false, confidence: 'low', score: 0, signals: [], recoveryMode: true }
   }
 
   // Detect missed sessions within the most recent week.
@@ -170,16 +172,28 @@ export function assessFatigueLevel(
     }
   }
 
+  // ── Signal 6: subjective readiness ──────────────────────────────────────
+  if (readinessLogs && readinessLogs.length >= 3) {
+    const avgScore = readinessLogs.reduce((acc, log) => acc + log.sleep_score + log.soreness_score + log.energy_score, 0) / (readinessLogs.length * 3)
+    if (avgScore <= 2.5) {
+      score += 2
+      signals.push(`Subjective readiness is very low (avg ${avgScore.toFixed(1)}/5)`)
+    } else if (avgScore <= 3.2) {
+      score += 1
+      signals.push(`Subjective readiness is trending down (avg ${avgScore.toFixed(1)}/5)`)
+    }
+  }
+
   // Apply penalty for missed sessions: subtract from score so signals driven
   // by absence (volume drop, broken streak) don't incorrectly trigger a deload.
   const adjustedScore = Math.max(0, score - missedSessionPenalty)
 
-  if (adjustedScore < 2) return empty
+  if (adjustedScore < 2) return { ...empty, score: adjustedScore, signals }
 
   const confidence: FatigueAssessment['confidence'] =
     adjustedScore >= 4 ? 'high' : adjustedScore === 3 ? 'medium' : 'low'
 
-  return { shouldSuggest: true, confidence, signals }
+  return { shouldSuggest: true, confidence, score: adjustedScore, signals }
 }
 
 /**

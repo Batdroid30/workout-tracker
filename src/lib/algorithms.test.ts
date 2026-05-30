@@ -256,4 +256,21 @@ describe('assessFatigueLevel', () => {
     // PR drought signal needs >=2 sessions/week — should not contribute
     expect(result.signals.some(s => s.includes('PRs in'))).toBe(false)
   })
+
+  it('returns active signals (early warnings) and score even when shouldSuggest is false', () => {
+    const longStreakWeeks: WeekSummary[] = [
+      mkWeek(getMondayOfWeeksAgo(6), 9000, 3),
+      mkWeek(getMondayOfWeeksAgo(5), 9000, 3),
+      mkWeek(getMondayOfWeeksAgo(4), 9000, 3),
+      mkWeek(getMondayOfWeeksAgo(3), 9000, 3),
+      mkWeek(getMondayOfWeeksAgo(2), 9000, 3),
+      mkWeek(getMondayOfWeeksAgo(1), 9000, 3),
+      mkWeek(getMondayOfWeeksAgo(0), 9000, 3),
+    ]
+    const result = assessFatigueLevel(longStreakWeeks, 10) // Only +1 for streak
+    expect(result.shouldSuggest).toBe(false)
+    expect(result.score).toBe(1)
+    expect(result.signals.length).toBeGreaterThan(0)
+    expect(result.signals[0]).toContain('weeks of continuous training')
+  })
 })

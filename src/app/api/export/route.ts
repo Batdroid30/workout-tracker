@@ -1,15 +1,15 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
-  const session = await auth()
-  const token = (session as any)?.supabaseAccessToken
-  if (!session?.user?.id || !token) {
+  const { userId } = await requireAuth()
+  
+  if (!userId) {
     return new NextResponse('Unauthorized', { status: 401 })
   }
 
-  const supabase = await getSupabaseServer(token)
+  const supabase = await getSupabaseServer()
 
   // Fetch all workouts with their exercises and sets
   const { data: workouts, error } = await supabase
@@ -32,7 +32,7 @@ export async function GET() {
         )
       )
     `)
-    .eq('user_id', session.user.id)
+    .eq('user_id', userId)
     .order('started_at', { ascending: false })
 
   if (error) {

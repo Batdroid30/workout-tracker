@@ -12,7 +12,7 @@ export async function updateWorkoutMetaAction(
 ) {
   const { userId, session } = await requireAuth()
   const token    = (session as any).supabaseAccessToken
-  const supabase = await getSupabaseServer(token)
+  const supabase = await getSupabaseServer()
 
   const { error } = await supabase
     .from('workouts')
@@ -32,7 +32,7 @@ export async function updateHistoricalSetAction(
 ) {
   const { userId, session } = await requireAuth()
   const token    = (session as any).supabaseAccessToken
-  const supabase = await getSupabaseServer(token)
+  const supabase = await getSupabaseServer()
 
   // Verify the set belongs to a workout owned by this user before mutating.
   // RLS is the safety net; this is the primary check.
@@ -60,7 +60,7 @@ export async function updateHistoricalSetAction(
 export async function deleteHistoricalExerciseAction(workoutExerciseId: string) {
   const { userId, session } = await requireAuth()
   const token    = (session as any).supabaseAccessToken
-  const supabase = await getSupabaseServer(token)
+  const supabase = await getSupabaseServer()
 
   const { data: owner, error: ownerError } = await supabase
     .from('workout_exercises')
