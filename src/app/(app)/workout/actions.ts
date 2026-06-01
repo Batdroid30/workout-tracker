@@ -92,3 +92,19 @@ export async function getUserExerciseFrequency(): Promise<Record<string, number>
   }
   return frequency
 }
+
+export async function getUserLatestBodyweight(): Promise<number | null> {
+  const { session } = await requireAuth()
+  const supabase = await getSupabaseServer()
+  
+  const { data, error } = await supabase
+    .from('bodyweight_log')
+    .select('weight_kg')
+    .eq('user_id', session.user.id)
+    .order('logged_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (error || !data) return null
+  return Number(data.weight_kg)
+}

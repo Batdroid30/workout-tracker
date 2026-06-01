@@ -7,6 +7,7 @@ import { rpeToRIR, calculate1RM } from '@/lib/algorithms'
 import type { OverloadSuggestion } from '@/lib/algorithms'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/providers/ToastProvider'
+import { useWorkoutStore } from '@/store/workout.store'
 
 interface SetRowProps {
   set: ActiveSet
@@ -16,6 +17,7 @@ interface SetRowProps {
   defaultRpe?: number
   /** True for pure bodyweight exercises (pull-ups, dips, push-ups). Hides the weight input. */
   isBodyweight?: boolean
+  isWeightedBodyweight?: boolean
   onChange: (updates: Partial<ActiveSet>) => void
   onDone: () => void
   /** Called immediately when the set is deleted. Receives the deleted set and its original index for undo. */
@@ -29,15 +31,31 @@ interface SetRowProps {
 // ─── Active set ───────────────────────────────────────────────────────────────
 // memo: every keystroke in any set's weight/reps input replaces the Zustand
 // exercises array reference — memo prevents sibling rows re-rendering on each char.
-const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, defaultRpe, isBodyweight, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
-  const [weightStr, setWeightStr] = useState(() => set.weight_kg > 0 ? String(set.weight_kg) : '')
+const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, defaultRpe, isBodyweight, isWeightedBodyweight, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
+  const userBodyweight = useWorkoutStore(s => s.userBodyweight) ?? 75
+  
+  const getDisplayWeight = useCallback((dbWeight: number) => {
+    if (isWeightedBodyweight && dbWeight > 0) {
+      return dbWeight >= userBodyweight ? dbWeight - userBodyweight : dbWeight
+    }
+    return dbWeight
+  }, [isWeightedBodyweight, userBodyweight])
+
+  const [weightStr, setWeightStr] = useState(() => set.weight_kg > 0 ? String(getDisplayWeight(set.weight_kg)) : '')
   const [rpeStr,    setRpeStr]    = useState(() => set.rpe !== null ? String(set.rpe) : '')
   const weightFocused = useRef(false)
   const rpeFocused    = useRef(false)
 
+  // Enforce bodyweight in DB for pure bodyweight exercises
   useEffect(() => {
-    if (!weightFocused.current) setWeightStr(set.weight_kg > 0 ? String(set.weight_kg) : '')
-  }, [set.weight_kg])
+    if (isBodyweight && set.weight_kg !== userBodyweight) {
+      onChange({ weight_kg: userBodyweight })
+    }
+  }, [isBodyweight, set.weight_kg, userBodyweight, onChange])
+
+  useEffect(() => {
+    if (!weightFocused.current) setWeightStr(set.weight_kg > 0 ? String(getDisplayWeight(set.weight_kg)) : '')
+  }, [set.weight_kg, getDisplayWeight])
 
   useEffect(() => {
     if (!rpeFocused.current) setRpeStr(set.rpe !== null ? String(set.rpe) : '')
@@ -133,22 +151,24 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
             type="text"
             inputMode="decimal"
             value={weightStr}
-            placeholder="0"
+            placeholder={isWeightedBodyweight ? 'Added kg' : '0'}
             className={inputBase}
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
             onFocus={() => { weightFocused.current = true }}
             onChange={e => {
               const str = e.target.value
               setWeightStr(str)
-              if (str === '' || str === '.') { onChange({ weight_kg: 0 }); return }
+              if (str === '' || str === '.') { onChange({ weight_kg: isWeightedBodyweight ? userBodyweight : 0 }); return }
               const v = parseFloat(str)
-              if (!isNaN(v) && !str.endsWith('.')) onChange({ weight_kg: v })
+              if (!isNaN(v) && !str.endsWith('.')) {
+                onChange({ weight_kg: isWeightedBodyweight ? userBodyweight + v : v })
+              }
             }}
             onBlur={e => {
               weightFocused.current = false
               const v = parseFloat(e.target.value)
               const safe = isNaN(v) ? 0 : v
-              onChange({ weight_kg: safe })
+              onChange({ weight_kg: isWeightedBodyweight ? userBodyweight + safe : safe })
               setWeightStr(safe > 0 ? String(safe) : '')
             }}
           />
@@ -196,7 +216,11 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
         >
           <Zap className="w-3 h-3 shrink-0" style={{ color: 'var(--accent)' }} />
           <span className="mono text-[11px] tabular-nums" style={{ color: 'var(--accent)' }}>
-            {isBodyweight ? `BW × ${suggestion.target_reps}` : `${suggestion.weight_kg}kg × ${suggestion.target_reps}`}
+            {isBodyweight 
+              ? `BW × ${suggestion.target_reps}` 
+              : isWeightedBodyweight 
+                ? `+${suggestion.weight_kg >= userBodyweight ? suggestion.weight_kg - userBodyweight : suggestion.weight_kg}kg × ${suggestion.target_reps}`
+                : `${suggestion.weight_kg}kg × ${suggestion.target_reps}`}
           </span>
           <span className="mono text-[10px] tabular-nums" style={{ color: 'var(--accent)' }}>
             · RPE {suggestion.rpe_target} ({rpeToRIR(suggestion.rpe_target)} RIR)
@@ -267,13 +291,15 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
 interface CompletedSetRowProps {
   set: ActiveSet
   isBodyweight?: boolean
+  isWeightedBodyweight?: boolean
   onDone: () => void
   onRemove: () => void
   onRestore?: (set: ActiveSet, position: number) => void
   setIndex?: number
 }
 
-const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, onDone, onRemove, onRestore, setIndex }: CompletedSetRowProps) {
+const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWeightedBodyweight, onDone, onRemove, onRestore, setIndex }: CompletedSetRowProps) {
+  const userBodyweight = useWorkoutStore(s => s.userBodyweight) ?? 75
   const e1rm = !set.is_warmup && set.weight_kg > 0 && set.reps > 1
     ? Math.round(calculate1RM(set.weight_kg, set.reps))
     : null
@@ -363,7 +389,7 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, onDon
 
           {/* Summary */}
           <span className="flex-1 min-w-0 mono text-sm text-[var(--text-low)] tracking-tight">
-            {isBodyweight ? 'BW' : set.weight_kg > 0 ? `${set.weight_kg}kg` : '—'}
+            {isBodyweight ? 'BW' : isWeightedBodyweight && set.weight_kg > 0 ? `+${set.weight_kg >= userBodyweight ? set.weight_kg - userBodyweight : set.weight_kg}kg` : set.weight_kg > 0 ? `${set.weight_kg}kg` : '—'}
             {' × '}
             {set.reps > 0 ? set.reps : '—'}
             {e1rm && <span className="text-[9px] text-[var(--text-faint)] ml-1.5">· ~{e1rm}kg</span>}
@@ -389,9 +415,9 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, onDon
 
 // ─── Public export ────────────────────────────────────────────────────────────
 
-export const SetRow = memo(function SetRow({ set, prevSetText = '-', suggestion, defaultRpe, isBodyweight, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
+export const SetRow = memo(function SetRow({ set, prevSetText = '-', suggestion, defaultRpe, isBodyweight, isWeightedBodyweight, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
   if (set.completed) {
-    return <CompletedSetRow set={set} isBodyweight={isBodyweight} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
+    return <CompletedSetRow set={set} isBodyweight={isBodyweight} isWeightedBodyweight={isWeightedBodyweight} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
   }
-  return <ActiveSetRow set={set} prevSetText={prevSetText} suggestion={suggestion} defaultRpe={defaultRpe} isBodyweight={isBodyweight} onChange={onChange} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
+  return <ActiveSetRow set={set} prevSetText={prevSetText} suggestion={suggestion} defaultRpe={defaultRpe} isBodyweight={isBodyweight} isWeightedBodyweight={isWeightedBodyweight} onChange={onChange} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
 })

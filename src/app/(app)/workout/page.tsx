@@ -8,7 +8,7 @@ import { Plus, Dumbbell, ChevronLeft } from 'lucide-react'
 import { AddExerciseModal } from '@/components/workout/AddExerciseModal'
 import { SuggestNextChip } from '@/components/workout/SuggestNextChip'
 import { useExerciseStore } from '@/store/exercise.store'
-import { finishWorkoutAction, getUserExerciseFrequency } from './actions'
+import { finishWorkoutAction, getUserExerciseFrequency, getUserLatestBodyweight } from './actions'
 import { updateRoutineExercisesAction } from '@/app/(app)/routines/actions'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -155,6 +155,7 @@ export default function WorkoutPage() {
   useEffect(() => {
     loadExerciseCache()
     getUserExerciseFrequency().then(setUsageFrequency)
+    getUserLatestBodyweight().then(weight => useWorkoutStore.getState().setUserBodyweight(weight ?? 75))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkout?.started_at])
 

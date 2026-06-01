@@ -53,6 +53,8 @@ export function SetLogger({
 
   const isBodyweight = exercise.exercise.equipment === 'bodyweight' &&
     !exercise.exercise.name.toLowerCase().includes('weighted')
+  const isWeightedBodyweight = exercise.exercise.equipment === 'bodyweight' &&
+    !!exercise.exercise.name.toLowerCase().match(/weighted/i)
   const { loadPRsForExercises, checkLocalPR } = usePRStore()
   const [menuOpen,            setMenuOpen]            = useState(false)
   const [showDurationPicker,  setShowDurationPicker]  = useState(false)
@@ -115,6 +117,7 @@ export function SetLogger({
   const dupRpeTarget  = getCurrentDUPScheme().rpeTarget
   const workingWeight = exercise.sets.find(s => !s.is_warmup && s.weight_kg > 0)?.weight_kg ?? 0
 
+  const userBodyweight = useWorkoutStore(s => s.userBodyweight) ?? 75
   const sessionVolume = exercise.sets
     .filter(s => s.completed && !s.is_warmup && s.weight_kg > 0 && s.reps > 0)
     .reduce((sum, s) => sum + s.weight_kg * s.reps, 0)
@@ -300,6 +303,7 @@ export function SetLogger({
               set={set}
               setIndex={setIndex}
               isBodyweight={isBodyweight}
+              isWeightedBodyweight={isWeightedBodyweight}
               prevSetText={prevText}
               suggestion={lastSetAtPosition?.suggestion}
               defaultRpe={dupRpeTarget}

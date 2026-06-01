@@ -28,12 +28,14 @@ interface WorkoutStore {
   unpairSuperset: (index: number) => void
   finishWorkout: () => void
   discardWorkout: () => void
+  setUserBodyweight: (weight: number | null) => void
 }
 
 export const useWorkoutStore = create<WorkoutStore>()(
   persist(
     (set, get) => ({
       activeWorkout: null,
+      userBodyweight: null,
 
       startWorkout: (title = 'Workout') => set({
         activeWorkout: {
@@ -333,6 +335,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
 
   finishWorkout: () => set({ activeWorkout: null }),
   discardWorkout: () => set({ activeWorkout: null }),
+  setUserBodyweight: (weight) => set({ userBodyweight: weight }),
 }),
     { name: 'active-workout' }     // localStorage key
   )
