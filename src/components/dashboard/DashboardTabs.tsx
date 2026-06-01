@@ -23,6 +23,7 @@ import { HypertrophicDissociationCard } from './HypertrophicDissociationCard'
 import { WorkoutHistoryList } from '@/components/workout/WorkoutHistoryList'
 import { BodyweightLogger } from '@/components/progress/BodyweightLogger'
 import { WeeklyRing, FatigueRing } from './WeeklyRing'
+import { DailyReadinessCard } from './DailyReadinessCard'
 
 interface DashboardTabsProps {
   userId: string
@@ -62,6 +63,7 @@ interface DashboardTabsProps {
   phaseLabel: string | null
   phaseWeek: number | null
   cycleLength: number | null
+  todayReadiness: any
 }
 
 export function DashboardTabs({
@@ -100,6 +102,7 @@ export function DashboardTabs({
   phaseLabel,
   phaseWeek,
   cycleLength,
+  todayReadiness,
 }: DashboardTabsProps) {
 
   return (
@@ -225,6 +228,9 @@ export function DashboardTabs({
           />
         </div>
       )}
+
+      {/* ── DAILY READINESS ── */}
+      <DailyReadinessCard todayReadiness={todayReadiness} />
 
       {/* ── SUGGESTED ROUTINE ── */}
       {nextWorkout && (

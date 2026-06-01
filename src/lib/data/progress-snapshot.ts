@@ -101,8 +101,8 @@ function makeEmptySnapshot(): ProgressSnapshot {
  *   sets-per-muscle trend, push/pull/legs balance, per-lift e1RM curves,
  *   stale lift detection, and month-over-month summary.
  */
-export const getProgressSnapshot = cache(async (userId: string, accessToken?: string, runAsAdmin: boolean = false): Promise<ProgressSnapshot> => {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export const getProgressSnapshot = cache(async (userId: string, runAsAdmin: boolean = false): Promise<ProgressSnapshot> => {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
   const since    = new Date(Date.now() - SNAPSHOT_WEEKS * 7 * 86400_000)
 
   const { data, error } = await supabase

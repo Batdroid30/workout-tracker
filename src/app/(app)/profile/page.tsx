@@ -18,12 +18,12 @@ export default async function ProfilePage({
 }: {
   searchParams: Promise<{ tab?: string }>
 }) {
-  const { userId, accessToken, session } = await requireAuth()
+  const { userId, session } = await requireAuth()
   const { tab: rawTab } = await searchParams
   const VALID_TABS: Tab[] = ['history', 'exercises', 'account']
   const tab: Tab = VALID_TABS.includes(rawTab as Tab) ? (rawTab as Tab) : 'history'
 
-  const profile = await getProfile(userId, accessToken)
+  const profile = await getProfile(userId)
 
   return (
     <div className="min-h-screen pb-24">
@@ -57,8 +57,8 @@ export default async function ProfilePage({
       <ProfileContent activeTab={tab}>
         {/* Suspense lets RSC stream — ProfileContent already shows the skeleton */}
         <Suspense fallback={null}>
-          {tab === 'history'   && <HistoryTab userId={userId} accessToken={accessToken} />}
-          {tab === 'exercises' && <ExercisesTab accessToken={accessToken} />}
+          {tab === 'history'   && <HistoryTab userId={userId} />}
+          {tab === 'exercises' && <ExercisesTab />}
           {tab === 'account'   && <ProfileForm profile={profile} userEmail={session.user.email || ''} />}
         </Suspense>
       </ProfileContent>
@@ -66,8 +66,8 @@ export default async function ProfilePage({
   )
 }
 
-async function HistoryTab({ userId, accessToken }: { userId: string; accessToken?: string }) {
-  const workouts = await getAllWorkouts(userId, accessToken)
+async function HistoryTab({ userId }: { userId: string }) {
+  const workouts = await getAllWorkouts(userId)
 
   return (
     <div className="space-y-3">
@@ -79,8 +79,8 @@ async function HistoryTab({ userId, accessToken }: { userId: string; accessToken
   )
 }
 
-async function ExercisesTab({ accessToken }: { accessToken?: string }) {
-  const exercises = await getExercises(accessToken)
+async function ExercisesTab() {
+  const exercises = await getExercises()
   return (
     <div className="-mx-5">
       <ExerciseListClient initialExercises={exercises} hideTitle />

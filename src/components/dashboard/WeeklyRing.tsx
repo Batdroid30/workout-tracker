@@ -1,6 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { X, Activity, CheckCircle2 } from 'lucide-react'
 
 interface WeeklyRingProps {
   done: number
@@ -92,6 +94,7 @@ export function WeeklyRing({ done, goal }: WeeklyRingProps) {
 interface FatigueAssessment {
   shouldSuggest: boolean
   confidence: 'low' | 'medium' | 'high'
+  score: number
   signals: string[]
 }
 
@@ -100,6 +103,11 @@ interface FatigueRingProps {
 }
 
 export function FatigueRing({ assessment }: FatigueRingProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => setMounted(true), [])
+
   // Map fatigue signals to percentage, label and color
   let pct = 0.15
   let label = 'Low'
@@ -130,12 +138,16 @@ export function FatigueRing({ assessment }: FatigueRingProps) {
   const fillDash  = `${fillLength.toFixed(2)} ${(CIRCUMFERENCE - fillLength).toFixed(2)}`
 
   return (
-    <div
-      className="relative shrink-0 select-none"
-      style={{ width: SIZE, height: SIZE }}
-      role="img"
-      aria-label={`CNS Fatigue Level is ${label}`}
-    >
+    <>
+      <div
+        className="relative shrink-0 select-none cursor-pointer transition-transform hover:scale-105 active:scale-95"
+        style={{ width: SIZE, height: SIZE }}
+        role="button"
+        tabIndex={0}
+        onClick={() => setIsOpen(true)}
+        onKeyDown={(e) => e.key === 'Enter' && setIsOpen(true)}
+        aria-label={`CNS Fatigue Level is ${label}. Click to view signals.`}
+      >
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         width={SIZE}
@@ -184,6 +196,73 @@ export function FatigueRing({ assessment }: FatigueRingProps) {
           CNS Fatigue
         </p>
       </div>
-    </div>
+      </div>
+      
+      {mounted && isOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 animate-in fade-in duration-200">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setIsOpen(false)}
+          />
+          
+          {/* Modal */}
+          <div className="relative w-full max-w-sm bg-[#07061A] border border-[var(--accent-line)] rounded-2xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-200">
+            {/* Header glow */}
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[var(--accent)] to-[var(--cyan)]" />
+            
+            <div className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-[var(--accent)]" />
+                  <h3 className="text-sm font-bold tracking-widest uppercase text-[var(--text-hi)]">
+                    Real-time Signals
+                  </h3>
+                </div>
+                <button 
+                  onClick={() => setIsOpen(false)}
+                  className="p-1 rounded-full hover:bg-white/10 transition-colors text-[var(--text-low)]"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mb-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-[var(--text-mid)]">Current Status</span>
+                  <span className="text-xs font-bold uppercase tracking-wider" style={{ color: strokeColor }}>
+                    {label} Fatigue
+                  </span>
+                </div>
+                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${pct * 100}%`, backgroundColor: strokeColor, boxShadow: `0 0 10px ${glowColor}` }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {assessment.signals.length > 0 ? (
+                  assessment.signals.map((signal, idx) => (
+                    <div key={idx} className="flex items-start gap-2.5 p-3 rounded-xl bg-white/5 border border-white/5">
+                      <span className="mt-0.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: strokeColor, boxShadow: `0 0 8px ${glowColor}` }} />
+                      <p className="text-sm font-medium text-[var(--text-hi)] leading-snug">{signal}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center text-center p-4 rounded-xl bg-white/5 border border-white/5">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-400 mb-2 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+                    <p className="text-sm font-semibold text-[var(--text-hi)]">CNS is fully recovered</p>
+                    <p className="text-xs text-[var(--text-mid)] mt-1">Optimal time to push for PRs and add volume.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   )
 }

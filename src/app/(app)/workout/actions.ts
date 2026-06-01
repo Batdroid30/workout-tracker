@@ -7,14 +7,14 @@ import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 
 export async function finishWorkoutAction(activeWorkout: any) {
-  const { userId, accessToken, session } = await requireAuth()
+  const { userId, session } = await requireAuth()
 
   let workoutId: string
   let savedSets: Awaited<ReturnType<typeof saveActiveWorkout>>['savedSets']
   let startedAt: string
 
   try {
-    const result = await saveActiveWorkout(userId, activeWorkout, accessToken)
+    const result = await saveActiveWorkout(userId, activeWorkout)
     workoutId = result.workout.id
     savedSets = result.savedSets
     startedAt = result.workout.started_at
@@ -27,7 +27,7 @@ export async function finishWorkoutAction(activeWorkout: any) {
   // a failure here must not pretend the whole save failed (we'd lose the user's
   // workout in localStorage on the client). Report partial success instead.
   try {
-    const prs = await evaluateAndSavePRs(userId, workoutId, startedAt, savedSets, accessToken)
+    const prs = await evaluateAndSavePRs(userId, workoutId, startedAt, savedSets)
     revalidateAll()
     return { success: true, workoutId, prs }
   } catch (error: any) {
@@ -38,10 +38,10 @@ export async function finishWorkoutAction(activeWorkout: any) {
 }
 
 export async function deleteWorkoutAction(workoutId: string) {
-  const { userId, accessToken, session } = await requireAuth()
+  const { userId, session } = await requireAuth()
 
   try {
-    await deleteWorkout(workoutId, userId, accessToken)
+    await deleteWorkout(workoutId, userId)
 
     // The deleted workout may have contained PR-setting sets. Those set rows are
     // now gone (cascade), but personal_records rows pointing to them are orphaned.
@@ -49,7 +49,7 @@ export async function deleteWorkoutAction(workoutId: string) {
     // reflects reality without requiring a manual recalculate.
     const supabase = getSupabaseAdmin()
     await supabase.from('personal_records').delete().eq('user_id', userId)
-    await evaluateAndSaveAllPRs(userId, accessToken)
+    await evaluateAndSaveAllPRs(userId)
 
     revalidateAll()
 
@@ -74,8 +74,8 @@ export async function deleteWorkoutAction(workoutId: string) {
 // Cost: one grouped aggregate per workout-screen mount (cached client-side
 // for the session, so effectively one query per workout).
 export async function getUserExerciseFrequency(): Promise<Record<string, number>> {
-  const { accessToken, session } = await requireAuth()
-  const supabase = accessToken ? await getSupabaseServer(accessToken) : getSupabaseAdmin()
+  const {  session } = await requireAuth()
+  const supabase = await getSupabaseServer()
   // user_id is server-derived from the session — never trust a client-passed id.
   const { data, error } = await supabase.rpc('get_user_exercise_frequency', {
     p_user_id: session.user.id,

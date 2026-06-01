@@ -21,10 +21,9 @@ export interface BodyweightPoint {
  */
 export const getBodyweightHistory = cache(async (
   userId: string,
-  weeks = 12,
-  accessToken?: string, runAsAdmin: boolean = false,
+  weeks = 12, runAsAdmin: boolean = false,
 ): Promise<BodyweightPoint[]> => {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+  const supabase = await resolveSupabaseClient(runAsAdmin)
   const since = new Date(Date.now() - weeks * 7 * 86400_000)
 
   const { data, error } = await supabase
@@ -47,10 +46,9 @@ export const getBodyweightHistory = cache(async (
  * Used to pre-fill the quick-log input on /progress.
  */
 export const getLatestBodyweight = cache(async (
-  userId: string,
-  accessToken?: string, runAsAdmin: boolean = false,
+  userId: string, runAsAdmin: boolean = false,
 ): Promise<BodyweightPoint | null> => {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+  const supabase = await resolveSupabaseClient(runAsAdmin)
 
   const { data, error } = await supabase
     .from('bodyweight_log')

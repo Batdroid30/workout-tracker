@@ -2,8 +2,8 @@ import { cache } from 'react'
 import { resolveSupabaseClient } from '@/lib/supabase/server'
 import type { Exercise } from '@/types/database'
 
-export const getExercises = cache(async (accessToken?: string, runAsAdmin: boolean = false): Promise<Exercise[]> => {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export const getExercises = cache(async (runAsAdmin: boolean = false): Promise<Exercise[]> => {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
   const { data, error } = await supabase
     .from('exercises')
     .select('id, name, muscle_group, secondary_muscles, equipment, movement_pattern, is_custom, created_by, created_at, youtube_video_id')
@@ -16,8 +16,8 @@ export const getExercises = cache(async (accessToken?: string, runAsAdmin: boole
   return data
 })
 
-export const getExerciseById = cache(async (id: string, accessToken?: string, runAsAdmin: boolean = false): Promise<Exercise | null> => {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export const getExerciseById = cache(async (id: string, runAsAdmin: boolean = false): Promise<Exercise | null> => {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
   const { data, error } = await supabase
     .from('exercises')
     .select('id, name, muscle_group, secondary_muscles, equipment, movement_pattern, is_custom, created_by, created_at, youtube_video_id')
@@ -33,8 +33,8 @@ export const getExerciseById = cache(async (id: string, accessToken?: string, ru
 
 // Not cached: relies on the user's Supabase session for RLS and is only
 // used inside SetLogger (client hook) where SWR handles caching.
-export async function getRecentSetsForExercise(exerciseId: string, accessToken?: string, runAsAdmin: boolean = false) {
-  const supabase = await resolveSupabaseClient(accessToken, runAsAdmin)
+export async function getRecentSetsForExercise(exerciseId: string, runAsAdmin: boolean = false) {
+  const supabase = await resolveSupabaseClient(runAsAdmin)
   const { data, error } = await supabase
     .from('sets')
     .select(`

@@ -155,6 +155,36 @@ export type Database = {
           },
         ]
       }
+      readiness_logs: {
+        Row: {
+          id: string
+          user_id: string
+          sleep_score: number
+          soreness_score: number
+          energy_score: number
+          logged_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          sleep_score: number
+          soreness_score: number
+          energy_score: number
+          logged_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          sleep_score?: number
+          soreness_score?: number
+          energy_score?: number
+          logged_at?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

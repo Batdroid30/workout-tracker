@@ -13,11 +13,11 @@ export const metadata = {
 }
 
 export default async function RoutinesPage() {
-  const { accessToken, session } = await requireAuth()
+  const {  session } = await requireAuth()
 
   const [routines, profile] = await Promise.all([
-    getRoutines(session.user.id, accessToken),
-    getProfile(session.user.id, accessToken),
+    getRoutines(session.user.id),
+    getProfile(session.user.id),
   ])
 
   return (

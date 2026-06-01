@@ -44,13 +44,12 @@ import type { TrainingPhase } from '@/types/database'
 async function BodyweightLoader({
   userId,
   trainingPhase,
-  accessToken,
 }: {
   userId:        string
   trainingPhase: TrainingPhase | null
   accessToken?:  string
 }) {
-  const history     = await getBodyweightHistory(userId, 12, accessToken)
+  const history     = await getBodyweightHistory(userId, 12)
   const latestWeight: BodyweightPoint | null = history.length > 0 ? history[history.length - 1] : null
   return (
     <BodyweightSection
@@ -61,8 +60,8 @@ async function BodyweightLoader({
   )
 }
 
-async function TopPRsLoader({ userId, accessToken }: { userId: string; accessToken?: string }) {
-  const topPRs = await getTopPersonalRecords(userId, accessToken)
+async function TopPRsLoader({ userId }: { userId: string }) {
+  const topPRs = await getTopPersonalRecords(userId)
   return <TopPRsTable prs={topPRs} />
 }
 
@@ -70,7 +69,6 @@ async function BodyCompositionLoader({
   userId,
   trainingPhase,
   strengthHistory,
-  accessToken,
 }: {
   userId:          string
   trainingPhase:   TrainingPhase | null
@@ -78,7 +76,7 @@ async function BodyCompositionLoader({
   accessToken?:    string
 }) {
   // React cache deduplicates — same DB call as BodyweightLoader
-  const bwHistory = await getBodyweightHistory(userId, 12, accessToken)
+  const bwHistory = await getBodyweightHistory(userId, 12)
   if (bwHistory.length === 0) return null
 
   // Align bodyweight to weeks: compute average bodyweight per ISO week
@@ -138,8 +136,8 @@ async function BodyCompositionLoader({
   )
 }
 
-async function StrengthPRLoader({ userId, accessToken }: { userId: string; accessToken?: string }) {
-  const prData = await getPersonalRecordsData(userId, accessToken)
+async function StrengthPRLoader({ userId }: { userId: string }) {
+  const prData = await getPersonalRecordsData(userId)
   return (
     <div className="space-y-4">
       {prData.velocityByMonth.length > 0 && (
@@ -177,15 +175,15 @@ function buildRadarData(setsByMuscle: Record<string, number>) {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function ProgressPage() {
-  const { userId, accessToken, session } = await requireAuth()
+  const { userId, session } = await requireAuth()
 
   // Core queries — run in parallel. Snapshot replaces 6 independent sets scans.
   // calendarData fetches workouts table only (no joins) — very lightweight.
   const [snapshot, profile, { totalVolume }, calendarData] = await Promise.all([
-    getProgressSnapshot(userId, accessToken),
-    getProfile(userId, accessToken),
-    getWorkoutsSummary(userId, accessToken),
-    getWorkoutCalendarData(userId, accessToken),
+    getProgressSnapshot(userId),
+    getProfile(userId),
+    getWorkoutsSummary(userId),
+    getWorkoutCalendarData(userId),
   ])
 
   // Pure — no DB call
@@ -200,8 +198,7 @@ export default async function ProgressPage() {
     userId,
     profile,
     snapshot.currentWeekSetsByMuscle,
-    undefined,
-    accessToken
+    undefined
   )
 
   const weeksInPhase = getWeeksInPhase(profile?.phase_started_at ?? null)
@@ -377,7 +374,7 @@ export default async function ProgressPage() {
 
           {/* PR velocity + timeline — streamed (separate personal_records query) */}
           <Suspense fallback={<PRSectionSkeleton />}>
-            <StrengthPRLoader userId={userId} accessToken={accessToken} />
+            <StrengthPRLoader userId={userId} />
           </Suspense>
         </section>
 
@@ -441,7 +438,6 @@ export default async function ProgressPage() {
           <BodyweightLoader
             userId={userId}
             trainingPhase={profile?.training_phase ?? null}
-            accessToken={accessToken}
           />
         </Suspense>
 
@@ -454,7 +450,6 @@ export default async function ProgressPage() {
                 userId={userId}
                 trainingPhase={profile?.training_phase ?? null}
                 strengthHistory={strengthIndex.history}
-                accessToken={accessToken}
               />
             </Suspense>
           </section>
@@ -487,7 +482,7 @@ export default async function ProgressPage() {
             <h2 className="t-display-s">Top Personal Records</h2>
           </div>
           <Suspense fallback={<PRTableSkeleton />}>
-            <TopPRsLoader userId={userId} accessToken={accessToken} />
+            <TopPRsLoader userId={userId} />
           </Suspense>
         </section>
 

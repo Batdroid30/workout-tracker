@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getWorkoutsSummary, getRecentWorkouts } from '@/lib/data/workouts'
 import { getProfile } from '@/lib/data/profile'
 import { getLatestBodyweight, getBodyweightHistory } from '@/lib/data/bodyweight'
+import { getRecentReadinessLogs, getTodayReadiness } from '@/lib/data/readiness'
 import {
   getTrainingStreak,
   deriveWeeklySummary,
@@ -26,7 +27,7 @@ import { PUSH_MUSCLES, PULL_MUSCLES } from '@/lib/training-constants'
 import { STALL_VARIATION_ADVICE } from '@/lib/workout-intelligence'
 
 export default async function DashboardPage() {
-  const { userId, accessToken, session } = await requireAuth()
+  const { userId, session } = await requireAuth()
 
   // Parallel fetch 1: core queries, metrics, and progress snapshot
   const [
@@ -39,16 +40,20 @@ export default async function DashboardPage() {
     recentPRs,
     neglectedMuscles,
     bwHistory,
+    recentReadiness,
+    todayReadiness,
   ] = await Promise.all([
-    getWorkoutsSummary(userId, accessToken),
-    getRecentWorkouts(userId, accessToken),
-    getProfile(userId, accessToken),
-    getLatestBodyweight(userId, accessToken),
-    getTrainingStreak(userId, accessToken),
-    getProgressSnapshot(userId, accessToken),
-    getRecentPRs(userId, 60, accessToken),
-    getNeglectedMuscles(userId, accessToken),
-    getBodyweightHistory(userId, 4, accessToken),
+    getWorkoutsSummary(userId),
+    getRecentWorkouts(userId),
+    getProfile(userId),
+    getLatestBodyweight(userId),
+    getTrainingStreak(userId),
+    getProgressSnapshot(userId),
+    getRecentPRs(userId, 60),
+    getNeglectedMuscles(userId),
+    getBodyweightHistory(userId, 4),
+    getRecentReadinessLogs(userId, 7),
+    getTodayReadiness(userId),
   ])
 
   const totalVolume = workoutsSummary.totalVolume
@@ -116,8 +121,8 @@ export default async function DashboardPage() {
     volumeLandmarks,
     badges,
   ] = await Promise.all([
-    getVolumeLandmarksByMuscle(userId, profile, snapshot.currentWeekSetsByMuscle, snapshot.muscleFrequency, accessToken),
-    getBadges(userId, totalVolume, totalWorkouts, accessToken),
+    getVolumeLandmarksByMuscle(userId, profile, snapshot.currentWeekSetsByMuscle, snapshot.muscleFrequency),
+    getBadges(userId, totalVolume, totalWorkouts),
   ])
 
   // Pure in-memory calculation for Strength Index
@@ -164,7 +169,7 @@ export default async function DashboardPage() {
     experience_level: profile.experience_level,
     training_phase:   profile.training_phase,
     phase_started_at: profile.phase_started_at,
-  } : null)
+  } : null, recentReadiness)
   
   const isDeloadWeek = fatigue.shouldSuggest || isCurrentWeekDeload(profile
     ? { phase_started_at: profile.phase_started_at ?? null, experience_level: profile.experience_level, training_phase: profile.training_phase }
@@ -234,6 +239,7 @@ export default async function DashboardPage() {
         phaseLabel={phaseLabel}
         phaseWeek={phaseWeek}
         cycleLength={cycleLength}
+        todayReadiness={todayReadiness}
       />
     </div>
   )

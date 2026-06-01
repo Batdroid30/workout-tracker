@@ -1,20 +1,22 @@
-import NextAuth from 'next-auth'
-import { authConfig } from './config'
+import { getSupabaseServer } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
-export const { auth, handlers, signIn, signOut } = NextAuth(authConfig)
-
 export async function requireAuth() {
-  const session = await auth()
+  const supabase = await getSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
   
-  const token = (session as any)?.supabaseAccessToken
-  if (!session?.user?.id || !token) {
+  if (!user) {
     redirect('/login')
   }
 
   return {
-    session,
-    userId: session.user.id,
-    accessToken: token as string
+    session: { user },
+    userId: user.id
   }
+}
+
+export async function signOutUser() {
+  const supabase = await getSupabaseServer()
+  await supabase.auth.signOut()
+  redirect('/login')
 }
