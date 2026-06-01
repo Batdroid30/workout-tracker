@@ -51,9 +51,9 @@ export function SetLogger({
 }: SetLoggerProps) {
   const { updateSet, markSetDone, addSet, addWarmupSet, removeExercise, removeSet, insertSet, moveExerciseUp, moveExerciseDown, updateExerciseRestSeconds } = useWorkoutStore()
 
-  const isBodyweight = exercise.exercise.equipment === 'bodyweight' &&
+  const isBodyweight = exercise.exercise.equipment?.toLowerCase() === 'bodyweight' &&
     !exercise.exercise.name.toLowerCase().includes('weighted')
-  const isWeightedBodyweight = exercise.exercise.equipment === 'bodyweight' &&
+  const isWeightedBodyweight = exercise.exercise.equipment?.toLowerCase() === 'bodyweight' &&
     !!exercise.exercise.name.toLowerCase().match(/weighted/i)
   const { loadPRsForExercises, checkLocalPR } = usePRStore()
   const [menuOpen,            setMenuOpen]            = useState(false)

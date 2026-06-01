@@ -64,12 +64,15 @@ export const useWorkoutStore = create<WorkoutStore>()(
           has_routine_been_modified: false,
           started_at: new Date(),
           exercises: routine.routine_exercises.map((re: any, idx: number) => {
+            const isBw = re.exercise.equipment?.toLowerCase() === 'bodyweight' && !re.exercise.name.toLowerCase().match(/weighted/i)
+            const isWeightedBw = re.exercise.equipment?.toLowerCase() === 'bodyweight' && !!re.exercise.name.toLowerCase().match(/weighted/i)
+            
             const sets = []
             for (let i = 0; i < re.target_sets; i++) {
               sets.push({
                 id: crypto.randomUUID(),
                 set_number: i + 1,
-                weight_kg: 0,
+                weight_kg: isBw || isWeightedBw ? (get().userBodyweight ?? 75) : 0,
                 reps: re.target_reps,
                 rpe: null,
                 is_warmup: false,
@@ -115,13 +118,16 @@ export const useWorkoutStore = create<WorkoutStore>()(
       addExercise: (exercise, restSeconds?) => set((state) => {
         if (!state.activeWorkout) return state
 
+        const isBw = exercise.equipment?.toLowerCase() === 'bodyweight' && !exercise.name.toLowerCase().match(/weighted/i)
+        const isWeightedBw = exercise.equipment?.toLowerCase() === 'bodyweight' && !!exercise.name.toLowerCase().match(/weighted/i)
+
         const newExercise: ActiveExercise = {
           workout_exercise_id: null,
           exercise,
           sets: [{
             id: crypto.randomUUID(),
             set_number: 1,
-            weight_kg: 0,
+            weight_kg: isBw || isWeightedBw ? (state.userBodyweight ?? 75) : 0,
             reps: 0,
             rpe: null,
             is_warmup: false,
@@ -197,62 +203,71 @@ export const useWorkoutStore = create<WorkoutStore>()(
       addSet: (exerciseIndex) => set((state) => {
         if (!state.activeWorkout) return state
         const exercises = [...state.activeWorkout.exercises]
-        const exercise = exercises[exerciseIndex]
+        const exercise = { ...exercises[exerciseIndex] }
         const prevSet = exercise.sets[exercise.sets.length - 1]
         
+        const isBw = exercise.exercise.equipment?.toLowerCase() === 'bodyweight' && !exercise.exercise.name.toLowerCase().match(/weighted/i)
+        const isWeightedBw = exercise.exercise.equipment?.toLowerCase() === 'bodyweight' && !!exercise.exercise.name.toLowerCase().match(/weighted/i)
+        
         // Pre-fill with previous set values — saves time in the gym
-        exercises[exerciseIndex] = {
-          ...exercise,
-          sets: [...exercise.sets, {
-            id: crypto.randomUUID(),
-            set_number: exercise.sets.length + 1,
-            weight_kg: prevSet?.weight_kg ?? 0,
-            reps: prevSet?.reps ?? 0,
-            rpe: null,
-            is_warmup: false,
-            completed: false,
-            saved: false,
-          }]
-        }
+        exercise.sets = [...exercise.sets, {
+          id: crypto.randomUUID(),
+          set_number: exercise.sets.length + 1,
+          weight_kg: prevSet ? prevSet.weight_kg : (isBw || isWeightedBw ? (state.userBodyweight ?? 75) : 0),
+          reps: prevSet?.reps ?? 0,
+          rpe: null,
+          is_warmup: false,
+          completed: false,
+          saved: false,
+        }]
+        exercises[exerciseIndex] = exercise
         return { activeWorkout: { ...state.activeWorkout, exercises } }
       }),
 
       addWarmupSet: (exerciseIndex, weight = 0, reps = 0) => set((state) => {
         if (!state.activeWorkout) return state
         const exercises = [...state.activeWorkout.exercises]
-        const exercise = exercises[exerciseIndex]
-        exercises[exerciseIndex] = {
-          ...exercise,
-          sets: [...exercise.sets, {
-            id: crypto.randomUUID(),
-            set_number: exercise.sets.length + 1,
-            weight_kg: weight,
-            reps,
-            rpe: null,
-            is_warmup: true,
-            completed: false,
-            saved: false,
-          }]
-        }
+        const exercise = { ...exercises[exerciseIndex] }
+        exercise.sets = [...exercise.sets, {
+          id: crypto.randomUUID(),
+          set_number: exercise.sets.length + 1,
+          weight_kg: weight,
+          reps,
+          rpe: null,
+          is_warmup: true,
+          completed: false,
+          saved: false,
+        }]
+        exercises[exerciseIndex] = exercise
         return { activeWorkout: { ...state.activeWorkout, exercises } }
       }),
 
       updateSet: (exerciseIndex, setIndex, updates) => set((state) => {
         if (!state.activeWorkout) return state
         const exercises = [...state.activeWorkout.exercises]
-        exercises[exerciseIndex].sets[setIndex] = {
-          ...exercises[exerciseIndex].sets[setIndex],
+        const exercise = { ...exercises[exerciseIndex] }
+        const sets = [...exercise.sets]
+        sets[setIndex] = {
+          ...sets[setIndex],
           ...updates,
         }
+        exercise.sets = sets
+        exercises[exerciseIndex] = exercise
         return { activeWorkout: { ...state.activeWorkout, exercises } }
       }),
 
       markSetDone: (exerciseIndex, setIndex) => set((state) => {
         if (!state.activeWorkout) return state
         const exercises = [...state.activeWorkout.exercises]
+        const exercise = { ...exercises[exerciseIndex] }
+        const sets = [...exercise.sets]
         // Toggle — tapping ✓ on a completed set reopens it for editing
-        exercises[exerciseIndex].sets[setIndex].completed =
-          !exercises[exerciseIndex].sets[setIndex].completed
+        sets[setIndex] = {
+          ...sets[setIndex],
+          completed: !sets[setIndex].completed
+        }
+        exercise.sets = sets
+        exercises[exerciseIndex] = exercise
         return { activeWorkout: { ...state.activeWorkout, exercises } }
       }),
 
@@ -267,19 +282,20 @@ export const useWorkoutStore = create<WorkoutStore>()(
   removeSet: (exerciseIndex, setIndex) => set((state) => {
     if (!state.activeWorkout) return state
     const exercises = [...state.activeWorkout.exercises]
-    exercises[exerciseIndex] = {
-      ...exercises[exerciseIndex],
-      sets: exercises[exerciseIndex].sets.filter((_, i) => i !== setIndex)
-    }
+    const exercise = { ...exercises[exerciseIndex] }
+    exercise.sets = exercise.sets.filter((_, i) => i !== setIndex)
+    exercises[exerciseIndex] = exercise
     return { activeWorkout: { ...state.activeWorkout, exercises } }
   }),
 
   insertSet: (exerciseIndex, setIndex, insertedSet) => set((state) => {
     if (!state.activeWorkout) return state
     const exercises = [...state.activeWorkout.exercises]
-    const sets = [...exercises[exerciseIndex].sets]
+    const exercise = { ...exercises[exerciseIndex] }
+    const sets = [...exercise.sets]
     sets.splice(setIndex, 0, insertedSet)
-    exercises[exerciseIndex] = { ...exercises[exerciseIndex], sets }
+    exercise.sets = sets
+    exercises[exerciseIndex] = exercise
     return { activeWorkout: { ...state.activeWorkout, exercises } }
   }),
 
