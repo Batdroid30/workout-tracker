@@ -2,11 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
+  requireAuth: vi.fn(),
   getSupabaseServer: vi.fn(),
   revalidateAll: vi.fn(),
 }))
 
-vi.mock('@/lib/auth', () => ({ auth: mocks.auth }))
+vi.mock('@/lib/auth', () => ({ auth: mocks.auth, requireAuth: mocks.requireAuth }))
 vi.mock('@/lib/supabase/server', () => ({ getSupabaseServer: mocks.getSupabaseServer }))
 vi.mock('@/lib/cache', () => ({ revalidateAll: mocks.revalidateAll }))
 
@@ -47,10 +48,11 @@ describe('updateHistoricalSetAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.auth.mockResolvedValue({ user: { id: 'user-A' } })
+    mocks.requireAuth.mockResolvedValue({ userId: 'user-A', session: { supabaseAccessToken: 'token' } })
   })
 
   it('throws Unauthorized when there is no session', async () => {
-    mocks.auth.mockResolvedValue(null)
+    mocks.requireAuth.mockRejectedValue(new Error('Unauthorized'))
     await expect(updateHistoricalSetAction('s-1', 100, 5)).rejects.toThrow('Unauthorized')
   })
 
@@ -96,10 +98,11 @@ describe('deleteHistoricalExerciseAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.auth.mockResolvedValue({ user: { id: 'user-A' } })
+    mocks.requireAuth.mockResolvedValue({ userId: 'user-A', session: { supabaseAccessToken: 'token' } })
   })
 
   it('throws Unauthorized when there is no session', async () => {
-    mocks.auth.mockResolvedValue(null)
+    mocks.requireAuth.mockRejectedValue(new Error('Unauthorized'))
     await expect(deleteHistoricalExerciseAction('we-1')).rejects.toThrow('Unauthorized')
   })
 

@@ -228,6 +228,17 @@ export function calculate1RM(weight: number, reps: number): number {
 }
 
 /**
+ * Mathematically exact inverse of calculate1RM.
+ * Given an e1RM and a target rep count, back-calculates the exact required weight.
+ */
+export function calculateWeightFrom1RM(e1rm: number, targetReps: number): number {
+  if (targetReps <= 1) return e1rm
+  if (targetReps > 10) return e1rm / (1 + targetReps / 30)
+  const factor = 0.5 * (1 + targetReps / 30 + 36 / (37 - targetReps))
+  return e1rm / factor
+}
+
+/**
  * Converts an RPE value to Reps In Reserve.
  * RPE 10 = 0 RIR (failure), RPE 8 = 2 RIR (optimal sweet spot), etc.
  */
@@ -353,6 +364,11 @@ interface SuggestNextSetParams {
    * undefined = no history yet (first session). Used in rep_sum mode only.
    */
   prevTotalReps?: number
+  /**
+   * When true, explicitly forces a cross-phase recalculation of weight for the
+   * current WUP rep range, bypassing standard progression.
+   */
+  isPhaseTransition?: boolean
 }
 
 /**
@@ -389,6 +405,7 @@ export function suggestNextSet({
   progressionModel  = null,
   repSumTarget      = null,
   prevTotalReps,
+  isPhaseTransition = false,
 }: SuggestNextSetParams): OverloadSuggestion {
   // ── Deload week override ─────────────────────────────────────────────────────
   // Science: reduce VOLUME (sets), maintain INTENSITY (weight).
@@ -446,10 +463,10 @@ export function suggestNextSet({
   const targetRPE = dupRpeTarget ?? TARGET_RPE[trainingGoal ?? 'both']
 
   // ── Cross-phase WUP transition ──────────────────────────────────────────────
-  // lastReps outside the current range means the WUP week changed (e.g. Hyp → Volume).
-  // Fixed-increment adjustments produce nonsensical load/rep combinations across phases.
-  // Use e1RM to back-calculate a sensible starting load for the new rep range instead.
-  if (lastReps < range.min || lastReps > range.max) {
+  // If the WUP week changed (e.g. Strength → Hypertrophy), or if lastReps was wildly outside the range,
+  // fixed-increment adjustments produce nonsensical load/rep combinations.
+  // Use e1RM to mathematically back-calculate a precise starting load for the new rep range instead.
+  if (isPhaseTransition || lastReps < range.min || lastReps > range.max) {
     // Account for reps in reserve when RPE is known — gives a more accurate e1RM.
     // When no RPE was logged, assume RPE 8 (2 RIR) as a working-set default rather
     // than treating the last rep as failure, which underestimates e1RM and produces
@@ -458,12 +475,14 @@ export function suggestNextSet({
     const e1rm = calculate1RM(lastWeight, repsToFailure)
     // At targetRPE the lifter has (10 - targetRPE) reps in reserve on the final rep.
     const targetRepsToFailure = range.min + (10 - targetRPE)
-    const targetWeight = roundToPlate(e1rm / (1 + targetRepsToFailure / 30))
+    const targetWeight = roundToPlate(calculateWeightFrom1RM(e1rm, targetRepsToFailure))
     return {
       weight_kg:   targetWeight,
       target_reps: range.min,
       rpe_target:  targetRPE,
-      reason:      `Week changed to ${range.min}–${range.max} reps — starting weight estimated from your recent performance.`,
+      reason:      isPhaseTransition
+        ? `Phase changed to ${range.min}–${range.max} reps — mathematically matched weight to your recent performance.`
+        : `Adjusting to ${range.min}–${range.max} reps — weight calculated from your recent performance.`,
     }
   }
 

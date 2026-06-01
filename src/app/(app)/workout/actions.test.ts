@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // Hoisted mocks — referenced inside vi.mock factories.
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
+  requireAuth: vi.fn(),
   saveActiveWorkout: vi.fn(),
   evaluateAndSavePRs: vi.fn(),
   evaluateAndSaveAllPRs: vi.fn(),
@@ -11,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   getSupabaseAdmin: vi.fn(),
 }))
 
-vi.mock('@/lib/auth', () => ({ auth: mocks.auth }))
+vi.mock('@/lib/auth', () => ({ auth: mocks.auth, requireAuth: mocks.requireAuth }))
 vi.mock('@/lib/data/workouts', () => ({
   saveActiveWorkout: mocks.saveActiveWorkout,
   deleteWorkout: mocks.deleteWorkout,
@@ -33,6 +34,7 @@ describe('finishWorkoutAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.auth.mockResolvedValue({ user: { id: userId } })
+    mocks.requireAuth.mockResolvedValue({ userId, session: {} })
   })
 
   it('returns success with PRs when both save and PR evaluation succeed', async () => {
@@ -77,7 +79,7 @@ describe('finishWorkoutAction', () => {
   })
 
   it('throws when there is no authenticated user', async () => {
-    mocks.auth.mockResolvedValue(null)
+    mocks.requireAuth.mockRejectedValue(new Error('User not authenticated'))
     await expect(finishWorkoutAction({} as any)).rejects.toThrow('User not authenticated')
   })
 })

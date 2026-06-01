@@ -4,6 +4,7 @@ import type { ActiveWorkout, ActiveExercise, ActiveSet, Exercise } from '@/types
 
 interface WorkoutStore {
   activeWorkout: ActiveWorkout | null
+  userBodyweight: number | null
 
   // Actions
   startWorkout: (title?: string) => void

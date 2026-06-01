@@ -3,7 +3,7 @@
 import useSWR from 'swr'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { suggestNextSet, type OverloadSuggestion } from '@/lib/algorithms'
-import { getCurrentDUPScheme, isCurrentWeekDeload } from '@/lib/workout-intelligence'
+import { getCurrentWUPScheme, isCurrentWeekDeload } from '@/lib/workout-intelligence'
 import type { TrainingGoal, ExperienceLevel, TrainingPhase } from '@/types/database'
 
 export interface LastWorkoutSetInfo {
@@ -88,12 +88,22 @@ async function fetchLastWorkoutSets(
     return w?.id ?? ''
   }
 
+  const resolveWorkoutDate = (set: any): string => {
+    const we = Array.isArray(set.workout_exercises) ? set.workout_exercises[0] : set.workout_exercises
+    const w  = Array.isArray(we?.workouts) ? we.workouts[0] : we?.workouts
+    return w?.started_at ?? set.completed_at
+  }
+
   // The first row is the most recent completed set — its workout is the one we want.
   const latestWorkoutId = resolveWorkoutId(data[0])
   if (!latestWorkoutId) return []
 
-  const dupScheme    = getCurrentDUPScheme()
+  const dupScheme    = getCurrentWUPScheme()
   const isDeloadWeek = isCurrentWeekDeload(profile)
+
+  const lastWorkoutDateStr = resolveWorkoutDate(data[0])
+  const lastWupScheme = getCurrentWUPScheme(new Date(lastWorkoutDateStr))
+  const isPhaseTransition = lastWupScheme.label !== dupScheme.label
 
   const lastSets = (data as any[])
     .filter((set: any) => resolveWorkoutId(set) === latestWorkoutId)
@@ -128,6 +138,7 @@ async function fetchLastWorkoutSets(
         progressionModel,
         repSumTarget,
         prevTotalReps,
+        isPhaseTransition,
       }),
     }
   })

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   calculateEpley1RM,
+  calculateWeightFrom1RM,
   suggestNextSet,
   generateDeloadRoutine,
   assessFatigueLevel,
@@ -24,6 +25,31 @@ describe('calculateEpley1RM', () => {
   it('rounds to one decimal place', () => {
     const result = calculateEpley1RM(102.5, 7)
     expect(result.toString()).toMatch(/^\d+(\.\d)?$/)
+  })
+})
+
+describe('calculateWeightFrom1RM', () => {
+  it('returns the exact weight for 1 rep', () => {
+    expect(calculateWeightFrom1RM(100, 1)).toBe(100)
+  })
+
+  it('correctly inverses the Epley formula for >10 reps', () => {
+    // Epley: e1rm = w * (1 + r/30). For w=100, r=15 -> e1rm = 150
+    expect(calculateWeightFrom1RM(150, 15)).toBeCloseTo(100, 1)
+  })
+
+  it('correctly inverses the blended Epley+Brzycki formula for 2-10 reps', () => {
+    // Epley for w=100, r=5 -> 100 * (1 + 5/30) = 116.666
+    // Brzycki for w=100, r=5 -> 100 * (36/32) = 112.5
+    // Blended e1RM = 114.58333
+    expect(calculateWeightFrom1RM(114.58333, 5)).toBeCloseTo(100, 1)
+  })
+
+  it('handles fractional reps properly', () => {
+    // Testing continuity of the blended formula for RPE adjustments (e.g. 10.5 reps)
+    const exactWeight = calculateWeightFrom1RM(120, 10.5)
+    expect(exactWeight).toBeGreaterThan(0)
+    expect(exactWeight).toBeLessThan(120)
   })
 })
 
@@ -146,6 +172,27 @@ describe('suggestNextSet', () => {
     })
     expect(out.target_reps).toBe(3)
     expect(out.weight_kg).toBeGreaterThan(25)
+  })
+
+  it('uses e1RM recalculation when isPhaseTransition is explicitly true, regardless of last reps', () => {
+    // Strength week (3-5), user did 30kg x 8 reps (ignored the target).
+    // Now Hypertrophy week (8-12), so lastReps (8) is technically inside the new range!
+    // But since it is a phase transition, it MUST recalculate, not just do lastReps + 1.
+    const out = suggestNextSet({
+      lastWeight: 30,
+      lastReps: 8,
+      lastRPE: 8, // 2 RIR -> equivalent to 10 reps to failure
+      dupRepRange: { min: 8, max: 12 },
+      dupRpeTarget: 7.5,
+      isPhaseTransition: true,
+    })
+    
+    // e1RM = calculate1RM(30, 10) = 40kg
+    // new target reps to failure = 8 + (10 - 7.5) = 10.5
+    // target weight = calculateWeightFrom1RM(40, 10.5) = 29.6kg -> 30kg
+    expect(out.target_reps).toBe(8)
+    expect(out.weight_kg).toBe(30)
+    expect(out.reason).toContain('Phase changed')
   })
 })
 
