@@ -383,8 +383,10 @@ export function isCurrentWeekDeload(profile: {
   const experience  = profile.experience_level ?? 'intermediate'
   const phase       = profile.training_phase   ?? 'maingaining'
   const threshold   = DELOAD_THRESHOLDS[experience][phase]
-  const weeksInPhase = (Date.now() - new Date(profile.phase_started_at).getTime()) / (7 * 24 * 60 * 60 * 1000)
-  return weeksInPhase >= threshold
+  const weeksInPhase = Math.floor((Date.now() - new Date(profile.phase_started_at).getTime()) / (7 * 24 * 60 * 60 * 1000))
+  
+  if (weeksInPhase < 0) return false
+  return (weeksInPhase % threshold) === (threshold - 1)
 }
 
 // ── Workout focus defaults — by muscle group ──────────────────────────────────
