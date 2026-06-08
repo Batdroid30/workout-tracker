@@ -299,13 +299,21 @@ export function buildMesocycleTimeline(input: BuildMesocycleInput): Mesocycle | 
   const phaseStartMonday = getMondayOf(new Date(input.phaseStartedAt))
   const todayMonday      = getMondayOf(new Date())
 
+  const phaseStartMs = new Date(phaseStartMonday + 'T00:00:00Z').getTime()
+  const todayMs      = new Date(todayMonday + 'T00:00:00Z').getTime()
+  
+  const elapsedWeeks = Math.max(0, Math.round((todayMs - phaseStartMs) / (7 * 86400000)))
+  
+  const currentCycleIndex = Math.floor(elapsedWeeks / totalWeeks)
+  const cycleStartMonday  = addWeeks(phaseStartMonday, currentCycleIndex * totalWeeks)
+
   const sessionByWeek = new Map(
     input.weeklyData.map(w => [w.week_start, w.workout_count] as const),
   )
 
   const cells: MesocycleCell[] = []
   for (let i = 0; i < totalWeeks; i++) {
-    const weekStart    = addWeeks(phaseStartMonday, i)
+    const weekStart    = addWeeks(cycleStartMonday, i)
     const sessionCount = sessionByWeek.get(weekStart) ?? 0
     const weekNumber   = i + 1
     const isCurrent    = weekStart === todayMonday
@@ -330,14 +338,8 @@ export function buildMesocycleTimeline(input: BuildMesocycleInput): Mesocycle | 
     cells.push({ weekNumber, weekStart, sessionCount, isCurrent, isDeload, status })
   }
 
-  // Determine current week within the cycle. If today is past the cycle
-  // end, clamp to totalWeeks so the UI shows "WK N / N (deload overdue)".
   const currentCellIndex = cells.findIndex(c => c.isCurrent)
-  const currentWeek = currentCellIndex >= 0
-    ? currentCellIndex + 1
-    : todayMonday > cells[cells.length - 1].weekStart
-      ? totalWeeks
-      : 1
+  const currentWeek = currentCellIndex >= 0 ? currentCellIndex + 1 : 1
 
   return { cells, totalWeeks, deloadWeek, currentWeek }
 }

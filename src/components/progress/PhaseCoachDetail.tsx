@@ -134,9 +134,7 @@ export function PhaseCoachDetail({
             style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)', color: 'var(--accent)' }}
           >
             {phaseLabel}
-            {weeksInPhase && cycleLength
-              ? ` · WK ${Math.min(weeksInPhase, cycleLength + 4)} / ${cycleLength}`
-              : weeksInPhase ? ` · WK ${weeksInPhase}` : ''}
+            {weeksInPhase ? ` · WK ${weeksInPhase}` : ''}
           </span>
         )}
       </div>

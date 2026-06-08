@@ -462,27 +462,37 @@ export function suggestNextSet({
   // in the suggestion and used to pre-fill the RPE input in the UI.
   const targetRPE = dupRpeTarget ?? TARGET_RPE[trainingGoal ?? 'both']
 
-  // ── Cross-phase WUP transition ──────────────────────────────────────────────
-  // If the WUP week changed (e.g. Strength → Hypertrophy), or if lastReps was wildly outside the range,
-  // fixed-increment adjustments produce nonsensical load/rep combinations.
-  // Use e1RM to mathematically back-calculate a precise starting load for the new rep range instead.
-  if (isPhaseTransition || lastReps < range.min || lastReps > range.max) {
-    // Account for reps in reserve when RPE is known — gives a more accurate e1RM.
-    // When no RPE was logged, assume RPE 8 (2 RIR) as a working-set default rather
-    // than treating the last rep as failure, which underestimates e1RM and produces
-    // a weight that feels too light when transitioning to a lower-rep phase.
+  // ── Cross-phase WUP transition & Range Completion ──────────────────────────
+  // If the WUP week changed (e.g. Strength → Hypertrophy), or if lastReps was outside the range,
+  // or if they hit the top of the rep range, fixed-increment adjustments are unreliable.
+  // We mathematically calculate the correct weight for the minimum rep target based on e1RM.
+  if (isPhaseTransition || lastReps < range.min || lastReps >= range.max) {
     const repsToFailure = lastRPE != null ? lastReps + (10 - lastRPE) : lastReps + 2
     const e1rm = calculate1RM(lastWeight, repsToFailure)
     // At targetRPE the lifter has (10 - targetRPE) reps in reserve on the final rep.
     const targetRepsToFailure = range.min + (10 - targetRPE)
     const targetWeight = roundToPlate(calculateWeightFrom1RM(e1rm, targetRepsToFailure))
+
+    let finalWeight = targetWeight
+    
+    // Ensure progressive overload when hitting the top of the range
+    if (lastReps >= range.max && finalWeight <= lastWeight) {
+      finalWeight = lastWeight + increment
+    }
+    // If they undershot the range, make sure the weight actually drops
+    if (lastReps < range.min && finalWeight >= lastWeight) {
+      finalWeight = Math.max(2.5, lastWeight - increment)
+    }
+
     return {
-      weight_kg:   targetWeight,
+      weight_kg:   finalWeight,
       target_reps: range.min,
       rpe_target:  targetRPE,
       reason:      isPhaseTransition
         ? `Phase changed to ${range.min}–${range.max} reps — mathematically matched weight to your recent performance.`
-        : `Adjusting to ${range.min}–${range.max} reps — weight calculated from your recent performance.`,
+        : lastReps >= range.max
+          ? `Hit the top of the rep range! Mathematically calculated the load for ${range.min} reps.`
+          : `Adjusting to ${range.min}–${range.max} reps — weight calculated from your recent performance.`,
     }
   }
 
@@ -505,14 +515,6 @@ export function suggestNextSet({
 
     if (deviation < -1.5) {
       // Last session was too easy — progress more aggressively.
-      if (lastReps >= range.max) {
-        return {
-          weight_kg:   lastWeight + increment,
-          target_reps: range.min + 1, // start 1 above minimum since capacity is clearly there
-          rpe_target:  targetRPE,
-          reason:      `RPE ${lastRPE} was well below target — progress the load with confidence.`,
-        }
-      }
       return {
         weight_kg:   lastWeight,
         target_reps: Math.min(lastReps + 2, range.max), // add 2 reps instead of 1
