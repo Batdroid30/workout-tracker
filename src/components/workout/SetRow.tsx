@@ -219,7 +219,7 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
             {isBodyweight 
               ? `BW × ${suggestion.target_reps}` 
               : isWeightedBodyweight 
-                ? `+${suggestion.weight_kg >= userBodyweight ? suggestion.weight_kg - userBodyweight : suggestion.weight_kg}kg × ${suggestion.target_reps}`
+                ? `${Math.abs(suggestion.weight_kg - userBodyweight) < 0.1 ? 'BW' : `${suggestion.weight_kg - userBodyweight > 0 ? '+' : ''}${(suggestion.weight_kg - userBodyweight).toFixed(1).replace(/\\.0$/, '')}kg`} × ${suggestion.target_reps}`
                 : `${suggestion.weight_kg}kg × ${suggestion.target_reps}`}
           </span>
           <span className="mono text-[10px] tabular-nums" style={{ color: 'var(--accent)' }}>
@@ -389,7 +389,7 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWei
 
           {/* Summary */}
           <span className="flex-1 min-w-0 mono text-sm text-[var(--text-low)] tracking-tight">
-            {isBodyweight ? 'BW' : isWeightedBodyweight && set.weight_kg > 0 ? `+${set.weight_kg >= userBodyweight ? set.weight_kg - userBodyweight : set.weight_kg}kg` : set.weight_kg > 0 ? `${set.weight_kg}kg` : '—'}
+            {isBodyweight ? 'BW' : isWeightedBodyweight && set.weight_kg > 0 ? (Math.abs(set.weight_kg - userBodyweight) < 0.1 ? 'BW' : `${set.weight_kg - userBodyweight > 0 ? '+' : ''}${(set.weight_kg - userBodyweight).toFixed(1).replace(/\\.0$/, '')}kg`) : set.weight_kg > 0 ? `${set.weight_kg}kg` : '—'}
             {' × '}
             {set.reps > 0 ? set.reps : '—'}
             {e1rm && <span className="text-[9px] text-[var(--text-faint)] ml-1.5">· ~{e1rm}kg</span>}

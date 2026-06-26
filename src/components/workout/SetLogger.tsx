@@ -295,7 +295,19 @@ export function SetLogger({
         {exercise.sets.map((set, setIndex) => {
           const workingSetsBefore = exercise.sets.slice(0, setIndex).filter(s => !s.is_warmup).length
           const lastSetAtPosition = !set.is_warmup ? lastWorkoutSets[workingSetsBefore] : undefined
-          const prevText = lastSetAtPosition ? `${lastSetAtPosition.weight_kg}×${lastSetAtPosition.reps}` : '-'
+          
+          let prevText = '-'
+          if (lastSetAtPosition) {
+            if (isBodyweight) {
+              prevText = `BW×${lastSetAtPosition.reps}`
+            } else if (isWeightedBodyweight) {
+              const diff = lastSetAtPosition.weight_kg - userBodyweight
+              const diffStr = Math.abs(diff) < 0.1 ? 'BW' : `${diff > 0 ? '+' : ''}${diff.toFixed(1).replace(/\\.0$/, '')}kg`
+              prevText = `${diffStr}×${lastSetAtPosition.reps}`
+            } else {
+              prevText = `${lastSetAtPosition.weight_kg}×${lastSetAtPosition.reps}`
+            }
+          }
 
           return (
             <SetRow
