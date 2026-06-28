@@ -205,9 +205,10 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
       {suggestion && !set.is_warmup && (
         <button
           onClick={() => {
-            if (!isBodyweight) setWeightStr(String(suggestion.weight_kg))
+            const clampedWeight = isWeightedBodyweight ? Math.max(userBodyweight, suggestion.weight_kg) : suggestion.weight_kg
+            if (!isBodyweight) setWeightStr(isWeightedBodyweight ? String(clampedWeight >= userBodyweight ? clampedWeight - userBodyweight : 0) : String(clampedWeight))
             onChange({
-              weight_kg: isBodyweight ? 0 : suggestion.weight_kg,
+              weight_kg: isBodyweight ? 0 : clampedWeight,
               reps: suggestion.target_reps,
             })
           }}
@@ -219,7 +220,7 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
             {isBodyweight 
               ? `BW × ${suggestion.target_reps}` 
               : isWeightedBodyweight 
-                ? `${Math.abs(suggestion.weight_kg - userBodyweight) < 0.1 ? 'BW' : `${suggestion.weight_kg - userBodyweight > 0 ? '+' : ''}${(suggestion.weight_kg - userBodyweight).toFixed(1).replace(/\\.0$/, '')}kg`} × ${suggestion.target_reps}`
+                ? `${Math.abs(suggestion.weight_kg - userBodyweight) < 0.1 || suggestion.weight_kg < userBodyweight ? 'BW' : `+${(suggestion.weight_kg - userBodyweight).toFixed(1).replace(/\\.0$/, '')}kg`} × ${suggestion.target_reps}`
                 : `${suggestion.weight_kg}kg × ${suggestion.target_reps}`}
           </span>
           <span className="mono text-[10px] tabular-nums" style={{ color: 'var(--accent)' }}>
