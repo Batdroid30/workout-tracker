@@ -25,3 +25,18 @@ export class UnauthorizedError extends Error {
     this.name = 'UnauthorizedError'
   }
 }
+
+export class CoachError extends Error {
+  constructor(message: string, public readonly cause?: unknown) {
+    super(message)
+    this.name = 'CoachError'
+  }
+}
+
+export class CoachRateLimitError extends CoachError {
+  constructor(public readonly resetAt: Date) {
+    super('Daily coach message limit reached. Resets at midnight.')
+    this.name = 'CoachRateLimitError'
+  }
+}
+

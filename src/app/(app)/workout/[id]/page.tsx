@@ -8,12 +8,13 @@ import { DuplicateWorkoutButton } from '@/components/workout/DuplicateWorkoutBut
 import { EditWorkoutMetaModal } from '@/components/workout/EditWorkoutMetaModal'
 import { EditSetModal } from '@/components/workout/EditSetModal'
 import { DeleteHistoricalExerciseButton } from '@/components/workout/DeleteHistoricalExerciseButton'
+import { WorkoutCoachInsightCard } from '@/components/workout/WorkoutCoachInsightCard'
 
 export default async function WorkoutHistoryDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { requireAuth } = await import('@/lib/auth')
   const { redirect } = await import('next/navigation')
-  const {  session } = await requireAuth()
+  const { session } = await requireAuth()
   const workout = await getWorkoutById(id, session.user.id)
 
   if (!workout) notFound()
@@ -25,6 +26,20 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
     const weVolume = we.sets?.reduce((sAcc: number, set: any) => sAcc + (set.weight_kg * set.reps), 0) || 0
     return acc + weVolume
   }, 0)
+
+  const muscleGroups = Array.from(
+    new Set<string>(
+      workout.workout_exercises
+        .map((we: any) => we.exercise?.muscle_group)
+        .filter(Boolean)
+    )
+  )
+
+  const totalWorkingSets = workout.workout_exercises.reduce((acc: number, we: any) => {
+    return acc + (we.sets?.filter((s: any) => !s.is_warmup).length || 0)
+  }, 0)
+
+  const prCount = Array.from(prMap.values()).flat().length
 
   return (
     <div className="min-h-screen pb-24" style={{ color: 'var(--text-hi)' }}>
@@ -115,6 +130,16 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
             </div>
           </div>
         </div>
+
+        {/* ── Coach Insights Card ────────────────────────────────────── */}
+        <WorkoutCoachInsightCard
+          workoutTitle={workout.title}
+          workoutVolume={workoutVolume}
+          totalSets={totalWorkingSets}
+          prCount={prCount}
+          muscleGroups={muscleGroups}
+          durationSeconds={workout.duration_seconds}
+        />
 
         {/* ── Exercise log ─────────────────────────────────────────────── */}
         <div className="space-y-4">

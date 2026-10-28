@@ -24,6 +24,7 @@ import { WorkoutHistoryList } from '@/components/workout/WorkoutHistoryList'
 import { BodyweightLogger } from '@/components/progress/BodyweightLogger'
 import { WeeklyRing, FatigueRing } from './WeeklyRing'
 import { DailyReadinessCard } from './DailyReadinessCard'
+import { CoachBriefingCard } from './CoachBriefingCard'
 
 interface DashboardTabsProps {
   userId: string
@@ -228,6 +229,15 @@ export function DashboardTabs({
           />
         </div>
       )}
+
+      {/* ── AI COACH BRIEFING CARD ── */}
+      <CoachBriefingCard
+        stalledMovements={stalledMovements}
+        fatigue={fatigue}
+        neglectedMuscles={neglectedMuscles}
+        streak={streak}
+        profile={profile}
+      />
 
       {/* ── DAILY READINESS ── */}
       <DailyReadinessCard todayReadiness={todayReadiness} />

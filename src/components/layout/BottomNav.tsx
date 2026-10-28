@@ -1,5 +1,5 @@
 'use client'
-import { Home, Zap, TrendingUp, User } from 'lucide-react'
+import { Home, Zap, Sparkles, TrendingUp, User } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 const tabs = [
   { href: '/dashboard', icon: Home,        label: 'Home'     },
   { href: '/routines',  icon: Zap,         label: 'Workout'  },
+  { href: '/coach',     icon: Sparkles,    label: 'Coach'    },
   { href: '/progress',  icon: TrendingUp,  label: 'Progress' },
   { href: '/profile',   icon: User,        label: 'Me'       },
 ] as const

@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { Trophy, Clock, Dumbbell, Repeat, Layers, Check } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Trophy, Clock, Dumbbell, Repeat, Layers, Check, Sparkles } from 'lucide-react'
 import type { ActiveWorkout } from '@/types/database'
 import type { PREvaluationResult } from '@/lib/data/stats'
 
@@ -37,6 +38,7 @@ function formatPRValue(prType: string, value: number): string {
 }
 
 export function PostWorkoutSummary({ workout, prs, onDone }: PostWorkoutSummaryProps) {
+  const router = useRouter()
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -61,9 +63,10 @@ export function PostWorkoutSummary({ workout, prs, onDone }: PostWorkoutSummaryP
     }
 
     return {
-      duration: formatDuration(durationMs),
-      totalSets, totalReps, totalVolume,
-      exerciseCount: workout.exercises.length,
+      durationMs,
+      totalSets,
+      totalReps,
+      totalVolume,
       muscles: Array.from(muscleSet),
     }
   }, [workout])
@@ -84,6 +87,16 @@ export function PostWorkoutSummary({ workout, prs, onDone }: PostWorkoutSummaryP
     setTimeout(onDone, 300)
   }
 
+  const handleCoachReview = () => {
+    setVisible(false)
+    setTimeout(() => {
+      onDone()
+      const musclesList = stats.muscles.join(', ') || 'various muscles'
+      const prompt = `I just finished a workout (${stats.totalSets} working sets, ${formatVolume(stats.totalVolume)}kg volume) targeting ${musclesList}${uniquePRs.length > 0 ? ` with ${uniquePRs.length} new PRs` : ''}. Review my session and advise on recovery and my next workout.`
+      router.push(`/coach?prompt=${encodeURIComponent(prompt)}`)
+    }, 200)
+  }
+
   const fadeIn = (delay = 0) =>
     `transition-all duration-500 ${delay ? `delay-[${delay}ms]` : ''} ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`
 
@@ -98,34 +111,56 @@ export function PostWorkoutSummary({ workout, prs, onDone }: PostWorkoutSummaryP
         >
           <Check className="w-8 h-8" style={{ color: 'var(--accent)' }} strokeWidth={2.5} />
         </div>
-        <p className="t-label mb-1">Workout Complete</p>
-        <h1 className="t-display-m italic mb-1" style={{ fontStyle: 'italic' }}>
-          {workout.title || 'Session'}
+
+        <p className="t-label mb-1" style={{ color: 'var(--accent)' }}>Workout Complete</p>
+        <h1 className="t-display-m">
+          {uniquePRs.length > 0
+            ? `${uniquePRs.length} New Record${uniquePRs.length > 1 ? 's' : ''}!`
+            : 'Crushed It.'}
         </h1>
-        <div className="flex items-center gap-1.5 text-[var(--text-mid)]">
-          <Clock className="w-3.5 h-3.5" />
-          <span className="mono text-sm tabular-nums">{stats.duration}</span>
-        </div>
+        <p className="t-caption mt-1">{workout.title || 'Workout'}</p>
       </div>
 
-      {/* Stat grid */}
-      <div className={`px-4 grid grid-cols-2 gap-3 mb-6 ${fadeIn(75)}`}>
-        <StatTile icon={<Dumbbell className="w-4 h-4" />} label="Volume" value={formatVolume(stats.totalVolume)} unit="kg" highlight />
-        <StatTile icon={<Layers className="w-4 h-4" />}   label="Sets"      value={String(stats.totalSets)}     />
-        <StatTile icon={<Repeat className="w-4 h-4" />}   label="Reps"      value={String(stats.totalReps)}     />
-        <StatTile                                          label="Exercises" value={String(stats.exerciseCount)} />
+      {/* Primary stats grid */}
+      <div className={`grid grid-cols-2 gap-3 px-4 mb-4 ${fadeIn(100)}`}>
+        <StatTile
+          icon={<Clock className="w-4 h-4" />}
+          label="Duration"
+          value={formatDuration(stats.durationMs)}
+        />
+        <StatTile
+          icon={<Dumbbell className="w-4 h-4" />}
+          label="Total Volume"
+          value={formatVolume(stats.totalVolume)}
+          unit="kg"
+          highlight={stats.totalVolume > 0}
+        />
+        <StatTile
+          icon={<Layers className="w-4 h-4" />}
+          label="Working Sets"
+          value={String(stats.totalSets)}
+        />
+        <StatTile
+          icon={<Repeat className="w-4 h-4" />}
+          label="Total Reps"
+          value={String(stats.totalReps)}
+        />
       </div>
 
-      {/* Muscles hit */}
+      {/* Muscle groups worked */}
       {stats.muscles.length > 0 && (
-        <div className={`px-4 mb-6 ${fadeIn(150)}`}>
-          <p className="t-label mb-2 px-1">Muscles hit</p>
+        <div className={`px-4 mb-4 ${fadeIn(150)}`}>
+          <p className="t-label mb-2 px-1">Targeted Muscles</p>
           <div className="flex flex-wrap gap-1.5">
             {stats.muscles.map(m => (
               <span
                 key={m}
-                className="text-[11px] font-medium text-[var(--text-mid)] capitalize px-2.5 py-1 rounded-lg"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
+                className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-[var(--radius-pill)] capitalize"
+                style={{
+                  background: 'var(--bg-2)',
+                  color:      'var(--text-mid)',
+                  border:     '1px solid var(--border)',
+                }}
               >
                 {m}
               </span>
@@ -136,7 +171,7 @@ export function PostWorkoutSummary({ workout, prs, onDone }: PostWorkoutSummaryP
 
       {/* PRs */}
       {uniquePRs.length > 0 && (
-        <div className={`px-4 mb-6 ${fadeIn(200)}`}>
+        <div className={`px-4 mb-4 ${fadeIn(200)}`}>
           <div className="flex items-center gap-2 mb-2 px-1">
             <Trophy className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
             <p className="t-label" style={{ color: 'var(--accent)' }}>
@@ -169,6 +204,35 @@ export function PostWorkoutSummary({ workout, prs, onDone }: PostWorkoutSummaryP
           </div>
         </div>
       )}
+
+      {/* AI Coach Review CTA Card */}
+      <div className={`px-4 mb-4 ${fadeIn(250)}`}>
+        <div
+          className="glass p-3.5 rounded-2xl flex items-center justify-between gap-3"
+          style={{
+            borderColor: 'rgba(45, 212, 191, 0.25)',
+            background: 'linear-gradient(135deg, rgba(45,212,191,0.08) 0%, rgba(10,13,24,0.7) 100%)',
+          }}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 shrink-0">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[12px] font-bold text-zinc-100 truncate">Review with AI Coach</p>
+              <p className="text-[10px] text-zinc-400 truncate">Analyze volume load, fatigue & next steps</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleCoachReview}
+            className="shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold text-teal-300 bg-teal-500/15 border border-teal-500/30 hover:bg-teal-500/25 active:scale-95 transition-all"
+          >
+            Review →
+          </button>
+        </div>
+      </div>
 
       <div className="flex-1" />
 
