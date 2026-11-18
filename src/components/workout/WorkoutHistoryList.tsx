@@ -7,6 +7,7 @@ import { deleteWorkoutAction } from '@/app/(app)/workout/actions'
 import { useDialog } from '@/providers/DialogProvider'
 import { useToast } from '@/providers/ToastProvider'
 import type { PRType } from '@/types/database'
+import { setVolume, workoutBodyweight } from '@/lib/load'
 
 // ─── PR badge config ──────────────────────────────────────────────────────────
 
@@ -24,6 +25,7 @@ interface WorkoutItem {
   title: string | null
   started_at: string
   duration_seconds: number | null
+  bodyweight_kg?: number | null
   prTypes: PRType[]
   workout_exercises: Array<{
     exercise: { name: string }
@@ -66,7 +68,7 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
 
   const exerciseNames = workout.workout_exercises.map(we => we.exercise.name).join(' · ')
   const workoutVolume = workout.workout_exercises.reduce((acc, we) => {
-    return acc + (we.sets?.reduce((s, set) => s + ((set.weight_kg || 0) * (set.reps || 0)), 0) || 0)
+    return acc + (we.sets?.reduce((s, set) => s + setVolume(set.weight_kg || 0, set.reps || 0, we.exercise.name, workoutBodyweight(workout.bodyweight_kg)), 0) || 0)
   }, 0)
 
   const handleDelete = async (e: React.MouseEvent) => {

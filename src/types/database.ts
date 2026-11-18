@@ -61,6 +61,7 @@ export interface Workout {
   started_at: string
   completed_at: string | null
   created_at: string
+  bodyweight_kg: number | null
 }
 
 export interface WorkoutExercise {
@@ -159,6 +160,7 @@ export interface ActiveWorkout {
   exercises: ActiveExercise[]
   routine_id?: string
   has_routine_been_modified?: boolean
+  bodyweight_kg?: number | null  // bodyweight this session's weighted/assisted sets were logged against
 }
 
 export interface Routine {

@@ -10,12 +10,17 @@ interface EditSetModalProps {
   setId: string
   initialWeight: number
   initialReps: number
+  /** Weighted bodyweight lifts: the bodyweight the stored total includes. The input then edits only the added weight. */
+  addedOnTopOfKg?: number
   children: React.ReactNode
 }
 
-export function EditSetModal({ setId, initialWeight, initialReps, children }: EditSetModalProps) {
+export function EditSetModal({ setId, initialWeight, initialReps, addedOnTopOfKg, children }: EditSetModalProps) {
+  const isWeighted = addedOnTopOfKg !== undefined
   const [isOpen, setIsOpen] = useState(false)
-  const [weight, setWeight] = useState(initialWeight)
+  const [weight, setWeight] = useState(
+    isWeighted ? Math.max(0, Math.round((initialWeight - addedOnTopOfKg) * 10) / 10) : initialWeight,
+  )
   const [reps, setReps] = useState(initialReps)
   const [isPending, startTransition] = useTransition()
   const dialog = useDialog()
@@ -24,7 +29,7 @@ export function EditSetModal({ setId, initialWeight, initialReps, children }: Ed
   const handleSave = () => {
     startTransition(async () => {
       try {
-        await updateHistoricalSetAction(setId, weight, reps)
+        await updateHistoricalSetAction(setId, isWeighted ? addedOnTopOfKg + weight : weight, reps)
         setIsOpen(false)
         router.refresh()
       } catch (err: any) {
@@ -46,7 +51,7 @@ export function EditSetModal({ setId, initialWeight, initialReps, children }: Ed
             
             <div className="flex gap-4 mb-8">
               <div className="flex-1">
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 text-center">Weight (kg)</label>
+                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 text-center">{isWeighted ? `Added (kg) · BW ${addedOnTopOfKg}` : 'Weight (kg)'}</label>
                 <input 
                   type="number" 
                   value={weight || ''}

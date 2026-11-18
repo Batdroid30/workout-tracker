@@ -2,6 +2,7 @@ import { cache } from 'react'
 import { resolveSupabaseClient } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { calculate1RM, type WeekSummary } from '@/lib/algorithms'
+import { setVolume, effectiveLoad, workoutBodyweight } from '@/lib/load'
 import { STALL_VARIATION_ADVICE, type MovementKey } from '@/lib/workout-intelligence'
 import type { PRType } from '@/types/database'
 
@@ -79,7 +80,7 @@ export const getWeeklyTrainingSummary = cache(async (userId: string, runAsAdmin:
     .from('sets')
     .select(`
       weight_kg, reps, rpe, completed_at, is_warmup,
-      workout_exercises!inner ( workouts!inner ( user_id, started_at ) )
+      workout_exercises!inner ( exercise:exercises ( name ), workouts!inner ( user_id, started_at, bodyweight_kg ) )
     `)
     .eq('workout_exercises.workouts.user_id', userId)
     .gte('completed_at', eightWeeksAgo.toISOString())
@@ -110,7 +111,8 @@ export const getWeeklyTrainingSummary = cache(async (userId: string, runAsAdmin:
     if (!workout) return
     const week = getMondayOf(new Date(workout.started_at))
     if (!weekMap[week]) weekMap[week] = { volume: 0, rpeSum: 0, rpeCount: 0 }
-    weekMap[week].volume += (set.weight_kg || 0) * (set.reps || 0)
+    const exercise = Array.isArray(we?.exercise) ? we.exercise[0] : we?.exercise
+    weekMap[week].volume += setVolume(Number(set.weight_kg) || 0, Number(set.reps) || 0, exercise?.name ?? '', workoutBodyweight(workout.bodyweight_kg))
     if (set.rpe !== null && set.rpe !== undefined) {
       weekMap[week].rpeSum += Number(set.rpe)
       weekMap[week].rpeCount += 1
@@ -170,7 +172,7 @@ export const getMostImprovedExercises = cache(async (userId: string, runAsAdmin:
       weight_kg, reps, is_warmup, completed_at,
       workout_exercises!inner (
         exercise:exercises ( name, muscle_group ),
-        workouts!inner ( user_id, started_at )
+        workouts!inner ( user_id, started_at, bodyweight_kg )
       )
     `)
     .eq('workout_exercises.workouts.user_id', userId)
@@ -190,7 +192,8 @@ export const getMostImprovedExercises = cache(async (userId: string, runAsAdmin:
     const exercise = Array.isArray(we?.exercise) ? we.exercise[0] : we?.exercise
     if (!exercise?.name) return
     const key = exercise.name
-    const e1rm = calculate1RM(Number(set.weight_kg), Number(set.reps))
+    const workout = Array.isArray(we?.workouts) ? we.workouts[0] : we?.workouts
+    const e1rm = calculate1RM(effectiveLoad(Number(set.weight_kg), exercise.name, workoutBodyweight(workout?.bodyweight_kg)), Number(set.reps))
     const isRecent = new Date(set.completed_at).getTime() >= thirtyDaysAgo
     if (!exerciseMap[key]) exerciseMap[key] = { name: exercise.name, muscleGroup: exercise.muscle_group ?? '', recentBest: 0, previousBest: 0 }
     if (isRecent) { if (e1rm > exerciseMap[key].recentBest) exerciseMap[key].recentBest = e1rm }
@@ -259,7 +262,7 @@ export const getStalledMovements = cache(async (userId: string, runAsAdmin: bool
       weight_kg, reps, is_warmup, completed_at,
       workout_exercises!inner (
         exercise:exercises ( name, muscle_group, movement_pattern ),
-        workouts!inner ( user_id, started_at )
+        workouts!inner ( user_id, started_at, bodyweight_kg )
       )
     `)
     .eq('workout_exercises.workouts.user_id', userId)
@@ -285,7 +288,7 @@ export const getStalledMovements = cache(async (userId: string, runAsAdmin: bool
     const workout  = Array.isArray(we?.workouts)  ? we.workouts[0]  : we?.workouts
     if (!exercise?.name || !workout?.started_at) return
     const key      = exercise.name as string
-    const e1rm     = calculate1RM(Number(set.weight_kg), Number(set.reps))
+    const e1rm     = calculate1RM(effectiveLoad(Number(set.weight_kg), key, workoutBodyweight(workout.bodyweight_kg)), Number(set.reps))
     const setMs    = new Date(set.completed_at).getTime()
     const dateStr  = workout.started_at.split('T')[0] as string
     const isRecent = setMs >= threeWeeksAgoMs

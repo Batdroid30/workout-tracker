@@ -9,6 +9,7 @@ import { EditWorkoutMetaModal } from '@/components/workout/EditWorkoutMetaModal'
 import { EditSetModal } from '@/components/workout/EditSetModal'
 import { DeleteHistoricalExerciseButton } from '@/components/workout/DeleteHistoricalExerciseButton'
 import { WorkoutCoachInsightCard } from '@/components/workout/WorkoutCoachInsightCard'
+import { formatVolume, setVolume, workoutBodyweight, isWeightedBodyweight, formatWeightedSet } from '@/lib/load'
 
 export default async function WorkoutHistoryDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -22,8 +23,9 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
   const setIds = workout.workout_exercises.flatMap((we: any) => we.sets?.map((s: any) => s.id) || [])
   const prMap = await getWorkoutSetPRs(setIds)
 
+  const bodyweightKg = workoutBodyweight(workout.bodyweight_kg)
   const workoutVolume = workout.workout_exercises.reduce((acc: number, we: any) => {
-    const weVolume = we.sets?.reduce((sAcc: number, set: any) => sAcc + (set.weight_kg * set.reps), 0) || 0
+    const weVolume = we.sets?.reduce((sAcc: number, set: any) => sAcc + setVolume(set.weight_kg, set.reps, we.exercise?.name ?? '', bodyweightKg), 0) || 0
     return acc + weVolume
   }, 0)
 
@@ -124,7 +126,7 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
             <div>
               <p className="t-label">Volume</p>
               <p className="mono text-xl mt-0.5 tracking-tight" style={{ color: 'var(--text-hi)' }}>
-                {workoutVolume >= 1000 ? `${(workoutVolume / 1000).toFixed(1)}k` : workoutVolume}
+                {formatVolume(workoutVolume)}
                 <span className="text-xs ml-0.5" style={{ color: 'var(--text-faint)' }}>kg</span>
               </p>
             </div>
@@ -195,12 +197,12 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
                       </div>
                     </div>
                     <div className="flex-1 text-center font-semibold" style={{ color: 'var(--text-hi)' }}>
-                      <EditSetModal setId={set.id} initialWeight={set.weight_kg} initialReps={set.reps}>
-                        {set.weight_kg}
+                      <EditSetModal setId={set.id} initialWeight={set.weight_kg} initialReps={set.reps} addedOnTopOfKg={isWeightedBodyweight(we.exercise.name, we.exercise.equipment) ? bodyweightKg : undefined}>
+                        {isWeightedBodyweight(we.exercise.name, we.exercise.equipment) ? formatWeightedSet(set.weight_kg, bodyweightKg) : set.weight_kg}
                       </EditSetModal>
                     </div>
                     <div className="flex-1 text-center font-semibold" style={{ color: 'var(--text-hi)' }}>
-                      <EditSetModal setId={set.id} initialWeight={set.weight_kg} initialReps={set.reps}>
+                      <EditSetModal setId={set.id} initialWeight={set.weight_kg} initialReps={set.reps} addedOnTopOfKg={isWeightedBodyweight(we.exercise.name, we.exercise.equipment) ? bodyweightKg : undefined}>
                         {set.reps}
                       </EditSetModal>
                     </div>

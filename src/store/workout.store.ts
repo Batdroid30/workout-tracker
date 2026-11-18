@@ -5,6 +5,8 @@ import type { ActiveWorkout, ActiveExercise, ActiveSet, Exercise } from '@/types
 interface WorkoutStore {
   activeWorkout: ActiveWorkout | null
   userBodyweight: number | null
+  /** false when no bodyweight has ever been logged and 75 kg is being assumed; null until known */
+  bodyweightLogged: boolean | null
 
   // Actions
   startWorkout: (title?: string) => void
@@ -30,6 +32,7 @@ interface WorkoutStore {
   finishWorkout: () => void
   discardWorkout: () => void
   setUserBodyweight: (weight: number | null) => void
+  setBodyweightLogged: (logged: boolean) => void
 }
 
 export const useWorkoutStore = create<WorkoutStore>()(
@@ -37,6 +40,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
     (set, get) => ({
       activeWorkout: null,
       userBodyweight: null,
+      bodyweightLogged: null,
 
       startWorkout: (title = 'Workout') => set({
         activeWorkout: {
@@ -353,6 +357,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
   finishWorkout: () => set({ activeWorkout: null }),
   discardWorkout: () => set({ activeWorkout: null }),
   setUserBodyweight: (weight) => set({ userBodyweight: weight }),
+  setBodyweightLogged: (logged) => set({ bodyweightLogged: logged }),
 }),
     { name: 'active-workout' }     // localStorage key
   )

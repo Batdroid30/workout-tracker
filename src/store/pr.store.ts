@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'
 import { getSupabaseClient } from '@/lib/supabase/client'
-import { calculate1RM } from '@/lib/algorithms'
+import { prCandidates, beatsPR } from '@/lib/load'
 import type { PersonalRecord, PRCheckResult, PRType } from '@/types/database'
 
 interface PRStore {
@@ -11,7 +11,7 @@ interface PRStore {
   newPRs: PRCheckResult[]           // PRs hit in this session — for celebration UI
 
   loadPRsForExercises: (exerciseIds: string[]) => Promise<void>
-  checkLocalPR: (exerciseId: string, weight: number, reps: number) => PRCheckResult[]
+  checkLocalPR: (exerciseId: string, exerciseName: string, weight: number, reps: number) => PRCheckResult[]
   addNewPR: (result: PRCheckResult) => void
   clearNewPRs: () => void
 }
@@ -47,27 +47,21 @@ export const usePRStore = create<PRStore>((set, get) => ({
     set({ prs: updated })
   },
 
-  checkLocalPR: (exerciseId, weight, reps) => {
+  checkLocalPR: (exerciseId, exerciseName, weight, reps) => {
     const exercisePRs = get().prs[exerciseId] ?? []
     const prMap = new Map<PRType, number>(
       exercisePRs.map(pr => [pr.pr_type, pr.value])
     )
 
-    const checks: { type: PRType; value: number }[] = [
-      { type: 'best_weight', value: weight },
-      { type: 'best_volume', value: weight * reps },
-      { type: 'best_1rm',    value: calculate1RM(weight, reps) },
-    ]
-
     const results: PRCheckResult[] = []
     const updatedPRs = [...exercisePRs]
 
-    for (const check of checks) {
-      const current = prMap.get(check.type) ?? 0
-      if (check.value > current) {
+    for (const check of prCandidates(weight, reps, exerciseName)) {
+      const current = prMap.get(check.type)
+      if (beatsPR(check.value, current, check.type, exerciseName)) {
         results.push({
           pr_type:   check.type,
-          old_value: current === 0 ? null : current,
+          old_value: current || null,
           new_value: check.value,
           is_pr:     true,
         })

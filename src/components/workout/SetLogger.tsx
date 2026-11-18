@@ -15,6 +15,7 @@ import { getSupabaseClient }    from '@/lib/supabase/client'
 import { upsertExercisePreference } from '@/lib/data/exercise-preferences'
 import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 import { cn } from '@/lib/utils'
+import { formatVolume, setVolume, isAssisted, formatAddedWeight } from '@/lib/load'
 
 const DEFAULT_REST = 90
 
@@ -68,6 +69,7 @@ export function SetLogger({
     exerciseType,
     exercise.progression_model ?? null,
     exercise.rep_sum_target ?? null,
+    isAssisted(exercise.exercise.name),
   )
 
   useEffect(() => {
@@ -120,7 +122,7 @@ export function SetLogger({
   const userBodyweight = useWorkoutStore(s => s.userBodyweight) ?? 75
   const sessionVolume = exercise.sets
     .filter(s => s.completed && !s.is_warmup && s.weight_kg > 0 && s.reps > 0)
-    .reduce((sum, s) => sum + s.weight_kg * s.reps, 0)
+    .reduce((sum, s) => sum + setVolume(s.weight_kg, s.reps, exercise.exercise.name, userBodyweight), 0)
 
   const isRepSum          = exercise.progression_model === 'rep_sum'
   const repSumTarget      = exercise.rep_sum_target ?? 0
@@ -301,9 +303,7 @@ export function SetLogger({
             if (isBodyweight) {
               prevText = `BW×${lastSetAtPosition.reps}`
             } else if (isWeightedBodyweight) {
-              const diff = lastSetAtPosition.weight_kg - userBodyweight
-              const diffStr = Math.abs(diff) < 0.1 ? 'BW' : `${diff > 0 ? '+' : ''}${diff.toFixed(1).replace(/\\.0$/, '')}kg`
-              prevText = `${diffStr}×${lastSetAtPosition.reps}`
+              prevText = `${formatAddedWeight(lastSetAtPosition.weight_kg, lastSetAtPosition.bodyweight_kg)}×${lastSetAtPosition.reps}`
             } else {
               prevText = `${lastSetAtPosition.weight_kg}×${lastSetAtPosition.reps}`
             }
@@ -316,6 +316,7 @@ export function SetLogger({
               setIndex={setIndex}
               isBodyweight={isBodyweight}
               isWeightedBodyweight={isWeightedBodyweight}
+              isAssisted={isAssisted(exercise.exercise.name)}
               prevSetText={prevText}
               suggestion={lastSetAtPosition?.suggestion}
               defaultRpe={dupRpeTarget}
@@ -327,7 +328,7 @@ export function SetLogger({
                 if (!wasCompleted) {
                   handleSetCompleted()
                   if (!currentSet.is_warmup && currentSet.weight_kg > 0 && currentSet.reps > 0) {
-                    const prs = checkLocalPR(exercise.exercise.id, currentSet.weight_kg, currentSet.reps)
+                    const prs = checkLocalPR(exercise.exercise.id, exercise.exercise.name, currentSet.weight_kg, currentSet.reps)
                     if (prs.length > 0) setActivePRs(prs)
                   }
                 }
@@ -392,7 +393,7 @@ export function SetLogger({
           >
             <span className="text-[9px] font-medium text-[var(--text-faint)] uppercase tracking-widest">Session volume</span>
             <span className="mono text-xs text-[var(--text-mid)] tabular-nums">
-              {sessionVolume >= 1000 ? `${(sessionVolume / 1000).toFixed(1)}k` : sessionVolume}
+              {formatVolume(sessionVolume)}
               <span className="text-[9px] text-[var(--text-faint)] ml-0.5">kg</span>
             </span>
           </div>
@@ -432,6 +433,8 @@ export function SetLogger({
         <PRBanner
           prs={activePRs}
           exerciseName={exercise.exercise.name}
+          isWeighted={isWeightedBodyweight}
+          isAssisted={isAssisted(exercise.exercise.name)}
           onDismiss={() => setActivePRs([])}
         />
       )}

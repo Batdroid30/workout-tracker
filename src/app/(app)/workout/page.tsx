@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useDialog } from '@/providers/DialogProvider'
 import { cn } from '@/lib/utils'
+import { FALLBACK_BODYWEIGHT_KG } from '@/lib/load'
 import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 import { WorkoutFocusSheet } from '@/components/workout/WorkoutFocusSheet'
 import { SupersetWrapper } from '@/components/workout/SupersetWrapper'
@@ -155,7 +156,10 @@ export default function WorkoutPage() {
   useEffect(() => {
     loadExerciseCache()
     getUserExerciseFrequency().then(setUsageFrequency)
-    getUserLatestBodyweight().then(weight => useWorkoutStore.getState().setUserBodyweight(weight ?? 75))
+    getUserLatestBodyweight().then(weight => {
+      useWorkoutStore.getState().setUserBodyweight(weight ?? 75)
+      useWorkoutStore.getState().setBodyweightLogged(weight != null)
+    })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkout?.started_at])
 
@@ -235,7 +239,10 @@ export default function WorkoutPage() {
         }
       }
 
-      const result = await finishWorkoutAction(finalWorkout)
+      // Attach the bodyweight weighted/assisted sets were entered against, so
+      // history doesn't shift when bodyweight changes later.
+      const bodyweightKg = useWorkoutStore.getState().userBodyweight ?? FALLBACK_BODYWEIGHT_KG
+      const result = await finishWorkoutAction({ ...finalWorkout, bodyweight_kg: bodyweightKg })
       if (result.success) {
         finishWorkout()
         router.push('/dashboard')
