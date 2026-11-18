@@ -6,7 +6,7 @@ import { Trophy, Clock, Dumbbell, Repeat, Layers, Check, Sparkles } from 'lucide
 import type { ActiveWorkout } from '@/types/database'
 import type { PREvaluationResult } from '@/lib/data/stats'
 import { useWorkoutStore } from '@/store/workout.store'
-import { setVolume, FALLBACK_BODYWEIGHT_KG } from '@/lib/load'
+import { setVolume, FALLBACK_BODYWEIGHT_KG, isAssisted, isWeightedBodyweight, formatWeightedPR, beatsPR } from '@/lib/load'
 
 interface PostWorkoutSummaryProps {
   workout: ActiveWorkout
@@ -33,8 +33,9 @@ const PR_TYPE_LABELS: Record<string, string> = {
   best_1rm:    'Est. 1RM',
 }
 
-function formatPRValue(prType: string, value: number): string {
+function formatPRValue(prType: string, value: number, weightedBodyweightKg: number | null = null): string {
   if (prType === 'best_1rm') return `${value.toFixed(1)} kg`
+  if (prType === 'best_weight' && weightedBodyweightKg !== null) return formatWeightedPR(value, weightedBodyweightKg)
   return `${formatVolume(value)} kg`
 }
 
@@ -78,12 +79,21 @@ export function PostWorkoutSummary({ workout, prs, onDone }: PostWorkoutSummaryP
     () => Object.values(
       prs.reduce<Record<string, PREvaluationResult>>((acc, pr) => {
         const key = `${pr.exerciseName}|${pr.prType}`
-        if (!acc[key] || pr.newValue > acc[key].newValue) acc[key] = pr
+        if (!acc[key] || beatsPR(pr.newValue, acc[key].newValue, pr.prType, pr.exerciseName)) acc[key] = pr
         return acc
       }, {}),
     ),
     [prs],
   )
+
+  const exerciseByName = useMemo(
+    () => new Map(workout.exercises.map(ex => [ex.exercise.name, ex.exercise])),
+    [workout],
+  )
+  const weightedBodyweightFor = (exerciseName: string): number | null => {
+    const exercise = exerciseByName.get(exerciseName)
+    return exercise && isWeightedBodyweight(exercise.name, exercise.equipment) ? bodyweightKg : null
+  }
 
   const handleDone = () => {
     setVisible(false)
@@ -190,15 +200,17 @@ export function PostWorkoutSummary({ workout, prs, onDone }: PostWorkoutSummaryP
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-semibold text-[var(--text-hi)] truncate">{pr.exerciseName}</p>
-                  <p className="text-[10px] text-[var(--text-faint)] mt-0.5">{PR_TYPE_LABELS[pr.prType] ?? pr.prType}</p>
+                  <p className="text-[10px] text-[var(--text-faint)] mt-0.5">
+                    {isAssisted(pr.exerciseName) && pr.prType === 'best_weight' ? 'Less Assistance' : PR_TYPE_LABELS[pr.prType] ?? pr.prType}
+                  </p>
                 </div>
                 <div className="text-right shrink-0 ml-3">
                   <p className="mono text-base tabular-nums" style={{ color: 'var(--accent)' }}>
-                    {formatPRValue(pr.prType, pr.newValue)}
+                    {formatPRValue(pr.prType, pr.newValue, weightedBodyweightFor(pr.exerciseName))}
                   </p>
                   {pr.oldValue !== null && (
                     <p className="mono text-[10px] text-[var(--text-faint)] tabular-nums">
-                      prev {formatPRValue(pr.prType, pr.oldValue)}
+                      prev {formatPRValue(pr.prType, pr.oldValue, weightedBodyweightFor(pr.exerciseName))}
                     </p>
                   )}
                 </div>

@@ -8,6 +8,7 @@ import type { OverloadSuggestion } from '@/lib/algorithms'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/providers/ToastProvider'
 import { useWorkoutStore } from '@/store/workout.store'
+import { formatAddedWeight, formatWeightedSet } from '@/lib/load'
 
 interface SetRowProps {
   set: ActiveSet
@@ -34,11 +35,12 @@ interface SetRowProps {
 // memo: every keystroke in any set's weight/reps input replaces the Zustand
 // exercises array reference — memo prevents sibling rows re-rendering on each char.
 const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, defaultRpe, isBodyweight, isWeightedBodyweight, isAssisted, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
-  const userBodyweight = useWorkoutStore(s => s.userBodyweight) ?? 75
+  const userBodyweight   = useWorkoutStore(s => s.userBodyweight) ?? 75
+  const bodyweightLogged = useWorkoutStore(s => s.bodyweightLogged)
   
   const getDisplayWeight = useCallback((dbWeight: number) => {
     if (isWeightedBodyweight && dbWeight > 0) {
-      return dbWeight >= userBodyweight ? dbWeight - userBodyweight : dbWeight
+      return Math.max(0, Math.round((dbWeight - userBodyweight) * 10) / 10)
     }
     return dbWeight
   }, [isWeightedBodyweight, userBodyweight])
@@ -203,6 +205,13 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
         </button>
       </div>
 
+      {isWeightedBodyweight && (
+        <p className="mono text-[10px] pb-1 pl-16 tabular-nums text-[var(--text-faint)]">
+          BW {userBodyweight} + {getDisplayWeight(set.weight_kg)} = {Math.round(Math.max(set.weight_kg, userBodyweight) * 10) / 10} kg
+          {bodyweightLogged === false && <span> · using 75 kg — log your bodyweight in Progress</span>}
+        </p>
+      )}
+
       {isAssisted && set.weight_kg >= userBodyweight && (
         <p className="text-[10px] pb-1 pl-16" style={{ color: 'var(--warning)' }}>
           Assistance is at or above your bodyweight ({userBodyweight} kg) — check the number.
@@ -228,7 +237,7 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
             {isBodyweight 
               ? `BW × ${suggestion.target_reps}` 
               : isWeightedBodyweight 
-                ? `${Math.abs(suggestion.weight_kg - userBodyweight) < 0.1 || suggestion.weight_kg < userBodyweight ? 'BW' : `+${(suggestion.weight_kg - userBodyweight).toFixed(1).replace(/\\.0$/, '')}kg`} × ${suggestion.target_reps}`
+                ? `${formatAddedWeight(Math.max(suggestion.weight_kg, userBodyweight), userBodyweight)} × ${suggestion.target_reps}`
                 : `${suggestion.weight_kg}kg × ${suggestion.target_reps}`}
           </span>
           <span className="mono text-[10px] tabular-nums" style={{ color: 'var(--accent)' }}>
@@ -301,15 +310,16 @@ interface CompletedSetRowProps {
   set: ActiveSet
   isBodyweight?: boolean
   isWeightedBodyweight?: boolean
+  isAssisted?: boolean
   onDone: () => void
   onRemove: () => void
   onRestore?: (set: ActiveSet, position: number) => void
   setIndex?: number
 }
 
-const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWeightedBodyweight, onDone, onRemove, onRestore, setIndex }: CompletedSetRowProps) {
+const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWeightedBodyweight, isAssisted, onDone, onRemove, onRestore, setIndex }: CompletedSetRowProps) {
   const userBodyweight = useWorkoutStore(s => s.userBodyweight) ?? 75
-  const e1rm = !set.is_warmup && set.weight_kg > 0 && set.reps > 1
+  const e1rm = !set.is_warmup && !isAssisted && set.weight_kg > 0 && set.reps > 1
     ? Math.round(calculate1RM(set.weight_kg, set.reps))
     : null
 
@@ -398,7 +408,7 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWei
 
           {/* Summary */}
           <span className="flex-1 min-w-0 mono text-sm text-[var(--text-low)] tracking-tight">
-            {isBodyweight ? 'BW' : isWeightedBodyweight && set.weight_kg > 0 ? (Math.abs(set.weight_kg - userBodyweight) < 0.1 ? 'BW' : `${set.weight_kg - userBodyweight > 0 ? '+' : ''}${(set.weight_kg - userBodyweight).toFixed(1).replace(/\\.0$/, '')}kg`) : set.weight_kg > 0 ? `${set.weight_kg}kg` : '—'}
+            {isBodyweight ? 'BW' : isWeightedBodyweight && set.weight_kg > 0 ? formatWeightedSet(Math.max(set.weight_kg, userBodyweight), userBodyweight) : set.weight_kg > 0 ? `${set.weight_kg}kg` : '—'}
             {' × '}
             {set.reps > 0 ? set.reps : '—'}
             {e1rm && <span className="text-[9px] text-[var(--text-faint)] ml-1.5">· ~{e1rm}kg</span>}
@@ -426,7 +436,7 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWei
 
 export const SetRow = memo(function SetRow({ set, prevSetText = '-', suggestion, defaultRpe, isBodyweight, isWeightedBodyweight, isAssisted, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
   if (set.completed) {
-    return <CompletedSetRow set={set} isBodyweight={isBodyweight} isWeightedBodyweight={isWeightedBodyweight} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
+    return <CompletedSetRow set={set} isBodyweight={isBodyweight} isWeightedBodyweight={isWeightedBodyweight} isAssisted={isAssisted} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
   }
   return <ActiveSetRow set={set} prevSetText={prevSetText} suggestion={suggestion} defaultRpe={defaultRpe} isBodyweight={isBodyweight} isWeightedBodyweight={isWeightedBodyweight} isAssisted={isAssisted} onChange={onChange} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
 })

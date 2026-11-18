@@ -15,7 +15,7 @@ import { getSupabaseClient }    from '@/lib/supabase/client'
 import { upsertExercisePreference } from '@/lib/data/exercise-preferences'
 import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 import { cn } from '@/lib/utils'
-import { formatVolume, setVolume, isAssisted } from '@/lib/load'
+import { formatVolume, setVolume, isAssisted, formatAddedWeight } from '@/lib/load'
 
 const DEFAULT_REST = 90
 
@@ -303,9 +303,7 @@ export function SetLogger({
             if (isBodyweight) {
               prevText = `BW×${lastSetAtPosition.reps}`
             } else if (isWeightedBodyweight) {
-              const diff = lastSetAtPosition.weight_kg - userBodyweight
-              const diffStr = Math.abs(diff) < 0.1 ? 'BW' : `${diff > 0 ? '+' : ''}${diff.toFixed(1).replace(/\\.0$/, '')}kg`
-              prevText = `${diffStr}×${lastSetAtPosition.reps}`
+              prevText = `${formatAddedWeight(lastSetAtPosition.weight_kg, lastSetAtPosition.bodyweight_kg)}×${lastSetAtPosition.reps}`
             } else {
               prevText = `${lastSetAtPosition.weight_kg}×${lastSetAtPosition.reps}`
             }
@@ -435,6 +433,8 @@ export function SetLogger({
         <PRBanner
           prs={activePRs}
           exerciseName={exercise.exercise.name}
+          isWeighted={isWeightedBodyweight}
+          isAssisted={isAssisted(exercise.exercise.name)}
           onDismiss={() => setActivePRs([])}
         />
       )}

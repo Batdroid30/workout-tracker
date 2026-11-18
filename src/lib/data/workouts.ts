@@ -215,7 +215,7 @@ export const getWorkoutById = cache(async (workoutId: string, userId: string, ru
         id,
         exercise_id,
         order_index,
-        exercise:exercises ( id, name, muscle_group ),
+        exercise:exercises ( id, name, muscle_group, equipment ),
         sets (
           id,
           set_number,

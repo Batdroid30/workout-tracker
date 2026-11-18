@@ -156,7 +156,10 @@ export default function WorkoutPage() {
   useEffect(() => {
     loadExerciseCache()
     getUserExerciseFrequency().then(setUsageFrequency)
-    getUserLatestBodyweight().then(weight => useWorkoutStore.getState().setUserBodyweight(weight ?? 75))
+    getUserLatestBodyweight().then(weight => {
+      useWorkoutStore.getState().setUserBodyweight(weight ?? 75)
+      useWorkoutStore.getState().setBodyweightLogged(weight != null)
+    })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkout?.started_at])
 

@@ -10,6 +10,8 @@ import type { TrainingGoal, ExperienceLevel, TrainingPhase } from '@/types/datab
 export interface LastWorkoutSetInfo {
   weight_kg: number
   reps:      number
+  /** Bodyweight that session was logged against — needed to show added weight on weighted lifts. */
+  bodyweight_kg: number
   /** RPE logged on this set last session — fed into the overload suggestion. */
   rpe?:      number
   /** Progressive-overload suggestion for this set position. */
@@ -144,6 +146,7 @@ async function fetchLastWorkoutSets(
     return {
       weight_kg: w,
       reps:      r,
+      bodyweight_kg: lastWorkoutBodyweight,
       rpe,
       suggestion: fromLoad(suggestNextSet({
         lastWeight:      toLoad(w),

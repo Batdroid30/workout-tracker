@@ -3,11 +3,14 @@
 import { useEffect, useState } from 'react'
 import { Trophy } from 'lucide-react'
 import type { PRCheckResult, PRType } from '@/types/database'
-import { formatVolume } from '@/lib/load'
+import { formatVolume, formatWeightedPR } from '@/lib/load'
+import { useWorkoutStore } from '@/store/workout.store'
 
 interface PRBannerProps {
   prs: PRCheckResult[]
   exerciseName: string
+  isWeighted?: boolean
+  isAssisted?: boolean
   onDismiss: () => void
   duration?: number
 }
@@ -18,13 +21,16 @@ const PR_CONFIG: Record<PRType, { label: string; color: string; bg: string }> = 
   best_volume: { label: 'Volume',    color: 'text-spectrum-900',  bg: 'bg-spectrum-900/15'  },
 }
 
-function formatValue(prType: PRType, value: number): string {
+function formatValue(prType: PRType, value: number, weightedBodyweightKg: number | null): string {
   if (prType === 'best_1rm') return `${value.toFixed(1)} kg`
   if (prType === 'best_volume') return `${formatVolume(value)} kg`
+  if (weightedBodyweightKg !== null) return formatWeightedPR(value, weightedBodyweightKg)
   return `${value} kg`
 }
 
-export function PRBanner({ prs, exerciseName, onDismiss, duration = 5000 }: PRBannerProps) {
+export function PRBanner({ prs, exerciseName, isWeighted, isAssisted, onDismiss, duration = 5000 }: PRBannerProps) {
+  const userBodyweight = useWorkoutStore(s => s.userBodyweight) ?? 75
+  const weightedBodyweightKg = isWeighted ? userBodyweight : null
   const [visible,  setVisible]  = useState(false)
   const [progress, setProgress] = useState(100)
 
@@ -98,12 +104,14 @@ export function PRBanner({ prs, exerciseName, onDismiss, duration = 5000 }: PRBa
             const cfg = PR_CONFIG[pr.pr_type]
             return (
               <div key={pr.pr_type} className={`flex items-center justify-between rounded-[var(--radius-inner)] px-3 py-2 ${cfg.bg}`}>
-                <span className={`text-[10px] font-semibold uppercase tracking-widest ${cfg.color}`}>{cfg.label}</span>
+                <span className={`text-[10px] font-semibold uppercase tracking-widest ${cfg.color}`}>
+                  {isAssisted && pr.pr_type === 'best_weight' ? 'Less Assistance' : cfg.label}
+                </span>
                 <span className="mono text-sm text-[var(--text-hi)] tabular-nums">
                   {pr.old_value !== null && (
-                    <span className="text-[10px] text-[var(--text-faint)] mr-2 line-through">{formatValue(pr.pr_type, pr.old_value)}</span>
+                    <span className="text-[10px] text-[var(--text-faint)] mr-2 line-through">{formatValue(pr.pr_type, pr.old_value, weightedBodyweightKg)}</span>
                   )}
-                  {formatValue(pr.pr_type, pr.new_value)}
+                  {formatValue(pr.pr_type, pr.new_value, weightedBodyweightKg)}
                 </span>
               </div>
             )

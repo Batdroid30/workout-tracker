@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isAssisted, effectiveLoad, assistanceFor, setVolume, formatVolume, workoutBodyweight, prCandidates, beatsPR } from './load'
+import { isAssisted, isWeightedBodyweight, formatAddedWeight, formatWeightedSet, formatWeightedPR, effectiveLoad, assistanceFor, setVolume, formatVolume, workoutBodyweight, prCandidates, beatsPR } from './load'
 import { calculate1RM } from './algorithms'
 
 describe('isAssisted', () => {
@@ -131,5 +131,48 @@ describe('assistanceFor', () => {
 
   it('round-trips with effectiveLoad', () => {
     expect(assistanceFor(effectiveLoad(30, 'Pull Up (Assisted)', 80), 80)).toBe(30)
+  })
+})
+
+describe('isWeightedBodyweight', () => {
+  it('needs bodyweight equipment and a "weighted" name', () => {
+    expect(isWeightedBodyweight('Pull Up (Weighted)', 'bodyweight')).toBe(true)
+    expect(isWeightedBodyweight('Chin Up (Weighted)', 'Bodyweight')).toBe(true)
+    expect(isWeightedBodyweight('Pull Up', 'bodyweight')).toBe(false)
+    expect(isWeightedBodyweight('Weighted Crunch Machine', 'machine')).toBe(false)
+    expect(isWeightedBodyweight('Pull Up (Weighted)', null)).toBe(false)
+  })
+})
+
+describe('formatAddedWeight', () => {
+  it('shows the added load with a plus sign', () => {
+    expect(formatAddedWeight(95, 75)).toBe('+20kg')
+  })
+
+  it('shows BW when nothing was added', () => {
+    expect(formatAddedWeight(75, 75)).toBe('BW')
+    expect(formatAddedWeight(75.04, 75)).toBe('BW')
+  })
+
+  it('drops trailing .0 and floating-point noise', () => {
+    expect(formatAddedWeight(97.5, 75)).toBe('+22.5kg')
+    expect(formatAddedWeight(75.3 + 20, 75.3)).toBe('+20kg')
+  })
+})
+
+describe('formatWeightedSet', () => {
+  it('shows added load and total moved', () => {
+    expect(formatWeightedSet(95, 75)).toBe('+20kg · 95kg')
+    expect(formatWeightedSet(95.3, 75.3)).toBe('+20kg · 95.3kg')
+  })
+
+  it('shows BW with the total when nothing was added', () => {
+    expect(formatWeightedSet(75, 75)).toBe('BW · 75kg')
+  })
+})
+
+describe('formatWeightedPR', () => {
+  it('shows added load with the total in brackets', () => {
+    expect(formatWeightedPR(100, 75)).toBe('+25kg (100kg total)')
   })
 })

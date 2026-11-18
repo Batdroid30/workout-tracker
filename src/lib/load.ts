@@ -16,6 +16,11 @@ export function isAssisted(exerciseName: string): boolean {
   return /assisted/i.test(exerciseName)
 }
 
+/** Bodyweight exercises with added load (belt, vest). Matches SetLogger's detection. */
+export function isWeightedBodyweight(exerciseName: string, equipment: string | null | undefined): boolean {
+  return equipment?.toLowerCase() === 'bodyweight' && /weighted/i.test(exerciseName)
+}
+
 /** Bodyweight a stored workout was logged against; older rows without one use the fallback. */
 export function workoutBodyweight(stored: number | string | null | undefined): number {
   return stored != null ? Number(stored) : FALLBACK_BODYWEIGHT_KG
@@ -61,4 +66,23 @@ export function prCandidates(weightKg: number, reps: number, exerciseName: strin
 export function beatsPR(value: number, current: number | undefined, prType: PRType, exerciseName: string): boolean {
   if (isAssisted(exerciseName) && prType === 'best_weight') return current === undefined || value < current
   return value > (current ?? 0)
+}
+
+const roundTenth = (kg: number) => Math.round(kg * 10) / 10
+
+/** Added load on top of bodyweight for a weighted set: "+20kg", or "BW" when nothing was added. */
+export function formatAddedWeight(totalKg: number, bodyweightKg: number): string {
+  const added = roundTenth(totalKg - bodyweightKg)
+  if (Math.abs(added) < 0.1) return 'BW'
+  return `${added > 0 ? '+' : ''}${added}kg`
+}
+
+/** Added load and total moved for a weighted set: "+20kg · 95kg". */
+export function formatWeightedSet(totalKg: number, bodyweightKg: number): string {
+  return `${formatAddedWeight(totalKg, bodyweightKg)} · ${roundTenth(totalKg)}kg`
+}
+
+/** Weight-PR text for a weighted lift: "+25kg (100kg total)". */
+export function formatWeightedPR(totalKg: number, bodyweightKg: number): string {
+  return `${formatAddedWeight(totalKg, bodyweightKg)} (${roundTenth(totalKg)}kg total)`
 }
