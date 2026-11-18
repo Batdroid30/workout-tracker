@@ -261,6 +261,7 @@ export async function saveActiveWorkout(userId: string, workout: ActiveWorkout, 
       title: workout.title,
       started_at: startedAtIso,
       completed_at: new Date().toISOString(),
+      bodyweight_kg: workout.bodyweight_kg ?? null,
       duration_seconds: Math.floor(
         (Date.now() - new Date(startedAtIso).getTime()) / 1000,
       ),

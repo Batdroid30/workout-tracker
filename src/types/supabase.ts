@@ -517,6 +517,7 @@ export type Database = {
       }
       workouts: {
         Row: {
+          bodyweight_kg: number | null
           completed_at: string | null
           created_at: string | null
           duration_seconds: number | null
@@ -527,6 +528,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          bodyweight_kg?: number | null
           completed_at?: string | null
           created_at?: string | null
           duration_seconds?: number | null
@@ -537,6 +539,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          bodyweight_kg?: number | null
           completed_at?: string | null
           created_at?: string | null
           duration_seconds?: number | null
