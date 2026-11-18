@@ -18,6 +18,8 @@ interface SetRowProps {
   /** True for pure bodyweight exercises (pull-ups, dips, push-ups). Hides the weight input. */
   isBodyweight?: boolean
   isWeightedBodyweight?: boolean
+  /** True for assisted exercises — weight_kg is assistance, so lower is better. */
+  isAssisted?: boolean
   onChange: (updates: Partial<ActiveSet>) => void
   onDone: () => void
   /** Called immediately when the set is deleted. Receives the deleted set and its original index for undo. */
@@ -31,7 +33,7 @@ interface SetRowProps {
 // ─── Active set ───────────────────────────────────────────────────────────────
 // memo: every keystroke in any set's weight/reps input replaces the Zustand
 // exercises array reference — memo prevents sibling rows re-rendering on each char.
-const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, defaultRpe, isBodyweight, isWeightedBodyweight, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
+const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, defaultRpe, isBodyweight, isWeightedBodyweight, isAssisted, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
   const userBodyweight = useWorkoutStore(s => s.userBodyweight) ?? 75
   
   const getDisplayWeight = useCallback((dbWeight: number) => {
@@ -200,6 +202,12 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
           <Check className="w-4 h-4" style={ticked ? { color: 'var(--accent-on)' } : {}} />
         </button>
       </div>
+
+      {isAssisted && set.weight_kg >= userBodyweight && (
+        <p className="text-[10px] pb-1 pl-16" style={{ color: 'var(--warning)' }}>
+          Assistance is at or above your bodyweight ({userBodyweight} kg) — check the number.
+        </p>
+      )}
 
       {/* Suggestion chip */}
       {suggestion && !set.is_warmup && (
@@ -416,9 +424,9 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWei
 
 // ─── Public export ────────────────────────────────────────────────────────────
 
-export const SetRow = memo(function SetRow({ set, prevSetText = '-', suggestion, defaultRpe, isBodyweight, isWeightedBodyweight, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
+export const SetRow = memo(function SetRow({ set, prevSetText = '-', suggestion, defaultRpe, isBodyweight, isWeightedBodyweight, isAssisted, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
   if (set.completed) {
     return <CompletedSetRow set={set} isBodyweight={isBodyweight} isWeightedBodyweight={isWeightedBodyweight} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
   }
-  return <ActiveSetRow set={set} prevSetText={prevSetText} suggestion={suggestion} defaultRpe={defaultRpe} isBodyweight={isBodyweight} isWeightedBodyweight={isWeightedBodyweight} onChange={onChange} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
+  return <ActiveSetRow set={set} prevSetText={prevSetText} suggestion={suggestion} defaultRpe={defaultRpe} isBodyweight={isBodyweight} isWeightedBodyweight={isWeightedBodyweight} isAssisted={isAssisted} onChange={onChange} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
 })

@@ -15,7 +15,7 @@ import { getSupabaseClient }    from '@/lib/supabase/client'
 import { upsertExercisePreference } from '@/lib/data/exercise-preferences'
 import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 import { cn } from '@/lib/utils'
-import { formatVolume } from '@/lib/load'
+import { formatVolume, setVolume, isAssisted } from '@/lib/load'
 
 const DEFAULT_REST = 90
 
@@ -69,6 +69,7 @@ export function SetLogger({
     exerciseType,
     exercise.progression_model ?? null,
     exercise.rep_sum_target ?? null,
+    isAssisted(exercise.exercise.name),
   )
 
   useEffect(() => {
@@ -121,7 +122,7 @@ export function SetLogger({
   const userBodyweight = useWorkoutStore(s => s.userBodyweight) ?? 75
   const sessionVolume = exercise.sets
     .filter(s => s.completed && !s.is_warmup && s.weight_kg > 0 && s.reps > 0)
-    .reduce((sum, s) => sum + s.weight_kg * s.reps, 0)
+    .reduce((sum, s) => sum + setVolume(s.weight_kg, s.reps, exercise.exercise.name, userBodyweight), 0)
 
   const isRepSum          = exercise.progression_model === 'rep_sum'
   const repSumTarget      = exercise.rep_sum_target ?? 0
@@ -317,6 +318,7 @@ export function SetLogger({
               setIndex={setIndex}
               isBodyweight={isBodyweight}
               isWeightedBodyweight={isWeightedBodyweight}
+              isAssisted={isAssisted(exercise.exercise.name)}
               prevSetText={prevText}
               suggestion={lastSetAtPosition?.suggestion}
               defaultRpe={dupRpeTarget}
@@ -328,7 +330,7 @@ export function SetLogger({
                 if (!wasCompleted) {
                   handleSetCompleted()
                   if (!currentSet.is_warmup && currentSet.weight_kg > 0 && currentSet.reps > 0) {
-                    const prs = checkLocalPR(exercise.exercise.id, currentSet.weight_kg, currentSet.reps)
+                    const prs = checkLocalPR(exercise.exercise.id, exercise.exercise.name, currentSet.weight_kg, currentSet.reps)
                     if (prs.length > 0) setActivePRs(prs)
                   }
                 }

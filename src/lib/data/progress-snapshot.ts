@@ -2,6 +2,7 @@ import { cache } from 'react'
 import { resolveSupabaseClient } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { calculate1RM, type RecentExerciseLoad } from '@/lib/algorithms'
+import { effectiveLoad, workoutBodyweight } from '@/lib/load'
 import type { KeyLift } from '@/lib/data/phase-coach'
 import type { ImprovedExercise } from '@/lib/data/insights'
 import { PUSH_MUSCLES, PULL_MUSCLES, LEG_MUSCLES } from '@/lib/training-constants'
@@ -111,7 +112,7 @@ export const getProgressSnapshot = cache(async (userId: string, runAsAdmin: bool
       weight_kg, reps, rpe, completed_at,
       workout_exercises!inner (
         exercise:exercises ( id, name, muscle_group, movement_pattern ),
-        workouts!inner ( id, started_at, user_id )
+        workouts!inner ( id, started_at, user_id, bodyweight_kg )
       )
     `)
     .eq('workout_exercises.workouts.user_id', userId)
@@ -162,7 +163,8 @@ export const getProgressSnapshot = cache(async (userId: string, runAsAdmin: bool
 
     const weight      = Number(row.weight_kg)
     const reps        = Number(row.reps)
-    const e1rm        = calculate1RM(weight, reps)
+    const load        = effectiveLoad(weight, exercise.name ?? '', workoutBodyweight(workout.bodyweight_kg))
+    const e1rm        = calculate1RM(load, reps)
     const weekKey     = getMondayOf(new Date(workout.started_at))
     const workoutId   = workout.id as string
     const muscle      = exercise.muscle_group as string | undefined
@@ -170,7 +172,7 @@ export const getProgressSnapshot = cache(async (userId: string, runAsAdmin: bool
     const dateKey     = completedAt.split('T')[0]
 
     // ── Weekly volume ─────────────────────────────────────────────────────────
-    weekVolumeMap.set(weekKey, (weekVolumeMap.get(weekKey) ?? 0) + weight * reps)
+    weekVolumeMap.set(weekKey, (weekVolumeMap.get(weekKey) ?? 0) + load * reps)
 
     // ── Distinct sessions per week ────────────────────────────────────────────
     if (!weekSessionsMap.has(weekKey)) weekSessionsMap.set(weekKey, new Set())

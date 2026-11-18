@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import { resolveSupabaseClient } from '@/lib/supabase/server'
 import { calculate1RM } from '@/lib/algorithms'
+import { prCandidates, beatsPR, isAssisted, effectiveLoad, workoutBodyweight } from '@/lib/load'
 import type { PRType, PRCheckResult } from '@/types/database'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -41,8 +42,10 @@ export const getExerciseProgression = cache(async (userId: string, exerciseId: s
     .from('workouts')
     .select(`
       started_at,
+      bodyweight_kg,
       workout_exercises!inner (
         exercise_id,
+        exercise:exercises ( name ),
         sets ( weight_kg, reps, is_warmup )
       )
     `)
@@ -55,16 +58,21 @@ export const getExerciseProgression = cache(async (userId: string, exerciseId: s
   workouts?.forEach(w => {
     let maxW = 0, best1 = 0, vol = 0
     const dateStr = new Date(w.started_at).toISOString().split('T')[0]
+    const bodyweightKg = workoutBodyweight(w.bodyweight_kg)
     // @ts-ignore
     w.workout_exercises.forEach(we => {
+      const exerciseName: string = (Array.isArray(we.exercise) ? we.exercise[0] : we.exercise)?.name ?? ''
+      const assisted = isAssisted(exerciseName)
       // @ts-ignore
       we.sets.forEach(s => {
         if (!s.is_warmup && s.weight_kg && s.reps) {
           const wgt = Number(s.weight_kg), reps = Number(s.reps)
-          if (wgt > maxW) maxW = wgt
-          const e1rm = calculate1RM(wgt, reps)
+          // For assisted lifts "maxWeight" is the best (lowest) assistance of the day
+          if (assisted ? (maxW === 0 || wgt < maxW) : wgt > maxW) maxW = wgt
+          const load = effectiveLoad(wgt, exerciseName, bodyweightKg)
+          const e1rm = calculate1RM(load, reps)
           if (e1rm > best1) best1 = e1rm
-          vol += wgt * reps
+          vol += load * reps
         }
       })
     })
@@ -254,21 +262,16 @@ export async function evaluateAndSavePRs(
 
     const weight = Number(set.weight_kg)
     const reps   = Number(set.reps)
-    const checks = [
-      { type: 'best_weight' as PRType, value: weight },
-      { type: 'best_volume' as PRType, value: weight * reps },
-      { type: 'best_1rm'    as PRType, value: calculate1RM(weight, reps) },
-    ]
 
-    for (const check of checks) {
+    for (const check of prCandidates(weight, reps, set.exerciseName)) {
       const key          = `${set.exerciseId}|${check.type}`
-      const currentValue = prMap.get(key) ?? 0
+      const currentValue = prMap.get(key)
 
-      if (check.value > currentValue) {
+      if (beatsPR(check.value, currentValue, check.type, set.exerciseName)) {
         brokenPRs.push({
           exerciseName: set.exerciseName,
           prType:       check.type,
-          oldValue:     currentValue === 0 ? null : currentValue,
+          oldValue:     currentValue || null,
           newValue:     check.value,
         })
         // Advance the local bar — subsequent sets in this workout compare
@@ -312,6 +315,7 @@ export async function evaluateAndSaveAllPRs(userId: string, runAsAdmin: boolean 
       id, weight_kg, reps, is_warmup, completed_at,
       workout_exercises!inner (
         exercise_id,
+        exercise:exercises ( name ),
         workouts!inner ( user_id, started_at )
       )
     `)
@@ -329,18 +333,15 @@ export async function evaluateAndSaveAllPRs(userId: string, runAsAdmin: boolean 
     const we = Array.isArray(set.workout_exercises) ? set.workout_exercises[0] : (set.workout_exercises as any)
     if (!we) continue
     const exerciseId = we.exercise_id
+    const exercise = Array.isArray(we.exercise) ? we.exercise[0] : (we.exercise as any)
+    const exerciseName: string = exercise?.name ?? ''
     const workout = Array.isArray(we.workouts) ? we.workouts[0] : (we.workouts as any)
     const achievedAt = workout?.started_at || set.completed_at
 
-    const checks = [
-      { type: 'best_weight' as PRType, value: weight },
-      { type: 'best_volume' as PRType, value: weight * reps },
-      { type: 'best_1rm'    as PRType, value: calculate1RM(weight, reps) },
-    ]
-    for (const check of checks) {
+    for (const check of prCandidates(weight, reps, exerciseName)) {
       const key = `${exerciseId}|${check.type}`
       const cur = prMap.get(key)
-      if (!cur || check.value > cur.value) prMap.set(key, { value: check.value, set_id: set.id, achieved_at: achievedAt, reps })
+      if (beatsPR(check.value, cur?.value, check.type, exerciseName)) prMap.set(key, { value: check.value, set_id: set.id, achieved_at: achievedAt, reps })
     }
   }
 

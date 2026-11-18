@@ -93,6 +93,10 @@ export async function recalculatePRsAction() {
   const { userId, session } = await requireAuth()
 
   try {
+    // Rebuild from scratch so records that no longer apply (e.g. 1RM/volume
+    // on assisted lifts) are removed, not just overwritten.
+    const { error: deleteErr } = await getSupabaseAdmin().from('personal_records').delete().eq('user_id', userId)
+    if (deleteErr) throw new Error(`Failed to clear PRs: ${deleteErr.message}`)
     await evaluateAndSaveAllPRs(userId)
     revalidateAll()
     return { success: true }

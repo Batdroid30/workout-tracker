@@ -10,6 +10,7 @@ import { ExerciseMetaEditor } from '@/components/exercises/ExerciseMetaEditor'
 import { deriveExerciseInsights } from '@/lib/algorithms'
 import { TutorialVideo } from '@/components/exercises/TutorialVideo'
 import type { MuscleGroup, MovementPattern, ExperienceLevel } from '@/types/database'
+import { isAssisted } from '@/lib/load'
 
 export default async function ExerciseDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -25,7 +26,10 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
 
   const current1RM           = progression.length > 0 ? progression[progression.length - 1].best1RM : null
   const best1RMFromHistory   = progression.length > 0 ? Math.max(...progression.map(p => p.best1RM))   : null
-  const maxWeightFromHistory = progression.length > 0 ? Math.max(...progression.map(p => p.maxWeight)) : null
+  const assisted             = isAssisted(exercise.name)
+  // For assisted lifts the best is the least assistance
+  const pickBest             = assisted ? Math.min : Math.max
+  const maxWeightFromHistory = progression.length > 0 ? pickBest(...progression.map(p => p.maxWeight)) : null
 
   const bestWeight = prs.find(p => p.pr_type === 'best_weight')?.value ?? maxWeightFromHistory
   const best1RM    = prs.find(p => p.pr_type === 'best_1rm')?.value    ?? best1RMFromHistory
@@ -109,7 +113,7 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
             </div>
             <div className="glass p-4 text-center">
               <Trophy className="w-4 h-4 mx-auto mb-2" style={{ color: 'var(--text-faint)' }} />
-              <p className="t-label">Max Weight</p>
+              <p className="t-label">{assisted ? 'Least Assistance' : 'Max Weight'}</p>
               <p className="mono text-xl mt-1 tracking-tight" style={{ color: 'var(--text-hi)' }}>
                 {display(bestWeight)} <span className="text-xs" style={{ color: 'var(--text-faint)' }}>kg</span>
               </p>
@@ -139,7 +143,7 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
         {/* ── Max Weight Progression chart ─────────────────────────────── */}
         {chartDataWeight.length > 1 && (
           <section className="fade-up">
-            <h2 className="t-label mb-3">Max Weight Progression</h2>
+            <h2 className="t-label mb-3">{assisted ? 'Assistance Progression' : 'Max Weight Progression'}</h2>
             <div className="glass p-4">
               <div className="h-[180px] w-full">
                 <ProgressionLineChart data={chartDataWeight} color="#7fd9c8" formatType="number" />

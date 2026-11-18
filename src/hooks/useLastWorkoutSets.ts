@@ -3,6 +3,7 @@
 import useSWR from 'swr'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { suggestNextSet, type OverloadSuggestion } from '@/lib/algorithms'
+import { assistanceFor, workoutBodyweight } from '@/lib/load'
 import { getCurrentWUPScheme, isCurrentWeekDeload } from '@/lib/workout-intelligence'
 import type { TrainingGoal, ExperienceLevel, TrainingPhase } from '@/types/database'
 
@@ -20,6 +21,7 @@ interface FetchParams {
   exerciseType:     'compound' | 'isolation'
   progressionModel: 'double' | 'rep_sum' | null
   repSumTarget:     number | null
+  isAssisted:       boolean
 }
 
 interface UserProfile {
@@ -49,7 +51,7 @@ async function fetchProfile(): Promise<UserProfile> {
 }
 
 async function fetchLastWorkoutSets(
-  { exerciseId, exerciseType, progressionModel, repSumTarget }: FetchParams,
+  { exerciseId, exerciseType, progressionModel, repSumTarget, isAssisted }: FetchParams,
   profile: UserProfile,
 ): Promise<LastWorkoutSetInfo[]> {
   const supabase = getSupabaseClient()
@@ -68,7 +70,7 @@ async function fetchLastWorkoutSets(
       completed_at,
       workout_exercises!inner (
         exercise_id,
-        workouts!inner ( id, started_at )
+        workouts!inner ( id, started_at, bodyweight_kg )
       )
     `)
     .eq('workout_exercises.exercise_id', exerciseId)
@@ -105,6 +107,24 @@ async function fetchLastWorkoutSets(
   const lastWupScheme = getCurrentWUPScheme(new Date(lastWorkoutDateStr))
   const isPhaseTransition = lastWupScheme.label !== dupScheme.label
 
+  // Assisted lifts progress by lowering assistance. The suggestion engine thinks
+  // in load lifted, so convert assistance → load before and back after.
+  const lastWorkoutBodyweight = (() => {
+    const we = Array.isArray(data[0].workout_exercises) ? data[0].workout_exercises[0] : data[0].workout_exercises
+    const w  = Array.isArray(we?.workouts) ? we.workouts[0] : we?.workouts
+    return workoutBodyweight(w?.bodyweight_kg)
+  })()
+  const toLoad = (kg: number) => isAssisted ? Math.max(0, lastWorkoutBodyweight - kg) : kg
+  const fromLoad = (suggestion: OverloadSuggestion, lastAssistance: number): OverloadSuggestion => {
+    if (!isAssisted) return suggestion
+    const assistance = assistanceFor(suggestion.weight_kg, lastWorkoutBodyweight)
+    // The engine's reason talks about adding/removing weight, which reads backwards for assistance
+    const reason = assistance < lastAssistance ? `Drop assistance to ${assistance}kg — you're getting stronger.`
+      : assistance > lastAssistance ? `Add a little assistance (${assistance}kg) to stay in your rep range.`
+      : 'Same assistance — aim to beat last session.'
+    return { ...suggestion, weight_kg: assistance, reason }
+  }
+
   const lastSets = (data as any[])
     .filter((set: any) => resolveWorkoutId(set) === latestWorkoutId)
     .sort((a: any, b: any) => (a.set_number ?? 0) - (b.set_number ?? 0))
@@ -125,8 +145,8 @@ async function fetchLastWorkoutSets(
       weight_kg: w,
       reps:      r,
       rpe,
-      suggestion: suggestNextSet({
-        lastWeight:      w,
+      suggestion: fromLoad(suggestNextSet({
+        lastWeight:      toLoad(w),
         lastReps:        r,
         lastRPE:         rpe,
         exerciseType,
@@ -139,7 +159,7 @@ async function fetchLastWorkoutSets(
         repSumTarget,
         prevTotalReps,
         isPhaseTransition,
-      }),
+      }), w),
     }
   })
 }
@@ -158,6 +178,7 @@ export function useLastWorkoutSets(
   exerciseType:     'compound' | 'isolation' = 'compound',
   progressionModel: 'double' | 'rep_sum' | null = null,
   repSumTarget:     number | null               = null,
+  isAssisted:       boolean                     = false,
 ) {
   // Profile is fetched once and shared across all hook instances via SWR's
   // deduplication — the 'user-profile-for-suggestions' key ensures only one
@@ -175,10 +196,10 @@ export function useLastWorkoutSets(
     // Wait for profile to load before fetching sets, so suggestions are always
     // calibrated to the user's goal and experience level.
     exerciseId && profile
-      ? `last-workout-sets-${exerciseId}-${exerciseType}-${modelKey}-${repSumTarget ?? 0}`
+      ? `last-workout-sets-${exerciseId}-${exerciseType}-${modelKey}-${repSumTarget ?? 0}-${isAssisted ? 'assisted' : 'load'}`
       : null,
     () => fetchLastWorkoutSets(
-      { exerciseId, exerciseType, progressionModel, repSumTarget },
+      { exerciseId, exerciseType, progressionModel, repSumTarget, isAssisted },
       profile!,
     ),
     { revalidateOnFocus: false },

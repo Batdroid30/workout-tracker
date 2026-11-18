@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Trophy, Clock, Dumbbell, Repeat, Layers, Check, Sparkles } from 'lucide-react'
 import type { ActiveWorkout } from '@/types/database'
 import type { PREvaluationResult } from '@/lib/data/stats'
+import { useWorkoutStore } from '@/store/workout.store'
+import { setVolume, FALLBACK_BODYWEIGHT_KG } from '@/lib/load'
 
 interface PostWorkoutSummaryProps {
   workout: ActiveWorkout
@@ -45,6 +47,8 @@ export function PostWorkoutSummary({ workout, prs, onDone }: PostWorkoutSummaryP
     return () => clearTimeout(t)
   }, [])
 
+  const bodyweightKg = useWorkoutStore(s => s.userBodyweight) ?? FALLBACK_BODYWEIGHT_KG
+
   const stats = useMemo(() => {
     const startedAt  = workout.started_at instanceof Date ? workout.started_at : new Date(workout.started_at)
     const durationMs = Date.now() - startedAt.getTime()
@@ -57,7 +61,7 @@ export function PostWorkoutSummary({ workout, prs, onDone }: PostWorkoutSummaryP
         if (!s.completed || s.is_warmup) continue
         totalSets   += 1
         totalReps   += s.reps
-        totalVolume += s.weight_kg * s.reps
+        totalVolume += setVolume(s.weight_kg, s.reps, ex.exercise.name, bodyweightKg)
       }
     }
 
@@ -68,7 +72,7 @@ export function PostWorkoutSummary({ workout, prs, onDone }: PostWorkoutSummaryP
       totalVolume,
       muscles: Array.from(muscleSet),
     }
-  }, [workout])
+  }, [workout, bodyweightKg])
 
   const uniquePRs = useMemo(
     () => Object.values(

@@ -2,6 +2,7 @@ import { cache } from 'react'
 import { resolveSupabaseClient } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { calculate1RM } from '@/lib/algorithms'
+import { setVolume, workoutBodyweight } from '@/lib/load'
 import type { ActiveWorkout, PRType } from '@/types/database'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -96,6 +97,14 @@ export const getAllWorkouts = cache(async (userId: string, runAsAdmin: boolean =
   return attachPRTypes(data, prSetMap)
 })
 
+/** Volume of a `sets` row joined with workout_exercises → exercise name and workout bodyweight. */
+function setVolumeFromRow(set: any): number {
+  const we       = Array.isArray(set.workout_exercises) ? set.workout_exercises[0] : set.workout_exercises
+  const exercise = Array.isArray(we?.exercise) ? we.exercise[0] : we?.exercise
+  const workout  = Array.isArray(we?.workouts) ? we.workouts[0] : we?.workouts
+  return setVolume(Number(set.weight_kg) || 0, Number(set.reps) || 0, exercise?.name ?? '', workoutBodyweight(workout?.bodyweight_kg))
+}
+
 export const getWorkoutsSummary = cache(async (userId: string, runAsAdmin: boolean = false) => {
   const supabase = await resolveSupabaseClient(runAsAdmin)
 
@@ -111,15 +120,12 @@ export const getWorkoutsSummary = cache(async (userId: string, runAsAdmin: boole
 
   const { data: setsData, error: setsErr } = await supabase
     .from('sets')
-    .select('weight_kg, reps, workout_exercises!inner(workouts!inner(user_id))')
+    .select('weight_kg, reps, workout_exercises!inner(exercise:exercises(name), workouts!inner(user_id, bodyweight_kg))')
     .eq('workout_exercises.workouts.user_id', userId)
 
   let totalVolume = 0
   if (setsData && !setsErr) {
-    totalVolume = setsData.reduce(
-      (acc, set) => acc + ((set.weight_kg || 0) * (set.reps || 0)),
-      0,
-    )
+    totalVolume = setsData.reduce((acc, set: any) => acc + setVolumeFromRow(set), 0)
   }
 
   return { totalWorkouts: count || 0, totalVolume }
@@ -140,7 +146,7 @@ export const getVolumeHistory = cache(async (
       weight_kg,
       reps,
       completed_at,
-      workout_exercises!inner(workouts!inner(user_id))
+      workout_exercises!inner(exercise:exercises(name), workouts!inner(user_id, bodyweight_kg))
     `)
     .eq('workout_exercises.workouts.user_id', userId)
     .gte('completed_at', since.toISOString())
@@ -149,10 +155,10 @@ export const getVolumeHistory = cache(async (
   if (error) throw new DatabaseError('Failed to fetch volume history', error)
   if (!data) return []
 
-  const volumeByDate = data.reduce((acc: Record<string, number>, set) => {
+  const volumeByDate = data.reduce((acc: Record<string, number>, set: any) => {
     if (!set.completed_at) return acc
     const date = new Date(set.completed_at).toISOString().split('T')[0]
-    acc[date] = (acc[date] || 0) + (set.weight_kg || 0) * (set.reps || 0)
+    acc[date] = (acc[date] || 0) + setVolumeFromRow(set)
     return acc
   }, {})
 
@@ -204,6 +210,7 @@ export const getWorkoutById = cache(async (workoutId: string, userId: string, ru
       completed_at,
       duration_seconds,
       notes,
+      bodyweight_kg,
       workout_exercises (
         id,
         exercise_id,
