@@ -33,8 +33,7 @@ const PR_TYPE_LABELS: Record<string, string> = {
 
 function formatPRValue(prType: string, value: number): string {
   if (prType === 'best_1rm') return `${value.toFixed(1)} kg`
-  if (value >= 1000) return `${(value / 1000).toFixed(1)}k kg`
-  return `${value} kg`
+  return `${formatVolume(value)} kg`
 }
 
 export function PostWorkoutSummary({ workout, prs, onDone }: PostWorkoutSummaryProps) {

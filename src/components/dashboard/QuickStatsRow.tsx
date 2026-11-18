@@ -11,7 +11,7 @@ interface QuickStatsRowProps {
 function formatVolume(kg: number): string {
   if (kg >= 1_000_000) return `${(kg / 1_000_000).toFixed(1)}M`
   if (kg >= 1_000)     return `${(kg / 1_000).toFixed(1)}k`
-  return String(kg)
+  return String(Math.round(kg))
 }
 
 export function QuickStatsRow({

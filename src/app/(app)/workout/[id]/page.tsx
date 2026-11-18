@@ -9,6 +9,7 @@ import { EditWorkoutMetaModal } from '@/components/workout/EditWorkoutMetaModal'
 import { EditSetModal } from '@/components/workout/EditSetModal'
 import { DeleteHistoricalExerciseButton } from '@/components/workout/DeleteHistoricalExerciseButton'
 import { WorkoutCoachInsightCard } from '@/components/workout/WorkoutCoachInsightCard'
+import { formatVolume } from '@/lib/load'
 
 export default async function WorkoutHistoryDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -124,7 +125,7 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
             <div>
               <p className="t-label">Volume</p>
               <p className="mono text-xl mt-0.5 tracking-tight" style={{ color: 'var(--text-hi)' }}>
-                {workoutVolume >= 1000 ? `${(workoutVolume / 1000).toFixed(1)}k` : workoutVolume}
+                {formatVolume(workoutVolume)}
                 <span className="text-xs ml-0.5" style={{ color: 'var(--text-faint)' }}>kg</span>
               </p>
             </div>

@@ -15,6 +15,7 @@ import { getSupabaseClient }    from '@/lib/supabase/client'
 import { upsertExercisePreference } from '@/lib/data/exercise-preferences'
 import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 import { cn } from '@/lib/utils'
+import { formatVolume } from '@/lib/load'
 
 const DEFAULT_REST = 90
 
@@ -392,7 +393,7 @@ export function SetLogger({
           >
             <span className="text-[9px] font-medium text-[var(--text-faint)] uppercase tracking-widest">Session volume</span>
             <span className="mono text-xs text-[var(--text-mid)] tabular-nums">
-              {sessionVolume >= 1000 ? `${(sessionVolume / 1000).toFixed(1)}k` : sessionVolume}
+              {formatVolume(sessionVolume)}
               <span className="text-[9px] text-[var(--text-faint)] ml-0.5">kg</span>
             </span>
           </div>

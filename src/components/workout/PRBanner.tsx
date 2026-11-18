@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Trophy } from 'lucide-react'
 import type { PRCheckResult, PRType } from '@/types/database'
+import { formatVolume } from '@/lib/load'
 
 interface PRBannerProps {
   prs: PRCheckResult[]
@@ -19,7 +20,7 @@ const PR_CONFIG: Record<PRType, { label: string; color: string; bg: string }> = 
 
 function formatValue(prType: PRType, value: number): string {
   if (prType === 'best_1rm') return `${value.toFixed(1)} kg`
-  if (prType === 'best_volume') return value >= 1000 ? `${(value / 1000).toFixed(1)}k kg` : `${value} kg`
+  if (prType === 'best_volume') return `${formatVolume(value)} kg`
   return `${value} kg`
 }
 
