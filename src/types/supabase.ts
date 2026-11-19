@@ -556,36 +556,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      check_and_update_prs: {
-        Args: {
-          p_exercise_id: string
-          p_reps: number
-          p_set_id: string
-          p_user_id: string
-          p_weight: number
-        }
-        Returns: {
-          is_pr: boolean
-          new_value: number
-          old_value: number
-          pr_type: string
-        }[]
-      }
       get_user_exercise_frequency: {
-        Args: { p_user_id: string }
+        Args: never
         Returns: {
           exercise_id: string
           set_count: number
-        }[]
-      }
-      get_weekly_volume: {
-        Args: { p_user_id: string; p_weeks?: number }
-        Returns: {
-          avg_rpe: number
-          muscle_group: string
-          total_sets: number
-          total_volume: number
-          week_start: string
         }[]
       }
     }
