@@ -454,6 +454,8 @@ export const getWeeklySetsByMuscle = cache(async (userId: string, runAsAdmin: bo
     `)
     .eq('workout_exercises.workouts.user_id', userId)
     .eq('is_warmup', false)
+    .gt('weight_kg', 0)
+    .gt('reps', 0)
     .gte('completed_at', monday.toISOString())
 
   if (error) throw new DatabaseError('Failed to fetch weekly sets by muscle', error)
