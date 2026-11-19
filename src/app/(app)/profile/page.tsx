@@ -5,7 +5,8 @@ import { Suspense } from 'react'
 import { ProfileContent } from '@/components/profile/ProfileContent'
 import { ProfileForm } from './ProfileForm'
 import { ExerciseListClient } from '@/app/(app)/exercises/ExerciseListClient'
-import { getAllWorkouts } from '@/lib/data/workouts'
+import { getWorkoutHistoryPage } from '@/lib/data/workouts'
+import { loadMoreWorkoutsAction } from './actions'
 import { getExercises } from '@/lib/data/exercises'
 import { WorkoutHistoryList } from '@/components/workout/WorkoutHistoryList'
 import { User } from 'lucide-react'
@@ -67,14 +68,14 @@ export default async function ProfilePage({
 }
 
 async function HistoryTab({ userId }: { userId: string }) {
-  const workouts = await getAllWorkouts(userId)
+  const { workouts, hasMore } = await getWorkoutHistoryPage(userId, 0)
 
   return (
     <div className="space-y-3">
       <div className="flex justify-end pb-2">
         <ClearDataButton />
       </div>
-      <WorkoutHistoryList workouts={workouts as any} />
+      <WorkoutHistoryList workouts={workouts} initialHasMore={hasMore} onLoadMore={loadMoreWorkoutsAction} />
     </div>
   )
 }

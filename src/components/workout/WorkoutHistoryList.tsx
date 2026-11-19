@@ -23,7 +23,7 @@ const PR_BADGE_CONFIG: Record<PRType, { label: string; color: string; bg: string
 // Display order: weight → 1RM → volume
 const PR_DISPLAY_ORDER: PRType[] = ['best_weight', 'best_1rm', 'best_volume']
 
-interface WorkoutItem {
+export interface WorkoutItem {
   id: string
   title: string | null
   started_at: string
@@ -36,8 +36,12 @@ interface WorkoutItem {
   }>
 }
 
+type LoadMoreResult = { workouts: WorkoutItem[]; hasMore: boolean } | { error: string }
+
 interface WorkoutHistoryListProps {
   workouts: WorkoutItem[]
+  initialHasMore?: boolean
+  onLoadMore?: (offset: number) => Promise<LoadMoreResult>
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -164,7 +168,28 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
 
 // ─── List ─────────────────────────────────────────────────────────────────────
 
-export function WorkoutHistoryList({ workouts }: WorkoutHistoryListProps) {
+export function WorkoutHistoryList({ workouts: initialWorkouts, initialHasMore = false, onLoadMore }: WorkoutHistoryListProps) {
+  const [workouts, setWorkouts] = useState(initialWorkouts)
+  const [hasMore, setHasMore] = useState(initialHasMore)
+  const [isLoadingMore, startLoadMore] = useTransition()
+  const toast = useToast()
+
+  const handleLoadMore = () => {
+    if (!onLoadMore) return
+    startLoadMore(async () => {
+      const result = await onLoadMore(workouts.length)
+      if ('error' in result) {
+        toast.error(result.error)
+        return
+      }
+      setWorkouts(current => {
+        const knownIds = new Set(current.map(w => w.id))
+        return [...current, ...result.workouts.filter(w => !knownIds.has(w.id))]
+      })
+      setHasMore(result.hasMore)
+    })
+  }
+
   if (workouts.length === 0) {
     return (
       <div className="glass border border-dashed border-[var(--glass-border)] p-8 text-center">
@@ -179,6 +204,15 @@ export function WorkoutHistoryList({ workouts }: WorkoutHistoryListProps) {
       {workouts.map(workout => (
         <WorkoutHistoryCard key={workout.id} workout={workout} />
       ))}
+      {hasMore && (
+        <button
+          onClick={handleLoadMore}
+          disabled={isLoadingMore}
+          className="w-full min-h-[44px] glass rounded-lg text-[13px] font-medium text-[var(--text-mid)] hover:border-[var(--accent-line)] transition-colors disabled:opacity-50"
+        >
+          {isLoadingMore ? 'Loading…' : 'Load more'}
+        </button>
+      )}
     </div>
   )
 }
