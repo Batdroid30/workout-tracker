@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   deleteWorkout: vi.fn(),
   revalidateAll: vi.fn(),
   getSupabaseAdmin: vi.fn(),
+  getSupabaseServer: vi.fn(),
 }))
 
 vi.mock('@/lib/auth', () => ({ auth: mocks.auth, requireAuth: mocks.requireAuth }))
@@ -22,9 +23,12 @@ vi.mock('@/lib/data/stats', () => ({
   evaluateAndSaveAllPRs: mocks.evaluateAndSaveAllPRs,
 }))
 vi.mock('@/lib/cache', () => ({ revalidateAll: mocks.revalidateAll }))
-vi.mock('@/lib/supabase/server', () => ({ getSupabaseAdmin: mocks.getSupabaseAdmin }))
+vi.mock('@/lib/supabase/server', () => ({
+  getSupabaseAdmin: mocks.getSupabaseAdmin,
+  getSupabaseServer: mocks.getSupabaseServer,
+}))
 
-import { finishWorkoutAction } from './actions'
+import { finishWorkoutAction, getUserExerciseFrequency } from './actions'
 
 describe('finishWorkoutAction', () => {
   const userId = 'user-1'
@@ -81,5 +85,48 @@ describe('finishWorkoutAction', () => {
   it('throws when there is no authenticated user', async () => {
     mocks.requireAuth.mockRejectedValue(new Error('User not authenticated'))
     await expect(finishWorkoutAction({} as any)).rejects.toThrow('User not authenticated')
+  })
+})
+
+describe('getUserExerciseFrequency', () => {
+  const rpc = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.requireAuth.mockResolvedValue({ userId: 'user-1', session: { user: { id: 'user-1' } } })
+    mocks.getSupabaseServer.mockResolvedValue({ rpc })
+  })
+
+  it('calls the RPC without a user id argument', async () => {
+    rpc.mockResolvedValue({ data: [], error: null })
+
+    await getUserExerciseFrequency()
+
+    expect(rpc).toHaveBeenCalledOnce()
+    expect(rpc.mock.calls[0]).toEqual(['get_user_exercise_frequency'])
+  })
+
+  it('maps rows to an exercise-id → count record', async () => {
+    rpc.mockResolvedValue({
+      data: [{ exercise_id: 'e1', set_count: 3 }, { exercise_id: 'e2', set_count: '7' }],
+      error: null,
+    })
+
+    expect(await getUserExerciseFrequency()).toEqual({ e1: 3, e2: 7 })
+  })
+
+  it('returns an empty record for a user with no history', async () => {
+    rpc.mockResolvedValue({ data: [], error: null })
+
+    expect(await getUserExerciseFrequency()).toEqual({})
+  })
+
+  it('returns an empty record and logs when the RPC errors', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    rpc.mockResolvedValue({ data: null, error: { message: 'x' } })
+
+    expect(await getUserExerciseFrequency()).toEqual({})
+    expect(consoleError).toHaveBeenCalled()
+    consoleError.mockRestore()
   })
 })

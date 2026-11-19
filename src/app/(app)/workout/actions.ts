@@ -66,20 +66,16 @@ export async function deleteWorkoutAction(workoutId: string) {
 // last 90 days. Used by getNextExerciseSuggestions / getDefaultExercisesForFocus
 // to bias toward exercises the user actually trains.
 //
-// Why a Server Action (not a client query):
-//   • userId is derived from the server session — never trust a client-passed id
-//   • The RPC is service_role only, so it can't be called from the browser
-//   • Returns a plain object so the client can read frequencies in O(1)
+// The RPC runs as the signed-in user (security invoker) and scopes itself by
+// auth.uid(), so it takes no user id and can only ever return the caller's data.
+// Returns a plain object so the client can read frequencies in O(1).
 //
 // Cost: one grouped aggregate per workout-screen mount (cached client-side
 // for the session, so effectively one query per workout).
 export async function getUserExerciseFrequency(): Promise<Record<string, number>> {
-  const {  session } = await requireAuth()
+  await requireAuth()
   const supabase = await getSupabaseServer()
-  // user_id is server-derived from the session — never trust a client-passed id.
-  const { data, error } = await supabase.rpc('get_user_exercise_frequency', {
-    p_user_id: session.user.id,
-  })
+  const { data, error } = await supabase.rpc('get_user_exercise_frequency')
 
   if (error || !data) {
     console.error('Failed to fetch exercise frequency:', error)
@@ -87,7 +83,7 @@ export async function getUserExerciseFrequency(): Promise<Record<string, number>
   }
 
   const frequency: Record<string, number> = {}
-  for (const row of data as { exercise_id: string; set_count: number }[]) {
+  for (const row of data) {
     frequency[row.exercise_id] = Number(row.set_count)
   }
   return frequency
