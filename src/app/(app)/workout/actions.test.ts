@@ -28,7 +28,7 @@ vi.mock('@/lib/supabase/server', () => ({
   getSupabaseServer: mocks.getSupabaseServer,
 }))
 
-import { finishWorkoutAction, getUserExerciseFrequency } from './actions'
+import { finishWorkoutAction, deleteWorkoutAction, getUserExerciseFrequency } from './actions'
 
 describe('finishWorkoutAction', () => {
   const userId = 'user-1'
@@ -85,6 +85,44 @@ describe('finishWorkoutAction', () => {
   it('throws when there is no authenticated user', async () => {
     mocks.requireAuth.mockRejectedValue(new Error('User not authenticated'))
     await expect(finishWorkoutAction({} as any)).rejects.toThrow('User not authenticated')
+  })
+})
+
+describe('deleteWorkoutAction', () => {
+  const userId = 'user-1'
+  const eq = vi.fn()
+  const del = vi.fn(() => ({ eq }))
+  const from = vi.fn(() => ({ delete: del }))
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.requireAuth.mockResolvedValue({ userId, session: {} })
+    mocks.deleteWorkout.mockResolvedValue(undefined)
+    mocks.evaluateAndSaveAllPRs.mockResolvedValue(undefined)
+    mocks.getSupabaseServer.mockResolvedValue({ from })
+  })
+
+  it('wipes PRs through the per-user client, then rebuilds', async () => {
+    eq.mockResolvedValue({ error: null })
+
+    const result = await deleteWorkoutAction('w-1')
+
+    expect(result).toEqual({ success: true })
+    expect(mocks.getSupabaseAdmin).not.toHaveBeenCalled()
+    expect(from).toHaveBeenCalledWith('personal_records')
+    expect(eq).toHaveBeenCalledWith('user_id', userId)
+    expect(mocks.evaluateAndSaveAllPRs).toHaveBeenCalledWith(userId)
+  })
+
+  it('fails without rebuilding when the PR wipe errors', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    eq.mockResolvedValue({ error: { message: 'wipe failed' } })
+
+    const result = await deleteWorkoutAction('w-1')
+
+    expect(result.success).toBe(false)
+    expect(mocks.evaluateAndSaveAllPRs).not.toHaveBeenCalled()
+    expect(mocks.revalidateAll).not.toHaveBeenCalled()
   })
 })
 

@@ -3,8 +3,9 @@
 import { requireAuth } from '@/lib/auth'
 import { saveActiveWorkout, deleteWorkout } from '@/lib/data/workouts'
 import { evaluateAndSavePRs, evaluateAndSaveAllPRs } from '@/lib/data/stats'
-import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
+import { getSupabaseServer } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
+import { DatabaseError } from '@/lib/errors'
 
 export async function finishWorkoutAction(activeWorkout: any) {
   const { userId, session } = await requireAuth()
@@ -47,8 +48,9 @@ export async function deleteWorkoutAction(workoutId: string) {
     // now gone (cascade), but personal_records rows pointing to them are orphaned.
     // Wipe the user's PRs and rebuild from the remaining sets so the dashboard
     // reflects reality without requiring a manual recalculate.
-    const supabase = getSupabaseAdmin()
-    await supabase.from('personal_records').delete().eq('user_id', userId)
+    const supabase = await getSupabaseServer()
+    const { error: wipeError } = await supabase.from('personal_records').delete().eq('user_id', userId)
+    if (wipeError) throw new DatabaseError(`Failed to reset PRs: ${wipeError.message}`, wipeError)
     await evaluateAndSaveAllPRs(userId)
 
     revalidateAll()
