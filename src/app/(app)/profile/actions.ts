@@ -2,7 +2,7 @@
 
 import { requireAuth, signOutUser } from '@/lib/auth'
 import { updateProfile as updateProfileData } from '@/lib/data/profile'
-import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
+import { getSupabaseServer } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 import { getWorkoutHistoryPage } from '@/lib/data/workouts'
 import type { HistoryCursor } from '@/lib/data/history-page'
@@ -113,36 +113,47 @@ export async function updateTrainingProfileAction(updates: {
   return { success: true }
 }
 
-export async function clearAllWorkoutDataAction() {
-  const { userId, session } = await requireAuth()
-  // Admin client: reads here traverse workout_exercises→sets which fail RLS on server client
-  const supabase = getSupabaseAdmin()
+// Postgres foreign_key_violation: a custom exercise is still referenced by a
+// program (program_exercises.exercise_id is ON DELETE RESTRICT).
+const FOREIGN_KEY_VIOLATION = '23503'
 
-  try {
-    await supabase.from('personal_records').delete().eq('user_id', userId)
+export async function clearAllWorkoutDataAction(): Promise<{ success: true } | { success: false; error: string }> {
+  const { userId } = await requireAuth()
+  const supabase = await getSupabaseServer()
 
-    const { data: workouts } = await supabase.from('workouts').select('id').eq('user_id', userId)
-    const workoutIds = workouts?.map(w => w.id) || []
+  // PRs first, then workouts: deleting a workout cascades to its
+  // workout_exercises and sets, so no child rows need to be listed by id.
+  // Custom exercises go last, once no workout references them.
+  const { error: prError } = await supabase.from('personal_records').delete().eq('user_id', userId)
+  if (prError) return failClearData(prError.message)
 
-    if (workoutIds.length > 0) {
-      const { data: wes } = await supabase.from('workout_exercises').select('id').in('workout_id', workoutIds)
-      const weIds = wes?.map(we => we.id) || []
-      if (weIds.length > 0) {
-        await supabase.from('sets').delete().in('workout_exercise_id', weIds)
-        await supabase.from('workout_exercises').delete().in('id', weIds)
-      }
-      await supabase.from('workouts').delete().in('id', workoutIds)
-    }
+  const { error: workoutError } = await supabase.from('workouts').delete().eq('user_id', userId)
+  if (workoutError) return failClearData(workoutError.message)
 
-    await supabase.from('exercises').delete().eq('is_custom', true).eq('created_by', userId)
+  const { error: exerciseError } = await supabase
+    .from('exercises')
+    .delete()
+    .eq('is_custom', true)
+    .eq('created_by', userId)
 
+  if (exerciseError) {
     revalidateAll()
-
-    return { success: true }
-  } catch (error: any) {
-    console.error('Error clearing data:', error)
-    return { success: false, error: error.message }
+    if (exerciseError.code === FOREIGN_KEY_VIOLATION) {
+      return failClearData(
+        'Your workouts were cleared, but some custom exercises are still used in a program. ' +
+        'Remove them from your programs, then try again.',
+      )
+    }
+    return failClearData(exerciseError.message)
   }
+
+  revalidateAll()
+  return { success: true }
+}
+
+function failClearData(message: string): { success: false; error: string } {
+  console.error('Error clearing data:', message)
+  return { success: false, error: message }
 }
 
 const LoadMoreCursorSchema = z
