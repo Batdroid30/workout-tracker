@@ -36,16 +36,14 @@ export function NumberStepper({ value, onChange, step = 1, min = 0, max = 999 }:
 
   return (
     <div
-      className="w-full flex items-center h-12 rounded-[var(--radius-inner)] overflow-hidden transition-all"
-      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
+      className="w-full flex items-center h-12 rounded-control border border-border-strong bg-surface-raised overflow-hidden transition-colors focus-within:border-accent"
     >
       {/* Decrement */}
       <button
         type="button"
         onClick={handleDecrement}
         disabled={value <= min}
-        className="w-9 h-full flex items-center justify-center font-semibold text-lg shrink-0 transition-colors active:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed"
-        style={{ color: 'var(--text-mid)' }}
+        className="w-9 h-full flex items-center justify-center font-semibold text-lg text-secondary shrink-0 transition-colors active:bg-surface disabled:opacity-30 disabled:cursor-not-allowed"
         aria-label="Decrease"
       >
         −
@@ -55,8 +53,7 @@ export function NumberStepper({ value, onChange, step = 1, min = 0, max = 999 }:
       <input
         type="text"
         inputMode="numeric"
-        className="flex-1 min-w-0 bg-transparent text-center font-semibold text-lg focus:outline-none"
-        style={{ color: 'var(--text-hi)' }}
+        className="flex-1 min-w-0 bg-transparent text-center mono text-lg font-semibold text-primary focus:outline-none"
         value={localStr}
         onChange={e => setLocalStr(e.target.value)}
         onBlur={handleBlur}
@@ -67,8 +64,7 @@ export function NumberStepper({ value, onChange, step = 1, min = 0, max = 999 }:
         type="button"
         onClick={handleIncrement}
         disabled={value >= max}
-        className="w-9 h-full flex items-center justify-center font-semibold text-lg shrink-0 transition-colors active:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed"
-        style={{ color: 'var(--text-mid)' }}
+        className="w-9 h-full flex items-center justify-center font-semibold text-lg text-secondary shrink-0 transition-colors active:bg-surface disabled:opacity-30 disabled:cursor-not-allowed"
         aria-label="Increase"
       >
         +
