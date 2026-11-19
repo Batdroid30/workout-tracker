@@ -4,7 +4,6 @@ const mocks = vi.hoisted(() => ({
   requireAuth: vi.fn(),
   revalidateAll: vi.fn(),
   getSupabaseServer: vi.fn(),
-  getSupabaseAdmin: vi.fn(),
 }))
 
 vi.mock('@/lib/auth', () => ({ requireAuth: mocks.requireAuth, signOutUser: vi.fn() }))
@@ -13,7 +12,6 @@ vi.mock('@/lib/data/workouts', () => ({ getWorkoutHistoryPage: vi.fn() }))
 vi.mock('@/lib/cache', () => ({ revalidateAll: mocks.revalidateAll }))
 vi.mock('@/lib/supabase/server', () => ({
   getSupabaseServer: mocks.getSupabaseServer,
-  getSupabaseAdmin: mocks.getSupabaseAdmin,
 }))
 
 import { clearAllWorkoutDataAction } from './actions'
@@ -83,14 +81,5 @@ describe('clearAllWorkoutDataAction', () => {
 
     expect(result.success).toBe(false)
     expect((result as { error: string }).error).toMatch(/program/i)
-  })
-
-  it('never uses the admin client', async () => {
-    const { client } = makeClient()
-    mocks.getSupabaseServer.mockResolvedValue(client)
-
-    await clearAllWorkoutDataAction()
-
-    expect(mocks.getSupabaseAdmin).not.toHaveBeenCalled()
   })
 })

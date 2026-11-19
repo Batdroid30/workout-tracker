@@ -1,5 +1,5 @@
 import { cache } from 'react'
-import { resolveSupabaseClient } from '@/lib/supabase/server'
+import { getSupabaseServer } from '@/lib/supabase/server'
 import { calculate1RM } from '@/lib/algorithms'
 import { prCandidates, beatsPR, isAssisted, effectiveLoad, workoutBodyweight } from '@/lib/load'
 import type { PRType, PRCheckResult } from '@/types/database'
@@ -19,8 +19,8 @@ export interface PREvaluationResult {
 
 // ── Cached read functions ─────────────────────────────────────────────────────
 
-export const getExerciseProgression = cache(async (userId: string, exerciseId: string, runAsAdmin: boolean = false) => {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+export const getExerciseProgression = cache(async (userId: string, exerciseId: string) => {
+  const supabase = await getSupabaseServer()
 
   const { data: prs } = await supabase
     .from('personal_records')
@@ -79,10 +79,10 @@ export const getExerciseProgression = cache(async (userId: string, exerciseId: s
  * Used by the workout history detail page to badge individual sets.
  * Short-circuits on empty input — no query issued.
  */
-export async function getWorkoutSetPRs(setIds: string[], runAsAdmin: boolean = false): Promise<Map<string, string[]>> {
+export async function getWorkoutSetPRs(setIds: string[]): Promise<Map<string, string[]>> {
   if (setIds.length === 0) return new Map()
 
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
   const { data, error } = await supabase
     .from('personal_records')
     .select('pr_type, set_id')
@@ -100,8 +100,8 @@ export async function getWorkoutSetPRs(setIds: string[], runAsAdmin: boolean = f
   return prMap
 }
 
-export const getWeeklyMuscleGroupStats = cache(async (userId: string, runAsAdmin: boolean = false) => {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+export const getWeeklyMuscleGroupStats = cache(async (userId: string) => {
+  const supabase = await getSupabaseServer()
 
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
@@ -166,10 +166,10 @@ export async function evaluateAndSavePRs(
     weight_kg: number
     reps: number
     is_warmup: boolean
-  }>, runAsAdmin: boolean = false,
+  }>,
 ): Promise<PREvaluationResult[]> {
   // Use admin client to bypass RLS — we already verified ownership in the action
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
 
   const { data: existingPRs } = await supabase
     .from('personal_records')
@@ -248,8 +248,8 @@ export async function evaluateAndSavePRs(
   return brokenPRs
 }
 
-export async function evaluateAndSaveAllPRs(userId: string, runAsAdmin: boolean = false): Promise<void> {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+export async function evaluateAndSaveAllPRs(userId: string): Promise<void> {
+  const supabase = await getSupabaseServer()
 
   const { data: allSets, error } = await supabase
     .from('sets')

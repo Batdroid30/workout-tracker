@@ -9,7 +9,6 @@ const mocks = vi.hoisted(() => ({
   evaluateAndSaveAllPRs: vi.fn(),
   deleteWorkout: vi.fn(),
   revalidateAll: vi.fn(),
-  getSupabaseAdmin: vi.fn(),
   getSupabaseServer: vi.fn(),
 }))
 
@@ -24,7 +23,6 @@ vi.mock('@/lib/data/stats', () => ({
 }))
 vi.mock('@/lib/cache', () => ({ revalidateAll: mocks.revalidateAll }))
 vi.mock('@/lib/supabase/server', () => ({
-  getSupabaseAdmin: mocks.getSupabaseAdmin,
   getSupabaseServer: mocks.getSupabaseServer,
 }))
 
@@ -108,7 +106,6 @@ describe('deleteWorkoutAction', () => {
     const result = await deleteWorkoutAction('w-1')
 
     expect(result).toEqual({ success: true })
-    expect(mocks.getSupabaseAdmin).not.toHaveBeenCalled()
     expect(from).toHaveBeenCalledWith('personal_records')
     expect(eq).toHaveBeenCalledWith('user_id', userId)
     expect(mocks.evaluateAndSaveAllPRs).toHaveBeenCalledWith(userId)

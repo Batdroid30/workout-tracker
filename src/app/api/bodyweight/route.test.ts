@@ -3,13 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const mocks = vi.hoisted(() => ({
   requireAuth: vi.fn(),
   getSupabaseServer: vi.fn(),
-  getSupabaseAdmin: vi.fn(),
 }))
 
 vi.mock('@/lib/auth', () => ({ requireAuth: mocks.requireAuth }))
 vi.mock('@/lib/supabase/server', () => ({
   getSupabaseServer: mocks.getSupabaseServer,
-  getSupabaseAdmin: mocks.getSupabaseAdmin,
 }))
 
 import { POST } from './route'
@@ -40,7 +38,6 @@ describe('POST /api/bodyweight', () => {
     expect(response.status).toBe(201)
     expect(await response.json()).toEqual(saved)
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({ user_id: 'user-1', weight_kg: 80 }))
-    expect(mocks.getSupabaseAdmin).not.toHaveBeenCalled()
   })
 
   it('returns 503 when the insert is rejected', async () => {

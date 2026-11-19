@@ -1,5 +1,5 @@
 import { cache } from 'react'
-import { resolveSupabaseClient } from '@/lib/supabase/server'
+import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { calculate1RM, suggestNextSet } from '@/lib/algorithms'
 import { getCurrentDUPScheme, isCurrentWeekDeload } from '@/lib/workout-intelligence'
@@ -74,8 +74,8 @@ export interface KeyLift {
  * Can return fewer (or empty) — callers MUST handle the < 3 case as
  * "not enough data for an Index."
  */
-export const getKeyLifts = cache(async (userId: string, runAsAdmin: boolean = false): Promise<KeyLift[]> => {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+export const getKeyLifts = cache(async (userId: string): Promise<KeyLift[]> => {
+  const supabase = await getSupabaseServer()
   const since = new Date(Date.now() - KEY_LIFT_WINDOW_DAYS * 86400000)
 
   const { data, error } = await supabase
@@ -163,7 +163,7 @@ export interface StrengthIndexSummary {
  */
 export const getStrengthIndex = cache(async (
   userId: string,
-  profile: Pick<Profile, 'training_phase' | 'experience_level' | 'phase_started_at'> | null, runAsAdmin: boolean = false,
+  profile: Pick<Profile, 'training_phase' | 'experience_level' | 'phase_started_at'> | null,
 ): Promise<StrengthIndexSummary> => {
   const empty: StrengthIndexSummary = {
     history: [], pctPerWeek: null, status: null, baselineWeek: null, liftCount: 0,
@@ -178,7 +178,7 @@ export const getStrengthIndex = cache(async (
   const fallbackMs = Date.now() - STRENGTH_INDEX_FALLBACK_WEEKS * 7 * 86400000
   const windowStart = new Date(Math.max(phaseStartMs, fallbackMs))
 
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
   const liftIds = keyLifts.map(l => l.exerciseId)
 
   const { data, error } = await supabase
@@ -390,9 +390,9 @@ export interface MuscleVolumeLandmarkPoint {
 // volume is equated. This signal drives the frequency badge on each row.
 
 const getWeeklyMuscleFrequency = cache(async (
-  userId: string, runAsAdmin: boolean = false,
+  userId: string,
 ): Promise<Map<string, number>> => {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
   const windowStart = new Date(Date.now() - 28 * 86400_000)
 
   const { data, error } = await supabase
@@ -445,7 +445,7 @@ export const getVolumeLandmarksByMuscle = cache(async (
   userId:                    string,
   profile:                   Pick<Profile, 'training_style' | 'training_phase'> | null,
   currentWeekSetsByMuscle?:  Record<string, number>,
-  muscleFrequency?:          Record<string, number>, runAsAdmin: boolean = false,
+  muscleFrequency?:          Record<string, number>,
 ): Promise<MuscleVolumeLandmarkPoint[]> => {
   const style: TrainingStyle = profile?.training_style ?? 'volume'
   const phase: TrainingPhase = profile?.training_phase ?? 'maingaining'
