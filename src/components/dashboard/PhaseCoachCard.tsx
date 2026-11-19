@@ -37,12 +37,12 @@ const ARC_LENGTH = RING_CIRCUMFERENCE * ARC_FRACTION  // ≈ 122.522
 const ARC_ROTATION = 135  // degrees — rotates circle so gap is at bottom
 
 const STATUS_COLOR: Record<VolumeStatus, string> = {
-  below_mv:    '#ef4444',
-  over_mrv:    '#ef4444',
-  maintenance: '#f97316',
-  sub_optimal: '#facc15',
-  high:        '#f97316',
-  optimal:     '#10b981',
+  below_mv:    'var(--negative)',
+  over_mrv:    'var(--negative)',
+  maintenance: 'var(--caution)',
+  sub_optimal: 'var(--caution)',
+  high:        'var(--caution)',
+  optimal:     'var(--positive)',
 }
 
 // ── Pure tick geometry helper ──────────────────────────────────────────────────
@@ -61,49 +61,6 @@ function ringTickCoords(fraction: number) {
   }
 }
 
-// ── Shared SVG glow filters ────────────────────────────────────────────────────
-
-function GlowDefs() {
-  return (
-    <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
-      <defs>
-        {/* Green glow — for optimal */}
-        <filter id="pc-glow-green" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
-          <feMerge>
-            <feMergeNode in="blur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-        {/* Orange glow — for maintenance / high */}
-        <filter id="pc-glow-orange" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
-          <feMerge>
-            <feMergeNode in="blur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-        {/* Yellow glow — for sub_optimal */}
-        <filter id="pc-glow-yellow" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
-          <feMerge>
-            <feMergeNode in="blur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-        {/* Red glow — for below_mv / over_mrv */}
-        <filter id="pc-glow-red" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
-          <feMerge>
-            <feMergeNode in="blur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-      </defs>
-    </svg>
-  )
-}
-
 // ── Individual muscle ring cell ────────────────────────────────────────────────
 
 function MuscleRingCell({ point }: { point: MuscleVolumeLandmarkPoint }) {
@@ -117,25 +74,18 @@ function MuscleRingCell({ point }: { point: MuscleVolumeLandmarkPoint }) {
   const mevTick     = ringTickCoords(mevFraction)
   const mavTick     = ringTickCoords(mavFraction)
 
-  const filterId =
-    status === 'optimal'                             ? 'pc-glow-green'
-    : status === 'high' || status === 'maintenance'  ? 'pc-glow-orange'
-    : status === 'sub_optimal'                       ? 'pc-glow-yellow'
-    : status === 'below_mv' || status === 'over_mrv' ? 'pc-glow-red'
-    : null
-
   const dashArray = `${fillLen.toFixed(2)} ${(RING_CIRCUMFERENCE - fillLen).toFixed(2)}`
   const trackDash = `${ARC_LENGTH.toFixed(2)} ${(RING_CIRCUMFERENCE - ARC_LENGTH).toFixed(2)}`
   const label = point.muscleGroup.charAt(0).toUpperCase() + point.muscleGroup.slice(1)
 
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-1 min-w-0">
       <svg viewBox="0 0 64 64" width="64" height="64" className="overflow-visible">
         {/* Track */}
         <circle
           cx={RING_CX} cy={RING_CY} r={RING_R}
           fill="none"
-          stroke="rgba(255,255,255,0.07)"
+          stroke="var(--border-strong)"
           strokeWidth={RING_STROKE}
           strokeDasharray={trackDash}
           transform={`rotate(${ARC_ROTATION} ${RING_CX} ${RING_CY})`}
@@ -151,21 +101,20 @@ function MuscleRingCell({ point }: { point: MuscleVolumeLandmarkPoint }) {
             strokeDasharray={dashArray}
             transform={`rotate(${ARC_ROTATION} ${RING_CX} ${RING_CY})`}
             strokeLinecap="round"
-            style={filterId ? { filter: `url(#${filterId})` } : undefined}
           />
         )}
         {/* MEV Tick */}
         <line
           x1={mevTick.x1} y1={mevTick.y1}
           x2={mevTick.x2} y2={mevTick.y2}
-          stroke="rgba(255,255,255,0.25)"
+          stroke="var(--text-tertiary)"
           strokeWidth={1.5}
         />
         {/* MAV End Tick */}
         <line
           x1={mavTick.x1} y1={mavTick.y1}
           x2={mavTick.x2} y2={mavTick.y2}
-          stroke="rgba(255,255,255,0.45)"
+          stroke="var(--text-secondary)"
           strokeWidth={1.5}
         />
         {/* Value Label */}
@@ -173,13 +122,13 @@ function MuscleRingCell({ point }: { point: MuscleVolumeLandmarkPoint }) {
           x={RING_CX} y={RING_CY + 4}
           textAnchor="middle"
           className="mono font-bold tabular-nums"
-          fill="var(--text-hi)"
+          fill="var(--text-primary)"
           fontSize="15px"
         >
           {formatSetCount(setCount)}
         </text>
       </svg>
-      <span className="text-[9px] font-semibold text-[var(--text-mid)] truncate max-w-[56px]" title={label}>
+      <span className="text-xs font-semibold text-secondary truncate max-w-full" title={label}>
         {label}
       </span>
     </div>
@@ -192,7 +141,6 @@ function VolumeRingGrid({ points }: { points: MuscleVolumeLandmarkPoint[] }) {
 
   return (
     <div>
-      <GlowDefs />
       <div className="grid grid-cols-4 gap-x-2 gap-y-4">
         {visible.map(p => (
           <MuscleRingCell key={p.muscleGroup} point={p} />
@@ -225,7 +173,7 @@ export function PhaseCoachCard({
 
   const topImproved = mostImproved[0] ?? null
 
-  // ── Calculate Nutrition Targets ──
+  // ── Calculate Nutrition targets ──
   const latestWeight = bwHistory[0]?.weight_kg ?? null
   const height = profile?.height_cm
   const age = profile?.age_years
@@ -258,11 +206,11 @@ export function PhaseCoachCard({
       <div className="flex flex-col gap-4">
         
         {/* CARD 1: MESOCYCLE TIMELINE */}
-        <div className="glass p-4 flex flex-col justify-between min-h-[150px] w-full">
+        <div className="card p-4 flex flex-col justify-between min-h-[150px] w-full">
           <div className="flex items-center justify-between mb-2">
-            <span className="t-label">Mesocycle Progress</span>
+            <span className="t-label">Mesocycle progress</span>
             {phaseLabel && (
-              <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider bg-[var(--accent-soft)] px-2 py-0.5 rounded-md border border-[var(--accent-line)]">
+              <span className="text-xs font-bold text-primary bg-surface-raised px-2 py-0.5 rounded-md border border-border-strong">
                 {phaseLabel}
               </span>
             )}
@@ -271,51 +219,51 @@ export function PhaseCoachCard({
             {mesocycle ? (
               <MesocycleTimeline mesocycle={mesocycle} compact />
             ) : (
-              <p className="text-xs text-[var(--text-low)] leading-relaxed">
+              <p className="text-xs text-tertiary leading-relaxed">
                 No active mesocycle. Complete your training profile setup to initialize tracking.
               </p>
             )}
           </div>
-          <div className="text-[8px] text-[var(--text-faint)] flex justify-between mt-2 pt-1 border-t border-white/[0.02]">
+          <div className="text-xs text-tertiary flex justify-between mt-2 pt-1 border-t border-border">
             <span>Cycle limit: {cycleLength ?? '?'} wks</span>
             <span>Week {weeksInPhase ?? '?'} active</span>
           </div>
         </div>
 
         {/* CARD 2: STRENGTH INDEX */}
-        <div className="glass p-4 flex flex-col justify-between min-h-[150px] w-full">
+        <div className="card p-4 flex flex-col justify-between min-h-[150px] w-full">
           <StrengthIndexSection summary={strengthIndex} />
         </div>
 
         {/* CARD 3: VOLUME LANDMARKS */}
-        <div className="glass p-4 flex flex-col justify-between min-h-[150px] w-full">
+        <div className="card p-4 flex flex-col justify-between min-h-[150px] w-full">
           <div>
             <div className="flex items-center justify-between mb-3">
-              <span className="t-label">Volume Rings</span>
-              <div className="flex items-center gap-2 text-[8px] text-[var(--text-faint)] uppercase tracking-widest">
+              <span className="t-label">Volume rings</span>
+              <div className="flex items-center gap-2 text-xs text-tertiary">
                 <span>MEV | MAV</span>
               </div>
             </div>
             <VolumeRingGrid points={sortedLandmarks} />
           </div>
-          <div className="text-[8px] text-[var(--text-faint)] mt-2 pt-1 border-t border-white/[0.02] leading-relaxed flex items-center justify-between">
+          <div className="text-xs text-tertiary mt-2 pt-1 border-t border-border leading-relaxed flex items-center justify-between">
             <span>Gauging set counts vs targets</span>
-            <span className="text-[var(--accent)] font-semibold">All groups</span>
+            <span className="text-primary font-semibold">All groups</span>
           </div>
         </div>
 
         {/* CARD 4: NUTRITION TARGETS */}
-        <div className="glass p-4 flex flex-col justify-between min-h-[150px] w-full">
+        <div className="card p-4 flex flex-col justify-between min-h-[150px] w-full">
           <div className="flex items-center justify-between mb-2">
-            <span className="t-label">Nutrition Targets</span>
-            <Flame className="w-3.5 h-3.5" style={{ color: 'var(--rose)' }} />
+            <span className="t-label">Nutrition targets</span>
+            <Flame className="w-3.5 h-3.5 text-caution" />
           </div>
           
           {!hasNutritionStats ? (
             <div className="my-auto">
-              <p className="text-[11px] text-[var(--text-low)] leading-relaxed">
+              <p className="t-caption text-tertiary leading-relaxed">
                 Add height, age, and sex in{' '}
-                <Link href="/profile" className="underline font-semibold" style={{ color: 'var(--accent)' }}>
+                <Link href="/profile" className="underline font-semibold text-primary">
                   your profile
                 </Link>{' '}
                 to calculate custom calorie & protein targets.
@@ -323,32 +271,32 @@ export function PhaseCoachCard({
             </div>
           ) : !targets ? (
             <div className="my-auto">
-              <p className="text-[11px] text-[var(--text-low)] leading-relaxed">
+              <p className="t-caption text-tertiary leading-relaxed">
                 Unable to estimate targets. Check that your height, age, and weight are correct.
               </p>
             </div>
           ) : (
             <div className="flex flex-col justify-between h-full pt-1">
               <div>
-                <p className="text-[9px] uppercase tracking-wider text-[var(--text-faint)] mb-2">
-                  {nutPhaseLabel} Phase · {latestWeight}kg
+                <p className="text-xs text-tertiary mb-2">
+                  {nutPhaseLabel} phase · {latestWeight}kg
                 </p>
                 <div className="grid grid-cols-2 gap-2 mb-2">
-                  <div className="p-1.5 rounded-lg bg-white/[0.02] border border-white/[0.04] text-center">
-                    <p className="mono text-sm font-bold text-[var(--text-hi)]">
+                  <div className="p-1.5 rounded-lg bg-surface-raised border border-border text-center">
+                    <p className="mono text-sm font-bold text-primary">
                       {targets.targetCalories.toLocaleString()}
                     </p>
-                    <p className="text-[8px] text-[var(--text-faint)] uppercase">kcal/day</p>
+                    <p className="text-xs text-tertiary">kcal/day</p>
                   </div>
-                  <div className="p-1.5 rounded-lg bg-white/[0.02] border border-white/[0.04] text-center">
-                    <p className="mono text-sm font-bold text-[var(--text-hi)]">
+                  <div className="p-1.5 rounded-lg bg-surface-raised border border-border text-center">
+                    <p className="mono text-sm font-bold text-primary">
                       {targets.proteinGrams}g
                     </p>
-                    <p className="text-[8px] text-[var(--text-faint)] uppercase">protein/day</p>
+                    <p className="text-xs text-tertiary">protein/day</p>
                   </div>
                 </div>
               </div>
-              <p className="text-[8.5px] text-[var(--text-faint)] leading-normal pt-1 border-t border-white/[0.02]">
+              <p className="text-xs text-tertiary leading-normal pt-1 border-t border-border">
                 {surplusLabel !== 'maintenance'
                   ? `${targets.targetCalories.toLocaleString()} kcal (${surplusLabel}) to support goals.`
                   : `${targets.targetCalories.toLocaleString()} kcal at maintenance TDEE.`}
@@ -361,34 +309,29 @@ export function PhaseCoachCard({
 
       {/* ── Most Improved & Disclaimer ── */}
       {(topImproved || true) && (
-        <div className="glass p-4 space-y-4">
+        <div className="card p-4 space-y-4">
           {topImproved && (
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="t-label mb-1">Most Improved Lift</p>
-                <p className="text-[13px] font-semibold truncate text-[var(--text-hi)]">
+                <p className="t-label mb-1">Most improved lift</p>
+                <p className="t-caption font-semibold truncate text-primary">
                   {topImproved.exerciseName}
                 </p>
-                <p className="mono text-[10px] mt-0.5 tabular-nums text-[var(--text-low)]">
+                <p className="mono text-xs mt-0.5 tabular-nums text-tertiary">
                   {topImproved.previousBest.toFixed(1)} → {topImproved.recentBest.toFixed(1)} kg e1RM
                 </p>
               </div>
-              <div
-                className="flex items-center gap-1.5 shrink-0 px-3.5 py-2.5 rounded-xl bg-[var(--accent-soft)] border border-[var(--accent-line)] shadow-[0_0_16px_var(--accent-glow)]"
-              >
-                <TrendingUp className="w-3.5 h-3.5 text-[var(--accent)]" />
-                <span
-                  className="mono text-lg font-bold tabular-nums text-[var(--accent)]"
-                  style={{ textShadow: '0 0 12px var(--accent-glow)' }}
-                >
+              <div className="flex items-center gap-1.5 shrink-0 px-3.5 py-2.5 rounded-xl bg-surface-raised border border-border-strong">
+                <TrendingUp className="w-3.5 h-3.5 text-primary" />
+                <span className="mono text-lg font-bold tabular-nums text-primary">
                   +{topImproved.improvementPct}%
                 </span>
               </div>
             </div>
           )}
-          <div className="flex items-start gap-2 pt-3 border-t border-white/[0.04]">
-            <Info className="w-3 h-3 text-[var(--text-faint)] shrink-0 mt-0.5" />
-            <p className="text-[9.5px] text-[var(--text-faint)] leading-normal">
+          <div className="flex items-start gap-2 pt-3 border-t border-border">
+            <Info className="w-3 h-3 text-tertiary shrink-0 mt-0.5" />
+            <p className="text-xs text-tertiary leading-normal">
               Strength gain is a reliable proxy for muscle gain. Track bodyweight logs and photos regularly to monitor progression.
             </p>
           </div>
@@ -405,14 +348,14 @@ function StrengthIndexSection({ summary }: { summary: StrengthIndexSummary }) {
     return (
       <div className="flex flex-col justify-between h-full">
         <div>
-          <p className="t-label mb-1.5">Strength Index</p>
-          <p className="text-[10.5px] text-[var(--text-low)] leading-relaxed">
+          <p className="t-label mb-1.5">Strength index</p>
+          <p className="text-xs text-tertiary leading-relaxed">
             {summary.liftCount < 3
-              ? 'Train 3+ compound lifts to unlock your Strength Index tracker.'
+              ? 'Train 3+ compound lifts to unlock your Strength index tracker.'
               : 'Log a few more weeks of training to start calculating your index.'}
           </p>
         </div>
-        <p className="text-[8px] text-[var(--text-faint)] mt-2">
+        <p className="text-xs text-tertiary mt-2">
           Lifts tracked: {summary.liftCount}
         </p>
       </div>
@@ -426,10 +369,10 @@ function StrengthIndexSection({ summary }: { summary: StrengthIndexSummary }) {
 
   const isPositive = (pctPerWeek ?? 0) >= 0
   const trendColor =
-    summary.status === 'on_track'       ? 'var(--accent)' :
-    summary.status === 'above_expected' ? 'var(--teal)'   :
-    summary.status === 'below_expected' ? '#f97316'       :
-    'var(--text-mid)'
+    summary.status === 'on_track'       ? 'var(--text-primary)' :
+    summary.status === 'above_expected' ? 'var(--positive)'     :
+    summary.status === 'below_expected' ? 'var(--caution)'      :
+    'var(--text-secondary)'
 
   const TrendIcon = pctPerWeek === null ? Minus : isPositive ? TrendingUp : TrendingDown
 
@@ -437,25 +380,22 @@ function StrengthIndexSection({ summary }: { summary: StrengthIndexSummary }) {
     <div className="flex flex-col justify-between h-full w-full">
       <div className="flex items-start justify-between">
         <div>
-          <p className="t-label">Strength Index</p>
-          <p className="text-[8px] mt-0.5 text-[var(--text-faint)]">
+          <p className="t-label">Strength index</p>
+          <p className="text-xs mt-0.5 text-tertiary">
             {summary.liftCount} lifts · from phase start
           </p>
         </div>
         <div className="text-right">
           <p
             className="mono font-bold tabular-nums leading-none tracking-tighter text-xl"
-            style={{
-              color:      trendColor,
-              textShadow: `0 0 24px ${trendColor}60`,
-            }}
+            style={{ color: trendColor }}
           >
             {totalPct >= 0 ? '+' : ''}{totalPct.toFixed(1)}%
           </p>
           {pctPerWeek !== null && (
             <div className="flex items-center justify-end gap-0.5 mt-0.5">
               <TrendIcon className="w-2.5 h-2.5" style={{ color: trendColor }} />
-              <span className="mono text-[8.5px] tabular-nums" style={{ color: trendColor }}>
+              <span className="mono text-xs tabular-nums" style={{ color: trendColor }}>
                 {isPositive ? '+' : ''}{pctPerWeek.toFixed(2)}%/wk
               </span>
             </div>

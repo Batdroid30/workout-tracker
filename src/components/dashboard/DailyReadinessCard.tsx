@@ -29,9 +29,9 @@ export function DailyReadinessCard({ todayReadiness }: ReadinessProps) {
     const isGreat = avgScore >= 4
 
     return (
-      <div className="glass px-3 py-3 rounded-[var(--radius-card)] border border-[var(--glass-border)] flex items-center gap-1.5 whitespace-nowrap text-[11px] text-[var(--text-low)]">
-        {isGreat && <Sparkles className="w-3.5 h-3.5 shrink-0 text-emerald-500" />}
-        <span className="font-semibold text-[var(--text-hi)]">Readiness</span>
+      <div className="card px-3 py-3 flex items-center gap-1.5 whitespace-nowrap text-xs text-secondary">
+        {isGreat && <Sparkles className="w-3.5 h-3.5 shrink-0 text-positive" />}
+        <span className="font-semibold text-primary">Readiness</span>
         <span aria-hidden="true">·</span>
         <span className="mono min-w-0">
           Sleep {todayReadiness.sleep_score} · Recovery {todayReadiness.soreness_score} · Energy {todayReadiness.energy_score}
@@ -56,9 +56,9 @@ export function DailyReadinessCard({ todayReadiness }: ReadinessProps) {
   }
 
   return (
-    <div className="glass p-4 rounded-[var(--radius-card)] border border-[var(--glass-border)]">
+    <div className="card p-4">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-[var(--text-hi)]">How do you feel today?</h2>
+        <h2 className="text-sm font-semibold text-primary">How do you feel today?</h2>
         <Button
           size="sm"
           fullWidth={false}
@@ -91,8 +91,8 @@ function ScoreRow({
 }) {
   return (
     <div role="group" aria-label={label} className="flex items-center gap-2">
-      <div className="flex items-center gap-2 w-20 shrink-0 text-xs text-[var(--text-hi)]">
-        <span className="text-[var(--text-low)]">{icon}</span>
+      <div className="flex items-center gap-2 w-20 shrink-0 text-xs text-primary">
+        <span className="text-secondary">{icon}</span>
         <span className="font-medium">{label}</span>
       </div>
       <div className="flex flex-1 gap-1">
@@ -104,8 +104,8 @@ function ScoreRow({
             onClick={() => setValue(score)}
             className={`flex-1 h-8 min-w-8 rounded-md font-medium text-sm transition-colors ${
               value === score
-                ? 'bg-[var(--accent)] text-[var(--accent-on)]'
-                : 'bg-[var(--glass-surface)] text-[var(--text-low)] hover:bg-[var(--glass-surface-hover)] hover:text-[var(--text-hi)]'
+                ? 'bg-primary text-bg'
+                : 'bg-surface-raised text-secondary hover:text-primary'
             }`}
           >
             {score}

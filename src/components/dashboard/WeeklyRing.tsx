@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Activity, CheckCircle2 } from 'lucide-react'
+import { IconButton } from '@/components/ui'
 
 interface WeeklyRingProps {
   done: number
@@ -23,7 +24,6 @@ const START_ANGLE = 135 // rotates gap to bottom-center
 export function WeeklyRing({ done, goal }: WeeklyRingProps) {
   const pct = goal > 0 ? Math.min(1, done / goal) : 0
   const fillLength = ARC_LENGTH * pct
-  const isComplete = done >= goal
 
   const trackDash = `${ARC_LENGTH.toFixed(2)} ${(CIRCUMFERENCE - ARC_LENGTH).toFixed(2)}`
   const fillDash  = `${fillLength.toFixed(2)} ${(CIRCUMFERENCE - fillLength).toFixed(2)}`
@@ -45,7 +45,7 @@ export function WeeklyRing({ done, goal }: WeeklyRingProps) {
         <circle
           cx={CX} cy={CY} r={R}
           fill="none"
-          stroke="rgba(255,255,255,0.05)"
+          stroke="var(--border-strong)"
           strokeWidth={STROKE}
           strokeDasharray={trackDash}
           strokeLinecap="round"
@@ -57,16 +57,11 @@ export function WeeklyRing({ done, goal }: WeeklyRingProps) {
           <circle
             cx={CX} cy={CY} r={R}
             fill="none"
-            stroke="var(--accent)"
+            stroke="var(--text-primary)"
             strokeWidth={STROKE}
             strokeDasharray={fillDash}
             strokeLinecap="round"
             transform={`rotate(${START_ANGLE} ${CX} ${CY})`}
-            style={{
-              filter: isComplete
-                ? 'drop-shadow(0 0 10px var(--accent-glow)) drop-shadow(0 0 4px var(--accent-glow))'
-                : 'drop-shadow(0 0 6px var(--accent-glow))',
-            }}
           />
         )}
       </svg>
@@ -74,16 +69,12 @@ export function WeeklyRing({ done, goal }: WeeklyRingProps) {
       {/* Center text */}
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
         <p
-          className="mono font-bold leading-none tracking-tight tabular-nums"
-          style={{
-            fontSize: 32,
-            color: 'var(--text-hi)',
-            textShadow: done > 0 ? '0 0 30px var(--accent-glow)' : 'none',
-          }}
+          className="mono font-bold leading-none tracking-tight tabular-nums text-primary"
+          style={{ fontSize: 32 }}
         >
           {done}
         </p>
-        <p className="text-[9px] mt-1.5 font-medium tracking-normal text-[var(--text-low)]">
+        <p className="text-xs mt-1.5 font-medium tracking-normal text-tertiary">
           of {goal} sessions
         </p>
       </div>
@@ -111,25 +102,21 @@ export function FatigueRing({ assessment }: FatigueRingProps) {
   // Map fatigue signals to percentage, label and color
   let pct = 0.15
   let label = 'Low'
-  let strokeColor = '#10b981' // emerald
-  let glowColor = 'rgba(16,185,129,0.4)'
+  let strokeColor = 'var(--positive)'
 
   if (assessment.shouldSuggest) {
     if (assessment.confidence === 'low') {
       pct = 0.50
       label = 'Mod'
-      strokeColor = '#f59e0b' // amber
-      glowColor = 'rgba(245,158,11,0.4)'
+      strokeColor = 'var(--caution)'
     } else if (assessment.confidence === 'medium') {
       pct = 0.75
       label = 'High'
-      strokeColor = 'var(--accent)' // accent crimson
-      glowColor = 'var(--accent-glow)'
+      strokeColor = 'var(--negative)'
     } else {
       pct = 0.95
       label = 'Crit'
-      strokeColor = '#ef4444' // rose/red
-      glowColor = 'rgba(239,68,68,0.5)'
+      strokeColor = 'var(--negative)'
     }
   }
 
@@ -158,7 +145,7 @@ export function FatigueRing({ assessment }: FatigueRingProps) {
         <circle
           cx={CX} cy={CY} r={R}
           fill="none"
-          stroke="rgba(255,255,255,0.05)"
+          stroke="var(--border-strong)"
           strokeWidth={STROKE}
           strokeDasharray={trackDash}
           strokeLinecap="round"
@@ -174,26 +161,16 @@ export function FatigueRing({ assessment }: FatigueRingProps) {
           strokeDasharray={fillDash}
           strokeLinecap="round"
           transform={`rotate(${START_ANGLE} ${CX} ${CY})`}
-          style={{
-            filter: `drop-shadow(0 0 8px ${glowColor})`,
-          }}
         />
       </svg>
 
       {/* Center text */}
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <p
-          className="font-bold leading-none tracking-tight"
-          style={{
-            fontSize: 26,
-            color: 'var(--text-hi)',
-            textShadow: `0 0 30px ${glowColor}`,
-          }}
-        >
+        <p className="font-bold leading-none tracking-tight text-primary" style={{ fontSize: 26 }}>
           {label}
         </p>
-        <p className="text-[9px] mt-1.5 font-medium tracking-normal text-[var(--text-low)]">
-          CNS Fatigue
+        <p className="text-xs mt-1.5 font-medium tracking-normal text-tertiary">
+          CNS fatigue
         </p>
       </div>
       </div>
@@ -202,42 +179,36 @@ export function FatigueRing({ assessment }: FatigueRingProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 animate-in fade-in duration-200">
           {/* Backdrop */}
           <div 
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60"
             onClick={() => setIsOpen(false)}
           />
           
           {/* Modal */}
-          <div className="relative w-full max-w-sm bg-[#07061A] border border-[var(--accent-line)] rounded-2xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.8)] animate-in zoom-in-95 duration-200">
-            {/* Header glow */}
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[var(--accent)] to-[var(--cyan)]" />
-            
+          <div className="relative w-full max-w-sm bg-surface-raised border border-border-strong rounded-card overflow-hidden shadow-[var(--shadow-overlay)] animate-in zoom-in-95 duration-200">
             <div className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-[var(--accent)]" />
-                  <h3 className="text-sm font-bold tracking-widest uppercase text-[var(--text-hi)]">
-                    Real-time Signals
+                  <Activity className="w-4 h-4 text-primary" />
+                  <h3 className="text-sm font-bold text-primary">
+                    Real-time signals
                   </h3>
                 </div>
-                <button 
-                  onClick={() => setIsOpen(false)}
-                  className="p-1 rounded-full hover:bg-white/10 transition-colors text-[var(--text-low)]"
-                >
+                <IconButton onClick={() => setIsOpen(false)} aria-label="Close">
                   <X className="w-5 h-5" />
-                </button>
+                </IconButton>
               </div>
 
               <div className="mb-5">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-[var(--text-mid)]">Current Status</span>
-                  <span className="text-xs font-bold uppercase tracking-wider" style={{ color: strokeColor }}>
-                    {label} Fatigue
+                  <span className="text-xs font-medium text-secondary">Current status</span>
+                  <span className="text-xs font-bold" style={{ color: strokeColor }}>
+                    {label} fatigue
                   </span>
                 </div>
-                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                <div className="h-1.5 w-full bg-surface rounded-full overflow-hidden">
                   <div 
                     className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${pct * 100}%`, backgroundColor: strokeColor, boxShadow: `0 0 10px ${glowColor}` }}
+                    style={{ width: `${pct * 100}%`, backgroundColor: strokeColor }}
                   />
                 </div>
               </div>
@@ -245,16 +216,16 @@ export function FatigueRing({ assessment }: FatigueRingProps) {
               <div className="space-y-3">
                 {assessment.signals.length > 0 ? (
                   assessment.signals.map((signal, idx) => (
-                    <div key={idx} className="flex items-start gap-2.5 p-3 rounded-xl bg-white/5 border border-white/5">
-                      <span className="mt-0.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: strokeColor, boxShadow: `0 0 8px ${glowColor}` }} />
-                      <p className="text-sm font-medium text-[var(--text-hi)] leading-snug">{signal}</p>
+                    <div key={idx} className="flex items-start gap-2.5 p-3 rounded-control bg-surface border border-border">
+                      <span className="mt-0.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: strokeColor }} />
+                      <p className="text-sm font-medium text-primary leading-snug">{signal}</p>
                     </div>
                   ))
                 ) : (
-                  <div className="flex flex-col items-center text-center p-4 rounded-xl bg-white/5 border border-white/5">
-                    <CheckCircle2 className="w-8 h-8 text-emerald-400 mb-2 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-                    <p className="text-sm font-semibold text-[var(--text-hi)]">CNS is fully recovered</p>
-                    <p className="text-xs text-[var(--text-mid)] mt-1">Optimal time to push for PRs and add volume.</p>
+                  <div className="flex flex-col items-center text-center p-4 rounded-control bg-surface border border-border">
+                    <CheckCircle2 className="w-8 h-8 text-positive mb-2" />
+                    <p className="text-sm font-semibold text-primary">CNS is fully recovered</p>
+                    <p className="text-xs text-secondary mt-1">Optimal time to push for PRs and add volume.</p>
                   </div>
                 )}
               </div>

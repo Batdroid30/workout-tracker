@@ -11,7 +11,7 @@ export default function DashboardLoading() {
       </div>
 
       {/* ── PREMIUM HERO CARD ── */}
-      <div className="glass p-5 rounded-2xl flex flex-col gap-5 relative overflow-hidden h-[300px]">
+      <div className="card p-5 rounded-2xl flex flex-col gap-5 relative overflow-hidden h-[300px]">
         {/* Top greeting + Active Phase Badge */}
         <div className="flex items-start justify-between">
           <div className="space-y-2">
@@ -39,7 +39,7 @@ export default function DashboardLoading() {
       </div>
 
       {/* ── SUGGESTED ROUTINE ── */}
-      <div className="glass p-4 h-[88px] flex flex-col justify-between">
+      <div className="card p-4 h-[88px] flex flex-col justify-between">
         <div className="flex justify-between items-start">
           <div className="space-y-1.5">
             <Skeleton className="h-3 w-28 rounded" />
@@ -51,7 +51,7 @@ export default function DashboardLoading() {
       </div>
 
       {/* ── MISSIONS & WEEK CHECKLIST ── */}
-      <div className="glass p-4 flex flex-col gap-3">
+      <div className="card p-4 flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <Skeleton className="h-3.5 w-28 rounded" />
           <Skeleton className="h-3 w-16 rounded" />
@@ -79,7 +79,7 @@ export default function DashboardLoading() {
           <Skeleton className="w-4 h-4 rounded" />
           <Skeleton className="h-3 w-40 rounded" />
         </div>
-        <div className="glass p-4 space-y-4">
+        <div className="card p-4 space-y-4">
           <div className="flex justify-between items-center">
             <Skeleton className="h-4 w-32 rounded" />
             <Skeleton className="h-6 w-16 rounded-full" />
@@ -99,7 +99,7 @@ export default function DashboardLoading() {
       </div>
 
       {/* ── SCALE CHECK ── */}
-      <div className="glass p-4 h-24 flex flex-col justify-between">
+      <div className="card p-4 h-24 flex flex-col justify-between">
         <div className="flex justify-between">
           <Skeleton className="h-3 w-20 rounded" />
           <Skeleton className="h-2.5 w-14 rounded" />

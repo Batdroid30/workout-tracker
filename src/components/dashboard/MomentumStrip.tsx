@@ -3,6 +3,7 @@ import {
   Zap, Shield, BarChart2, Target, TrendingUp, Crown,
   type LucideIcon,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import type { RecentPR, TrainingStreak } from '@/lib/data/insights'
 import type { Badge } from '@/lib/data/achievements'
 
@@ -73,38 +74,27 @@ export function MomentumStrip({ prs, streak, badges, totalVolume }: MomentumStri
       
       {/* ── CARD 1: STREAK ── */}
       <div
-        className="w-[280px] shrink-0 glass snap-center p-4 flex flex-col justify-between min-h-[145px]"
-        style={hasStreak ? {
-          borderColor: 'var(--accent-line)',
-          background:  'linear-gradient(150deg, rgba(247,37,133,0.06) 0%, rgba(247,37,133,0.01) 50%, transparent 100%)',
-        } : undefined}
+        className={cn(
+          'w-[280px] shrink-0 card snap-center p-4 flex flex-col justify-between min-h-[145px]',
+          hasStreak && 'border-border-strong',
+        )}
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="t-label">Consistency Streak</span>
-          <Flame
-            className="w-4 h-4"
-            style={{
-              color:  hasStreak ? 'var(--accent)' : 'var(--text-faint)',
-              filter: hasStreak ? 'drop-shadow(0 0 8px var(--accent-glow))' : 'none',
-            }}
-          />
+          <span className="t-label">Consistency streak</span>
+          <Flame className={cn('w-4 h-4', hasStreak ? 'text-primary' : 'text-tertiary')} />
         </div>
         <div className="flex items-end justify-between mt-1">
           <div>
             <p
-              className="mono font-bold tracking-tighter tabular-nums leading-none"
-              style={{
-                fontSize:   '2.75rem',
-                color:      'var(--text-hi)',
-                textShadow: hasStreak ? '0 0 30px var(--accent-glow)' : 'none',
-              }}
+              className="mono font-bold tracking-tighter tabular-nums leading-none text-primary"
+              style={{ fontSize: '2.75rem' }}
             >
               {currentStreak}
-              <span className="text-sm font-normal ml-1" style={{ color: 'var(--text-faint)', textShadow: 'none' }}>
+              <span className="text-sm font-normal ml-1 text-tertiary">
                 {currentStreak === 1 ? 'wk' : 'wks'}
               </span>
             </p>
-            <p className="text-[9px] mt-1 text-[var(--text-faint)]">
+            <p className="text-xs mt-1 text-tertiary">
               {streakSubtext}
             </p>
           </div>
@@ -117,11 +107,7 @@ export function MomentumStrip({ prs, streak, badges, totalVolume }: MomentumStri
                   return (
                     <div
                       key={i}
-                      className="w-2 h-2 rounded-full"
-                      style={{
-                        background: active ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
-                        boxShadow:  active ? '0 0 6px var(--accent-glow)' : 'none',
-                      }}
+                      className={cn('w-2 h-2 rounded-full', active ? 'bg-primary' : 'bg-surface-raised')}
                     />
                   )
                 })}
@@ -132,43 +118,34 @@ export function MomentumStrip({ prs, streak, badges, totalVolume }: MomentumStri
       </div>
 
       {/* ── CARD 2: PERSONAL RECORDS ── */}
-      <div className="w-[240px] shrink-0 glass snap-center p-4 flex flex-col justify-between min-h-[145px]">
+      <div className="w-[240px] shrink-0 card snap-center p-4 flex flex-col justify-between min-h-[145px]">
         <div className="flex items-center justify-between mb-2">
-          <span className="t-label">Personal Records</span>
-          <Trophy className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
+          <span className="t-label">Personal records</span>
+          <Trophy className="w-3.5 h-3.5 text-primary" />
         </div>
         <div className="mt-1">
-          <p
-            className="mono text-4xl font-bold tabular-nums tracking-tighter leading-none mb-1.5"
-            style={{
-              color:      'var(--text-hi)',
-              textShadow: prs.length > 0 ? '0 0 20px var(--accent-glow)' : 'none',
-            }}
-          >
+          <p className="mono text-4xl font-bold tabular-nums tracking-tighter leading-none mb-1.5 text-primary">
             {prs.length}
-            <span className="text-xs font-normal ml-1" style={{ color: 'var(--text-faint)', textShadow: 'none' }}>
+            <span className="text-xs font-normal ml-1 text-tertiary">
               in 60d
             </span>
           </p>
-          <p
-            className="text-[9px] truncate mt-1 font-medium"
-            style={{ color: latestPR ? 'var(--accent)' : 'var(--text-faint)' }}
-          >
+          <p className={cn('text-xs truncate mt-1 font-medium', latestPR ? 'text-primary' : 'text-tertiary')}>
             {latestPR ? `Latest: ${latestPR.exerciseName.toLowerCase()}` : 'Keep chasing gains'}
           </p>
         </div>
       </div>
 
       {/* ── CARD 3: ACHIEVEMENTS CABINET ── */}
-      <div className="w-[240px] shrink-0 glass snap-center p-4 flex flex-col justify-between min-h-[145px]">
+      <div className="w-[240px] shrink-0 card snap-center p-4 flex flex-col justify-between min-h-[145px]">
         <div className="flex items-center justify-between mb-2">
           <span className="t-label">Achievements</span>
-          <Award className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
+          <Award className="w-3.5 h-3.5 text-primary" />
         </div>
         <div className="mt-1">
-          <p className="mono text-4xl font-bold tabular-nums tracking-tighter leading-none mb-2" style={{ color: 'var(--text-hi)' }}>
+          <p className="mono text-4xl font-bold tabular-nums tracking-tighter leading-none mb-2 text-primary">
             {earned.length}
-            <span className="text-xs font-normal ml-1" style={{ color: 'var(--text-faint)' }}>
+            <span className="text-xs font-normal ml-1 text-tertiary">
               / {badges.length}
             </span>
           </p>
@@ -177,18 +154,14 @@ export function MomentumStrip({ prs, streak, badges, totalVolume }: MomentumStri
               {recentBadges.map(b => {
                 const Icon = BADGE_ICON_MAP[b.icon] ?? Award
                 return (
-                  <span
-                    key={b.id}
-                    title={b.label}
-                    style={{ filter: `drop-shadow(0 0 4px ${b.color}70)` }}
-                  >
+                  <span key={b.id} title={b.label}>
                     <Icon className="w-3.5 h-3.5" style={{ color: b.color }} />
                   </span>
                 )
               })}
             </div>
           ) : (
-            <p className="text-[9px] text-[var(--text-faint)] mt-1">
+            <p className="text-xs text-tertiary mt-1">
               {badges.length - earned.length} more to unlock
             </p>
           )}
@@ -196,34 +169,30 @@ export function MomentumStrip({ prs, streak, badges, totalVolume }: MomentumStri
       </div>
 
       {/* ── CARD 4: LIFETIME TONNAGE ── */}
-      <div className="w-[260px] shrink-0 glass snap-center p-4 flex flex-col justify-between min-h-[145px]">
+      <div className="w-[260px] shrink-0 card snap-center p-4 flex flex-col justify-between min-h-[145px]">
         <div className="flex items-center justify-between mb-2">
-          <span className="t-label">Lifetime Tonnage</span>
-          <Dumbbell className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
+          <span className="t-label">Lifetime tonnage</span>
+          <Dumbbell className="w-3.5 h-3.5 text-primary" />
         </div>
         <div className="mt-1">
           <div className="flex items-baseline justify-between mb-1">
-            <span className="text-[9px] mono tabular-nums text-[var(--text-faint)]">
+            <span className="text-xs mono tabular-nums text-tertiary">
               {previous ? previous.label : '0'} Club
             </span>
-            <p className="mono text-2xl font-bold tabular-nums tracking-tighter leading-none text-[var(--text-hi)]">
+            <p className="mono text-2xl font-bold tabular-nums tracking-tighter leading-none text-primary">
               {formatVolume(totalVolume)}
-              <span className="text-xs font-normal ml-0.5 text-[var(--text-faint)]">kg</span>
+              <span className="text-xs font-normal ml-0.5 text-tertiary">kg</span>
             </p>
           </div>
 
-          <div className="h-1.5 rounded-full overflow-hidden bg-white/[0.06] mb-1">
+          <div className="h-1.5 rounded-full overflow-hidden bg-surface-raised mb-1">
             <div
-              className="h-full rounded-full"
-              style={{
-                width:      `${progressPct}%`,
-                background: 'var(--accent)',
-                boxShadow:  '0 0 8px var(--accent-glow)',
-              }}
+              className="h-full rounded-full bg-primary"
+              style={{ width: `${progressPct}%` }}
             />
           </div>
 
-          <div className="text-[8px] text-[var(--text-faint)] flex justify-between">
+          <div className="text-xs text-tertiary flex justify-between">
             <span>{progressPct}% complete</span>
             <span>{next ? `Next: ${next.label}` : 'Max milestone reached'}</span>
           </div>

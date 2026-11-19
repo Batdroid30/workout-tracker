@@ -11,7 +11,7 @@ import {
   Compass,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getButtonClassName } from '@/components/ui'
+import { Chip, getButtonClassName } from '@/components/ui'
 import type { Profile } from '@/types/database'
 
 // Sub-components
@@ -112,18 +112,11 @@ export function DashboardTabs({
       
       {/* ── TOP HEADER BAR ── */}
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-bold tracking-[0.2em] text-[var(--text-faint)] uppercase">
+        <span className="text-xs font-bold text-tertiary">
           Lifts
         </span>
         <Link href="/profile">
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden transition-transform active:scale-95"
-            style={{
-              border: '1.5px solid var(--accent-line)',
-              background: 'var(--accent-soft)',
-              boxShadow: '0 0 10px rgba(247, 37, 133, 0.15)'
-            }}
-          >
+          <div className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden transition-transform active:scale-95 border border-border-strong bg-surface-raised">
             {avatarUrl ? (
               <img
                 src={avatarUrl}
@@ -131,7 +124,7 @@ export function DashboardTabs({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="font-semibold text-xs" style={{ color: 'var(--accent)' }}>
+              <span className="font-semibold text-xs text-primary">
                 {initial}
               </span>
             )}
@@ -140,34 +133,19 @@ export function DashboardTabs({
       </div>
 
       {/* ── PREMIUM HERO CARD ── */}
-      <div
-        className="glass p-5 rounded-2xl flex flex-col gap-5 relative overflow-hidden"
-        style={{
-          borderColor: 'var(--accent-line)',
-          background: 'linear-gradient(145deg, rgba(247,37,133,0.07) 0%, rgba(247,37,133,0.02) 100%)',
-        }}
-      >
+      <div className="card border-border-strong p-5 flex flex-col gap-5 relative overflow-hidden">
         {/* Top greeting + Active Phase Badge */}
         <div className="flex items-start justify-between">
           <div>
-            <span className="text-[10px] font-semibold tracking-wider text-[var(--text-faint)] uppercase">
+            <span className="text-xs font-semibold text-tertiary">
               {dateLabel}
             </span>
-            <h1 className="text-base font-semibold text-[var(--text-hi)] mt-0.5">
+            <h1 className="text-base font-semibold text-primary mt-0.5">
               {greeting}, <span className="font-bold">{firstName}</span>
             </h1>
           </div>
           {profile?.training_phase && (
-            <span
-              className="inline-flex items-center h-6 px-3 rounded-full text-[9px] font-bold tracking-widest uppercase"
-              style={{
-                background: 'var(--accent-soft)',
-                color: 'var(--accent)',
-                border: '1px solid var(--accent-line)',
-              }}
-            >
-              {profile.training_phase.replace(/_/g, ' ')}
-            </span>
+            <Chip>{profile.training_phase.replace(/_/g, ' ')}</Chip>
           )}
         </div>
 
@@ -180,32 +158,16 @@ export function DashboardTabs({
         {/* Streak & Mesocycle Phase Pills */}
         <div className="flex items-center justify-center gap-2.5 flex-wrap">
           {streak.currentStreak > 0 && (
-            <div
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-              style={{
-                background: 'var(--accent-soft)',
-                border: '1.5px solid var(--accent-line)',
-              }}
-            >
-              <Flame className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
-              <span
-                className="text-[10px] font-bold uppercase tracking-wider"
-                style={{ color: 'var(--accent)' }}
-              >
-                {streak.currentStreak} week streak
-              </span>
-            </div>
+            <Chip icon={<Flame className="w-3.5 h-3.5" />}>
+              {streak.currentStreak} week streak
+            </Chip>
           )}
           {phaseWeek && cycleLength && (
-            <div
-              className="px-3 py-1.5 rounded-full bg-[rgba(255,255,255,0.01)] border border-[rgba(255,255,255,0.06)]"
-            >
-              <span
-                className="mono text-[10px] tabular-nums font-semibold tracking-wider text-[var(--text-low)]"
-              >
+            <Chip>
+              <span className="mono tabular-nums">
                 Week {Math.min(phaseWeek, cycleLength)}/{cycleLength}
               </span>
-            </div>
+            </Chip>
           )}
         </div>
 
@@ -242,26 +204,25 @@ export function DashboardTabs({
 
       {/* ── SUGGESTED ROUTINE ── */}
       {nextWorkout && (
-        <div className="glass border border-[var(--accent-line)] p-4 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[var(--accent)] to-[var(--cyan)]" />
+        <div className="card border border-border-strong p-4 relative overflow-hidden">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[var(--accent)]" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent)]">
-                  Suggested Routine
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-bold text-primary">
+                  Suggested routine
                 </span>
               </div>
-              <h4 className="text-sm font-semibold text-[var(--text-hi)] pt-1">
+              <h4 className="text-sm font-semibold text-primary pt-1">
                 {nextWorkout.focus} suggestion
               </h4>
-              <p className="text-xs text-[var(--text-low)] leading-relaxed">
+              <p className="text-xs text-tertiary leading-relaxed">
                 {nextWorkout.reason}
               </p>
             </div>
             <Link
               href={`/routines?start=${nextWorkout.focus || ''}`}
-              className="text-[9px] font-bold tracking-widest uppercase py-1.5 px-3 rounded-md bg-[rgba(247,37,133,0.1)] border border-[rgba(247,37,133,0.2)] text-[var(--accent)] hover:bg-[rgba(247,37,133,0.15)] transition-colors active:scale-95"
+              className={cn(getButtonClassName({ variant: 'secondary', size: 'sm', fullWidth: false }), 'shrink-0')}
             >
               Start
             </Link>
@@ -282,8 +243,8 @@ export function DashboardTabs({
       {/* ── COACHING SCIENCE VERTICAL STACK ── */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <Compass className="w-4 h-4 text-[var(--accent)]" />
-          <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-hi)]">
+          <Compass className="w-4 h-4 text-primary" />
+          <h3 className="text-xs font-bold text-primary">
             Coaching &amp; Analytics
           </h3>
         </div>
@@ -304,8 +265,8 @@ export function DashboardTabs({
       {/* ── CONSISTENCY & MOMENTUM CAROUSEL ── */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <Flame className="w-4 h-4 text-[var(--accent)]" />
-          <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-hi)]">
+          <Flame className="w-4 h-4 text-primary" />
+          <h3 className="text-xs font-bold text-primary">
             Consistency &amp; PRs
           </h3>
         </div>
@@ -318,16 +279,15 @@ export function DashboardTabs({
       </div>
 
       {/* ── SCALE CHECK ── */}
-      <div className="glass border border-[var(--accent-line)] p-4">
+      <div className="card border border-border-strong p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1.5">
-            <Scale className="w-3.5 h-3.5 text-[var(--accent)]" />
-            <h3 className="t-label">Scale Check</h3>
+            <Scale className="w-3.5 h-3.5 text-primary" />
+            <h3 className="t-label">Scale check</h3>
           </div>
           <Link
             href="/progress"
-            className="text-[9px] font-medium tracking-widest uppercase opacity-75 hover:opacity-100 transition-opacity"
-            style={{ color: 'var(--accent)' }}
+            className="text-xs font-medium text-primary opacity-75 hover:opacity-100 transition-opacity"
           >
             Trends →
           </Link>
@@ -338,8 +298,8 @@ export function DashboardTabs({
       {/* ── RECENT HISTORY ── */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="t-label">Recent History</h3>
-          <span className="text-[9px] text-[var(--text-faint)] uppercase tracking-wider">
+          <h3 className="t-label">Recent history</h3>
+          <span className="text-xs text-tertiary">
             {totalWorkouts} sessions total
           </span>
         </div>
