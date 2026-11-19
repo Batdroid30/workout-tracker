@@ -2,7 +2,6 @@
 
 import { requireAuth, signOutUser } from '@/lib/auth'
 import { updateProfile as updateProfileData } from '@/lib/data/profile'
-import { evaluateAndSaveAllPRs } from '@/lib/data/stats'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 import { getWorkoutHistoryPage } from '@/lib/data/workouts'
@@ -91,23 +90,6 @@ export async function refreshCacheAction() {
   revalidateAll()
 
   return { success: true }
-}
-
-export async function recalculatePRsAction() {
-  const { userId, session } = await requireAuth()
-
-  try {
-    // Rebuild from scratch so records that no longer apply (e.g. 1RM/volume
-    // on assisted lifts) are removed, not just overwritten.
-    const { error: deleteErr } = await getSupabaseAdmin().from('personal_records').delete().eq('user_id', userId)
-    if (deleteErr) throw new Error(`Failed to clear PRs: ${deleteErr.message}`)
-    await evaluateAndSaveAllPRs(userId)
-    revalidateAll()
-    return { success: true }
-  } catch (error: any) {
-    console.error('Error recalculating PRs:', error)
-    return { success: false, error: error.message }
-  }
 }
 
 export async function updateTrainingProfileAction(updates: {

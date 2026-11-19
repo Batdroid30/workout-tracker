@@ -50,3 +50,7 @@ AGENTS.md
 SYSTEM_MANUAL.md
 # Planning docs (plans/specs) are local-only — never commit
 docs/superpowers/
+
+# Playwright output
+/playwright-report/
+/test-results/
