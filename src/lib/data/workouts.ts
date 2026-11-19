@@ -76,19 +76,31 @@ export const getRecentWorkouts = cache(async (userId: string, runAsAdmin: boolea
 
 export const HISTORY_PAGE_SIZE = 20
 
-async function fetchPRSetMapForSets(
-  supabase: any,
+type DataClient = Awaited<ReturnType<typeof resolveSupabaseClient>>
+
+function isPRType(value: string): value is PRType {
+  return value === 'best_weight' || value === 'best_volume' || value === 'best_1rm'
+}
+
+// Filters by the page's workout ids (at most HISTORY_PAGE_SIZE uuids) rather than
+// every set id, which would put hundreds of uuids in the request URL.
+async function fetchPRSetMapForWorkouts(
+  supabase: DataClient,
   uid: string,
-  setIds: string[],
+  workoutIds: string[],
 ): Promise<Map<string, PRType[]>> {
-  if (setIds.length === 0) return new Map()
+  if (workoutIds.length === 0) return new Map()
   const { data, error } = await supabase
     .from('personal_records')
-    .select('set_id, pr_type')
+    .select('set_id, pr_type, sets!inner(workout_exercises!inner(workout_id))')
     .eq('user_id', uid)
-    .in('set_id', setIds)
+    .in('sets.workout_exercises.workout_id', workoutIds)
   if (error) throw new DatabaseError('Failed to fetch history personal records', error)
-  return groupPRTypesBySet(data ?? [])
+
+  const rows = (data ?? []).flatMap(pr =>
+    pr.set_id !== null && isPRType(pr.pr_type) ? [{ set_id: pr.set_id, pr_type: pr.pr_type }] : [],
+  )
+  return groupPRTypesBySet(rows)
 }
 
 export async function getWorkoutHistoryPage(
@@ -129,8 +141,7 @@ export async function getWorkoutHistoryPage(
   }
 
   const { items, hasMore } = splitPage(data ?? [], HISTORY_PAGE_SIZE)
-  const setIds = items.flatMap(w => w.workout_exercises.flatMap(we => (we.sets ?? []).map(s => s.id)))
-  const prSetMap = await fetchPRSetMapForSets(supabase, userId, setIds)
+  const prSetMap = await fetchPRSetMapForWorkouts(supabase, userId, items.map(w => w.id))
 
   return { workouts: attachPRTypes(items, prSetMap), hasMore }
 }
