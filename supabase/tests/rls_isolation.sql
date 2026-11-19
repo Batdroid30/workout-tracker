@@ -9,20 +9,28 @@
 do $iso$
 declare
   a uuid; b uuid;
-  ex uuid; w uuid; we uuid; s uuid; pr uuid; rl uuid; bw uuid; rt uuid; re uuid;
+  ex uuid; ex2 uuid; w uuid; we uuid; s uuid; pr uuid; rl uuid; bw uuid; rt uuid; re uuid;
   pg uuid; pd uuid; pe uuid; cc uuid; cm uuid; dl uuid;
   tbls text[]; cols text[]; vals text[];
   n int; i int; checks int := 0; fails text := '';
 begin
   select id into a from auth.users order by created_at limit 1;
   select id into b from auth.users order by created_at offset 1 limit 1;
+  -- Without a second user every "B can't…" check would pass vacuously.
+  if b is null then
+    raise exception 'RLS_ISOLATION_FAILED: need at least two auth.users rows';
+  end if;
 
   -- ── Fixtures, owned by A (inserted as postgres, bypassing RLS) ──
   insert into public.exercises (name, muscle_group, movement_pattern, is_custom, created_by)
     values ('__rls_iso__', 'chest', 'push', true, a) returning id into ex;
+  insert into public.exercises (name, muscle_group, movement_pattern, is_custom, created_by)
+    values ('__rls_iso_2__', 'back', 'pull', true, a) returning id into ex2;
   insert into public.workouts (user_id, started_at) values (a, now()) returning id into w;
   insert into public.workout_exercises (workout_id, exercise_id, order_index) values (w, ex, 0) returning id into we;
-  insert into public.sets (workout_exercise_id, set_number, weight_kg, reps) values (we, 1, 50, 5) returning id into s;
+  -- completed_at set so the frequency function counts this set for A.
+  insert into public.sets (workout_exercise_id, set_number, weight_kg, reps, completed_at)
+    values (we, 1, 50, 5, now()) returning id into s;
   insert into public.personal_records (user_id, exercise_id, pr_type, reps, value, set_id)
     values (a, ex, 'best_weight', 5, 50, s) returning id into pr;
   insert into public.readiness_logs (user_id, sleep_score, soreness_score, energy_score, logged_at)
@@ -85,6 +93,8 @@ begin
   exception when others then null; end;
   select count(*) into n from public.exercises where id = ex;
   checks := checks + 1; if n <> 0 then fails := fails || 'B_sees_A_custom_exercise '; end if;
+  select count(*) into n from public.get_user_exercise_frequency() f where f.exercise_id = ex;
+  checks := checks + 1; if n <> 0 then fails := fails || 'B_frequency_includes_A '; end if;
   execute 'reset role';
 
   -- ── As A: own rows are readable, updatable, deletable; usage is append-only ──
@@ -98,6 +108,33 @@ begin
     get diagnostics n = row_count;
     checks := checks + 1; if n <> 1 then fails := fails || 'A_update_' || tbls[i] || ' '; end if;
   end loop;
+
+  select count(*) into n from public.get_user_exercise_frequency() f where f.exercise_id = ex;
+  checks := checks + 1; if n <> 1 then fails := fails || 'A_frequency_has_own_set '; end if;
+
+  -- Owner inserts, as the app does them. Tables with a separate INSERT policy
+  -- (readiness_logs, user_exercise_preferences, profiles) are not covered by
+  -- the update checks above, so each one is exercised here.
+  checks := checks + 1;
+  begin insert into public.readiness_logs (user_id, sleep_score, soreness_score, energy_score, logged_at)
+    values (a, 3, 3, 3, '1900-01-02');
+  exception when others then fails := fails || 'A_insert_readiness_logs '; end;
+  checks := checks + 1;
+  begin insert into public.user_exercise_preferences (user_id, exercise_id, rest_seconds) values (a, ex2, 90);
+  exception when others then fails := fails || 'A_insert_user_exercise_preferences '; end;
+  checks := checks + 1;
+  begin insert into public.profiles (id, rest_timer_seconds) values (a, 90)
+    on conflict (id) do update set rest_timer_seconds = excluded.rest_timer_seconds;
+  exception when others then fails := fails || 'A_upsert_profiles '; end;
+  checks := checks + 1;
+  begin insert into public.personal_records (user_id, exercise_id, pr_type, value) values (a, ex2, 'best_1rm', 60);
+  exception when others then fails := fails || 'A_insert_personal_records '; end;
+  checks := checks + 1;
+  begin insert into public.bodyweight_log (user_id, weight_kg) values (a, 81);
+  exception when others then fails := fails || 'A_insert_bodyweight_log '; end;
+  checks := checks + 1;
+  begin insert into public.coach_conversations (user_id) values (a);
+  exception when others then fails := fails || 'A_insert_coach_conversations '; end;
 
   -- Children first, so each delete hits exactly its own fixture row.
   -- The last two (user_exercise_preferences, profiles) have no delete policy by
@@ -125,9 +162,6 @@ begin
     if n <> 0 then fails := fails || 'A_delete_own_coach_usage '; end if;
   exception when others then null; end;
 
-  checks := checks + 1;
-  begin perform count(*) from public.get_user_exercise_frequency();
-  exception when others then fails := fails || 'A_calls_frequency '; end;
   execute 'reset role';
 
   -- ── As anon: no exercises, no frequency ──
