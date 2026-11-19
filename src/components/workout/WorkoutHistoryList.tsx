@@ -160,6 +160,17 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
 export function WorkoutHistoryList({ workouts: initialWorkouts, initialHasMore = false, onLoadMore }: WorkoutHistoryListProps) {
   const [workouts, setWorkouts] = useState(initialWorkouts)
   const [hasMore, setHasMore] = useState(initialHasMore)
+
+  // Fresh server data wins: when the first page changes (refresh, new workout),
+  // drop locally appended pages and restart from the new props. Compared by
+  // content because callers pass a new array instance on every render.
+  const initialSignature = `${initialHasMore}:${initialWorkouts.map(w => w.id).join(',')}`
+  const [seenSignature, setSeenSignature] = useState(initialSignature)
+  if (seenSignature !== initialSignature) {
+    setSeenSignature(initialSignature)
+    setWorkouts(initialWorkouts)
+    setHasMore(initialHasMore)
+  }
   const [isLoadingMore, startLoadMore] = useTransition()
   const toast = useToast()
 
