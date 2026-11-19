@@ -5,6 +5,10 @@ import { updateProfile as updateProfileData } from '@/lib/data/profile'
 import { evaluateAndSaveAllPRs } from '@/lib/data/stats'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
+import { getWorkoutHistoryPage } from '@/lib/data/workouts'
+import type { HistoryCursor } from '@/lib/data/history-page'
+import type { WorkoutItem } from '@/types/workout-history'
+import { z } from 'zod'
 import type { TrainingGoal, TrainingPhase, TrainingStyle, ExperienceLevel } from '@/types/database'
 
 export async function updateProfileAction(formData: FormData) {
@@ -156,5 +160,25 @@ export async function clearAllWorkoutDataAction() {
   } catch (error: any) {
     console.error('Error clearing data:', error)
     return { success: false, error: error.message }
+  }
+}
+
+const LoadMoreCursorSchema = z
+  .object({ startedAt: z.iso.datetime({ offset: true }), id: z.uuid() })
+  .nullable()
+
+export async function loadMoreWorkoutsAction(
+  cursor: HistoryCursor | null,
+): Promise<{ workouts: WorkoutItem[]; hasMore: boolean } | { error: string }> {
+  const { userId } = await requireAuth()
+
+  const parsed = LoadMoreCursorSchema.safeParse(cursor)
+  if (!parsed.success) return { error: 'Invalid cursor' }
+
+  try {
+    return await getWorkoutHistoryPage(userId, parsed.data)
+  } catch (error: unknown) {
+    console.error('Error loading more workouts:', error)
+    return { error: 'Failed to load more workouts' }
   }
 }

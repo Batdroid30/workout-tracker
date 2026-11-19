@@ -1,4 +1,5 @@
-import { Flame, Clock, Calendar } from 'lucide-react'
+import { Flame, Clock, Calendar, TrendingUp } from 'lucide-react'
+import { formatVolume } from '@/lib/load'
 
 interface OverviewStatsRowProps {
   currentStreak:    number
@@ -6,6 +7,8 @@ interface OverviewStatsRowProps {
   trainingAgeWeeks: number
   /** Days since the most recent workout. null = no workouts yet. */
   daysSinceLastSession: number | null
+  /** Lifetime volume lifted, in kg. */
+  totalVolumeKg: number
 }
 
 interface StatCellProps {
@@ -13,6 +16,11 @@ interface StatCellProps {
   label:    string
   value:    string
   sub?:     string
+}
+
+// formatVolume tops out at "k"; lifetime totals routinely pass a million.
+function formatLifetimeVolume(kg: number): string {
+  return kg >= 1_000_000 ? `${(kg / 1_000_000).toFixed(2)}M` : formatVolume(kg)
 }
 
 function StatCell({ icon, label, value, sub }: StatCellProps) {
@@ -43,6 +51,7 @@ export function OverviewStatsRow({
   longestStreak,
   trainingAgeWeeks,
   daysSinceLastSession,
+  totalVolumeKg,
 }: OverviewStatsRowProps) {
   const trainingAgeLabel =
     trainingAgeWeeks >= 52
@@ -83,6 +92,13 @@ export function OverviewStatsRow({
         icon={<Calendar className="w-4 h-4" style={{ color: 'var(--accent)' }} />}
         label="Training Age"
         value={trainingAgeWeeks > 0 ? trainingAgeLabel : '—'}
+      />
+      <div className="w-px self-stretch" style={{ background: 'var(--border)' }} />
+      <StatCell
+        icon={<TrendingUp className="w-4 h-4" style={{ color: 'var(--accent)' }} />}
+        label="Lifetime"
+        value={formatLifetimeVolume(totalVolumeKg)}
+        sub="kg"
       />
     </div>
   )

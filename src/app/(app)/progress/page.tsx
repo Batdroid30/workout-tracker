@@ -3,10 +3,8 @@ import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
 import { WeeklyBodyMapCard } from '@/components/progress/WeeklyBodyMapCard'
 import { PhaseCoachDetail } from '@/components/progress/PhaseCoachDetail'
 import { BodyweightSection } from '@/components/progress/BodyweightSection'
-import { TopPRsTable } from '@/components/profile/TopPRsTable'
 import { requireAuth } from '@/lib/auth'
 import { getWorkoutsSummary } from '@/lib/data/workouts'
-import { getTopPersonalRecords } from '@/lib/data/stats'
 import { getProfile } from '@/lib/data/profile'
 import { getProgressSnapshot, getMondayOf } from '@/lib/data/progress-snapshot'
 import { computeStrengthIndex, getVolumeLandmarksByMuscle } from '@/lib/data/phase-coach'
@@ -14,20 +12,15 @@ import { getBodyweightHistory } from '@/lib/data/bodyweight'
 import { getWorkoutCalendarData } from '@/lib/data/insights'
 import { getWeeksInPhase, buildMesocycleTimeline } from '@/lib/phase-coach'
 import { OverviewStatsRow } from '@/components/progress/OverviewStatsRow'
-import { MonthOverMonthCard } from '@/components/progress/MonthOverMonthCard'
 import { WorkoutCalendar } from '@/components/progress/WorkoutCalendar'
 import { FrequencyTrendChart } from '@/components/progress/FrequencyTrendChart'
 import { KeyLiftsTrendSection } from '@/components/progress/KeyLiftsTrendSection'
 import type { KeyLiftTrendData } from '@/components/progress/KeyLiftsTrendSection'
 import { StaleLiftAlerts } from '@/components/progress/StaleLiftAlerts'
-import { PRVelocityChart } from '@/components/progress/PRVelocityChart'
 import { PRTimelineList } from '@/components/progress/PRTimelineList'
 import { getPersonalRecordsData } from '@/lib/data/insights'
-import { PushPullLegsCard } from '@/components/progress/PushPullLegsCard'
 import { AntagonistBalanceCard } from '@/components/progress/AntagonistBalanceCard'
 import type { AntagonistSetCounts } from '@/components/progress/AntagonistBalanceCard'
-import { MuscleVolumeTrendChart } from '@/components/progress/MuscleVolumeTrendChart'
-import { DeloadReadinessCard } from '@/components/progress/DeloadReadinessCard'
 import { ReadinessTrendCharts } from '@/components/progress/ReadinessTrendCharts'
 import { WeightChangeSummary } from '@/components/progress/WeightChangeSummary'
 import { BodyCompositionOverlayChart } from '@/components/progress/BodyCompositionOverlayChart'
@@ -35,7 +28,7 @@ import type { OverlayPoint } from '@/components/progress/BodyCompositionOverlayC
 import type { StrengthIndexPoint } from '@/lib/data/phase-coach'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { TrendingUp, Activity } from 'lucide-react'
+import { Activity } from 'lucide-react'
 import type { BodyweightPoint } from '@/lib/data/bodyweight'
 import type { TrainingPhase } from '@/types/database'
 
@@ -58,11 +51,6 @@ async function BodyweightLoader({
       trainingPhase={trainingPhase}
     />
   )
-}
-
-async function TopPRsLoader({ userId }: { userId: string }) {
-  const topPRs = await getTopPersonalRecords(userId)
-  return <TopPRsTable prs={topPRs} />
 }
 
 async function BodyCompositionLoader({
@@ -140,12 +128,6 @@ async function StrengthPRLoader({ userId }: { userId: string }) {
   const prData = await getPersonalRecordsData(userId)
   return (
     <div className="space-y-4">
-      {prData.velocityByMonth.length > 0 && (
-        <div className="glass p-4">
-          <div className="t-label mb-3">PRs per Month</div>
-          <PRVelocityChart velocityByMonth={prData.velocityByMonth} />
-        </div>
-      )}
       {prData.history.length > 0 && (
         <div>
           <div className="t-label mb-2">PR Timeline</div>
@@ -250,12 +232,6 @@ export default async function ProgressPage() {
     ? Math.floor((Date.now() - new Date(lastDate + 'T00:00:00Z').getTime()) / 86_400_000)
     : null
 
-  const formattedVolume = totalVolume >= 1_000_000
-    ? `${(totalVolume / 1_000_000).toFixed(2)}M`
-    : totalVolume >= 1_000
-    ? `${(totalVolume / 1_000).toFixed(1)}k`
-    : String(totalVolume)
-
   return (
     <div className="min-h-screen pb-24 p-5">
 
@@ -269,28 +245,19 @@ export default async function ProgressPage() {
 
       <div className="space-y-5">
 
-        {/* ── Lifetime volume ──────────────────────────────────────────── */}
-        <div
-          className="glass p-4 flex items-center justify-between"
-          style={{ borderColor: 'var(--accent-line)' }}
-        >
-          <div>
-            <div className="t-label mb-1">Total Volume Lifted</div>
-            <p
-              className="mono text-4xl font-medium tracking-tighter"
-              style={{ color: 'var(--accent)', textShadow: '0 0 24px var(--accent-glow)' }}
+        {/* ── Muscle focus body map ───────────────────────────────────────── */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="t-display-s">Muscle Focus</h2>
+            <span
+              className="text-[9px] font-medium uppercase tracking-widest px-2.5 py-1 rounded-lg"
+              style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)', color: 'var(--accent)' }}
             >
-              {formattedVolume}
-              <span className="text-base ml-1" style={{ color: 'var(--accent-line)' }}>kg</span>
-            </p>
+              This Week
+            </span>
           </div>
-          <div
-            className="w-12 h-12 rounded-[var(--radius-inner)] flex items-center justify-center"
-            style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }}
-          >
-            <TrendingUp className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-          </div>
-        </div>
+          <WeeklyBodyMapCard volumeLandmarks={volumeLandmarks} />
+        </section>
 
         {/* ── Overview stats row ───────────────────────────────────────── */}
         <OverviewStatsRow
@@ -298,6 +265,18 @@ export default async function ProgressPage() {
           longestStreak={calendarData.longestStreak}
           trainingAgeWeeks={calendarData.trainingAgeWeeks}
           daysSinceLastSession={daysSinceLastSession}
+          totalVolumeKg={totalVolume}
+        />
+
+        {/* ── Phase Coach detail ───────────────────────────────────────── */}
+        <PhaseCoachDetail
+          trainingPhase={profile?.training_phase    ?? null}
+          experienceLevel={profile?.experience_level ?? null}
+          weeksInPhase={weeksInPhase}
+          strengthIndex={strengthIndex}
+          volumeLandmarks={volumeLandmarks}
+          keyLifts={snapshot.keyLifts}
+          mesocycle={mesocycle}
         />
 
         {/* ── Consistency section ─────────────────────────────────────── */}
@@ -324,17 +303,6 @@ export default async function ProgressPage() {
           </div>
         </section>
 
-        {/* ── Phase Coach detail ───────────────────────────────────────── */}
-        <PhaseCoachDetail
-          trainingPhase={profile?.training_phase    ?? null}
-          experienceLevel={profile?.experience_level ?? null}
-          weeksInPhase={weeksInPhase}
-          strengthIndex={strengthIndex}
-          volumeLandmarks={volumeLandmarks}
-          keyLifts={snapshot.keyLifts}
-          mesocycle={mesocycle}
-        />
-
         {/* ── Strength section ─────────────────────────────────────────── */}
         <section>
           <h2 className="t-display-s mb-3">Strength</h2>
@@ -353,7 +321,7 @@ export default async function ProgressPage() {
             </div>
           )}
 
-          {/* PR velocity + timeline — streamed (separate personal_records query) */}
+          {/* PR timeline — streamed (separate personal_records query) */}
           <Suspense fallback={<PRSectionSkeleton />}>
             <StrengthPRLoader userId={userId} />
           </Suspense>
@@ -361,9 +329,7 @@ export default async function ProgressPage() {
 
         {/* ── Volume over time ─────────────────────────────────────────── */}
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="t-display-s">Volume Trend</h2>
-          </div>
+          <h2 className="t-display-s mb-3">Volume</h2>
           <div className="glass p-4">
             {chartData.length > 1 ? (
               <div className="h-[200px] w-full">
@@ -375,57 +341,23 @@ export default async function ProgressPage() {
               </div>
             )}
           </div>
+          <div className="glass p-4 mt-3">
+            <ReadinessTrendCharts weeklyData={snapshot.weeklyData} />
+          </div>
         </section>
 
-        {/* ── Volume Intelligence section ──────────────────────────────── */}
-        <section>
-          <h2 className="t-display-s mb-3">Volume</h2>
+        {/* ── Antagonist balance ───────────────────────────────────────── */}
+        <AntagonistBalanceCard sets={antagonistSets} />
 
-          {/* Stacked weekly volume by category (push/pull/legs) */}
-          <div className="glass p-4 mb-3">
-            <div className="t-label mb-3">Weekly Sets by Category</div>
-            <MuscleVolumeTrendChart weeklyData={snapshot.weeklyData} />
-          </div>
-
-          {/* Push/pull/legs 12-week balance */}
-          <div className="mb-3">
-            <PushPullLegsCard
-              pushSets={snapshot.pushSets}
-              pullSets={snapshot.pullSets}
-              legSets={snapshot.legSets}
+        {/* ── Bodyweight + composition (streamed) ──────────────────────── */}
+        <div className="space-y-3">
+          <Suspense fallback={<BodyweightSkeleton />}>
+            <BodyweightLoader
+              userId={userId}
+              trainingPhase={profile?.training_phase ?? null}
             />
-          </div>
-
-          {/* Antagonist muscle balance */}
-          <AntagonistBalanceCard sets={antagonistSets} />
-        </section>
-
-        {/* ── Readiness & Recovery section ─────────────────────────────── */}
-        <section>
-          <h2 className="t-display-s mb-3">Readiness</h2>
-          <div className="space-y-3">
-            <DeloadReadinessCard
-              weeklyData={snapshot.weeklyData}
-              staleLiftsCount={staleLifts.length}
-            />
-            <div className="glass p-4">
-              <ReadinessTrendCharts weeklyData={snapshot.weeklyData} />
-            </div>
-          </div>
-        </section>
-
-        {/* ── Bodyweight (streamed) ────────────────────────────────────── */}
-        <Suspense fallback={<BodyweightSkeleton />}>
-          <BodyweightLoader
-            userId={userId}
-            trainingPhase={profile?.training_phase ?? null}
-          />
-        </Suspense>
-
-        {/* ── Body Composition (streamed — needs bodyweight history) ────── */}
-        {strengthIndex.history.length >= 2 && (
-          <section>
-            <h2 className="t-display-s mb-3">Body Composition</h2>
+          </Suspense>
+          {strengthIndex.history.length >= 2 && (
             <Suspense fallback={<BodyCompSkeleton />}>
               <BodyCompositionLoader
                 userId={userId}
@@ -433,35 +365,8 @@ export default async function ProgressPage() {
                 strengthHistory={strengthIndex.history}
               />
             </Suspense>
-          </section>
-        )}
-
-        {/* ── Muscle focus body map ───────────────────────────────────────── */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="t-display-s">Muscle Focus</h2>
-            <span
-              className="text-[9px] font-medium uppercase tracking-widest px-2.5 py-1 rounded-lg"
-              style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)', color: 'var(--accent)' }}
-            >
-              This Week
-            </span>
-          </div>
-          <WeeklyBodyMapCard volumeLandmarks={volumeLandmarks} />
-        </section>
-
-        {/* ── Top Personal Records (streamed) ──────────────────────────── */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="t-display-s">Top Personal Records</h2>
-          </div>
-          <Suspense fallback={<PRTableSkeleton />}>
-            <TopPRsLoader userId={userId} />
-          </Suspense>
-        </section>
-
-        {/* ── Month-over-month summary ─────────────────────────────────── */}
-        <MonthOverMonthCard weeklyData={snapshot.weeklyData} />
+          )}
+        </div>
 
         {/* ── Exercise drill-down ──────────────────────────────────────── */}
         <section>
@@ -503,19 +408,6 @@ function BodyweightSkeleton() {
   )
 }
 
-function PRTableSkeleton() {
-  return (
-    <div className="glass p-4 animate-pulse space-y-3">
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="flex items-center gap-3">
-          <div className="h-4 w-32 bg-[var(--surface-2)] rounded" />
-          <div className="h-4 flex-1 bg-[var(--surface-2)] rounded" />
-        </div>
-      ))}
-    </div>
-  )
-}
-
 function BodyCompSkeleton() {
   return (
     <div className="space-y-3 animate-pulse">
@@ -534,10 +426,6 @@ function BodyCompSkeleton() {
 function PRSectionSkeleton() {
   return (
     <div className="space-y-4 animate-pulse">
-      <div className="glass p-4">
-        <div className="h-3 w-24 bg-[var(--surface-2)] rounded mb-3" />
-        <div className="h-[120px] bg-[var(--surface-2)] rounded" />
-      </div>
       <div className="space-y-2">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="glass p-3 flex items-center gap-3">

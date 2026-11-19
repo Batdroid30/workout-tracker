@@ -745,15 +745,6 @@ export const getWorkoutCalendarData = cache(async (userId: string, runAsAdmin: b
 
 // ── Personal records aggregated data (all-time) ───────────────────────────────
 
-export interface TopPR {
-  exerciseId:     string
-  exerciseName:   string
-  muscleGroup:    string
-  best1RM:        number | null
-  bestWeight:     number | null
-  achievedAt:     string | null
-}
-
 export interface PRHistoryEntry {
   exerciseName: string
   muscleGroup:  string
@@ -763,10 +754,6 @@ export interface PRHistoryEntry {
 }
 
 export interface PersonalRecordsData {
-  /** Top 10 exercises by best e1RM, descending. */
-  topByE1RM:       TopPR[]
-  /** PR count per calendar month (YYYY-MM), ascending. */
-  velocityByMonth: { month: string; count: number }[]
   /** Full PR log, newest first. */
   history:         PRHistoryEntry[]
 }
@@ -782,7 +769,7 @@ export const getPersonalRecordsData = cache(async (userId: string, runAsAdmin: b
 
   if (error) throw new DatabaseError('Failed to fetch personal records data', error)
   if (!data || data.length === 0) {
-    return { topByE1RM: [], velocityByMonth: [], history: [] }
+    return { history: [] }
   }
 
   // Supabase returns the joined exercise as a single object or a 1-element array
@@ -795,63 +782,22 @@ export const getPersonalRecordsData = cache(async (userId: string, runAsAdmin: b
     exercise:    { name: string; muscle_group: string | null } | { name: string; muscle_group: string | null }[] | null
   }
 
-  const byExercise = new Map<string, {
-    exerciseName: string
-    muscleGroup:  string
-    best1RM:      number | null
-    bestWeight:   number | null
-    achievedAt:   string | null
-  }>()
-  const monthCounts = new Map<string, number>()
   const history: PRHistoryEntry[] = []
 
   for (const row of data as PRRow[]) {
     const exercise   = Array.isArray(row.exercise) ? row.exercise[0] : row.exercise
-    const exerciseId = row.exercise_id
     const prType     = row.pr_type as PRType
     const value      = Number(row.value)
     const achievedAt = row.achieved_at
 
-    if (!exerciseId || !exercise?.name) continue
-
-    monthCounts.set(achievedAt.slice(0, 7), (monthCounts.get(achievedAt.slice(0, 7)) ?? 0) + 1)
+    if (!row.exercise_id || !exercise?.name) continue
 
     history.push({
       exerciseName: exercise.name,
       muscleGroup:  exercise.muscle_group ?? '',
       prType, value, achievedAt,
     })
-
-    if (!byExercise.has(exerciseId)) {
-      byExercise.set(exerciseId, {
-        exerciseName: exercise.name,
-        muscleGroup:  exercise.muscle_group ?? '',
-        best1RM:      null,
-        bestWeight:   null,
-        achievedAt:   null,
-      })
-    }
-    const ex = byExercise.get(exerciseId)!
-
-    if (prType === 'best_1rm') {
-      if (ex.best1RM === null || value > ex.best1RM) {
-        ex.best1RM    = value
-        ex.achievedAt = achievedAt
-      }
-    } else if (prType === 'best_weight') {
-      if (ex.bestWeight === null || value > ex.bestWeight) ex.bestWeight = value
-    }
   }
 
-  const topByE1RM = Array.from(byExercise.entries())
-    .filter(([_, ex]) => ex.best1RM !== null)
-    .sort((a, b) => (b[1].best1RM ?? 0) - (a[1].best1RM ?? 0))
-    .slice(0, 10)
-    .map(([exerciseId, ex]) => ({ exerciseId, ...ex }))
-
-  const velocityByMonth = Array.from(monthCounts.entries())
-    .map(([month, count]) => ({ month, count }))
-    .sort((a, b) => a.month.localeCompare(b.month))
-
-  return { topByE1RM, velocityByMonth, history: history.reverse() }
+  return { history: history.reverse() }
 })

@@ -13,16 +13,6 @@ export interface PREvaluationResult {
   newValue: number
 }
 
-export interface TopPR {
-  exerciseId: string
-  exerciseName: string
-  muscleGroup: string
-  bestWeight: number | null
-  bestWeightReps: number | null
-  best1RM: number | null
-  achievedAt: string | null
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 // calculate1RM is imported from @/lib/algorithms (Epley + Brzycki averaged)
@@ -109,54 +99,6 @@ export async function getWorkoutSetPRs(setIds: string[], runAsAdmin: boolean = f
 
   return prMap
 }
-
-export const getTopPersonalRecords = cache(async (userId: string, runAsAdmin: boolean = false): Promise<TopPR[]> => {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
-
-  const { data, error } = await supabase
-    .from('personal_records')
-    .select(`
-      exercise_id,
-      pr_type,
-      value,
-      reps,
-      achieved_at,
-      exercise:exercises ( id, name, muscle_group )
-    `)
-    .eq('user_id', userId)
-    .in('pr_type', ['best_weight', 'best_1rm'])
-
-  if (error) { console.error('Failed to fetch top PRs:', error.message); return [] }
-  if (!data || data.length === 0) return []
-
-  const map = new Map<string, TopPR>()
-  for (const row of data) {
-    const ex = row.exercise as any
-    if (!ex) continue
-    const existing = map.get(row.exercise_id) ?? {
-      exerciseId: row.exercise_id,
-      exerciseName: ex.name,
-      muscleGroup: ex.muscle_group,
-      bestWeight: null,
-      bestWeightReps: null,
-      best1RM: null,
-      achievedAt: row.achieved_at,
-    }
-    if (row.pr_type === 'best_weight') {
-      existing.bestWeight = Number(row.value)
-      existing.bestWeightReps = row.reps ? Number(row.reps) : null
-    }
-    if (row.pr_type === 'best_1rm') existing.best1RM = Number(row.value)
-    if (row.achieved_at && (!existing.achievedAt || row.achieved_at > existing.achievedAt)) {
-      existing.achievedAt = row.achieved_at
-    }
-    map.set(row.exercise_id, existing)
-  }
-
-  return Array.from(map.values())
-    .sort((a, b) => (b.best1RM ?? 0) - (a.best1RM ?? 0))
-    .slice(0, 15)
-})
 
 export const getWeeklyMuscleGroupStats = cache(async (userId: string, runAsAdmin: boolean = false) => {
   const supabase = await resolveSupabaseClient(runAsAdmin)

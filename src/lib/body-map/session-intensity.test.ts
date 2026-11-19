@@ -1,5 +1,32 @@
 import { describe, expect, it } from 'vitest'
-import { calculateSessionIntensity, toHeatLevel } from './session-intensity'
+import { toRegionValues } from '@/lib/body-map'
+import { calculateSessionIntensity, calculateSessionSets, toHeatLevel } from './session-intensity'
+
+describe('calculateSessionSets', () => {
+  it('calculateSessionSets returns raw half-set counts', () => {
+    expect(calculateSessionSets([
+      { muscleGroup: 'chest', secondaryMuscles: ['triceps'], workingSetCount: 4 },
+      { muscleGroup: 'triceps', secondaryMuscles: null, workingSetCount: 3 },
+    ])).toEqual({ chest: 4, triceps: 5 })
+  })
+
+  it('calculateSessionSets is empty for warm-up-only or empty sessions', () => {
+    expect(calculateSessionSets([{ muscleGroup: 'chest', secondaryMuscles: [], workingSetCount: 0 }])).toEqual({})
+    expect(calculateSessionSets([])).toEqual({})
+  })
+
+  it('calculateSessionSets skips null and unknown muscles', () => {
+    expect(calculateSessionSets([{ muscleGroup: null, secondaryMuscles: ['neck'], workingSetCount: 2 }])).toEqual({})
+  })
+
+  it('upper-back takes the larger of back and lats', () => {
+    const sets = calculateSessionSets([
+      { muscleGroup: 'lats', secondaryMuscles: null, workingSetCount: 2 },
+      { muscleGroup: 'back', secondaryMuscles: null, workingSetCount: 5 },
+    ])
+    expect(toRegionValues(sets, Math.max)['upper-back']).toBe(5)
+  })
+})
 
 describe('calculateSessionIntensity', () => {
   it('weights primary 1 and secondary 0.5 per set, normalised to max', () => {

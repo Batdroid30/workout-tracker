@@ -7,10 +7,11 @@ import { deleteWorkoutAction } from '@/app/(app)/workout/actions'
 import { useDialog } from '@/providers/DialogProvider'
 import { useToast } from '@/providers/ToastProvider'
 import type { PRType } from '@/types/database'
+import type { WorkoutItem } from '@/types/workout-history'
 import { setVolume, workoutBodyweight } from '@/lib/load'
 import { BodyMapDefs } from '@/components/ui/BodyMap'
-import type { SessionExerciseInput } from '@/lib/body-map'
-import { readSecondaryMuscles } from '@/lib/muscle-sets'
+import { toSessionExercises } from '@/lib/body-map'
+import { nextCursor, type HistoryCursor } from '@/lib/data/history-page'
 import { SessionBodyMap } from './SessionBodyMap'
 
 // ─── PR badge config ──────────────────────────────────────────────────────────
@@ -24,21 +25,12 @@ const PR_BADGE_CONFIG: Record<PRType, { label: string; color: string; bg: string
 // Display order: weight → 1RM → volume
 const PR_DISPLAY_ORDER: PRType[] = ['best_weight', 'best_1rm', 'best_volume']
 
-interface WorkoutItem {
-  id: string
-  title: string | null
-  started_at: string
-  duration_seconds: number | null
-  bodyweight_kg?: number | null
-  prTypes: PRType[]
-  workout_exercises: Array<{
-    exercise: { name: string; muscle_group: string | null; secondary_muscles: string[] | null }
-    sets: Array<{ weight_kg: number; reps: number; is_warmup: boolean | null }>
-  }>
-}
+type LoadMoreResult = { workouts: WorkoutItem[]; hasMore: boolean } | { error: string }
 
 interface WorkoutHistoryListProps {
   workouts: WorkoutItem[]
+  initialHasMore?: boolean
+  onLoadMore?: (cursor: HistoryCursor | null) => Promise<LoadMoreResult>
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -60,14 +52,6 @@ function formatWorkoutDate(isoString: string): string {
     hour:   '2-digit',
     minute: '2-digit',
   })
-}
-
-function toSessionExercises(workoutExercises: WorkoutItem['workout_exercises']): SessionExerciseInput[] {
-  return workoutExercises.map(we => ({
-    muscleGroup: we.exercise.muscle_group,
-    secondaryMuscles: readSecondaryMuscles(we.exercise.secondary_muscles),
-    workingSetCount: (we.sets ?? []).filter(set => !set.is_warmup && set.reps > 0).length,
-  }))
 }
 
 // ─── Single optimistic card ───────────────────────────────────────────────────
@@ -173,7 +157,39 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
 
 // ─── List ─────────────────────────────────────────────────────────────────────
 
-export function WorkoutHistoryList({ workouts }: WorkoutHistoryListProps) {
+export function WorkoutHistoryList({ workouts: initialWorkouts, initialHasMore = false, onLoadMore }: WorkoutHistoryListProps) {
+  const [workouts, setWorkouts] = useState(initialWorkouts)
+  const [hasMore, setHasMore] = useState(initialHasMore)
+
+  // Fresh server data wins: when the first page changes (refresh, new workout),
+  // drop locally appended pages and restart from the new props. Compared by
+  // content because callers pass a new array instance on every render.
+  const initialSignature = `${initialHasMore}:${initialWorkouts.map(w => w.id).join(',')}`
+  const [seenSignature, setSeenSignature] = useState(initialSignature)
+  if (seenSignature !== initialSignature) {
+    setSeenSignature(initialSignature)
+    setWorkouts(initialWorkouts)
+    setHasMore(initialHasMore)
+  }
+  const [isLoadingMore, startLoadMore] = useTransition()
+  const toast = useToast()
+
+  const handleLoadMore = () => {
+    if (!onLoadMore) return
+    startLoadMore(async () => {
+      const result = await onLoadMore(nextCursor(workouts))
+      if ('error' in result) {
+        toast.error(result.error)
+        return
+      }
+      setWorkouts(current => {
+        const knownIds = new Set(current.map(w => w.id))
+        return [...current, ...result.workouts.filter(w => !knownIds.has(w.id))]
+      })
+      setHasMore(result.hasMore)
+    })
+  }
+
   if (workouts.length === 0) {
     return (
       <div className="glass border border-dashed border-[var(--glass-border)] p-8 text-center">
@@ -188,6 +204,15 @@ export function WorkoutHistoryList({ workouts }: WorkoutHistoryListProps) {
       {workouts.map(workout => (
         <WorkoutHistoryCard key={workout.id} workout={workout} />
       ))}
+      {hasMore && (
+        <button
+          onClick={handleLoadMore}
+          disabled={isLoadingMore}
+          className="w-full min-h-[44px] glass rounded-lg text-[13px] font-medium text-[var(--text-mid)] hover:border-[var(--accent-line)] transition-colors disabled:opacity-50"
+        >
+          {isLoadingMore ? 'Loading…' : 'Load more'}
+        </button>
+      )}
     </div>
   )
 }

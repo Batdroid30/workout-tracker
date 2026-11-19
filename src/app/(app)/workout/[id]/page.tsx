@@ -9,6 +9,8 @@ import { EditWorkoutMetaModal } from '@/components/workout/EditWorkoutMetaModal'
 import { EditSetModal } from '@/components/workout/EditSetModal'
 import { DeleteHistoricalExerciseButton } from '@/components/workout/DeleteHistoricalExerciseButton'
 import { WorkoutCoachInsightCard } from '@/components/workout/WorkoutCoachInsightCard'
+import { WorkoutBodyMapCard } from '@/components/workout/WorkoutBodyMapCard'
+import { toSessionExercises } from '@/lib/body-map'
 import { formatVolume, setVolume, workoutBodyweight, isWeightedBodyweight, formatWeightedSet } from '@/lib/load'
 
 export default async function WorkoutHistoryDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -92,6 +94,9 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
             )}
           </div>
         </EditWorkoutMetaModal>
+
+        {/* ── Body map ─────────────────────────────────────────────────── */}
+        <WorkoutBodyMapCard exercises={toSessionExercises(workout.workout_exercises)} />
 
         {/* ── Stat tiles ───────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3">

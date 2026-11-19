@@ -4,6 +4,8 @@ import { DatabaseError } from '@/lib/errors'
 import { calculate1RM } from '@/lib/algorithms'
 import { setVolume, workoutBodyweight } from '@/lib/load'
 import type { ActiveWorkout, PRType } from '@/types/database'
+import type { WorkoutItem } from '@/types/workout-history'
+import { splitPage, type HistoryCursor } from './history-page'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -13,8 +15,12 @@ async function fetchPRSetMap(supabase: any, uid: string): Promise<Map<string, PR
     .select('set_id, pr_type')
     .eq('user_id', uid)
     .not('set_id', 'is', null)
+  return groupPRTypesBySet(data ?? [])
+}
+
+function groupPRTypesBySet(rows: { set_id: string; pr_type: PRType }[]): Map<string, PRType[]> {
   const map = new Map<string, PRType[]>()
-  data?.forEach((pr: { set_id: string; pr_type: PRType }) => {
+  rows.forEach(pr => {
     const existing = map.get(pr.set_id) ?? []
     existing.push(pr.pr_type)
     map.set(pr.set_id, existing)
@@ -68,34 +74,77 @@ export const getRecentWorkouts = cache(async (userId: string, runAsAdmin: boolea
   return attachPRTypes(data, prSetMap)
 })
 
-const HISTORY_LIMIT = 200
+const HISTORY_PAGE_SIZE = 20
 
-export const getAllWorkouts = cache(async (userId: string, runAsAdmin: boolean = false) => {
+type DataClient = Awaited<ReturnType<typeof resolveSupabaseClient>>
+
+function isPRType(value: string): value is PRType {
+  return value === 'best_weight' || value === 'best_volume' || value === 'best_1rm'
+}
+
+// Filters by the page's workout ids (at most HISTORY_PAGE_SIZE uuids) rather than
+// every set id, which would put hundreds of uuids in the request URL.
+async function fetchPRSetMapForWorkouts(
+  supabase: DataClient,
+  uid: string,
+  workoutIds: string[],
+): Promise<Map<string, PRType[]>> {
+  if (workoutIds.length === 0) return new Map()
+  const { data, error } = await supabase
+    .from('personal_records')
+    .select('set_id, pr_type, sets!inner(workout_exercises!inner(workout_id))')
+    .eq('user_id', uid)
+    .in('sets.workout_exercises.workout_id', workoutIds)
+  if (error) throw new DatabaseError('Failed to fetch history personal records', error)
+
+  const rows = (data ?? []).flatMap(pr =>
+    pr.set_id !== null && isPRType(pr.pr_type) ? [{ set_id: pr.set_id, pr_type: pr.pr_type }] : [],
+  )
+  return groupPRTypesBySet(rows)
+}
+
+export async function getWorkoutHistoryPage(
+  userId: string,
+  cursor: HistoryCursor | null,
+  runAsAdmin: boolean = false,
+): Promise<{ workouts: WorkoutItem[]; hasMore: boolean }> {
   const supabase = await resolveSupabaseClient(runAsAdmin)
 
-  const [{ data, error }, prSetMap] = await Promise.all([
-    supabase
-      .from('workouts')
-      .select(`
-        *,
-        workout_exercises (
-          exercise:exercises ( name, muscle_group, secondary_muscles ),
-          sets ( id, weight_kg, reps, is_warmup )
-        )
-      `)
-      .eq('user_id', userId)
-      .order('started_at', { ascending: false })
-      .limit(HISTORY_LIMIT),
-    fetchPRSetMap(supabase, userId),
-  ])
+  // Fetch one row beyond the page so hasMore needs no separate count query.
+  let query = supabase
+    .from('workouts')
+    .select(`
+      id, title, started_at, duration_seconds, bodyweight_kg,
+      workout_exercises (
+        exercise:exercises ( name, muscle_group, secondary_muscles ),
+        sets ( id, weight_kg, reps, is_warmup )
+      )
+    `)
+    .eq('user_id', userId)
+    .order('started_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(HISTORY_PAGE_SIZE + 1)
+
+  if (cursor) {
+    // Keyset paging: rows strictly after the cursor, with id breaking timestamp ties.
+    // Unlike OFFSET, deleting an already-loaded row cannot make a row get skipped.
+    // Normalised to UTC "Z" form so the value has no characters PostgREST treats specially.
+    const startedAt = new Date(cursor.startedAt).toISOString()
+    query = query.or(`started_at.lt.${startedAt},and(started_at.eq.${startedAt},id.lt.${cursor.id})`)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('Failed to fetch workout history:', error.message)
     throw new DatabaseError('Failed to fetch workout history', error)
   }
 
-  return attachPRTypes(data, prSetMap)
-})
+  const { items, hasMore } = splitPage(data ?? [], HISTORY_PAGE_SIZE)
+  const prSetMap = await fetchPRSetMapForWorkouts(supabase, userId, items.map(w => w.id))
+
+  return { workouts: attachPRTypes(items, prSetMap), hasMore }
+}
 
 /** Volume of a `sets` row joined with workout_exercises → exercise name and workout bodyweight. */
 function setVolumeFromRow(set: any): number {
@@ -215,7 +264,7 @@ export const getWorkoutById = cache(async (workoutId: string, userId: string, ru
         id,
         exercise_id,
         order_index,
-        exercise:exercises ( id, name, muscle_group, equipment ),
+        exercise:exercises ( id, name, muscle_group, secondary_muscles, equipment ),
         sets (
           id,
           set_number,

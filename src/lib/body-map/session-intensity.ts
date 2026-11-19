@@ -12,16 +12,16 @@ export interface SessionExerciseInput {
 export const HEAT_LEVELS = [0.25, 0.5, 0.75, 1] as const
 
 /**
- * Scores each muscle for one session (primary 1 per set, secondary 0.5 per set),
- * then scales by the session's hardest-hit muscle so values fall in (0, 1].
+ * Raw per-muscle set credit for one session (primary 1 per set, secondary 0.5 per set).
+ * Unknown, null, or non-positive entries are skipped; zero-score muscles are omitted.
  */
-export function calculateSessionIntensity(
+export function calculateSessionSets(
   exercises: SessionExerciseInput[],
 ): Partial<Record<MuscleGroup, number>> {
   const rawScores: Record<string, number> = {}
 
   for (const exercise of exercises) {
-    if (exercise.workingSetCount <= 0) continue
+    if (!(exercise.workingSetCount > 0)) continue
     addSetToMuscleCounts(
       rawScores,
       exercise.muscleGroup,
@@ -30,17 +30,31 @@ export function calculateSessionIntensity(
     )
   }
 
-  const knownScores: [MuscleGroup, number][] = []
+  const sets: Partial<Record<MuscleGroup, number>> = {}
   for (const [muscle, score] of Object.entries(rawScores)) {
-    if (isMuscleGroup(muscle) && score > 0) knownScores.push([muscle, score])
+    if (isMuscleGroup(muscle) && score > 0) sets[muscle] = score
   }
+  return sets
+}
 
-  const maxScore = Math.max(0, ...knownScores.map(([, score]) => score))
+/**
+ * Scores each muscle for one session, then scales by the session's hardest-hit
+ * muscle so values fall in (0, 1].
+ */
+export function calculateSessionIntensity(
+  exercises: SessionExerciseInput[],
+): Partial<Record<MuscleGroup, number>> {
+  const sets = calculateSessionSets(exercises)
+  const scores = Object.values(sets).filter((score): score is number => score !== undefined)
+
+  const maxScore = Math.max(0, ...scores)
   if (maxScore === 0) return {}
 
   const intensities: Partial<Record<MuscleGroup, number>> = {}
-  for (const [muscle, score] of knownScores) {
-    intensities[muscle] = score / maxScore
+  for (const muscle of Object.keys(sets)) {
+    if (!isMuscleGroup(muscle)) continue
+    const score = sets[muscle]
+    if (score !== undefined) intensities[muscle] = score / maxScore
   }
   return intensities
 }
