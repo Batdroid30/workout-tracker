@@ -1,5 +1,5 @@
 import { cache } from 'react'
-import { resolveSupabaseClient } from '@/lib/supabase/server'
+import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import type { CoachConversation, CoachMessage, CoachMessageMetadata, CoachRole } from '@/types/coach'
 
@@ -14,9 +14,8 @@ export interface SaveMessageParams {
 
 export const getConversations = cache(async (
   userId: string,
-  runAsAdmin: boolean = false
 ): Promise<CoachConversation[]> => {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
 
   const { data, error } = await (supabase.from('coach_conversations' as any) as any)
     .select('id, user_id, title, created_at, updated_at')
@@ -33,9 +32,8 @@ export const getConversations = cache(async (
 export const getConversationById = cache(async (
   conversationId: string,
   userId: string,
-  runAsAdmin: boolean = false
 ): Promise<CoachConversation | null> => {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
 
   const { data, error } = await (supabase.from('coach_conversations' as any) as any)
     .select('id, user_id, title, created_at, updated_at')
@@ -53,9 +51,8 @@ export const getConversationById = cache(async (
 export const getConversationMessages = cache(async (
   conversationId: string,
   limit = 50,
-  runAsAdmin: boolean = false
 ): Promise<CoachMessage[]> => {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
 
   const { data, error } = await (supabase.from('coach_messages' as any) as any)
     .select('id, conversation_id, role, content, metadata, created_at')
@@ -72,9 +69,8 @@ export const getConversationMessages = cache(async (
 
 export const getDailyUsageCount = cache(async (
   userId: string,
-  runAsAdmin: boolean = false
 ): Promise<number> => {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
 
   const startOfDay = new Date()
   startOfDay.setUTCHours(0, 0, 0, 0)
@@ -96,9 +92,8 @@ export const getDailyUsageCount = cache(async (
 export async function createConversation(
   userId: string,
   title?: string,
-  runAsAdmin: boolean = false
 ): Promise<CoachConversation> {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
 
   const { data, error } = await (supabase.from('coach_conversations' as any) as any)
     .insert({
@@ -119,9 +114,8 @@ export async function updateConversationTitle(
   conversationId: string,
   userId: string,
   title: string,
-  runAsAdmin: boolean = false
 ): Promise<void> {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
 
   const { error } = await (supabase.from('coach_conversations' as any) as any)
     .update({ title, updated_at: new Date().toISOString() })
@@ -135,9 +129,8 @@ export async function updateConversationTitle(
 
 export async function touchConversation(
   conversationId: string,
-  runAsAdmin: boolean = false
 ): Promise<void> {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
 
   const { error } = await (supabase.from('coach_conversations' as any) as any)
     .update({ updated_at: new Date().toISOString() })
@@ -151,9 +144,8 @@ export async function touchConversation(
 export async function deleteConversation(
   conversationId: string,
   userId: string,
-  runAsAdmin: boolean = false
 ): Promise<void> {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
 
   const { error } = await (supabase.from('coach_conversations' as any) as any)
     .delete()
@@ -167,9 +159,8 @@ export async function deleteConversation(
 
 export async function saveCoachMessage(
   params: SaveMessageParams,
-  runAsAdmin: boolean = false
 ): Promise<CoachMessage> {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
 
   const { data, error } = await (supabase.from('coach_messages' as any) as any)
     .insert({
@@ -186,7 +177,7 @@ export async function saveCoachMessage(
   }
 
   // Update conversation updated_at in background
-  touchConversation(params.conversationId, runAsAdmin).catch(() => {})
+  touchConversation(params.conversationId).catch(() => {})
 
   return data as CoachMessage
 }
@@ -195,9 +186,8 @@ export async function recordCoachUsage(
   userId: string,
   tokensIn: number,
   tokensOut: number,
-  runAsAdmin: boolean = false
 ): Promise<void> {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
 
   const { error } = await (supabase.from('coach_usage' as any) as any)
     .insert({

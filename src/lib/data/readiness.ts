@@ -1,10 +1,10 @@
 import { cache } from 'react'
-import { resolveSupabaseClient } from '@/lib/supabase/server'
+import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import type { ReadinessLog } from '@/types/database'
 
-export const getTodayReadiness = cache(async (userId: string, runAsAdmin: boolean = false): Promise<ReadinessLog | null> => {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+export const getTodayReadiness = cache(async (userId: string): Promise<ReadinessLog | null> => {
+  const supabase = await getSupabaseServer()
   
   // Get current date string in YYYY-MM-DD
   const today = new Date().toISOString().split('T')[0]
@@ -24,8 +24,8 @@ export const getTodayReadiness = cache(async (userId: string, runAsAdmin: boolea
   return data
 })
 
-export const getRecentReadinessLogs = cache(async (userId: string, days: number = 7, runAsAdmin: boolean = false): Promise<ReadinessLog[]> => {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+export const getRecentReadinessLogs = cache(async (userId: string, days: number = 7): Promise<ReadinessLog[]> => {
+  const supabase = await getSupabaseServer()
   
   const since = new Date()
   since.setDate(since.getDate() - days)
@@ -49,9 +49,8 @@ export const getRecentReadinessLogs = cache(async (userId: string, days: number 
 export async function saveReadiness(
   userId: string, 
   data: { sleep_score: number; soreness_score: number; energy_score: number }, 
-  runAsAdmin: boolean = false
 ): Promise<ReadinessLog> {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
 
   const today = new Date().toISOString().split('T')[0]
 

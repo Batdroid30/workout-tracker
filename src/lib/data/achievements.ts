@@ -1,5 +1,5 @@
 import { cache } from 'react'
-import { resolveSupabaseClient } from '@/lib/supabase/server'
+import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -60,9 +60,9 @@ function getMondayOf(date: Date): string {
 export const getBadges = cache(async (
   userId: string,
   totalVolume: number,
-  totalWorkouts: number, runAsAdmin: boolean = false,
+  totalWorkouts: number,
 ): Promise<Badge[]> => {
-  const supabase = await resolveSupabaseClient(runAsAdmin)
+  const supabase = await getSupabaseServer()
 
   const [prResult, workoutResult] = await Promise.all([
     supabase.from('personal_records').select('id', { count: 'exact', head: true }).eq('user_id', userId),

@@ -2,7 +2,7 @@
 
 import { requireAuth } from '@/lib/auth'
 import { createRoutine, deleteRoutine, updateRoutine, CreateRoutineInput } from '@/lib/data/routines'
-import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
+import { getSupabaseServer } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 
 export async function createRoutineAction(input: CreateRoutineInput) {
