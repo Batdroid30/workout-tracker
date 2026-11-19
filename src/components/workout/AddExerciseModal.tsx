@@ -121,7 +121,7 @@ export function AddExerciseModal({ isOpen, onClose, onConfirm }: AddExerciseModa
               className={cn(
                 'whitespace-nowrap min-h-9 px-3 rounded-pill t-caption font-medium transition-colors shrink-0',
                 activeTab === mg
-                  ? 'bg-accent text-on-accent'
+                  ? 'bg-primary text-bg'
                   : 'bg-surface-raised border border-border text-tertiary',
               )}
             >
@@ -152,9 +152,7 @@ export function AddExerciseModal({ isOpen, onClose, onConfirm }: AddExerciseModa
                 )}
               >
                 <div>
-                  <p className={cn(
-                    'font-medium text-sm text-primary transition-colors',
-                  )}>
+                  <p className="font-medium text-sm text-primary transition-colors">
                     {ex.name}
                   </p>
                   <p className="text-xs text-tertiary mt-0.5 capitalize">

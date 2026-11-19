@@ -85,7 +85,7 @@ export function PRBanner({ prs, exerciseName, isWeighted, isAssisted, onDismiss,
           </div>
           <button
             onPointerDown={onDismiss}
-            className="text-xs font-medium text-secondary hover:text-primary px-3 py-2 rounded-pill bg-surface border border-border transition-colors active:scale-95"
+            className="text-xs font-medium text-secondary hover:text-primary px-3 min-h-11 rounded-pill bg-surface border border-border transition-colors active:scale-95"
           >
             Got it
           </button>

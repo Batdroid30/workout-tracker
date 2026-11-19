@@ -45,8 +45,8 @@ export function StartEmptyWorkout({ trainingPhase = null }: StartEmptyWorkoutPro
         className="w-full group relative overflow-hidden rounded-card bg-surface border border-border p-5 flex items-center gap-4 text-left active:scale-[0.98] transition-transform"
       >
         {/* Icon */}
-        <div className="relative z-10 w-12 h-12 rounded-control flex items-center justify-center shrink-0 bg-accent">
-          <Plus className="w-5 h-5 text-on-accent" />
+        <div className="relative z-10 w-12 h-12 rounded-control flex items-center justify-center shrink-0 bg-surface-raised">
+          <Plus className="w-5 h-5 text-primary" />
         </div>
 
         {/* Text */}
