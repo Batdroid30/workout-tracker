@@ -27,7 +27,7 @@ function SparklineTooltip({ active, payload, label }: SparklineTooltipProps) {
   return (
     <div
       className="text-xs px-2 py-1 rounded-lg"
-      style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)' }}
+      style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-secondary)' }}
     >
       <div style={{ color: 'var(--text-primary)' }}>
         {label ? new Date(label + 'T00:00:00Z').toLocaleDateString([], { month: 'short', day: 'numeric' }) : ''}

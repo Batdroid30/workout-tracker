@@ -41,7 +41,7 @@ function DensityTooltip({ active, payload, label }: CustomTooltipProps) {
   return (
     <div
       className="text-xs px-2.5 py-1.5 rounded-lg"
-      style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)' }}
+      style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-secondary)' }}
     >
       <div style={{ color: 'var(--text-primary)' }}>{label}</div>
       <div className="font-semibold">{val.toLocaleString()} kg/session</div>
@@ -56,7 +56,7 @@ function RPETooltip({ active, payload, label }: CustomTooltipProps) {
   return (
     <div
       className="text-xs px-2.5 py-1.5 rounded-lg"
-      style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)' }}
+      style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-secondary)' }}
     >
       <div style={{ color: 'var(--text-primary)' }}>{label}</div>
       <div className="font-semibold">RPE {val}</div>

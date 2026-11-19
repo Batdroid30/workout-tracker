@@ -28,7 +28,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   return (
     <div
       className="text-xs px-2.5 py-1.5 rounded-lg space-y-0.5"
-      style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)' }}
+      style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-secondary)' }}
     >
       <div className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{label}</div>
       {payload.map(p => p.value !== null && (

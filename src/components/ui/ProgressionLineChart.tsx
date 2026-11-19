@@ -86,7 +86,7 @@ export function ProgressionLineChart({
             padding: '8px 12px',
           }}
           itemStyle={{
-            color,
+            color: 'var(--text-secondary)',
             fontFamily: 'monospace',
             fontSize: 13,
             fontWeight: 600,

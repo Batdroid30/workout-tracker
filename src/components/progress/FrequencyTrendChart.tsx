@@ -48,7 +48,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
       style={{
         background: 'var(--surface-raised)',
         border:     '1px solid var(--border-strong)',
-        color:      'var(--text-primary)',
+        color:      'var(--text-secondary)',
       }}
     >
       <div style={{ color: 'var(--text-primary)' }}>{label}</div>

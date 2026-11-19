@@ -227,23 +227,23 @@ function VolumeLegend() {
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs p-3.5 bg-bg rounded-xl border border-border text-tertiary">
       <span className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded bg-caution/10 border border-caution/35" />
+        <span className={`w-2 h-2 rounded border ${VOLUME_STATUS_STYLES.maintenance.zone} ${VOLUME_STATUS_STYLES.maintenance.zoneBorder}`} />
         <span>MV – MEV <span className="ml-0.5 opacity-60">(Maintain)</span></span>
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded bg-caution/20 border border-caution/35" />
+        <span className={`w-2 h-2 rounded border ${VOLUME_STATUS_STYLES.sub_optimal.zone} ${VOLUME_STATUS_STYLES.sub_optimal.zoneBorder}`} />
         <span>MEV – MAV <span className="ml-0.5 opacity-60">(Growing)</span></span>
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded bg-positive/25 border border-positive/35" />
+        <span className={`w-2 h-2 rounded border ${VOLUME_STATUS_STYLES.optimal.zone} ${VOLUME_STATUS_STYLES.optimal.zoneBorder}`} />
         <span className="font-semibold text-positive">MAV <span className="ml-0.5 opacity-65">(Optimal)</span></span>
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded bg-caution/10 border border-caution/35" />
+        <span className={`w-2 h-2 rounded border ${VOLUME_STATUS_STYLES.high.zone} ${VOLUME_STATUS_STYLES.high.zoneBorder}`} />
         <span>MAV – MRV <span className="ml-0.5 opacity-60">(High)</span></span>
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded bg-negative/25 border border-negative/35" />
+        <span className={`w-2 h-2 rounded border ${VOLUME_STATUS_STYLES.over_mrv.zone} ${VOLUME_STATUS_STYLES.over_mrv.zoneBorder}`} />
         <span>Over MRV <span className="ml-0.5 opacity-60">(Fatiguing)</span></span>
       </span>
     </div>
@@ -312,15 +312,15 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
       {/* Bar visual */}
       <div className="relative h-2.5 rounded-full overflow-hidden bg-bg border border-border">
         {/* Shaded Landmark Zones */}
-        <div className="absolute top-0 h-full bg-caution/10"
+        <div className={`absolute top-0 h-full ${VOLUME_STATUS_STYLES.maintenance.zone}`}
              style={{ left: `${mvPct}%`, width: `${Math.max(0, mevPct - mvPct)}%` }} />
-        <div className="absolute top-0 h-full bg-caution/20"
+        <div className={`absolute top-0 h-full ${VOLUME_STATUS_STYLES.sub_optimal.zone}`}
              style={{ left: `${mevPct}%`, width: `${Math.max(0, mavMinPct - mevPct)}%` }} />
-        <div className="absolute top-0 h-full bg-positive/25"
+        <div className={`absolute top-0 h-full ${VOLUME_STATUS_STYLES.optimal.zone}`}
              style={{ left: `${mavMinPct}%`, width: `${Math.max(0, mavMaxPct - mavMinPct)}%` }} />
-        <div className="absolute top-0 h-full bg-caution/10"
+        <div className={`absolute top-0 h-full ${VOLUME_STATUS_STYLES.high.zone}`}
              style={{ left: `${mavMaxPct}%`, width: `${Math.max(0, mrvPct - mavMaxPct)}%` }} />
-        <div className="absolute top-0 h-full bg-negative/25"
+        <div className={`absolute top-0 h-full ${VOLUME_STATUS_STYLES.over_mrv.zone}`}
              style={{ left: `${mrvPct}%`, right: 0 }} />
 
         {/* Zone Ticks/Dividers */}
