@@ -470,7 +470,7 @@ export const getWeeklySetsByMuscle = cache(async (userId: string, runAsAdmin: bo
   }
 
   return Object.entries(counts)
-    .map(([muscleGroup, setCount]) => ({ muscleGroup, setCount: Math.ceil(setCount) }))
+    .map(([muscleGroup, setCount]) => ({ muscleGroup, setCount }))
     .sort((a, b) => b.setCount - a.setCount)
 })
 
