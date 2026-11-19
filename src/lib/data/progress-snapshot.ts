@@ -113,14 +113,14 @@ export const getProgressSnapshot = cache(async (userId: string, runAsAdmin: bool
       weight_kg, reps, rpe, completed_at,
       workout_exercises!inner (
         exercise:exercises ( id, name, muscle_group, secondary_muscles, movement_pattern ),
-        workouts!inner ( id, started_at, user_id, bodyweight_kg )
+        workouts!inner ( id, started_at, bodyweight_kg )
       )
     `)
     .eq('workout_exercises.workouts.user_id', userId)
     .eq('is_warmup', false)
     .gt('weight_kg', 0)
     .gt('reps', 0)
-    .gte('completed_at', since.toISOString())
+    .gte('workout_exercises.workouts.started_at', since.toISOString())
 
   if (error) throw new DatabaseError('Failed to fetch progress snapshot', error)
   if (!data || data.length === 0) return makeEmptySnapshot()
