@@ -4,18 +4,23 @@ import nextTs from "eslint-config-next/typescript";
 
 const HEX_COLOUR = "#[0-9a-fA-F]{3,8}\\b";
 const RGB_COLOUR = "rgba?\\(";
-const HEX_MESSAGE = "Design: raw hex colour. Use a colour token (e.g. bg-surface, text-primary) or a ui/ primitive.";
-const RGB_MESSAGE = "Design: raw rgb colour. Use a colour token or a ui/ primitive.";
+const PIXEL_FONT_SIZE = "text-\\[\\d+px\\]";
+const OFF_PALETTE_GREY = "\\b(zinc|gray|slate|neutral|stone)-\\d{2,3}\\b";
+const ARBITRARY_COLOUR = "\\[(#|rgba?\\()";
 
-const designGuardSelectors = [
-  { selector: `Literal[value=/${HEX_COLOUR}/]`, message: HEX_MESSAGE },
-  { selector: `TemplateElement[value.raw=/${HEX_COLOUR}/]`, message: HEX_MESSAGE },
-  { selector: `Literal[value=/${RGB_COLOUR}/]`, message: RGB_MESSAGE },
-  { selector: `TemplateElement[value.raw=/${RGB_COLOUR}/]`, message: RGB_MESSAGE },
-  { selector: "Literal[value=/text-\\[\\d+px\\]/]", message: "Design: pixel font size. Use the type scale (text-xs, text-sm, ...)." },
-  { selector: "Literal[value=/\\b(zinc|gray|slate|neutral|stone)-\\d{2,3}\\b/]", message: "Design: off-palette grey. Use surface, border and text tokens." },
-  { selector: "Literal[value=/\\[(#|rgba?\\()/]", message: "Design: Tailwind arbitrary colour. Use a colour token." },
+const DESIGN_RULES = [
+  { pattern: HEX_COLOUR, message: "Design: raw hex colour. Use a colour token (e.g. bg-surface, text-primary) or a ui/ primitive." },
+  { pattern: RGB_COLOUR, message: "Design: raw rgb colour. Use a colour token or a ui/ primitive." },
+  { pattern: PIXEL_FONT_SIZE, message: "Design: pixel font size. Use the type scale (text-xs, text-sm, ...)." },
+  { pattern: OFF_PALETTE_GREY, message: "Design: off-palette grey. Use surface, border and text tokens." },
+  { pattern: ARBITRARY_COLOUR, message: "Design: Tailwind arbitrary colour. Use a colour token." },
 ];
+
+// Template literals (className={`...`}) are TemplateElement nodes, not Literals.
+const designGuardSelectors = DESIGN_RULES.flatMap(({ pattern, message }) => [
+  { selector: `Literal[value=/${pattern}/]`, message },
+  { selector: `TemplateElement[value.raw=/${pattern}/]`, message },
+]);
 
 const eslintConfig = defineConfig([
   ...nextVitals,

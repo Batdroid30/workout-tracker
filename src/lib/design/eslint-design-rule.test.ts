@@ -10,15 +10,18 @@ async function designMessages(code: string, filePath: string) {
 
 const BAD_COMPONENT = `
 export function Bad() {
-  return <div style={{ color: '#ff0000' }} className="text-[10px] bg-zinc-800 bg-[#123456]" />
+  return <div style={{ color: '#ff0000', background: 'rgba(0,0,0,0.5)' }} className="text-[10px] bg-zinc-800 bg-[#123456]" />
 }
 `
 
-describe('design guard lint rule', () => {
+describe('design guard lint rule', { timeout: 30000 }, () => {
   it('warns on raw colours, pixel font sizes and off-palette greys in feature code', async () => {
     const messages = await designMessages(BAD_COMPONENT, 'src/components/x/Bad.tsx')
 
-    expect(messages.length).toBeGreaterThanOrEqual(4)
+    const texts = messages.map((message) => message.message)
+    for (const category of ['raw hex', 'raw rgb', 'pixel font size', 'off-palette grey', 'arbitrary colour']) {
+      expect(texts.some((text) => text.includes(category)), category).toBe(true)
+    }
     expect(messages.every((message) => message.severity === 1)).toBe(true)
   })
 
@@ -40,6 +43,14 @@ describe('design guard lint rule', () => {
     const messages = await designMessages(code, 'src/components/x/Box.tsx')
 
     expect(messages.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('warns on pixel font sizes and off-palette greys inside template literals', async () => {
+    const code = 'export const Box = ({ x }: { x: string }) => <div className={`text-[10px] bg-zinc-800 ${x}`} />'
+    const texts = (await designMessages(code, 'src/components/x/Box.tsx')).map((message) => message.message)
+
+    expect(texts.some((text) => text.includes('pixel font size'))).toBe(true)
+    expect(texts.some((text) => text.includes('off-palette grey'))).toBe(true)
   })
 
   it('accepts token-based classes', async () => {
