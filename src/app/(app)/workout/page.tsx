@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useDialog } from '@/providers/DialogProvider'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui'
 import { FALLBACK_BODYWEIGHT_KG } from '@/lib/load'
 import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 import { WorkoutFocusSheet } from '@/components/workout/WorkoutFocusSheet'
@@ -272,13 +273,9 @@ export default function WorkoutPage() {
           <p className="t-body mb-8 max-w-xs">
             Pick a focus to get starter exercises, or jump straight in blank.
           </p>
-          <button
-            onClick={() => setFocusSheetOpen(true)}
-            className="h-12 px-8 rounded-[var(--radius-pill)] text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95"
-            style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-          >
-            Pick a Focus
-          </button>
+          <Button onClick={() => setFocusSheetOpen(true)} fullWidth={false} className="px-8">
+            Pick a focus
+          </Button>
 
         </div>
 
@@ -319,16 +316,9 @@ export default function WorkoutPage() {
               className="bg-transparent border-none text-[15px] font-semibold text-[var(--text-hi)] focus:ring-0 p-0 w-full placeholder:text-[var(--text-faint)] outline-none"
             />
           </div>
-          <button
-            onClick={handleFinish}
-            disabled={isFinishing}
-            className={cn(
-              'h-9 px-4 rounded-[var(--radius-pill)] text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50',
-            )}
-            style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-          >
+          <Button onClick={handleFinish} loading={isFinishing} size="sm" fullWidth={false}>
             {isFinishing ? 'Saving…' : 'Finish'}
-          </button>
+          </Button>
         </div>
 
         {/* DUP week scheme pill */}

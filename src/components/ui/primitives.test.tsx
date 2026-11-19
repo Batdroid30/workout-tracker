@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { Button } from './Button'
+import { Button, getButtonClassName } from './Button'
 import { IconButton } from './IconButton'
 import { Card } from './Card'
 import { Chip } from './Chip'
@@ -21,6 +21,15 @@ describe('ui primitives', () => {
 
     expect(renderToStaticMarkup(<Button variant="destructive">Delete</Button>)).toContain('text-negative')
     expect(renderToStaticMarkup(<Button size="sm">x</Button>)).toContain('min-h-10')
+  })
+
+  it('getButtonClassName returns the shared button classes', () => {
+    const classes = getButtonClassName({})
+    expect(classes).toContain('bg-accent')
+    expect(classes).toContain('rounded-pill')
+    expect(classes).toContain('min-h-12')
+    expect(classes).toContain('w-full')
+    expect(getButtonClassName({ fullWidth: false })).not.toContain('w-full')
   })
 
   it('renders IconButton, Chip, Card and SectionHeader', () => {

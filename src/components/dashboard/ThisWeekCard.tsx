@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowRight, Check, Pencil, Target, X } from 'lucide-react'
 import { updateWeeklyGoalAction } from '@/app/(app)/profile/actions'
 import { cn } from '@/lib/utils'
+import { getButtonClassName } from '@/components/ui'
 import type { Mission, MissionPriority } from '@/lib/data/phase-coach'
 import type { WeeklySummary, NextWorkoutSuggestion } from '@/lib/data/insights'
 import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
@@ -185,10 +186,11 @@ export function ThisWeekCard({
             </>
           )}
         </div>
-        <Link href="/routines">
-          <button className="shrink-0 flex items-center gap-1 bg-[var(--accent)] text-[var(--accent-on)] text-[10px] font-semibold uppercase tracking-widest px-3 py-2 rounded-lg active:scale-95 transition-transform">
-            Start <ArrowRight className="w-3 h-3" />
-          </button>
+        <Link
+          href="/routines"
+          className={cn(getButtonClassName({ size: 'sm', fullWidth: false }), 'shrink-0')}
+        >
+          Start <ArrowRight className="w-3 h-3" />
         </Link>
       </div>
     </div>

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, ArrowLeft, Trash2 } from 'lucide-react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui'
 import { Input } from '@/components/ui/Input'
 import { AddExerciseModal } from '@/components/workout/AddExerciseModal'
 import { createRoutineAction, updateRoutineDetailsAction } from '@/app/(app)/routines/actions'
@@ -134,8 +134,11 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
         {/* Save — fixed width, not full-width */}
         <Button
           onClick={handleSave}
-          disabled={isSaving || exercises.length === 0}
-          className="w-auto shrink-0 h-10 px-6 text-xs"
+          loading={isSaving}
+          disabled={exercises.length === 0}
+          size="sm"
+          fullWidth={false}
+          className="shrink-0"
         >
           {isSaving ? 'Saving…' : 'Save'}
         </Button>

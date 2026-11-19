@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateWorkoutMetaAction } from '@/app/(app)/workout/[id]/actions'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui'
 import { useDialog } from '@/providers/DialogProvider'
 import { Edit2 } from 'lucide-react'
 
@@ -89,7 +89,7 @@ export function EditWorkoutMetaModal({ workoutId, initialTitle, initialDuration,
               >
                 Cancel
               </button>
-              <Button onClick={handleSave} disabled={isPending} className="h-10 px-6">
+              <Button onClick={handleSave} loading={isPending} fullWidth={false}>
                 {isPending ? 'Saving...' : 'Save'}
               </Button>
             </div>

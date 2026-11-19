@@ -11,6 +11,7 @@ import {
   Compass,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getButtonClassName } from '@/components/ui'
 import type { Profile } from '@/types/database'
 
 // Sub-components
@@ -208,12 +209,9 @@ export function DashboardTabs({
           )}
         </div>
 
-        {/* Pulsing Start Workout CTA inside Hero Card */}
-        <Link href="/routines" className="block mt-1">
-          <div className="pulse-glow-btn w-full bg-[var(--accent)] hover:bg-[var(--accent-hi)] active:scale-[0.98] transition-all duration-150 p-3.5 rounded-xl flex items-center justify-center gap-2 text-white font-bold tracking-widest text-xs uppercase shadow-lg border border-[rgba(255,255,255,0.1)]">
-            <Dumbbell className="w-4 h-4 text-white" />
-            <span>Start Workout</span>
-          </div>
+        <Link href="/routines" className={cn(getButtonClassName({}), 'mt-1')}>
+          <Dumbbell className="w-4 h-4" />
+          Start workout
         </Link>
       </div>
 

@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { BottomSheet } from '@/components/ui/BottomSheet'
+import { Button } from '@/components/ui'
 import { useToast } from '@/providers/ToastProvider'
 import { createExerciseAction } from '@/app/(app)/exercises/actions'
 import type { MuscleGroup, MovementPattern } from '@/types/database'
@@ -219,14 +220,9 @@ export function CreateExerciseModal({ isOpen, onClose }: CreateExerciseModalProp
       </div>
 
       {/* Save */}
-      <button
-        onClick={handleSave}
-        disabled={!canSave || isPending}
-        className="w-full py-3.5 rounded-[var(--radius-pill)] font-semibold uppercase tracking-widest text-sm transition-all active:scale-95 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-        style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-      >
-        {isPending ? 'Creating…' : 'Create Exercise'}
-      </button>
+      <Button onClick={handleSave} disabled={!canSave} loading={isPending}>
+        {isPending ? 'Creating…' : 'Create exercise'}
+      </Button>
     </BottomSheet>
   )
 }

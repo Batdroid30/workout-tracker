@@ -1,5 +1,7 @@
 import { Suspense } from 'react'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
+import { getButtonClassName } from '@/components/ui'
+import { cn } from '@/lib/utils'
 import { WeeklyBodyMapCard } from '@/components/progress/WeeklyBodyMapCard'
 import { PhaseCoachDetail } from '@/components/progress/PhaseCoachDetail'
 import { BodyweightSection } from '@/components/progress/BodyweightSection'
@@ -384,8 +386,7 @@ export default async function ProgressPage() {
             </div>
             <Link
               href="/exercises"
-              className="shrink-0 h-9 px-4 rounded-[var(--radius-pill)] text-[10px] font-semibold uppercase tracking-widest transition-all active:scale-95 hover:opacity-90 flex items-center justify-center"
-              style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
+              className={cn(getButtonClassName({ size: 'sm', fullWidth: false }), 'shrink-0')}
             >
               Browse
             </Link>

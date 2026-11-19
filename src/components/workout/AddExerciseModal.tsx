@@ -5,7 +5,7 @@ import { Search, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Exercise } from '@/types/database'
 import { useExercises } from '@/hooks/useExercises'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui'
 
 const MUSCLE_GROUPS = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core']
 
@@ -214,7 +214,7 @@ export function AddExerciseModal({ isOpen, onClose, onConfirm }: AddExerciseModa
             ))}
           </div>
           <Button onClick={handleConfirm}>
-            Add {selectionCount} Exercise{selectionCount > 1 ? 's' : ''} →
+            Add {selectionCount} exercise{selectionCount > 1 ? 's' : ''} →
           </Button>
         </div>
       )}

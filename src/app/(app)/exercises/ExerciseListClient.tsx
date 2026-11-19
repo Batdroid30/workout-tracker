@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { Search, ChevronRight, Plus } from 'lucide-react'
+import { Button } from '@/components/ui'
 import Link from 'next/link'
 import { Exercise } from '@/types/database'
 import { CreateExerciseModal } from '@/components/exercises/CreateExerciseModal'
@@ -62,14 +63,9 @@ export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseList
           </div>
         )}
 
-        <button
-          onClick={() => setCreateModalOpen(true)}
-          className="flex items-center justify-center gap-2 w-full h-11 rounded-[var(--radius-inner)] text-sm font-semibold uppercase tracking-wider transition-all active:scale-95 hover:opacity-90"
-          style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-        >
-          <Plus className="w-4 h-4" />
-          Create Exercise
-        </button>
+        <Button onClick={() => setCreateModalOpen(true)} leadingIcon={<Plus className="w-4 h-4" />}>
+          Create exercise
+        </Button>
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-faint)' }} />

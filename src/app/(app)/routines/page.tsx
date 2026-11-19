@@ -4,6 +4,7 @@ import { getRoutines } from '@/lib/data/routines'
 import { getProfile } from '@/lib/data/profile'
 import { RoutineCard } from '@/components/routines/RoutineCard'
 import { Plus, Zap } from 'lucide-react'
+import { getButtonClassName } from '@/components/ui'
 import Link from 'next/link'
 import { StartEmptyWorkout } from '@/components/workout/StartEmptyWorkout'
 
@@ -57,9 +58,9 @@ export default async function RoutinesPage() {
             <p className="t-caption mb-5">Save a template to speed up future sessions.</p>
             <Link
               href="/routines/create"
-              className="inline-flex items-center gap-2 h-10 px-5 rounded-[var(--radius-pill)] bg-[var(--accent)] text-[var(--accent-on)] text-[11px] font-semibold uppercase tracking-widest hover:opacity-90 transition-opacity"
+              className={getButtonClassName({ fullWidth: false })}
             >
-              <Plus className="w-3.5 h-3.5" /> Create Routine
+              <Plus className="w-3.5 h-3.5" /> Create routine
             </Link>
           </div>
         ) : (

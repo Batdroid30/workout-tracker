@@ -7,6 +7,7 @@ import { useWorkoutStore } from '@/store/workout.store'
 import { deleteRoutineAction } from '@/app/(app)/routines/actions'
 import { useDialog } from '@/providers/DialogProvider'
 import { useToast } from '@/providers/ToastProvider'
+import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils'
 
 interface RoutineCardProps {
@@ -133,17 +134,9 @@ export function RoutineCard({ routine }: RoutineCardProps) {
       </p>
 
       {/* Start button */}
-      <button
-        onClick={handleStartRoutine}
-        className={cn(
-          'w-full h-10 rounded-[var(--radius-inner)] flex items-center justify-center gap-2',
-          'text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-[0.97]',
-          'bg-[var(--accent)] text-[var(--accent-on)] hover:opacity-90',
-          'shadow-[0_4px_20px_rgba(247,37,133,0.30)]',
-        )}
-      >
-        <Play className="w-3.5 h-3.5 fill-current" /> Start Routine
-      </button>
+      <Button onClick={handleStartRoutine} leadingIcon={<Play className="w-3.5 h-3.5 fill-current" />}>
+        Start routine
+      </Button>
     </div>
   )
 }

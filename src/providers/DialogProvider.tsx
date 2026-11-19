@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, ReactNode } from 'react'
+import { Button } from '@/components/ui'
 
 interface DialogOptions {
   title: string
@@ -87,16 +88,13 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                   {options.cancelText || 'Cancel'}
                 </button>
               )}
-              <button
+              <Button
                 onClick={handleConfirm}
-                className="px-5 py-2.5 text-xs font-semibold rounded-[var(--radius-inner)] transition-all hover:opacity-90 uppercase tracking-widest"
-                style={options.danger
-                  ? { background: 'rgb(239,68,68)', color: '#fff' }
-                  : { background: 'var(--accent)',  color: 'var(--accent-on)' }
-                }
+                variant={options.danger ? 'destructive' : 'primary'}
+                fullWidth={false}
               >
                 {options.confirmText || 'OK'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

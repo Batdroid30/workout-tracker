@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Scale } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui'
 
 interface BodyweightLoggerProps {
   latestWeight: number | null
@@ -60,20 +60,17 @@ export function BodyweightLogger({ latestWeight }: BodyweightLoggerProps) {
         </span>
       </div>
 
-      <button
+      <Button
         onClick={handleLog}
-        disabled={isBusy || !value}
-        className={cn(
-          'shrink-0 h-9 px-4 font-medium text-[10px] uppercase tracking-widest rounded-xl transition-all active:scale-95',
-          status === 'saved'
-            ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
-            : status === 'error'
-            ? 'bg-[var(--rose)]/20 text-[var(--rose)]'
-            : 'bg-[var(--accent)] text-[var(--accent-on)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed',
-        )}
+        disabled={!value}
+        loading={isBusy}
+        size="sm"
+        fullWidth={false}
+        variant={status === 'error' ? 'destructive' : status === 'saved' ? 'secondary' : 'primary'}
+        className="shrink-0"
       >
-        {status === 'saving' ? '…' : status === 'saved' ? '✓' : status === 'error' ? 'Error' : 'Log'}
-      </button>
+        {status === 'saved' ? '✓' : status === 'error' ? 'Error' : 'Log'}
+      </Button>
     </div>
   )
 }

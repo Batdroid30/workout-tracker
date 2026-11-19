@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase/client'
-import { Input } from '@/components/ui/Input'
-import { Loader2 } from 'lucide-react'
+import { Button, Input } from '@/components/ui'
 import Link from 'next/link'
 
 type PageState = 'loading' | 'ready' | 'success' | 'error'
@@ -137,14 +136,9 @@ export default function ResetPasswordPage() {
         <Input type="password" name="confirmPassword" placeholder="Repeat your password" required minLength={6} />
       </div>
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="mt-6 w-full min-h-[48px] flex items-center justify-center gap-2 rounded-[var(--radius-inner)] text-sm font-semibold transition-colors disabled:opacity-60"
-        style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-      >
-        {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Updating…</> : 'Update Password'}
-      </button>
+      <Button type="submit" loading={isSubmitting} className="mt-6">
+        {isSubmitting ? 'Updating…' : 'Update password'}
+      </Button>
     </form>
   )
 }

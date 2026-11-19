@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { logReadinessAction } from '@/app/(app)/dashboard/actions'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui'
 import { useToast } from '@/providers/ToastProvider'
 import { Activity, Battery, Moon, Sparkles } from 'lucide-react'
 
@@ -60,10 +60,10 @@ export function DailyReadinessCard({ todayReadiness }: ReadinessProps) {
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-[var(--text-hi)]">How do you feel today?</h2>
         <Button
-          variant="primary"
-          className="!w-auto !min-h-0 h-8 px-3"
+          size="sm"
+          fullWidth={false}
           onClick={handleSave}
-          disabled={isPending}
+          loading={isPending}
         >
           {isPending ? 'Saving…' : 'Save'}
         </Button>

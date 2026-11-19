@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { importHevyCSVAction, recalculatePRsAfterImportAction } from './actions'
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui'
 
 const IMPORT_PHASES = [
   { threshold: 15,  message: 'Parsing CSV data...'    },
@@ -161,14 +162,9 @@ export default function ImportPage() {
               )}
             </div>
 
-            <button
-              type="submit"
-              disabled={!file || isUploading}
-              className="w-full h-12 rounded-[var(--radius-pill)] font-semibold uppercase tracking-widest transition-all active:scale-[0.98] hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-            >
-              Start Import
-            </button>
+            <Button type="submit" disabled={!file || isUploading}>
+              Start import
+            </Button>
           </form>
         )}
 

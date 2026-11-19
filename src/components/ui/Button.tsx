@@ -18,6 +18,27 @@ const BUTTON_SIZES = {
 export type ButtonVariant = keyof typeof BUTTON_VARIANTS
 export type ButtonSize = keyof typeof BUTTON_SIZES
 
+interface ButtonClassNameOptions {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  fullWidth?: boolean
+}
+
+// Single source of the button look, also used by navigating <Link> CTAs
+// so we never nest a <button> inside an anchor.
+export function getButtonClassName({
+  variant = 'primary',
+  size = 'md',
+  fullWidth = true,
+}: ButtonClassNameOptions): string {
+  return cn(
+    'focus-ring inline-flex items-center justify-center gap-2 px-5 rounded-pill text-[15px] font-semibold transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed',
+    BUTTON_VARIANTS[variant],
+    BUTTON_SIZES[size],
+    fullWidth && 'w-full',
+  )
+}
+
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
   size?: ButtonSize
@@ -45,13 +66,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       ref={ref}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={cn(
-        'focus-ring inline-flex items-center justify-center gap-2 px-5 rounded-pill text-[15px] font-semibold transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed',
-        BUTTON_VARIANTS[variant],
-        BUTTON_SIZES[size],
-        fullWidth && 'w-full',
-        className,
-      )}
+      className={cn(getButtonClassName({ variant, size, fullWidth }), className)}
       {...props}
     >
       {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : leadingIcon}

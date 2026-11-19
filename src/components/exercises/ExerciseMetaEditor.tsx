@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Pencil } from 'lucide-react'
 import { BottomSheet } from '@/components/ui/BottomSheet'
+import { Button } from '@/components/ui'
 import { useToast } from '@/providers/ToastProvider'
 import { updateExerciseAction } from '@/app/(app)/exercises/actions'
 import type { MuscleGroup, MovementPattern } from '@/types/database'
@@ -194,14 +195,9 @@ export function ExerciseMetaEditor({
         </div>
 
         {/* Save */}
-        <button
-          onClick={handleSave}
-          disabled={!isDirty || isPending}
-          className="w-full py-3.5 rounded-[var(--radius-pill)] font-semibold uppercase tracking-widest text-sm transition-all active:scale-95 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-        >
-          {isPending ? 'Saving…' : 'Save Changes'}
-        </button>
+        <Button onClick={handleSave} disabled={!isDirty} loading={isPending}>
+          {isPending ? 'Saving…' : 'Save changes'}
+        </Button>
       </BottomSheet>
     </>
   )

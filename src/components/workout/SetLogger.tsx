@@ -6,6 +6,7 @@ import { PRBanner }             from './PRBanner'
 import type { ActiveExercise, PRCheckResult } from '@/types/database'
 import { Plus, Check, MoreVertical, Calculator, Timer, ChevronDown } from 'lucide-react'
 import { BottomSheet } from '@/components/ui/BottomSheet'
+import { Button } from '@/components/ui'
 import { useState, useEffect, useCallback } from 'react'
 import { useWorkoutStore }      from '@/store/workout.store'
 import { usePRStore }           from '@/store/pr.store'
@@ -502,13 +503,9 @@ function RestDurationPicker({ isOpen, current, onChange, onClose }: RestDuration
           className="flex-1 h-11 rounded-[var(--radius-inner)] px-4 mono text-sm text-[var(--text-hi)] placeholder:text-[var(--text-faint)] focus:outline-none"
           style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
         />
-        <button
-          onClick={handleCustomSubmit}
-          className="h-11 px-5 rounded-[var(--radius-inner)] mono text-sm transition-transform active:scale-95"
-          style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-        >
+        <Button onClick={handleCustomSubmit} fullWidth={false}>
           Set
-        </button>
+        </Button>
       </div>
       <p className="text-[10px] text-[var(--text-faint)] mt-2">
         Saved per exercise — pre-fills next time.

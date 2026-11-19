@@ -12,7 +12,7 @@ import {
   refreshCacheAction,
   updateTrainingProfileAction,
 } from './actions'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui'
 import { useDialog } from '@/providers/DialogProvider'
 import { resizeImageToDataUrl } from '@/lib/image/resize-image'
 
@@ -318,12 +318,8 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
             </div>
           </div>
         </div>
-        <Button type="submit" disabled={isSaving} className="w-full h-12">
-          {isSaving ? 'Saving...' : (
-            <div className="flex items-center gap-2">
-              <Save className="w-4 h-4" /> Save Changes
-            </div>
-          )}
+        <Button type="submit" loading={isSaving} leadingIcon={<Save className="w-4 h-4" />}>
+          {isSaving ? 'Saving...' : 'Save changes'}
         </Button>
       </form>
 
