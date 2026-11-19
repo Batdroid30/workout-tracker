@@ -74,7 +74,7 @@ export const getRecentWorkouts = cache(async (userId: string, runAsAdmin: boolea
   return attachPRTypes(data, prSetMap)
 })
 
-export const HISTORY_PAGE_SIZE = 20
+const HISTORY_PAGE_SIZE = 20
 
 type DataClient = Awaited<ReturnType<typeof resolveSupabaseClient>>
 

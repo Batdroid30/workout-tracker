@@ -321,7 +321,7 @@ export default async function ProgressPage() {
             </div>
           )}
 
-          {/* PR velocity + timeline — streamed (separate personal_records query) */}
+          {/* PR timeline — streamed (separate personal_records query) */}
           <Suspense fallback={<PRSectionSkeleton />}>
             <StrengthPRLoader userId={userId} />
           </Suspense>
@@ -426,10 +426,6 @@ function BodyCompSkeleton() {
 function PRSectionSkeleton() {
   return (
     <div className="space-y-4 animate-pulse">
-      <div className="glass p-4">
-        <div className="h-3 w-24 bg-[var(--surface-2)] rounded mb-3" />
-        <div className="h-[120px] bg-[var(--surface-2)] rounded" />
-      </div>
       <div className="space-y-2">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="glass p-3 flex items-center gap-3">
