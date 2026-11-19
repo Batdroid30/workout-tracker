@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { logReadinessAction } from '@/app/(app)/dashboard/actions'
 import { Button } from '@/components/ui/Button'
+import { useToast } from '@/providers/ToastProvider'
 import { Activity, Battery, Moon, Sparkles } from 'lucide-react'
 
 interface ReadinessProps {
@@ -17,6 +18,7 @@ const SCORES = [1, 2, 3, 4, 5] as const
 
 export function DailyReadinessCard({ todayReadiness }: ReadinessProps) {
   const [isPending, startTransition] = useTransition()
+  const toast = useToast()
 
   const [sleep, setSleep] = useState<number>(3)
   const [soreness, setSoreness] = useState<number>(3)
@@ -27,10 +29,11 @@ export function DailyReadinessCard({ todayReadiness }: ReadinessProps) {
     const isGreat = avgScore >= 4
 
     return (
-      <div className="glass px-4 py-3 rounded-[var(--radius-card)] border border-[var(--glass-border)] flex items-center gap-2 text-xs text-[var(--text-low)]">
-        {isGreat && <Sparkles className="w-4 h-4 shrink-0 text-emerald-500" />}
+      <div className="glass px-3 py-3 rounded-[var(--radius-card)] border border-[var(--glass-border)] flex items-center gap-1.5 whitespace-nowrap text-[11px] text-[var(--text-low)]">
+        {isGreat && <Sparkles className="w-3.5 h-3.5 shrink-0 text-emerald-500" />}
         <span className="font-semibold text-[var(--text-hi)]">Readiness</span>
-        <span className="mono">
+        <span aria-hidden="true">·</span>
+        <span className="mono min-w-0">
           Sleep {todayReadiness.sleep_score} · Recovery {todayReadiness.soreness_score} · Energy {todayReadiness.energy_score}
         </span>
       </div>
@@ -39,11 +42,16 @@ export function DailyReadinessCard({ todayReadiness }: ReadinessProps) {
 
   const handleSave = () => {
     startTransition(async () => {
-      await logReadinessAction({
-        sleep_score: sleep,
-        soreness_score: soreness,
-        energy_score: energy,
-      })
+      try {
+        await logReadinessAction({
+          sleep_score: sleep,
+          soreness_score: soreness,
+          energy_score: energy,
+        })
+      } catch (error: unknown) {
+        console.error('Failed to save readiness', error)
+        toast.error("Couldn't save readiness. Try again.")
+      }
     })
   }
 
