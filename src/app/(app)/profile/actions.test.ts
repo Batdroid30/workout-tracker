@@ -14,7 +14,7 @@ vi.mock('@/lib/supabase/server', () => ({
   getSupabaseServer: mocks.getSupabaseServer,
 }))
 
-import { clearAllWorkoutDataAction } from './actions'
+import { clearAllWorkoutDataAction, uploadAvatarAction } from './actions'
 
 const userId = 'user-1'
 
@@ -103,5 +103,35 @@ describe('clearAllWorkoutDataAction', () => {
     expect((result as { error: string }).error).toMatch(/program/i)
     // Workouts and PRs are already gone, so cached pages must refresh.
     expect(mocks.revalidateAll).toHaveBeenCalledOnce()
+  })
+})
+
+describe('uploadAvatarAction', () => {
+  const upload = vi.fn()
+  const getPublicUrl = vi.fn(() => ({ data: { publicUrl: 'https://cdn.example/avatar.jpg' } }))
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    mocks.requireAuth.mockResolvedValue({ userId, session: {} })
+    mocks.getSupabaseServer.mockResolvedValue({ storage: { from: () => ({ upload, getPublicUrl }) } })
+    upload.mockResolvedValue({ error: null })
+  })
+
+  it('stores the image under the user folder with its real content type', async () => {
+    const result = await uploadAvatarAction('data:image/jpeg;base64,/9j/4AAQ', 'avatar.jpg')
+
+    expect(result).toEqual({ success: true, url: 'https://cdn.example/avatar.jpg' })
+    const [path, , options] = upload.mock.calls[0]
+    expect(path).toMatch(/^user-1\/\d+-avatar\.jpg$/)
+    expect(options).toEqual({ contentType: 'image/jpeg', upsert: true })
+  })
+
+  it('rejects data that is not a supported image without uploading', async () => {
+    const result = await uploadAvatarAction('data:text/html;base64,PGgxPg==', 'page.html')
+
+    expect(result.success).toBe(false)
+    expect((result as { error: string }).error).toMatch(/image/i)
+    expect(upload).not.toHaveBeenCalled()
   })
 })

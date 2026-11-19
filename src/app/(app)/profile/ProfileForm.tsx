@@ -14,6 +14,7 @@ import {
 } from './actions'
 import { Button } from '@/components/ui/Button'
 import { useDialog } from '@/providers/DialogProvider'
+import { resizeImageToDataUrl } from '@/lib/image/resize-image'
 
 interface ProfileFormProps {
   profile: Profile | null
@@ -140,24 +141,21 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
     const file = e.target.files?.[0]
     if (!file) return
     setIsUploading(true)
-    const reader = new FileReader()
-    reader.onloadend = async () => {
-      const base64Image = reader.result as string
-      try {
-        const result = await uploadAvatarAction(base64Image, file.name)
-        if (result.success) {
-          setAvatarUrl(result.url || '')
-        } else {
-          dialog.alert({ title: 'Error', description: result.error || 'Upload failed' })
-        }
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Upload failed'
-        dialog.alert({ title: 'Error', description: message })
-      } finally {
-        setIsUploading(false)
+    try {
+      const base64Image = await resizeImageToDataUrl(file)
+      const jpegName    = `${file.name.replace(/\.[^.]*$/, '') || 'avatar'}.jpg`
+      const result      = await uploadAvatarAction(base64Image, jpegName)
+      if (result.success) {
+        setAvatarUrl(result.url || '')
+      } else {
+        dialog.alert({ title: 'Error', description: result.error || 'Upload failed' })
       }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Upload failed'
+      dialog.alert({ title: 'Error', description: message })
+    } finally {
+      setIsUploading(false)
     }
-    reader.readAsDataURL(file)
   }
 
   // ── Training profile handler ──────────────────────────────────────────────

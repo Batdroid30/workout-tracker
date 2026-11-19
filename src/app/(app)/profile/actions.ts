@@ -35,16 +35,24 @@ export async function updateProfileAction(formData: FormData) {
   }
 }
 
+// Matches the avatars bucket's allowed_mime_types.
+const AVATAR_DATA_URL = /^data:(image\/(?:png|jpeg|webp));base64,(.+)$/
+
 export async function uploadAvatarAction(base64Image: string, fileName: string) {
-  const { userId, session } = await requireAuth()
+  const { userId } = await requireAuth()
+
+  const match = AVATAR_DATA_URL.exec(base64Image)
+  if (!match) return { success: false, error: 'Please choose a PNG, JPEG or WebP image.' }
+  const [, contentType, base64Data] = match
+
   const supabase = await getSupabaseServer()
-  const buffer   = Buffer.from(base64Image.split(',')[1], 'base64')
+  const buffer   = Buffer.from(base64Data, 'base64')
   const path     = `${userId}/${Date.now()}-${fileName}`
 
   try {
     const { error } = await supabase.storage
       .from('avatars')
-      .upload(path, buffer, { contentType: 'image/png', upsert: true })
+      .upload(path, buffer, { contentType, upsert: true })
 
     if (error) {
       if (error.message.includes('Bucket not found')) {
