@@ -9,8 +9,7 @@ import { useToast } from '@/providers/ToastProvider'
 import type { PRType } from '@/types/database'
 import { setVolume, workoutBodyweight } from '@/lib/load'
 import { BodyMapDefs } from '@/components/ui/BodyMap'
-import type { SessionExerciseInput } from '@/lib/body-map'
-import { readSecondaryMuscles } from '@/lib/muscle-sets'
+import { toSessionExercises } from '@/lib/body-map'
 import { SessionBodyMap } from './SessionBodyMap'
 
 // ─── PR badge config ──────────────────────────────────────────────────────────
@@ -60,14 +59,6 @@ function formatWorkoutDate(isoString: string): string {
     hour:   '2-digit',
     minute: '2-digit',
   })
-}
-
-function toSessionExercises(workoutExercises: WorkoutItem['workout_exercises']): SessionExerciseInput[] {
-  return workoutExercises.map(we => ({
-    muscleGroup: we.exercise.muscle_group,
-    secondaryMuscles: readSecondaryMuscles(we.exercise.secondary_muscles),
-    workingSetCount: (we.sets ?? []).filter(set => !set.is_warmup && set.reps > 0).length,
-  }))
 }
 
 // ─── Single optimistic card ───────────────────────────────────────────────────
