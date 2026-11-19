@@ -32,7 +32,8 @@ export function DeleteWorkoutButton({ workoutId }: { workoutId: string }) {
       if (result?.error) {
         toast.error(result.error || 'Failed to delete workout')
       } else {
-        toast.success('Workout deleted')
+        if (result.prError) toast.error(result.prError)
+        else toast.success('Workout deleted')
         router.push('/profile?tab=history')
       }
     })

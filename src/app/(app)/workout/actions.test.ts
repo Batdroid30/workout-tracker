@@ -111,15 +111,41 @@ describe('deleteWorkoutAction', () => {
     expect(mocks.evaluateAndSaveAllPRs).toHaveBeenCalledWith(userId)
   })
 
-  it('fails without rebuilding when the PR wipe errors', async () => {
+  it('fails without touching PRs when the workout delete itself fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    mocks.deleteWorkout.mockRejectedValue(new Error('delete failed'))
+
+    const result = await deleteWorkoutAction('w-1')
+
+    expect(result).toEqual({ success: false, error: 'delete failed' })
+    expect(from).not.toHaveBeenCalled()
+    expect(mocks.revalidateAll).not.toHaveBeenCalled()
+  })
+
+  // The workout is already gone at this point, so the action must not report
+  // failure (the history list would put the deleted workout back on screen).
+  it('reports the workout deleted with a PR warning when the PR wipe errors', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     eq.mockResolvedValue({ error: { message: 'wipe failed' } })
 
     const result = await deleteWorkoutAction('w-1')
 
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
+    expect((result as { prError?: string }).prError).toMatch(/personal records/i)
     expect(mocks.evaluateAndSaveAllPRs).not.toHaveBeenCalled()
-    expect(mocks.revalidateAll).not.toHaveBeenCalled()
+    expect(mocks.revalidateAll).toHaveBeenCalledOnce()
+  })
+
+  it('reports the workout deleted with a PR warning when the rebuild throws', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    eq.mockResolvedValue({ error: null })
+    mocks.evaluateAndSaveAllPRs.mockRejectedValue(new Error('rebuild failed'))
+
+    const result = await deleteWorkoutAction('w-1')
+
+    expect(result.success).toBe(true)
+    expect((result as { prError?: string }).prError).toMatch(/personal records/i)
+    expect(mocks.revalidateAll).toHaveBeenCalledOnce()
   })
 })
 
