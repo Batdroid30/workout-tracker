@@ -112,13 +112,14 @@ npx supabase db push
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...   # admin operations (PR checks, imports)
+SUPABASE_SERVICE_ROLE_KEY=...   # maintenance scripts in scripts/ only — the app never uses it
 AUTH_SECRET=...                  # NextAuth session signing
 ```
 
 ### Database
 - RLS enabled on all tables. Policies scope every row to `auth.uid()`.
-- Use `getSupabaseAdmin()` only in Server Actions and background jobs — never in client components.
+- App code reaches the database only through `getSupabaseServer()` (the signed-in user's client), so RLS always applies. There is no admin client in `src/`; keep the explicit `.eq('user_id', …)` filters anyway.
+- `supabase/tests/rls_isolation.sql` checks that one user can't touch another's rows. It always rolls back, so it is safe to run against production after any policy change.
 - New DB changes: create a migration in `supabase/migrations/` and run `npx supabase db push`.
 
 ---

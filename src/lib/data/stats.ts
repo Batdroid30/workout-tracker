@@ -168,7 +168,6 @@ export async function evaluateAndSavePRs(
     is_warmup: boolean
   }>,
 ): Promise<PREvaluationResult[]> {
-  // Use admin client to bypass RLS — we already verified ownership in the action
   const supabase = await getSupabaseServer()
 
   const { data: existingPRs } = await supabase
