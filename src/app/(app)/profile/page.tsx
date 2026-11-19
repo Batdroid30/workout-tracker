@@ -68,7 +68,7 @@ export default async function ProfilePage({
 }
 
 async function HistoryTab({ userId }: { userId: string }) {
-  const { workouts, hasMore } = await getWorkoutHistoryPage(userId, 0)
+  const { workouts, hasMore } = await getWorkoutHistoryPage(userId, null)
 
   return (
     <div className="space-y-3">

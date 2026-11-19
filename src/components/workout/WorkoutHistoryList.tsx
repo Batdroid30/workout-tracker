@@ -11,6 +11,7 @@ import type { WorkoutItem } from '@/types/workout-history'
 import { setVolume, workoutBodyweight } from '@/lib/load'
 import { BodyMapDefs } from '@/components/ui/BodyMap'
 import { toSessionExercises } from '@/lib/body-map'
+import { nextCursor, type HistoryCursor } from '@/lib/data/history-page'
 import { SessionBodyMap } from './SessionBodyMap'
 
 // ─── PR badge config ──────────────────────────────────────────────────────────
@@ -29,7 +30,7 @@ type LoadMoreResult = { workouts: WorkoutItem[]; hasMore: boolean } | { error: s
 interface WorkoutHistoryListProps {
   workouts: WorkoutItem[]
   initialHasMore?: boolean
-  onLoadMore?: (offset: number) => Promise<LoadMoreResult>
+  onLoadMore?: (cursor: HistoryCursor | null) => Promise<LoadMoreResult>
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -165,7 +166,7 @@ export function WorkoutHistoryList({ workouts: initialWorkouts, initialHasMore =
   const handleLoadMore = () => {
     if (!onLoadMore) return
     startLoadMore(async () => {
-      const result = await onLoadMore(workouts.length)
+      const result = await onLoadMore(nextCursor(workouts))
       if ('error' in result) {
         toast.error(result.error)
         return

@@ -5,7 +5,7 @@ import { calculate1RM } from '@/lib/algorithms'
 import { setVolume, workoutBodyweight } from '@/lib/load'
 import type { ActiveWorkout, PRType } from '@/types/database'
 import type { WorkoutItem } from '@/types/workout-history'
-import { splitPage } from './history-page'
+import { splitPage, type HistoryCursor } from './history-page'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -93,13 +93,13 @@ async function fetchPRSetMapForSets(
 
 export async function getWorkoutHistoryPage(
   userId: string,
-  offset: number,
+  cursor: HistoryCursor | null,
   runAsAdmin: boolean = false,
 ): Promise<{ workouts: WorkoutItem[]; hasMore: boolean }> {
   const supabase = await resolveSupabaseClient(runAsAdmin)
 
   // Fetch one row beyond the page so hasMore needs no separate count query.
-  const { data, error } = await supabase
+  let query = supabase
     .from('workouts')
     .select(`
       id, title, started_at, duration_seconds, bodyweight_kg,
@@ -110,7 +110,18 @@ export async function getWorkoutHistoryPage(
     `)
     .eq('user_id', userId)
     .order('started_at', { ascending: false })
-    .range(offset, offset + HISTORY_PAGE_SIZE)
+    .order('id', { ascending: false })
+    .limit(HISTORY_PAGE_SIZE + 1)
+
+  if (cursor) {
+    // Keyset paging: rows strictly after the cursor, with id breaking timestamp ties.
+    // Unlike OFFSET, deleting an already-loaded row cannot make a row get skipped.
+    // Normalised to UTC "Z" form so the value has no characters PostgREST treats specially.
+    const startedAt = new Date(cursor.startedAt).toISOString()
+    query = query.or(`started_at.lt.${startedAt},and(started_at.eq.${startedAt},id.lt.${cursor.id})`)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('Failed to fetch workout history:', error.message)

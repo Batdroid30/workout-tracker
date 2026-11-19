@@ -6,6 +6,7 @@ import { evaluateAndSaveAllPRs } from '@/lib/data/stats'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 import { getWorkoutHistoryPage } from '@/lib/data/workouts'
+import type { HistoryCursor } from '@/lib/data/history-page'
 import type { WorkoutItem } from '@/types/workout-history'
 import { z } from 'zod'
 import type { TrainingGoal, TrainingPhase, TrainingStyle, ExperienceLevel } from '@/types/database'
@@ -162,15 +163,17 @@ export async function clearAllWorkoutDataAction() {
   }
 }
 
-const LoadMoreOffsetSchema = z.number().int().min(0)
+const LoadMoreCursorSchema = z
+  .object({ startedAt: z.iso.datetime({ offset: true }), id: z.uuid() })
+  .nullable()
 
 export async function loadMoreWorkoutsAction(
-  offset: number,
+  cursor: HistoryCursor | null,
 ): Promise<{ workouts: WorkoutItem[]; hasMore: boolean } | { error: string }> {
   const { userId } = await requireAuth()
 
-  const parsed = LoadMoreOffsetSchema.safeParse(offset)
-  if (!parsed.success) return { error: 'Invalid offset' }
+  const parsed = LoadMoreCursorSchema.safeParse(cursor)
+  if (!parsed.success) return { error: 'Invalid cursor' }
 
   try {
     return await getWorkoutHistoryPage(userId, parsed.data)
