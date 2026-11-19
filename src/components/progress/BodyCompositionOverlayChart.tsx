@@ -28,9 +28,9 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   return (
     <div
       className="text-xs px-2.5 py-1.5 rounded-lg space-y-0.5"
-      style={{ background: 'var(--surface-3)', border: '1px solid var(--border)', color: 'var(--text-hi)' }}
+      style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)' }}
     >
-      <div className="font-medium mb-1" style={{ color: 'var(--text-lo)' }}>{label}</div>
+      <div className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{label}</div>
       {payload.map(p => p.value !== null && (
         <div key={p.name} className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-sm" style={{ background: p.color }} />
@@ -64,49 +64,49 @@ export function BodyCompositionOverlayChart({ data }: BodyCompositionOverlayChar
           <ComposedChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: -16 }}>
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 9, fill: 'var(--text-lo)' }}
+              tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
               tickLine={false}
               axisLine={false}
               interval={Math.floor(data.length / 3)}
             />
             <YAxis
-              tick={{ fontSize: 9, fill: 'var(--text-lo)' }}
+              tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
               tickLine={false}
               axisLine={false}
               tickFormatter={v => `${v > 0 ? '+' : ''}${v.toFixed(0)}%`}
             />
             <Tooltip content={<CustomTooltip />} />
-            <ReferenceLine y={0} stroke="var(--border)" strokeDasharray="3 3" />
+            <ReferenceLine y={0} stroke="var(--border-strong)" strokeDasharray="3 3" />
             <Line
               type="monotone"
               dataKey="weight"
               name="Weight"
-              stroke="#60a5fa"
+              stroke="var(--data-2)"
               strokeWidth={2}
               dot={false}
               connectNulls={false}
-              activeDot={{ r: 3, fill: '#60a5fa' }}
+              activeDot={{ r: 3, fill: 'var(--data-2)' }}
             />
             <Line
               type="monotone"
               dataKey="strength"
               name="Strength"
-              stroke="var(--accent)"
+              stroke="var(--data-1)"
               strokeWidth={2}
               dot={false}
               connectNulls={false}
-              activeDot={{ r: 3, fill: 'var(--accent)' }}
+              activeDot={{ r: 3, fill: 'var(--data-1)' }}
             />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
       <div className="flex items-center gap-4 mt-2 justify-center">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-0.5 rounded-full" style={{ background: '#60a5fa' }} />
+          <div className="w-3 h-0.5 rounded-full" style={{ background: 'var(--data-2)' }} />
           <span className="t-caption">Bodyweight Δ%</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-0.5 rounded-full" style={{ background: 'var(--accent)' }} />
+          <div className="w-3 h-0.5 rounded-full" style={{ background: 'var(--data-1)' }} />
           <span className="t-caption">Strength Index Δ%</span>
         </div>
       </div>

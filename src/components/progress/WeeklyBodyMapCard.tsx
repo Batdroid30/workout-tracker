@@ -51,7 +51,7 @@ export function WeeklyBodyMapCard({ volumeLandmarks }: WeeklyBodyMapCardProps) {
     : 0
 
   return (
-    <div className="glass p-4 flex flex-col items-center">
+    <div className="card p-4 flex flex-col items-center">
       <BodyMap
         fills={fills}
         onRegionClick={setSelectedRegion}

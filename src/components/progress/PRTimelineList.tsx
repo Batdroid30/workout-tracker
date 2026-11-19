@@ -10,8 +10,8 @@ interface PRTimelineListProps {
 
 const PR_TYPE_LABELS: Record<PRType, string> = {
   best_1rm:    'e1RM',
-  best_weight: 'Max Weight',
-  best_volume: 'Best Volume',
+  best_weight: 'Max weight',
+  best_volume: 'Best volume',
 }
 
 const PR_TYPE_UNIT: Record<PRType, string> = {
@@ -31,7 +31,7 @@ export function PRTimelineList({ history, limit = 12 }: PRTimelineListProps) {
 
   if (items.length === 0) {
     return (
-      <div className="glass p-4 flex items-center justify-center h-[80px]">
+      <div className="card p-4 flex items-center justify-center h-[80px]">
         <p className="t-caption">No PRs logged yet. Keep lifting!</p>
       </div>
     )
@@ -45,37 +45,24 @@ export function PRTimelineList({ history, limit = 12 }: PRTimelineListProps) {
         const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
 
         return (
-          <div
-            key={i}
-            className="glass p-3 flex items-center gap-3"
-            style={{ borderColor: 'var(--border)' }}
-          >
-            <div
-              className="w-7 h-7 rounded-[var(--radius-inner)] flex items-center justify-center shrink-0"
-              style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }}
-            >
-              <Trophy className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
+          <div key={i} className="card p-3 flex items-center gap-3">
+            <div className="w-7 h-7 rounded-control bg-surface-raised border border-border flex items-center justify-center shrink-0">
+              <Trophy className="w-3.5 h-3.5 text-secondary" />
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline gap-1.5">
-                <span
-                  className="text-[13px] font-semibold truncate"
-                  style={{ color: 'var(--text-hi)' }}
-                >
+                <span className="t-caption font-semibold truncate text-primary">
                   {entry.exerciseName}
                 </span>
-                <span
-                  className="text-[10px] font-medium uppercase tracking-wide shrink-0"
-                  style={{ color: 'var(--text-lo)' }}
-                >
+                <span className="text-xs font-medium shrink-0 text-tertiary">
                   {PR_TYPE_LABELS[entry.prType]}
                 </span>
               </div>
               <div className="t-caption mt-0.5">{dateStr}</div>
             </div>
 
-            <div className="mono text-sm font-semibold shrink-0" style={{ color: 'var(--accent)' }}>
+            <div className="mono text-sm font-semibold shrink-0 text-primary">
               {formatValue(entry.prType, entry.value)}
             </div>
           </div>

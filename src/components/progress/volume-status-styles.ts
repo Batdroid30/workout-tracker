@@ -1,81 +1,49 @@
 import type { VolumeStatus } from '@/lib/phase-coach'
 
 // ── Volume status styling, shared across Phase Coach and the body map ──────
-// Tailwind classes style the HTML badges; `fill` is the raw SVG colour used
-// to paint muscles on the body map.
+// Tailwind classes style the HTML badges; `fill` is the CSS colour used to
+// paint muscles on the body map. Every colour is a status token.
 
 export interface VolumeStatusStyle {
   dot: string
   text: string
   label: string
   bg: string
-  border: string
-  fillGradient: string
-  glowColor: string
+  bar: string
   fill: string
 }
 
+const NEGATIVE_STYLE = {
+  dot: 'bg-negative',
+  text: 'text-negative',
+  bg: 'bg-negative-soft',
+  bar: 'bg-negative',
+  fill: 'var(--negative)',
+} as const
+
+const CAUTION_STYLE = {
+  dot: 'bg-caution',
+  text: 'text-caution',
+  bg: 'bg-caution-soft',
+  bar: 'bg-caution',
+  fill: 'var(--caution)',
+} as const
+
+const POSITIVE_STYLE = {
+  dot: 'bg-positive',
+  text: 'text-positive',
+  bg: 'bg-positive-soft',
+  bar: 'bg-positive',
+  fill: 'var(--positive)',
+} as const
+
 export const VOLUME_STATUS_STYLES: Record<VolumeStatus, VolumeStatusStyle> = {
-  below_mv: {
-    dot: 'bg-red-400',
-    text: 'text-red-400',
-    label: 'Below MV',
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/20',
-    fillGradient: 'from-red-500/20 to-red-400/80',
-    glowColor: 'rgba(239, 68, 68, 0.4)',
-    fill: '#f87171',
-  },
-  maintenance: {
-    dot: 'bg-orange-400',
-    text: 'text-orange-400',
-    label: 'Maintaining',
-    bg: 'bg-orange-500/10',
-    border: 'border-orange-500/20',
-    fillGradient: 'from-orange-500/20 to-orange-400/80',
-    glowColor: 'rgba(249, 115, 22, 0.4)',
-    fill: '#fb923c',
-  },
-  sub_optimal: {
-    dot: 'bg-yellow-400',
-    text: 'text-yellow-400',
-    label: 'Sub-optimal',
-    bg: 'bg-yellow-500/10',
-    border: 'border-yellow-500/20',
-    fillGradient: 'from-yellow-500/20 to-yellow-400/80',
-    glowColor: 'rgba(234, 179, 8, 0.4)',
-    fill: '#facc15',
-  },
-  optimal: {
-    dot: 'bg-emerald-500',
-    text: 'text-emerald-400',
-    label: 'Optimal',
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/30',
-    fillGradient: 'from-emerald-600/30 to-emerald-400',
-    glowColor: 'rgba(16, 185, 129, 0.5)',
-    fill: '#10b981',
-  },
-  high: {
-    dot: 'bg-orange-400',
-    text: 'text-orange-400',
-    label: 'High Volume',
-    bg: 'bg-orange-500/10',
-    border: 'border-orange-500/20',
-    fillGradient: 'from-orange-500/20 to-orange-400/80',
-    glowColor: 'rgba(249, 115, 22, 0.4)',
-    fill: '#fb923c',
-  },
-  over_mrv: {
-    dot: 'bg-red-500',
-    text: 'text-red-500',
-    label: 'Over MRV',
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/30',
-    fillGradient: 'from-red-600/30 to-red-500',
-    glowColor: 'rgba(239, 68, 68, 0.5)',
-    fill: '#ef4444',
-  },
+  below_mv:    { ...NEGATIVE_STYLE, label: 'Below MV' },
+  maintenance: { ...CAUTION_STYLE,  label: 'Maintaining' },
+  sub_optimal: { ...CAUTION_STYLE,  label: 'Sub-optimal' },
+  optimal:     { ...POSITIVE_STYLE, label: 'Optimal' },
+  high:        { ...CAUTION_STYLE,  label: 'High volume' },
+  over_mrv:    { ...NEGATIVE_STYLE, label: 'Over MRV' },
 }
 
 export const STATUS_PRIORITY: Record<VolumeStatus, number> = {

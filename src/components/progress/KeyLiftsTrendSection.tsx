@@ -27,9 +27,9 @@ function SparklineTooltip({ active, payload, label }: SparklineTooltipProps) {
   return (
     <div
       className="text-xs px-2 py-1 rounded-lg"
-      style={{ background: 'var(--surface-3)', border: '1px solid var(--border)', color: 'var(--text-hi)' }}
+      style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)' }}
     >
-      <div style={{ color: 'var(--text-lo)' }}>
+      <div style={{ color: 'var(--text-primary)' }}>
         {label ? new Date(label + 'T00:00:00Z').toLocaleDateString([], { month: 'short', day: 'numeric' }) : ''}
       </div>
       <div className="font-semibold">{payload[0].value.toFixed(1)} kg e1RM</div>
@@ -53,28 +53,21 @@ function LiftCard({ lift }: LiftCardProps) {
   const isDown = delta < -0.5
 
   const trendColor = isUp
-    ? 'var(--accent)'
+    ? 'var(--positive)'
     : isDown
-    ? 'var(--error, #f87171)'
-    : 'var(--text-lo)'
+    ? 'var(--negative)'
+    : 'var(--text-tertiary)'
 
   return (
     <div
-      className="glass p-3 flex-shrink-0 w-[160px]"
-      style={{ borderColor: isUp ? 'var(--accent-line)' : 'var(--border)' }}
+      className={`card p-3 flex-shrink-0 w-[160px] ${isUp ? 'border-border-strong' : ''}`}
     >
       {/* Header */}
       <div className="mb-2">
-        <div
-          className="text-[10px] font-medium uppercase tracking-wide truncate"
-          style={{ color: 'var(--text-lo)' }}
-        >
+        <div className="text-xs font-medium text-tertiary truncate">
           {lift.muscleGroup}
         </div>
-        <div
-          className="text-[13px] font-semibold leading-tight truncate mt-0.5"
-          style={{ color: 'var(--text-hi)' }}
-        >
+        <div className="t-caption font-semibold leading-tight truncate mt-0.5 text-primary">
           {lift.exerciseName}
         </div>
       </div>
@@ -98,10 +91,10 @@ function LiftCard({ lift }: LiftCardProps) {
 
       {/* Stats */}
       <div className="flex items-baseline justify-between">
-        <span className="mono text-sm font-semibold" style={{ color: 'var(--text-hi)' }}>
-          {latest.toFixed(1)}<span className="text-[10px] ml-0.5" style={{ color: 'var(--text-lo)' }}>kg</span>
+        <span className="mono text-sm font-semibold text-primary">
+          {latest.toFixed(1)}<span className="text-xs ml-0.5 text-tertiary">kg</span>
         </span>
-        <span className="text-[11px] font-medium mono" style={{ color: trendColor }}>
+        <span className="text-xs font-medium mono" style={{ color: trendColor }}>
           {deltaLabel}
         </span>
       </div>
@@ -114,7 +107,7 @@ export function KeyLiftsTrendSection({ lifts }: KeyLiftsTrendSectionProps) {
 
   if (validLifts.length === 0) {
     return (
-      <div className="glass p-4 flex items-center justify-center h-[120px]">
+      <div className="card p-4 flex items-center justify-center h-[120px]">
         <p className="t-caption text-center">
           Log at least 2 weeks of compound lifts to see e1RM trends.
         </p>

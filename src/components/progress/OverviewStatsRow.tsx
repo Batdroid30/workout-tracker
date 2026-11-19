@@ -25,18 +25,12 @@ function formatLifetimeVolume(kg: number): string {
 
 function StatCell({ icon, label, value, sub }: StatCellProps) {
   return (
-    <div className="flex flex-col items-center gap-1 flex-1">
-      <div
-        className="w-8 h-8 rounded-[var(--radius-inner)] flex items-center justify-center mb-0.5"
-        style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }}
-      >
+    <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+      <div className="w-8 h-8 rounded-control bg-surface-raised border border-border flex items-center justify-center mb-0.5">
         {icon}
       </div>
       <span className="t-label text-center">{label}</span>
-      <span
-        className="mono text-lg font-semibold leading-none"
-        style={{ color: 'var(--text-hi)' }}
-      >
+      <span className="mono text-lg font-semibold leading-none text-primary">
         {value}
       </span>
       {sub && (
@@ -71,31 +65,28 @@ export function OverviewStatsRow({
     : undefined
 
   return (
-    <div
-      className="glass p-4 flex items-start gap-2"
-      style={{ borderColor: 'var(--accent-line)' }}
-    >
+    <div className="card p-4 flex items-start gap-2">
       <StatCell
-        icon={<Flame className="w-4 h-4" style={{ color: 'var(--accent)' }} />}
+        icon={<Flame className="w-4 h-4 text-secondary" />}
         label="Streak"
         value={currentStreak > 0 ? `${currentStreak}w` : '—'}
         sub={streakSub}
       />
       <div className="w-px self-stretch" style={{ background: 'var(--border)' }} />
       <StatCell
-        icon={<Clock className="w-4 h-4" style={{ color: 'var(--accent)' }} />}
-        label="Last Session"
+        icon={<Clock className="w-4 h-4 text-secondary" />}
+        label="Last session"
         value={lastSessionLabel}
       />
       <div className="w-px self-stretch" style={{ background: 'var(--border)' }} />
       <StatCell
-        icon={<Calendar className="w-4 h-4" style={{ color: 'var(--accent)' }} />}
-        label="Training Age"
+        icon={<Calendar className="w-4 h-4 text-secondary" />}
+        label="Training age"
         value={trainingAgeWeeks > 0 ? trainingAgeLabel : '—'}
       />
       <div className="w-px self-stretch" style={{ background: 'var(--border)' }} />
       <StatCell
-        icon={<TrendingUp className="w-4 h-4" style={{ color: 'var(--accent)' }} />}
+        icon={<TrendingUp className="w-4 h-4 text-secondary" />}
         label="Lifetime"
         value={formatLifetimeVolume(totalVolumeKg)}
         sub="kg"

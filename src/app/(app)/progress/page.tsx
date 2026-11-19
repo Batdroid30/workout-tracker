@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
-import { getButtonClassName } from '@/components/ui'
+import { Chip, getButtonClassName } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { WeeklyBodyMapCard } from '@/components/progress/WeeklyBodyMapCard'
 import { PhaseCoachDetail } from '@/components/progress/PhaseCoachDetail'
@@ -117,8 +117,8 @@ async function BodyCompositionLoader({
     <div className="space-y-3">
       <WeightChangeSummary bwHistory={bwHistory} trainingPhase={trainingPhase} />
       {overlayData.some(d => d.strength !== null) && (
-        <div className="glass p-4">
-          <div className="t-label mb-3">Weight vs Strength</div>
+        <div className="card p-4">
+          <div className="t-label mb-3">Weight vs strength</div>
           <BodyCompositionOverlayChart data={overlayData} />
         </div>
       )}
@@ -132,7 +132,7 @@ async function StrengthPRLoader({ userId }: { userId: string }) {
     <div className="space-y-4">
       {prData.history.length > 0 && (
         <div>
-          <div className="t-label mb-2">PR Timeline</div>
+          <div className="t-label mb-2">PR timeline</div>
           <PRTimelineList history={prData.history} />
         </div>
       )}
@@ -241,7 +241,7 @@ export default async function ProgressPage() {
       <div className="pt-4 mb-7">
         <div className="t-label mb-1.5">Progress</div>
         <h1 className="t-display-l">
-          Your data<span style={{ fontStyle: 'italic', color: 'var(--accent)' }}>.</span>
+          Your data<span className="italic">.</span>
         </h1>
       </div>
 
@@ -250,13 +250,8 @@ export default async function ProgressPage() {
         {/* ── Muscle focus body map ───────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="t-display-s">Muscle Focus</h2>
-            <span
-              className="text-[9px] font-medium uppercase tracking-widest px-2.5 py-1 rounded-lg"
-              style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)', color: 'var(--accent)' }}
-            >
-              This Week
-            </span>
+            <h2 className="t-display-s">Muscle focus</h2>
+            <Chip>This week</Chip>
           </div>
           <WeeklyBodyMapCard volumeLandmarks={volumeLandmarks} />
         </section>
@@ -291,10 +286,10 @@ export default async function ProgressPage() {
           </div>
 
           {/* Frequency trend */}
-          <div className="glass p-4">
+          <div className="card p-4">
             <div className="flex items-center justify-between mb-2">
-              <div className="t-label">Sessions / Week</div>
-              <span className="t-caption" style={{ color: 'var(--text-lo)' }}>
+              <div className="t-label">Sessions / week</div>
+              <span className="t-caption text-tertiary">
                 — goal: {profile?.weekly_goal_sessions ?? 3}×
               </span>
             </div>
@@ -311,14 +306,14 @@ export default async function ProgressPage() {
 
           {/* Key lifts e1RM sparklines — no DB call, derived from snapshot */}
           <div className="mb-3">
-            <div className="t-label mb-2">Key Lift Trends (e1RM)</div>
+            <div className="t-label mb-2">Key lift trends (e1RM)</div>
             <KeyLiftsTrendSection lifts={keyLiftsTrendData} />
           </div>
 
           {/* Stale lift alerts — no DB call, derived from snapshot */}
           {staleLifts.length > 0 && (
             <div className="mb-3">
-              <div className="t-label mb-2">Stalled Lifts</div>
+              <div className="t-label mb-2">Stalled lifts</div>
               <StaleLiftAlerts staleness={staleLifts} />
             </div>
           )}
@@ -332,7 +327,7 @@ export default async function ProgressPage() {
         {/* ── Volume over time ─────────────────────────────────────────── */}
         <section>
           <h2 className="t-display-s mb-3">Volume</h2>
-          <div className="glass p-4">
+          <div className="card p-4">
             {chartData.length > 1 ? (
               <div className="h-[200px] w-full">
                 <ProgressionLineChart data={chartData} formatType="volume" />
@@ -343,7 +338,7 @@ export default async function ProgressPage() {
               </div>
             )}
           </div>
-          <div className="glass p-4 mt-3">
+          <div className="card p-4 mt-3">
             <ReadinessTrendCharts weeklyData={snapshot.weeklyData} />
           </div>
         </section>
@@ -372,16 +367,13 @@ export default async function ProgressPage() {
 
         {/* ── Exercise drill-down ──────────────────────────────────────── */}
         <section>
-          <h2 className="t-display-s mb-3">Exercise Detail</h2>
-          <div className="glass p-4 flex items-center gap-4">
-            <div
-              className="w-11 h-11 rounded-[var(--radius-inner)] flex items-center justify-center shrink-0"
-              style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }}
-            >
-              <Activity className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+          <h2 className="t-display-s mb-3">Exercise detail</h2>
+          <div className="card p-4 flex items-center gap-4">
+            <div className="w-11 h-11 rounded-control bg-surface-raised border border-border flex items-center justify-center shrink-0">
+              <Activity className="w-5 h-5 text-secondary" />
             </div>
-            <div className="flex-1">
-              <p className="text-[13px] font-semibold text-[var(--text-hi)]">Per-Exercise Stats</p>
+            <div className="flex-1 min-w-0">
+              <p className="t-caption font-semibold text-primary">Per-exercise stats</p>
               <p className="t-caption mt-0.5">View e1RM progression, max weight and PRs for any exercise.</p>
             </div>
             <Link
@@ -402,9 +394,9 @@ export default async function ProgressPage() {
 
 function BodyweightSkeleton() {
   return (
-    <div className="glass p-4 animate-pulse">
-      <div className="h-4 w-32 bg-[var(--surface-2)] rounded mb-3" />
-      <div className="h-24 bg-[var(--surface-2)] rounded" />
+    <div className="card p-4 animate-pulse">
+      <div className="h-4 w-32 bg-surface-raised rounded mb-3" />
+      <div className="h-24 bg-surface-raised rounded" />
     </div>
   )
 }
@@ -412,13 +404,13 @@ function BodyweightSkeleton() {
 function BodyCompSkeleton() {
   return (
     <div className="space-y-3 animate-pulse">
-      <div className="glass p-4 h-[80px]">
-        <div className="h-3 w-28 bg-[var(--surface-2)] rounded mb-3" />
-        <div className="h-5 w-40 bg-[var(--surface-2)] rounded" />
+      <div className="card p-4 h-[80px]">
+        <div className="h-3 w-28 bg-surface-raised rounded mb-3" />
+        <div className="h-5 w-40 bg-surface-raised rounded" />
       </div>
-      <div className="glass p-4 h-[220px]">
-        <div className="h-3 w-32 bg-[var(--surface-2)] rounded mb-3" />
-        <div className="h-[160px] bg-[var(--surface-2)] rounded" />
+      <div className="card p-4 h-[220px]">
+        <div className="h-3 w-32 bg-surface-raised rounded mb-3" />
+        <div className="h-[160px] bg-surface-raised rounded" />
       </div>
     </div>
   )
@@ -429,13 +421,13 @@ function PRSectionSkeleton() {
     <div className="space-y-4 animate-pulse">
       <div className="space-y-2">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="glass p-3 flex items-center gap-3">
-            <div className="w-7 h-7 rounded bg-[var(--surface-2)]" />
+          <div key={i} className="card p-3 flex items-center gap-3">
+            <div className="w-7 h-7 rounded bg-surface-raised" />
             <div className="flex-1">
-              <div className="h-3 w-28 bg-[var(--surface-2)] rounded mb-1.5" />
-              <div className="h-2.5 w-16 bg-[var(--surface-2)] rounded" />
+              <div className="h-3 w-28 bg-surface-raised rounded mb-1.5" />
+              <div className="h-2.5 w-16 bg-surface-raised rounded" />
             </div>
-            <div className="h-3 w-16 bg-[var(--surface-2)] rounded" />
+            <div className="h-3 w-16 bg-surface-raised rounded" />
           </div>
         ))}
       </div>
