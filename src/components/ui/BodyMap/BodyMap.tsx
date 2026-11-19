@@ -1,6 +1,6 @@
 import type { KeyboardEvent } from 'react'
-import type { BodyRegion } from '@/lib/body-map'
-import { ANTERIOR_PATHS, POSTERIOR_PATHS, VIEWBOX, type BodyPolygon } from './body-paths'
+import { REGION_LABELS, type BodyRegion } from '@/lib/body-map'
+import { ANTERIOR_PATHS, POSTERIOR_PATHS, ANTERIOR_VIEWBOX, POSTERIOR_VIEWBOX, type BodyPolygon } from './body-paths'
 import {
   BACK_SYMBOL_ID,
   DEFAULT_NEUTRAL_FILL,
@@ -12,6 +12,7 @@ import {
 import type { BodyMapProps } from './types'
 
 interface InteractiveFigureProps {
+  viewBox: string
   paths: ReadonlyArray<BodyPolygon>
   fills: Partial<Record<BodyRegion, string>>
   opacities?: Partial<Record<BodyRegion, number>>
@@ -19,9 +20,9 @@ interface InteractiveFigureProps {
   onRegionClick: (region: BodyRegion) => void
 }
 
-function InteractiveFigure({ paths, fills, opacities, neutralFill, onRegionClick }: InteractiveFigureProps) {
+function InteractiveFigure({ viewBox, paths, fills, opacities, neutralFill, onRegionClick }: InteractiveFigureProps) {
   return (
-    <svg viewBox={VIEWBOX} className="h-full w-1/2">
+    <svg viewBox={viewBox} className="h-full w-1/2">
       {paths.map(({ region, points }, index) => {
         const fill = region ? fills[region] : undefined
         const style = {
@@ -46,7 +47,7 @@ function InteractiveFigure({ paths, fills, opacities, neutralFill, onRegionClick
             style={{ ...style, cursor: 'pointer' }}
             role="button"
             tabIndex={0}
-            aria-label={region}
+            aria-label={REGION_LABELS[region]}
             onClick={activate}
             onKeyDown={handleKeyDown}
           />
@@ -56,9 +57,9 @@ function InteractiveFigure({ paths, fills, opacities, neutralFill, onRegionClick
   )
 }
 
-function SymbolFigure({ symbolId }: { symbolId: string }) {
+function SymbolFigure({ symbolId, viewBox }: { symbolId: string; viewBox: string }) {
   return (
-    <svg viewBox={VIEWBOX} className="h-full w-1/2">
+    <svg viewBox={viewBox} className="h-full w-1/2">
       <use href={`#${symbolId}`} />
     </svg>
   )
@@ -79,8 +80,8 @@ export function BodyMap({
     const a11y = ariaLabel ? { role: 'img', 'aria-label': ariaLabel } : { 'aria-hidden': true }
     return (
       <div className={wrapperClass} style={instanceVariables({ fills, opacities, neutralFill })} {...a11y}>
-        <SymbolFigure symbolId={FRONT_SYMBOL_ID} />
-        <SymbolFigure symbolId={BACK_SYMBOL_ID} />
+        <SymbolFigure symbolId={FRONT_SYMBOL_ID} viewBox={ANTERIOR_VIEWBOX} />
+        <SymbolFigure symbolId={BACK_SYMBOL_ID} viewBox={POSTERIOR_VIEWBOX} />
       </div>
     )
   }
@@ -88,8 +89,8 @@ export function BodyMap({
   const shared = { fills, opacities, neutralFill: neutralFill ?? DEFAULT_NEUTRAL_FILL, onRegionClick }
   return (
     <div className={wrapperClass} role="group" aria-label={ariaLabel}>
-      <InteractiveFigure paths={ANTERIOR_PATHS} {...shared} />
-      <InteractiveFigure paths={POSTERIOR_PATHS} {...shared} />
+      <InteractiveFigure viewBox={ANTERIOR_VIEWBOX} paths={ANTERIOR_PATHS} {...shared} />
+      <InteractiveFigure viewBox={POSTERIOR_VIEWBOX} paths={POSTERIOR_PATHS} {...shared} />
     </div>
   )
 }

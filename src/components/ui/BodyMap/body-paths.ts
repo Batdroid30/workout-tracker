@@ -33,7 +33,9 @@ export interface BodyPolygon {
   points: string
 }
 
-export const VIEWBOX = '0 0 100 200'
+// Posterior polygons (calves/feet) reach y=220, so the back figure needs a taller box.
+export const ANTERIOR_VIEWBOX = '0 0 100 200'
+export const POSTERIOR_VIEWBOX = '0 0 100 220'
 
 export const ANTERIOR_PATHS: ReadonlyArray<BodyPolygon> = [
   { region: 'chest', points: '51.8367347 41.6326531 51.0204082 55.1020408 57.9591837 57.9591837 67.755102 55.5102041 70.6122449 47.3469388 62.0408163 41.6326531' },

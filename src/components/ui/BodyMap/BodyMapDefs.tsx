@@ -1,9 +1,9 @@
-import { ANTERIOR_PATHS, POSTERIOR_PATHS, type BodyPolygon } from './body-paths'
+import { ANTERIOR_PATHS, ANTERIOR_VIEWBOX, POSTERIOR_PATHS, POSTERIOR_VIEWBOX, type BodyPolygon } from './body-paths'
 import { BACK_SYMBOL_ID, FRONT_SYMBOL_ID, variableFillStyle } from './region-style'
 
-function BodySymbol({ id, paths }: { id: string; paths: ReadonlyArray<BodyPolygon> }) {
+function BodySymbol({ id, viewBox, paths }: { id: string; viewBox: string; paths: ReadonlyArray<BodyPolygon> }) {
   return (
-    <symbol id={id}>
+    <symbol id={id} viewBox={viewBox}>
       {paths.map(({ region, points }, index) => (
         <polygon key={index} points={points} style={variableFillStyle(region)} />
       ))}
@@ -16,8 +16,8 @@ function BodySymbol({ id, paths }: { id: string; paths: ReadonlyArray<BodyPolygo
 export function BodyMapDefs() {
   return (
     <svg aria-hidden="true" width="0" height="0" style={{ position: 'absolute' }}>
-      <BodySymbol id={FRONT_SYMBOL_ID} paths={ANTERIOR_PATHS} />
-      <BodySymbol id={BACK_SYMBOL_ID} paths={POSTERIOR_PATHS} />
+      <BodySymbol id={FRONT_SYMBOL_ID} viewBox={ANTERIOR_VIEWBOX} paths={ANTERIOR_PATHS} />
+      <BodySymbol id={BACK_SYMBOL_ID} viewBox={POSTERIOR_VIEWBOX} paths={POSTERIOR_PATHS} />
     </svg>
   )
 }
