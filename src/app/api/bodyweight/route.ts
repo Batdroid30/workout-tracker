@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
-import { getSupabaseAdmin } from '@/lib/supabase/server'
+import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 
 // ── Input validation ─────────────────────────────────────────────────────────
@@ -34,7 +34,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   try {
-    const supabase = getSupabaseAdmin()
+    const supabase = await getSupabaseServer()
 
     const { data, error } = await supabase
       .from('bodyweight_log')
