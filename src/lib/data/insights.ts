@@ -2,6 +2,7 @@ import { cache } from 'react'
 import { resolveSupabaseClient } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { calculate1RM, type WeekSummary } from '@/lib/algorithms'
+import { addSetToMuscleCounts, readSecondaryMuscles } from '@/lib/muscle-sets'
 import { setVolume, effectiveLoad, workoutBodyweight } from '@/lib/load'
 import { STALL_VARIATION_ADVICE, type MovementKey } from '@/lib/workout-intelligence'
 import type { PRType } from '@/types/database'
@@ -453,6 +454,8 @@ export const getWeeklySetsByMuscle = cache(async (userId: string, runAsAdmin: bo
     `)
     .eq('workout_exercises.workouts.user_id', userId)
     .eq('is_warmup', false)
+    .gt('weight_kg', 0)
+    .gt('reps', 0)
     .gte('completed_at', monday.toISOString())
 
   if (error) throw new DatabaseError('Failed to fetch weekly sets by muscle', error)
@@ -463,17 +466,13 @@ export const getWeeklySetsByMuscle = cache(async (userId: string, runAsAdmin: bo
     const we          = Array.isArray(set.workout_exercises) ? set.workout_exercises[0] : set.workout_exercises
     const exercise    = Array.isArray(we?.exercise)          ? we.exercise[0]           : we?.exercise
     const group       = exercise?.muscle_group as string | undefined
-    const secondaries = (exercise?.secondary_muscles ?? []) as string[]
     if (!group) continue
 
-    counts[group] = (counts[group] ?? 0) + 1
-    for (const secondary of secondaries) {
-      counts[secondary] = (counts[secondary] ?? 0) + 0.5
-    }
+    addSetToMuscleCounts(counts, group, readSecondaryMuscles(exercise?.secondary_muscles))
   }
 
   return Object.entries(counts)
-    .map(([muscleGroup, setCount]) => ({ muscleGroup, setCount: Math.ceil(setCount) }))
+    .map(([muscleGroup, setCount]) => ({ muscleGroup, setCount }))
     .sort((a, b) => b.setCount - a.setCount)
 })
 

@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
-import { WeeklyMuscleRadarChart } from '@/components/ui/WeeklyMuscleRadarChart'
+import { WeeklyBodyMapCard } from '@/components/progress/WeeklyBodyMapCard'
 import { PhaseCoachDetail } from '@/components/progress/PhaseCoachDetail'
 import { BodyweightSection } from '@/components/progress/BodyweightSection'
 import { TopPRsTable } from '@/components/profile/TopPRsTable'
@@ -156,22 +156,6 @@ async function StrengthPRLoader({ userId }: { userId: string }) {
   )
 }
 
-// ── Radar data derived from snapshot (no extra query) ─────────────────────────
-
-const RADAR_MUSCLES = [
-  'chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms',
-  'quads', 'hamstrings', 'glutes', 'calves', 'core', 'traps', 'lats',
-] as const
-
-function buildRadarData(setsByMuscle: Record<string, number>) {
-  const maxSets = Math.max(10, ...Object.values(setsByMuscle))
-  return RADAR_MUSCLES.map(group => ({
-    subject:  group.toUpperCase(),
-    A:        setsByMuscle[group] ?? 0,
-    fullMark: maxSets,
-  }))
-}
-
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function ProgressPage() {
@@ -219,9 +203,6 @@ export default async function ProgressPage() {
     date:  new Date(w.weekStart).toLocaleDateString([], { month: 'short', day: 'numeric' }),
     value: w.totalVolume,
   }))
-
-  // Radar derived from snapshot current-week sets (ISO week, no extra query)
-  const radarData = buildRadarData(snapshot.currentWeekSetsByMuscle)
 
   // ── Key lift trend data: serialise Maps → plain arrays for client components ──
   const keyLiftsTrendData: KeyLiftTrendData[] = snapshot.keyLifts.map(lift => ({
@@ -455,7 +436,7 @@ export default async function ProgressPage() {
           </section>
         )}
 
-        {/* ── Muscle focus radar ───────────────────────────────────────── */}
+        {/* ── Muscle focus body map ───────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="t-display-s">Muscle Focus</h2>
@@ -466,14 +447,7 @@ export default async function ProgressPage() {
               This Week
             </span>
           </div>
-          <div className="glass p-4 flex flex-col items-center">
-            <div className="h-[240px] w-full">
-              <WeeklyMuscleRadarChart data={radarData} />
-            </div>
-            <p className="t-caption text-center mt-2">
-              Distribution of working sets across muscle groups this week.
-            </p>
-          </div>
+          <WeeklyBodyMapCard volumeLandmarks={volumeLandmarks} />
         </section>
 
         {/* ── Top Personal Records (streamed) ──────────────────────────── */}

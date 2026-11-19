@@ -50,8 +50,8 @@ export const getRecentWorkouts = cache(async (userId: string, runAsAdmin: boolea
       .select(`
         *,
         workout_exercises (
-          exercise:exercises ( name ),
-          sets ( id, weight_kg, reps )
+          exercise:exercises ( name, muscle_group, secondary_muscles ),
+          sets ( id, weight_kg, reps, is_warmup )
         )
       `)
       .eq('user_id', userId)
@@ -79,8 +79,8 @@ export const getAllWorkouts = cache(async (userId: string, runAsAdmin: boolean =
       .select(`
         *,
         workout_exercises (
-          exercise:exercises ( name ),
-          sets ( id, weight_kg, reps )
+          exercise:exercises ( name, muscle_group, secondary_muscles ),
+          sets ( id, weight_kg, reps, is_warmup )
         )
       `)
       .eq('user_id', userId)

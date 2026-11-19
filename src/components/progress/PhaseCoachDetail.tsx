@@ -1,9 +1,11 @@
 import { Compass, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { DELOAD_THRESHOLDS } from '@/lib/workout-intelligence'
+import { formatSetCount } from '@/lib/muscle-sets'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
 import { MesocycleTimeline } from '@/components/phase-coach/MesocycleTimeline'
-import type { VolumeStatus, Mesocycle } from '@/lib/phase-coach'
+import { VOLUME_STATUS_STYLES, STATUS_PRIORITY } from '@/components/progress/volume-status-styles'
+import type { Mesocycle } from '@/lib/phase-coach'
 import type {
   StrengthIndexSummary,
   MuscleVolumeLandmarkPoint,
@@ -25,79 +27,6 @@ interface PhaseCoachDetailProps {
   volumeLandmarks:  MuscleVolumeLandmarkPoint[]
   keyLifts:         KeyLift[]
   mesocycle:        Mesocycle       | null
-}
-
-// ── Status styling — kept identical to PhaseCoachCard for visual consistency ──
-
-interface VolumeStatusStyle {
-  dot: string
-  text: string
-  label: string
-  bg: string
-  border: string
-  fillGradient: string
-  glowColor: string
-}
-
-const VOLUME_STATUS_STYLES: Record<VolumeStatus, VolumeStatusStyle> = {
-  below_mv: {
-    dot: 'bg-red-400',
-    text: 'text-red-400',
-    label: 'Below MV',
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/20',
-    fillGradient: 'from-red-500/20 to-red-400/80',
-    glowColor: 'rgba(239, 68, 68, 0.4)',
-  },
-  maintenance: {
-    dot: 'bg-orange-400',
-    text: 'text-orange-400',
-    label: 'Maintaining',
-    bg: 'bg-orange-500/10',
-    border: 'border-orange-500/20',
-    fillGradient: 'from-orange-500/20 to-orange-400/80',
-    glowColor: 'rgba(249, 115, 22, 0.4)',
-  },
-  sub_optimal: {
-    dot: 'bg-yellow-400',
-    text: 'text-yellow-400',
-    label: 'Sub-optimal',
-    bg: 'bg-yellow-500/10',
-    border: 'border-yellow-500/20',
-    fillGradient: 'from-yellow-500/20 to-yellow-400/80',
-    glowColor: 'rgba(234, 179, 8, 0.4)',
-  },
-  optimal: {
-    dot: 'bg-emerald-500',
-    text: 'text-emerald-400',
-    label: 'Optimal',
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/30',
-    fillGradient: 'from-emerald-600/30 to-emerald-400',
-    glowColor: 'rgba(16, 185, 129, 0.5)',
-  },
-  high: {
-    dot: 'bg-orange-400',
-    text: 'text-orange-400',
-    label: 'High Volume',
-    bg: 'bg-orange-500/10',
-    border: 'border-orange-500/20',
-    fillGradient: 'from-orange-500/20 to-orange-400/80',
-    glowColor: 'rgba(249, 115, 22, 0.4)',
-  },
-  over_mrv: {
-    dot: 'bg-red-500',
-    text: 'text-red-500',
-    label: 'Over MRV',
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/30',
-    fillGradient: 'from-red-600/30 to-red-500',
-    glowColor: 'rgba(239, 68, 68, 0.5)',
-  },
-}
-
-const STATUS_PRIORITY: Record<VolumeStatus, number> = {
-  over_mrv: 0, below_mv: 1, maintenance: 2, sub_optimal: 3, high: 4, optimal: 5,
 }
 
 export function PhaseCoachDetail({
@@ -375,7 +304,7 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
         
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-[11px] tabular-nums font-semibold" style={{ color: 'var(--text-hi)' }}>
-            {setCount} <span className="text-[9px] font-normal" style={{ color: 'var(--text-low)' }}>sets</span>
+            {formatSetCount(setCount)} <span className="text-[9px] font-normal" style={{ color: 'var(--text-low)' }}>sets</span>
           </span>
           <span
             className={cn(
@@ -455,12 +384,12 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
         </div>
         
         <span className="text-[9px] tracking-tight font-semibold" style={{ color: 'var(--text-mid)' }}>
-          {status === 'below_mv' && `+${landmarks.mv - setCount} to MV`}
-          {status === 'maintenance' && `+${landmarks.mev - setCount} to MEV`}
-          {status === 'sub_optimal' && `+${landmarks.mav.min - setCount} to MAV`}
+          {status === 'below_mv' && `+${formatSetCount(landmarks.mv - setCount)} to MV`}
+          {status === 'maintenance' && `+${formatSetCount(landmarks.mev - setCount)} to MEV`}
+          {status === 'sub_optimal' && `+${formatSetCount(landmarks.mav.min - setCount)} to MAV`}
           {status === 'optimal' && `Optimal range`}
-          {status === 'high' && `+${landmarks.mrv - setCount} to MRV`}
-          {status === 'over_mrv' && `${setCount - landmarks.mrv} over MRV`}
+          {status === 'high' && `+${formatSetCount(landmarks.mrv - setCount)} to MRV`}
+          {status === 'over_mrv' && `${formatSetCount(setCount - landmarks.mrv)} over MRV`}
         </span>
       </div>
     </div>

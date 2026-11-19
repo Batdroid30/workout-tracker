@@ -8,6 +8,10 @@ import { useDialog } from '@/providers/DialogProvider'
 import { useToast } from '@/providers/ToastProvider'
 import type { PRType } from '@/types/database'
 import { setVolume, workoutBodyweight } from '@/lib/load'
+import { BodyMapDefs } from '@/components/ui/BodyMap'
+import type { SessionExerciseInput } from '@/lib/body-map'
+import { readSecondaryMuscles } from '@/lib/muscle-sets'
+import { SessionBodyMap } from './SessionBodyMap'
 
 // ─── PR badge config ──────────────────────────────────────────────────────────
 
@@ -28,8 +32,8 @@ interface WorkoutItem {
   bodyweight_kg?: number | null
   prTypes: PRType[]
   workout_exercises: Array<{
-    exercise: { name: string }
-    sets: Array<{ weight_kg: number; reps: number }>
+    exercise: { name: string; muscle_group: string | null; secondary_muscles: string[] | null }
+    sets: Array<{ weight_kg: number; reps: number; is_warmup: boolean | null }>
   }>
 }
 
@@ -56,6 +60,14 @@ function formatWorkoutDate(isoString: string): string {
     hour:   '2-digit',
     minute: '2-digit',
   })
+}
+
+function toSessionExercises(workoutExercises: WorkoutItem['workout_exercises']): SessionExerciseInput[] {
+  return workoutExercises.map(we => ({
+    muscleGroup: we.exercise.muscle_group,
+    secondaryMuscles: readSecondaryMuscles(we.exercise.secondary_muscles),
+    workingSetCount: (we.sets ?? []).filter(set => !set.is_warmup && set.reps > 0).length,
+  }))
 }
 
 // ─── Single optimistic card ───────────────────────────────────────────────────
@@ -141,13 +153,18 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
           </div>
         </div>
 
-        <span className="mono text-lg font-medium text-[var(--text-hi)] tracking-tight">
-          {workoutVolume >= 1000 ? `${(workoutVolume / 1000).toFixed(1)}k` : workoutVolume}
-          <span className="text-[11px] text-[var(--text-low)] ml-0.5">kg</span>
-        </span>
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <span className="mono text-lg font-medium text-[var(--text-hi)] tracking-tight">
+              {workoutVolume >= 1000 ? `${(workoutVolume / 1000).toFixed(1)}k` : workoutVolume}
+              <span className="text-[11px] text-[var(--text-low)] ml-0.5">kg</span>
+            </span>
 
-        <div className="mt-2 pt-2 border-t border-white/[0.05] text-[11px] text-[var(--text-low)] truncate">
-          {exerciseNames}
+            <div className="mt-2 pt-2 border-t border-white/[0.05] text-[11px] text-[var(--text-low)] truncate">
+              {exerciseNames}
+            </div>
+          </div>
+          <SessionBodyMap exercises={toSessionExercises(workout.workout_exercises)} />
         </div>
       </div>
     </Link>
@@ -167,6 +184,7 @@ export function WorkoutHistoryList({ workouts }: WorkoutHistoryListProps) {
 
   return (
     <div className="space-y-3">
+      <BodyMapDefs />
       {workouts.map(workout => (
         <WorkoutHistoryCard key={workout.id} workout={workout} />
       ))}

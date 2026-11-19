@@ -13,6 +13,7 @@ import { getRoutines } from '@/lib/data/routines'
 import { assessFatigueLevel } from '@/lib/algorithms'
 import { getCurrentWUPScheme } from '@/lib/workout-intelligence'
 import { getWeeksInPhase } from '@/lib/phase-coach'
+import { formatSetCount } from '@/lib/muscle-sets'
 import type { Profile } from '@/types/database'
 
 // ── Routine-generation keywords: triggers Sonnet + full context ───────────────
@@ -115,7 +116,7 @@ function formatWeeklyVolumeSection(
   streak: { currentStreak: number; longestStreak: number }
 ): string {
   const setsSummary = weeklySets.length > 0
-    ? weeklySets.map(s => `${s.muscleGroup}: ${s.setCount} sets`).join(', ')
+    ? weeklySets.map(s => `${s.muscleGroup}: ${formatSetCount(s.setCount)} sets`).join(', ')
     : 'No sets logged yet this week'
 
   const ratioSummary = pushPull.ratio != null
