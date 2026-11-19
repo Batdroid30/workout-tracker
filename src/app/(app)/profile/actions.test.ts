@@ -55,8 +55,8 @@ describe('clearAllWorkoutDataAction', () => {
 
     expect(result).toEqual({ success: true })
     expect(queries).toEqual([
-      `personal_records.delete(user_id=${userId})`,
       `workouts.delete(user_id=${userId})`,
+      `personal_records.delete(user_id=${userId})`,
       `exercises.delete(is_custom=true,created_by=${userId})`,
     ])
     expect(mocks.revalidateAll).toHaveBeenCalledOnce()
@@ -73,6 +73,26 @@ describe('clearAllWorkoutDataAction', () => {
     expect(mocks.revalidateAll).not.toHaveBeenCalled()
   })
 
+  it('refreshes pages when the PR delete fails after workouts are gone', async () => {
+    const { client, queries } = makeClient({ personal_records: { message: 'pr boom' } })
+    mocks.getSupabaseServer.mockResolvedValue(client)
+
+    const result = await clearAllWorkoutDataAction()
+
+    expect(result).toEqual({ success: false, error: 'pr boom' })
+    expect(queries.some(query => query.startsWith('exercises.'))).toBe(false)
+    expect(mocks.revalidateAll).toHaveBeenCalledOnce()
+  })
+
+  it('keeps PRs when the workouts delete fails', async () => {
+    const { client, queries } = makeClient({ workouts: { message: 'boom' } })
+    mocks.getSupabaseServer.mockResolvedValue(client)
+
+    await clearAllWorkoutDataAction()
+
+    expect(queries.some(query => query.startsWith('personal_records.'))).toBe(false)
+  })
+
   it('reports failure when a custom exercise is still used by a program', async () => {
     const { client } = makeClient({ exercises: { code: '23503', message: 'violates foreign key' } })
     mocks.getSupabaseServer.mockResolvedValue(client)
@@ -81,5 +101,7 @@ describe('clearAllWorkoutDataAction', () => {
 
     expect(result.success).toBe(false)
     expect((result as { error: string }).error).toMatch(/program/i)
+    // Workouts and PRs are already gone, so cached pages must refresh.
+    expect(mocks.revalidateAll).toHaveBeenCalledOnce()
   })
 })
