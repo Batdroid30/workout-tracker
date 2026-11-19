@@ -9,6 +9,7 @@ import { useToast } from '@/providers/ToastProvider'
 import type { PRType } from '@/types/database'
 import type { WorkoutItem } from '@/types/workout-history'
 import { setVolume, workoutBodyweight } from '@/lib/load'
+import { Chip } from '@/components/ui'
 import { BodyMapDefs } from '@/components/ui/BodyMap'
 import { toSessionExercises } from '@/lib/body-map'
 import { nextCursor, type HistoryCursor } from '@/lib/data/history-page'
@@ -16,10 +17,10 @@ import { SessionBodyMap } from './SessionBodyMap'
 
 // ─── PR badge config ──────────────────────────────────────────────────────────
 
-const PR_BADGE_CONFIG: Record<PRType, { label: string; color: string; bg: string; border: string }> = {
-  best_weight: { label: 'W',   color: 'text-yellow-300', bg: 'bg-yellow-400/10', border: 'border-yellow-400/30' },
-  best_1rm:    { label: '1RM', color: 'text-sky-300',    bg: 'bg-sky-400/10',    border: 'border-sky-400/30'    },
-  best_volume: { label: 'VOL', color: 'text-violet-300', bg: 'bg-violet-400/10', border: 'border-violet-400/30' },
+const PR_BADGE_LABELS: Record<PRType, string> = {
+  best_weight: 'W',
+  best_1rm: '1RM',
+  best_volume: 'VOL',
 }
 
 // Display order: weight → 1RM → volume
@@ -100,35 +101,27 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
 
   return (
     <Link href={`/workout/${workout.id}`} className="block">
-      <div className="glass hover:border-[var(--accent-line)] p-4 active:scale-[0.98] transition-all cursor-pointer">
+      <div className="glass hover:border-border-strong p-4 active:scale-[0.98] transition-all cursor-pointer">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <h3 className="text-[13px] font-medium text-[var(--text-hi)]">{workout.title || 'Workout'}</h3>
-            <p className="mono text-[11px] text-[var(--text-low)] mt-0.5">
+            <h3 className="text-sm font-medium text-primary">{workout.title || 'Workout'}</h3>
+            <p className="mono text-xs text-tertiary mt-0.5">
               {formatWorkoutDate(workout.started_at)}
             </p>
           </div>
           <div className="flex items-center gap-1.5">
-            {PR_DISPLAY_ORDER.filter(t => workout.prTypes?.includes(t)).map(t => {
-              const cfg = PR_BADGE_CONFIG[t]
-              return (
-                <span
-                  key={t}
-                  className={`px-1.5 py-0.5 rounded-md text-[9px] font-medium uppercase tracking-widest border ${cfg.color} ${cfg.bg} ${cfg.border}`}
-                >
-                  {cfg.label}
-                </span>
-              )
-            })}
+            {PR_DISPLAY_ORDER.filter(t => workout.prTypes?.includes(t)).map(t => (
+              <Chip key={t} tone="accent">{PR_BADGE_LABELS[t]}</Chip>
+            ))}
             {workout.duration_seconds && (
-              <div className="bg-white/[0.04] text-[var(--text-mid)] px-2 py-1 rounded-lg mono text-[10px] border border-[var(--glass-border)]">
+              <div className="bg-surface-raised text-secondary px-2 py-1 rounded-lg mono text-xs border border-border">
                 {Math.floor(workout.duration_seconds / 60)}m
               </div>
             )}
             <button
               onClick={handleDelete}
               disabled={isPending}
-              className="-mr-1 p-2 rounded-lg hover:bg-[var(--rose)]/10 text-[var(--text-low)] hover:text-[var(--rose)] transition-colors disabled:opacity-50"
+              className="-mr-1 p-2 rounded-lg hover:bg-negative-soft text-tertiary hover:text-negative transition-colors disabled:opacity-50"
               aria-label="Delete workout"
             >
               {isPending
@@ -141,12 +134,12 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
 
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <span className="mono text-lg font-medium text-[var(--text-hi)] tracking-tight">
+            <span className="mono text-lg font-medium text-primary tracking-tight">
               {workoutVolume >= 1000 ? `${(workoutVolume / 1000).toFixed(1)}k` : workoutVolume}
-              <span className="text-[11px] text-[var(--text-low)] ml-0.5">kg</span>
+              <span className="text-xs text-tertiary ml-0.5">kg</span>
             </span>
 
-            <div className="mt-2 pt-2 border-t border-white/[0.05] text-[11px] text-[var(--text-low)] truncate">
+            <div className="mt-2 pt-2 border-t border-border text-xs text-tertiary truncate">
               {exerciseNames}
             </div>
           </div>
@@ -194,7 +187,7 @@ export function WorkoutHistoryList({ workouts: initialWorkouts, initialHasMore =
 
   if (workouts.length === 0) {
     return (
-      <div className="glass border border-dashed border-[var(--glass-border)] p-8 text-center">
+      <div className="glass border border-dashed border-border p-8 text-center">
         <p className="t-caption">No workouts yet. Start your first session!</p>
       </div>
     )
@@ -210,7 +203,7 @@ export function WorkoutHistoryList({ workouts: initialWorkouts, initialHasMore =
         <button
           onClick={handleLoadMore}
           disabled={isLoadingMore}
-          className="w-full min-h-[44px] glass rounded-lg text-[13px] font-medium text-[var(--text-mid)] hover:border-[var(--accent-line)] transition-colors disabled:opacity-50"
+          className="w-full min-h-[44px] glass rounded-lg text-sm font-medium text-secondary hover:border-border-strong transition-colors disabled:opacity-50"
         >
           {isLoadingMore ? 'Loading…' : 'Load more'}
         </button>

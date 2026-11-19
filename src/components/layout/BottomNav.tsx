@@ -25,13 +25,12 @@ export function BottomNav() {
       className={cn(
         'fixed bottom-0 left-0 right-0 z-40',
         'px-3.5 pt-2.5 pb-7 pb-[max(env(safe-area-inset-bottom),1.75rem)]',
-        'bg-[linear-gradient(180deg,transparent,rgba(6,7,13,0.6)_30%,rgba(6,7,13,0.85))]',
         'pointer-events-none',
       )}
     >
       <div
         className={cn(
-          'glass glass-strong pointer-events-auto',
+          'bg-surface-raised border border-border pointer-events-auto',
           'flex items-center justify-around',
           'rounded-full px-2 py-2.5',
         )}
@@ -46,13 +45,13 @@ export function BottomNav() {
               className={cn(
                 'flex-1 h-11 flex flex-col items-center justify-center gap-[3px]',
                 'transition-colors duration-200',
-                isActive ? 'text-[var(--accent)]' : 'text-[var(--text-low)] hover:text-[var(--text-mid)]',
+                isActive ? 'text-accent' : 'text-tertiary hover:text-secondary',
               )}
             >
               <Icon size={18} strokeWidth={isActive ? 2 : 1.5} />
               <span
                 className={cn(
-                  'text-[9px] tracking-[0.08em] uppercase',
+                  'text-xs',
                   isActive ? 'font-medium' : 'font-normal',
                 )}
               >

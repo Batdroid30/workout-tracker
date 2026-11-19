@@ -11,6 +11,7 @@ import { DeleteHistoricalExerciseButton } from '@/components/workout/DeleteHisto
 import { WorkoutCoachInsightCard } from '@/components/workout/WorkoutCoachInsightCard'
 import { WorkoutBodyMapCard } from '@/components/workout/WorkoutBodyMapCard'
 import { toSessionExercises } from '@/lib/body-map'
+import { cn } from '@/lib/utils'
 import { formatVolume, setVolume, workoutBodyweight, isWeightedBodyweight, formatWeightedSet } from '@/lib/load'
 
 export default async function WorkoutHistoryDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -46,26 +47,20 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
   const prCount = Array.from(prMap.values()).flat().length
 
   return (
-    <div className="min-h-screen pb-24" style={{ color: 'var(--text-hi)' }}>
+    <div className="min-h-screen pb-24 text-primary">
 
       {/* ── Top Nav ──────────────────────────────────────────────────── */}
       <div
-        className="sticky top-0 z-30 px-4 py-3 flex items-center justify-between"
-        style={{
-          background: 'rgba(6,7,13,0.85)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid var(--glass-border)',
-        }}
+        className="sticky top-0 z-30 px-4 py-3 flex items-center justify-between bg-bg border-b border-border"
       >
         <div className="flex items-center gap-3">
           <Link
             href="/profile?tab=history"
-            className="p-2.5 rounded-[var(--radius-inner)] transition-colors hover:bg-white/[0.06]"
-            style={{ color: 'var(--text-mid)' }}
+            className="p-2.5 rounded-control transition-colors text-secondary hover:bg-surface-raised"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-sm font-semibold uppercase tracking-widest" style={{ color: 'var(--text-hi)' }}>
+          <h1 className="text-sm font-semibold text-primary">
             {workout.title || 'Workout Summary'}
           </h1>
         </div>
@@ -90,7 +85,7 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
               {new Date(workout.started_at).toLocaleString([], { dateStyle: 'full', timeStyle: 'short' })}
             </p>
             {workout.notes && (
-              <p className="text-sm mt-2" style={{ color: 'var(--text-mid)' }}>{workout.notes}</p>
+              <p className="text-sm mt-2 text-secondary">{workout.notes}</p>
             )}
           </div>
         </EditWorkoutMetaModal>
@@ -102,37 +97,35 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
         <div className="grid grid-cols-2 gap-3">
           <div className="glass p-4 flex items-center gap-3">
             <div
-              className="p-2.5 rounded-[var(--radius-inner)] shrink-0"
-              style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }}
+              className="p-2.5 rounded-control shrink-0 bg-surface-raised border border-border"
             >
-              <Clock className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              <Clock className="w-4 h-4 text-secondary" />
             </div>
             <div>
               <p className="t-label">Duration</p>
-              <p className="mono text-xl mt-0.5 tracking-tight" style={{ color: 'var(--text-hi)' }}>
+              <p className="mono text-xl mt-0.5 tracking-tight text-primary">
                 {workout.duration_seconds ? (
                   <>
                     {Math.floor(workout.duration_seconds / 3600) > 0 && `${Math.floor(workout.duration_seconds / 3600)}h `}
                     {Math.floor((workout.duration_seconds % 3600) / 60)}
-                    <span className="text-xs ml-0.5" style={{ color: 'var(--text-faint)' }}>m</span>
+                    <span className="text-xs ml-0.5 text-tertiary">m</span>
                   </>
-                ) : <span>0<span className="text-xs ml-0.5" style={{ color: 'var(--text-faint)' }}>m</span></span>}
+                ) : <span>0<span className="text-xs ml-0.5 text-tertiary">m</span></span>}
               </p>
             </div>
           </div>
 
           <div className="glass p-4 flex items-center gap-3">
             <div
-              className="p-2.5 rounded-[var(--radius-inner)] shrink-0"
-              style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }}
+              className="p-2.5 rounded-control shrink-0 bg-surface-raised border border-border"
             >
-              <Dumbbell className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              <Dumbbell className="w-4 h-4 text-secondary" />
             </div>
             <div>
               <p className="t-label">Volume</p>
-              <p className="mono text-xl mt-0.5 tracking-tight" style={{ color: 'var(--text-hi)' }}>
+              <p className="mono text-xl mt-0.5 tracking-tight text-primary">
                 {formatVolume(workoutVolume)}
-                <span className="text-xs ml-0.5" style={{ color: 'var(--text-faint)' }}>kg</span>
+                <span className="text-xs ml-0.5 text-tertiary">kg</span>
               </p>
             </div>
           </div>
@@ -150,20 +143,18 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
 
         {/* ── Exercise log ─────────────────────────────────────────────── */}
         <div className="space-y-4">
-          <h3 className="t-label">Exercises Log</h3>
+          <h3 className="t-label">Exercises log</h3>
 
           {workout.workout_exercises.map((we: any) => (
             <div key={we.id} className="glass overflow-hidden">
               {/* Exercise header */}
               <div
-                className="px-4 py-3 flex items-center justify-between"
-                style={{ background: 'var(--bg-1)', borderBottom: '1px solid var(--glass-border)' }}
+                className="px-4 py-3 flex items-center justify-between bg-surface-raised border-b border-border"
               >
                 <div>
                   <Link
                     href={`/exercises/${we.exercise.id}`}
-                    className="font-semibold text-base uppercase tracking-tight hover:underline underline-offset-2"
-                    style={{ color: 'var(--accent)' }}
+                    className="font-semibold text-base text-primary hover:underline underline-offset-2"
                   >
                     {we.exercise.name}
                   </Link>
@@ -175,8 +166,7 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
               {/* Sets table */}
               <div className="w-full">
                 <div
-                  className="flex text-[9px] font-medium uppercase tracking-widest py-2 px-4"
-                  style={{ color: 'var(--text-faint)', borderBottom: '1px solid var(--glass-border)' }}
+                  className="flex text-xs font-medium text-tertiary py-2 px-4 border-b border-border"
                 >
                   <div className="w-10">Set</div>
                   <div className="flex-1 text-center">kg</div>
@@ -187,26 +177,26 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
                 {we.sets.map((set: any) => (
                   <div
                     key={set.id}
-                    className="flex text-sm py-3 px-4 items-center"
-                    style={{ borderBottom: '1px solid var(--glass-border)' }}
+                    className="flex text-sm py-3 px-4 items-center border-b border-border"
                   >
                     <div className="w-10 flex items-center">
                       <div
-                        className="w-6 h-6 flex items-center justify-center rounded-lg text-[11px] font-medium"
-                        style={set.is_warmup
-                          ? { background: 'rgba(251,146,60,0.10)', color: '#fb923c', border: '1px solid rgba(251,146,60,0.20)' }
-                          : { background: 'rgba(255,255,255,0.04)', color: 'var(--text-faint)', border: '1px solid var(--glass-border)' }
-                        }
+                        className={cn(
+                          'w-6 h-6 flex items-center justify-center rounded-lg text-xs font-medium border',
+                          set.is_warmup
+                            ? 'bg-caution-soft text-caution border-transparent'
+                            : 'bg-surface-raised text-tertiary border-border',
+                        )}
                       >
                         {set.is_warmup ? 'W' : set.set_number}
                       </div>
                     </div>
-                    <div className="flex-1 text-center font-semibold" style={{ color: 'var(--text-hi)' }}>
+                    <div className="flex-1 text-center font-semibold text-primary">
                       <EditSetModal setId={set.id} initialWeight={set.weight_kg} initialReps={set.reps} addedOnTopOfKg={isWeightedBodyweight(we.exercise.name, we.exercise.equipment) ? bodyweightKg : undefined}>
                         {isWeightedBodyweight(we.exercise.name, we.exercise.equipment) ? formatWeightedSet(set.weight_kg, bodyweightKg) : set.weight_kg}
                       </EditSetModal>
                     </div>
-                    <div className="flex-1 text-center font-semibold" style={{ color: 'var(--text-hi)' }}>
+                    <div className="flex-1 text-center font-semibold text-primary">
                       <EditSetModal setId={set.id} initialWeight={set.weight_kg} initialReps={set.reps} addedOnTopOfKg={isWeightedBodyweight(we.exercise.name, we.exercise.equipment) ? bodyweightKg : undefined}>
                         {set.reps}
                       </EditSetModal>
@@ -215,10 +205,9 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
                       {prMap.has(set.id) && (
                         <div
                           title={`PR: ${prMap.get(set.id)?.join(', ')}`}
-                          className="p-1 rounded-lg"
-                          style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }}
+                          className="p-1 rounded-lg bg-accent-soft"
                         >
-                          <Trophy className="w-3 h-3" style={{ color: 'var(--accent)' }} />
+                          <Trophy className="w-3 h-3 text-accent" />
                         </div>
                       )}
                     </div>

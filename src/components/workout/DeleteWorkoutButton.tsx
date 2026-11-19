@@ -43,8 +43,7 @@ export function DeleteWorkoutButton({ workoutId }: { workoutId: string }) {
     <button
       onClick={handleDelete}
       disabled={isPending}
-      className="p-2 rounded-lg hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-50"
-      style={{ color: 'var(--text-faint)' }}
+      className="p-2 rounded-lg text-tertiary hover:bg-negative-soft hover:text-negative transition-colors disabled:opacity-50"
       title="Delete Workout"
     >
       {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}

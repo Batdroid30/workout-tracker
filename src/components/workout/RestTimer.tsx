@@ -45,22 +45,16 @@ export function RestTimer({ seconds = 90, onSkip, onComplete }: RestTimerProps) 
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 px-4 pt-3 z-40"
-      style={{
-        paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
-        background: 'rgba(6,7,13,0.92)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderTop: '1px solid var(--glass-border)',
-      }}
+      className="fixed bottom-0 left-0 right-0 px-4 pt-3 z-40 bg-bg border-t border-border"
+      style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <Timer className={`w-4 h-4 animate-pulse ${urgent ? 'text-orange-400' : 'text-[var(--accent)]'}`} />
-          <span className={`mono text-xl tracking-tighter tabular-nums ${urgent ? 'text-orange-400' : 'text-[var(--text-hi)]'}`}>
+          <Timer className={`w-4 h-4 animate-pulse ${urgent ? 'text-caution' : 'text-secondary'}`} />
+          <span className={`mono text-xl tracking-tighter tabular-nums ${urgent ? 'text-caution' : 'text-primary'}`}>
             {mins}:{secs < 10 ? '0' : ''}{secs}
           </span>
-          <span className="text-[10px] font-medium text-[var(--text-faint)] uppercase tracking-widest">Rest</span>
+          <span className="text-xs font-medium text-tertiary">Rest</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -68,8 +62,7 @@ export function RestTimer({ seconds = 90, onSkip, onComplete }: RestTimerProps) 
             <button
               key={btn.label}
               onPointerDown={() => adjust(btn.delta)}
-              className="h-9 px-3 rounded-[var(--radius-inner)] mono text-[10px] text-[var(--text-mid)] hover:text-[var(--text-hi)] transition-colors active:scale-95 touch-manipulation"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
+              className="min-h-11 px-3 rounded-control mono text-xs text-secondary hover:text-primary bg-surface border border-border transition-colors active:scale-95 touch-manipulation"
             >
               {btn.label}
             </button>
@@ -77,8 +70,7 @@ export function RestTimer({ seconds = 90, onSkip, onComplete }: RestTimerProps) 
 
           <button
             onPointerDown={handleSkip}
-            className="h-9 px-4 flex items-center gap-1.5 rounded-[var(--radius-inner)] text-[var(--text-mid)] hover:text-[var(--text-hi)] mono text-[10px] uppercase tracking-widest transition-colors active:scale-95 touch-manipulation"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
+            className="min-h-11 px-4 flex items-center gap-1.5 rounded-control text-secondary hover:text-primary mono text-xs bg-surface border border-border transition-colors active:scale-95 touch-manipulation"
           >
             <X className="w-3.5 h-3.5" /> Skip
           </button>
@@ -86,13 +78,10 @@ export function RestTimer({ seconds = 90, onSkip, onComplete }: RestTimerProps) 
       </div>
 
       {/* Progress bar */}
-      <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+      <div className="h-1 rounded-full overflow-hidden bg-surface-raised">
         <div
-          className="h-full transition-all duration-1000 ease-linear rounded-full"
-          style={{
-            width: `${progress}%`,
-            background: urgent ? '#f97316' : 'var(--accent)',
-          }}
+          className={`h-full transition-all duration-1000 ease-linear rounded-full ${urgent ? 'bg-caution' : 'bg-primary'}`}
+          style={{ width: `${progress}%` }}
         />
       </div>
     </div>

@@ -63,21 +63,19 @@ export function PlateCalculator({ isOpen, onClose, initialWeight = 100 }: PlateC
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
 
       <div
-        className="relative w-full rounded-t-[var(--radius-card)] p-5 pb-8"
-        style={{ background: 'rgba(10,13,24,0.98)', borderTop: '1px solid var(--glass-border)' }}
+        className="relative w-full rounded-t-sheet p-5 pb-8 bg-surface-raised border-t border-border"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            <Calculator className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-            <h2 className="text-sm font-semibold uppercase tracking-widest" style={{ color: 'var(--text-hi)' }}>
-              Plate Calculator
+            <Calculator className="w-4 h-4 text-secondary" />
+            <h2 className="text-sm font-semibold text-primary">
+              Plate calculator
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2.5 rounded-lg transition-colors hover:bg-white/[0.06]"
-            style={{ color: 'var(--text-faint)' }}
+            className="p-2.5 rounded-lg transition-colors text-tertiary hover:bg-surface"
           >
             <X className="w-4 h-4" />
           </button>
@@ -87,16 +85,11 @@ export function PlateCalculator({ isOpen, onClose, initialWeight = 100 }: PlateC
         <div className="flex items-center justify-center gap-6 mb-6">
           <button
             onClick={() => setTarget(t => Math.max(BAR_KG, t - 2.5))}
-            className="w-12 h-12 rounded-[var(--radius-inner)] font-semibold text-xl active:scale-95 transition-all hover:opacity-80"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid var(--glass-border)',
-              color: 'var(--text-hi)',
-            }}
+            className="w-12 h-12 rounded-control font-semibold text-xl text-primary bg-surface border border-border active:scale-95 transition-all hover:opacity-80"
           >−</button>
 
           <div className="text-center min-w-[100px]">
-            <p className="mono text-5xl tracking-tighter tabular-nums" style={{ color: 'var(--text-hi)' }}>
+            <p className="mono text-5xl tracking-tighter tabular-nums text-primary">
               {target}
             </p>
             <p className="t-label mt-1">kg total</p>
@@ -104,19 +97,13 @@ export function PlateCalculator({ isOpen, onClose, initialWeight = 100 }: PlateC
 
           <button
             onClick={() => setTarget(t => t + 2.5)}
-            className="w-12 h-12 rounded-[var(--radius-inner)] font-semibold text-xl active:scale-95 transition-all hover:opacity-80"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid var(--glass-border)',
-              color: 'var(--text-hi)',
-            }}
+            className="w-12 h-12 rounded-control font-semibold text-xl text-primary bg-surface border border-border active:scale-95 transition-all hover:opacity-80"
           >+</button>
         </div>
 
         {/* Plate layout */}
         <div
-          className="rounded-[var(--radius-inner)] p-4"
-          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)' }}
+          className="rounded-control p-4 bg-surface border border-border"
         >
           <div className="flex items-center justify-between mb-3">
             <p className="t-label">Per side · {perSide > 0 ? `${perSide} kg` : 'bar only'}</p>
@@ -140,12 +127,7 @@ export function PlateCalculator({ isOpen, onClose, initialWeight = 100 }: PlateC
                   ) : (
                     <div
                       key={`${plate}-${i}`}
-                      className="h-9 px-3 rounded-lg flex items-center font-semibold text-sm"
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid var(--glass-border)',
-                        color: plate <= 2.5 ? 'var(--text-faint)' : 'var(--text-mid)',
-                      }}
+                      className={`h-9 px-3 rounded-lg flex items-center font-semibold text-sm bg-surface-raised border border-border ${plate <= 2.5 ? 'text-tertiary' : 'text-secondary'}`}
                     >
                       {plate}
                     </div>
@@ -156,7 +138,7 @@ export function PlateCalculator({ isOpen, onClose, initialWeight = 100 }: PlateC
           )}
 
           {!isExact && plates.length > 0 && (
-            <p className="text-[10px] text-orange-400 font-medium mt-3">
+            <p className="text-xs text-caution font-medium mt-3">
               Closest achievable: {actual} kg
             </p>
           )}

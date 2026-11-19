@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { Button } from '@/components/ui'
 
 export default function ErrorBoundary({
   error,
@@ -15,17 +16,14 @@ export default function ErrorBoundary({
   }, [error])
 
   return (
-    <div className="flex h-screen flex-col items-center justify-center bg-black text-white p-4">
+    <div className="flex h-screen flex-col items-center justify-center bg-bg text-primary p-4">
       <h2 className="text-2xl font-bold font-sans mb-4">Something went wrong!</h2>
-      <p className="text-zinc-500 font-mono text-sm mb-8 max-w-md text-center">
+      <p className="text-secondary font-mono text-sm mb-8 max-w-md text-center">
         {error.message || 'An unexpected error occurred while loading this page.'}
       </p>
-      <button
-        onClick={() => reset()}
-        className="bg-brand text-white font-bold font-sans text-sm px-6 py-3 rounded-xl hover:bg-brand-hover transition-colors"
-      >
+      <Button onClick={() => reset()} fullWidth={false}>
         Try again
-      </button>
+      </Button>
     </div>
   )
 }

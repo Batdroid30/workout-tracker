@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateWorkoutMetaAction } from '@/app/(app)/workout/[id]/actions'
-import { Button } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 import { useDialog } from '@/providers/DialogProvider'
 import { Edit2 } from 'lucide-react'
 
@@ -41,54 +41,50 @@ export function EditWorkoutMetaModal({ workoutId, initialTitle, initialDuration,
     <>
       <div onClick={() => setIsOpen(true)} className="cursor-pointer group relative block w-full">
         {children}
-        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-zinc-800 rounded-md">
-          <Edit2 className="w-3 h-3 text-zinc-400" />
+        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-surface-raised rounded-md">
+          <Edit2 className="w-3 h-3 text-secondary" />
         </div>
       </div>
 
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold text-white mb-6">Edit Workout</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 animate-in fade-in duration-200">
+          <div className="bg-surface-raised border border-border p-6 rounded-card shadow-[var(--shadow-overlay)] w-full max-w-sm animate-in zoom-in-95 duration-200">
+            <h3 className="t-title-2 mb-6">Edit workout</h3>
             
             <div className="space-y-4 mb-8">
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Title</label>
-                <input 
-                  type="text" 
+                <label className="block text-xs font-medium text-secondary mb-2">Title</label>
+                <Input
+                  type="text"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-brand"
+                  className="font-bold"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Duration (minutes)</label>
-                <input 
-                  type="number" 
+                <label className="block text-xs font-medium text-secondary mb-2">Duration (minutes)</label>
+                <Input
+                  type="number"
                   value={duration || ''}
                   onChange={e => setDuration(Number(e.target.value))}
-                  className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-brand"
+                  className="font-bold"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Notes</label>
+                <label className="block text-xs font-medium text-secondary mb-2">Notes</label>
                 <textarea 
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-brand h-20 resize-none"
+                  className="w-full bg-surface-raised border border-border-strong rounded-control px-4 py-3 text-primary text-sm placeholder:text-tertiary focus:outline-none focus:border-accent h-20 resize-none"
                 />
               </div>
             </div>
 
             <div className="flex gap-3 justify-end">
-              <button 
-                onClick={() => setIsOpen(false)}
-                className="px-4 py-2 text-sm font-bold text-zinc-400 hover:bg-zinc-800 rounded-xl transition-colors"
-                disabled={isPending}
-              >
+              <Button onClick={() => setIsOpen(false)} variant="secondary" fullWidth={false} disabled={isPending}>
                 Cancel
-              </button>
+              </Button>
               <Button onClick={handleSave} loading={isPending} fullWidth={false}>
                 {isPending ? 'Saving...' : 'Save'}
               </Button>

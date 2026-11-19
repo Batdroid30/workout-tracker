@@ -84,14 +84,12 @@ export function WorkoutFocusSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col lg:inset-y-0 lg:right-0 lg:left-auto lg:w-[500px] animate-in slide-in-from-bottom duration-300"
-      style={{ background: 'var(--bg-0)', borderLeft: '1px solid var(--glass-border)' }}
+      className="fixed inset-0 z-50 flex flex-col lg:inset-y-0 lg:right-0 lg:left-auto lg:w-[500px] animate-in slide-in-from-bottom duration-300 bg-bg border-l border-border"
     >
 
       {/* ── Header ── */}
       <div
-        className="flex items-center justify-between px-4 py-4"
-        style={{ borderBottom: '1px solid var(--glass-border)' }}
+        className="flex items-center justify-between px-4 py-4 border-b border-border"
       >
         <div>
           <p className="t-label mb-0.5">New workout</p>
@@ -99,8 +97,7 @@ export function WorkoutFocusSheet({
         </div>
         <button
           onClick={onClose}
-          className="p-2.5 rounded-[var(--radius-inner)] transition-colors hover:bg-white/[0.06]"
-          style={{ color: 'var(--text-mid)' }}
+          className="p-2.5 rounded-control transition-colors text-secondary hover:bg-surface-raised"
           aria-label="Close"
         >
           <X className="w-5 h-5" />
@@ -115,8 +112,7 @@ export function WorkoutFocusSheet({
         </p>
         <button
           onClick={handleSkip}
-          className="mt-2 mb-4 text-[11px] font-medium uppercase tracking-wider transition-colors hover:opacity-80"
-          style={{ color: 'var(--accent)' }}
+          className="mt-2 mb-4 min-h-11 text-sm font-medium text-primary underline underline-offset-4 transition-colors hover:opacity-80"
         >
           Or start blank →
         </button>
@@ -127,26 +123,19 @@ export function WorkoutFocusSheet({
               key={opt.key}
               onClick={() => handlePick(opt.key)}
               disabled={isLoading}
-              className="flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-[var(--radius-inner)] text-left transition-all active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100 hover:opacity-90"
-              style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid var(--glass-border)',
-              }}
+              className="flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-control bg-surface border border-border text-left transition-all active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100 hover:opacity-90"
             >
-              <span className="text-[12px] font-semibold uppercase tracking-tight" style={{ color: 'var(--text-hi)' }}>
+              <span className="text-xs font-semibold text-primary">
                 {opt.label}
               </span>
-              <span className="text-[10px] text-[var(--text-faint)] leading-snug">{opt.blurb}</span>
+              <span className="text-xs text-tertiary leading-snug">{opt.blurb}</span>
             </button>
           ))}
         </div>
 
         {isLoading && (
           <div className="flex items-center justify-center mt-6">
-            <div
-              className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin"
-              style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}
-            />
+            <div className="w-5 h-5 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
           </div>
         )}
       </div>

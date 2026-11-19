@@ -53,7 +53,7 @@ export function SuggestNextChip({
   return (
     <div className="mt-4">
       <div className="flex items-center gap-1.5 mb-2 px-1">
-        <Sparkles className="w-3 h-3" style={{ color: 'var(--accent)', opacity: 0.60 }} />
+        <Sparkles className="w-3 h-3 text-tertiary" />
         <span className="t-label">Suggested next</span>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -61,16 +61,9 @@ export function SuggestNextChip({
           <button
             key={ex.id}
             onClick={() => onAdd(ex)}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-lg active:scale-95 transition-all hover:opacity-90"
-            style={{
-              background: 'var(--accent-soft)',
-              border: '1px solid var(--accent-line)',
-            }}
+            className="flex items-center gap-1.5 min-h-9 px-3 rounded-lg bg-surface-raised border border-border active:scale-95 transition-all hover:opacity-90"
           >
-            <span
-              className="text-[11px] font-semibold uppercase tracking-tight"
-              style={{ color: 'var(--accent)' }}
-            >
+            <span className="text-xs font-semibold text-primary">
               {ex.name}
             </span>
             <span className="t-caption">{ex.muscle_group}</span>

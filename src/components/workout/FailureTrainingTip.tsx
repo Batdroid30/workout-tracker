@@ -21,25 +21,23 @@ export function FailureTrainingTip({ exercises }: FailureTrainingTipProps) {
 
   return (
     <div
-      className="flex items-start gap-3 px-3.5 py-3 rounded-[var(--radius-inner)] mb-2"
-      style={{ background: 'rgba(230,163,154,0.08)', border: '1px solid rgba(230,163,154,0.25)' }}
+      className="flex items-start gap-3 px-3.5 py-3 rounded-control mb-2 bg-caution-soft border border-caution/25"
     >
-      <Zap className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--rose)' }} />
+      <Zap className="w-3.5 h-3.5 shrink-0 mt-0.5 text-caution" />
 
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: 'var(--rose)' }}>
-          High Failure Volume ({rpe10Count} sets at RPE 10)
+        <p className="text-xs font-semibold text-caution mb-0.5">
+          High failure volume ({rpe10Count} sets at RPE 10)
         </p>
-        <p className="text-[11px] text-[var(--text-low)] leading-relaxed">
+        <p className="text-xs text-tertiary leading-relaxed">
           Repeatedly training to absolute failure spikes cortisol and blunts recovery without adding meaningful gains over stopping at RPE 8–9 (1–2 RIR). Consider leaving a rep in reserve on remaining sets.
         </p>
       </div>
 
       <button
         onClick={() => setDismissed(true)}
-        className="shrink-0 p-1 rounded transition-colors hover:bg-white/[0.06]"
+        className="shrink-0 p-1 rounded transition-colors text-tertiary hover:bg-surface-raised"
         aria-label="Dismiss"
-        style={{ color: 'var(--text-faint)' }}
       >
         <X className="w-3.5 h-3.5" />
       </button>

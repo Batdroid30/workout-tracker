@@ -117,8 +117,8 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
   }, [onDone])
 
   const inputBase = cn(
-    'flex-1 min-w-0 h-10 rounded-[var(--radius-inner)] text-center mono text-base text-[var(--text-hi)]',
-    'placeholder:text-[var(--text-faint)] focus:outline-none transition-colors',
+    'flex-1 min-w-0 min-h-11 rounded-control text-center t-value bg-surface-raised border border-border',
+    'placeholder:text-tertiary placeholder:text-sm focus:outline-none focus:border-border-strong transition-colors',
   )
 
   return (
@@ -134,20 +134,17 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
           <span className={cn(
             'mono text-xs w-6 h-6 flex items-center justify-center rounded',
             set.is_warmup
-              ? 'bg-orange-500/10 text-orange-400'
-              : 'bg-white/[0.05] text-[var(--text-mid)]',
+              ? 'bg-caution-soft text-caution'
+              : 'bg-surface-raised text-secondary',
           )}>
             {set.is_warmup ? 'W' : set.set_number}
           </span>
-          <span className="text-[9px] text-[var(--text-faint)] leading-none tabular-nums">{prevSetText}</span>
+          <span className="text-xs text-tertiary leading-none tabular-nums whitespace-nowrap">{prevSetText}</span>
         </div>
 
         {/* Weight — hidden for pure bodyweight exercises */}
         {isBodyweight ? (
-          <div
-            className="flex-1 min-w-0 h-10 rounded-[var(--radius-inner)] flex items-center justify-center text-[11px] font-semibold uppercase tracking-widest"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)', color: 'var(--text-faint)' }}
-          >
+          <div className="flex-1 min-w-0 min-h-11 rounded-control flex items-center justify-center text-xs font-semibold text-tertiary bg-surface-raised border border-border">
             BW
           </div>
         ) : (
@@ -157,7 +154,6 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
             value={weightStr}
             placeholder={isWeightedBodyweight ? 'Added kg' : '0'}
             className={inputBase}
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
             onFocus={() => { weightFocused.current = true }}
             onChange={e => {
               const str = e.target.value
@@ -185,7 +181,6 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
           value={set.reps > 0 ? String(set.reps) : ''}
           placeholder="0"
           className={inputBase}
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
           onChange={e => {
             const v = parseInt(e.target.value, 10)
             onChange({ reps: isNaN(v) ? 0 : v })
@@ -195,25 +190,26 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
         {/* Done */}
         <button
           onClick={handleDone}
-          className="w-10 h-10 shrink-0 rounded-[var(--radius-inner)] flex items-center justify-center border transition-all duration-150 active:scale-95"
-          style={ticked
-            ? { background: 'var(--accent)', borderColor: 'var(--accent)', transform: 'scale(1.1)' }
-            : { background: 'rgba(255,255,255,0.04)', borderColor: 'var(--glass-border)', color: 'var(--text-faint)' }
-          }
+          className={cn(
+            'w-11 h-11 shrink-0 rounded-control flex items-center justify-center border transition-all duration-150 active:scale-95',
+            ticked
+              ? 'bg-accent border-accent text-on-accent scale-110'
+              : 'bg-surface-raised border-border text-tertiary',
+          )}
         >
-          <Check className="w-4 h-4" style={ticked ? { color: 'var(--accent-on)' } : {}} />
+          <Check className="w-4 h-4" />
         </button>
       </div>
 
       {isWeightedBodyweight && (
-        <p className="mono text-[10px] pb-1 pl-16 tabular-nums text-[var(--text-faint)]">
+        <p className="mono text-xs pb-1 pl-16 tabular-nums text-tertiary">
           BW {userBodyweight} + {getDisplayWeight(set.weight_kg)} = {Math.round(Math.max(set.weight_kg, userBodyweight) * 10) / 10} kg
           {bodyweightLogged === false && <span> · using 75 kg — log your bodyweight in Progress</span>}
         </p>
       )}
 
       {isAssisted && set.weight_kg >= userBodyweight && (
-        <p className="text-[10px] pb-1 pl-16" style={{ color: 'var(--warning)' }}>
+        <p className="text-xs pb-1 pl-16 text-caution">
           Assistance is at or above your bodyweight ({userBodyweight} kg) — check the number.
         </p>
       )}
@@ -229,21 +225,20 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
               reps: suggestion.target_reps,
             })
           }}
-          className="w-full flex items-center gap-1.5 px-2 py-1 mb-1 rounded-[var(--radius-inner)] transition-all active:scale-[0.98] group"
-          style={{ border: '1px solid var(--accent-line)', background: 'var(--accent-soft)' }}
+          className="w-full flex items-center gap-1.5 px-2 py-1 mb-1 rounded-control bg-surface-raised border border-border transition-all active:scale-[0.98] group"
         >
-          <Zap className="w-3 h-3 shrink-0" style={{ color: 'var(--accent)' }} />
-          <span className="mono text-[11px] tabular-nums" style={{ color: 'var(--accent)' }}>
+          <Zap className="w-3 h-3 shrink-0 text-secondary" />
+          <span className="mono text-xs tabular-nums text-primary">
             {isBodyweight 
               ? `BW × ${suggestion.target_reps}` 
               : isWeightedBodyweight 
                 ? `${formatAddedWeight(Math.max(suggestion.weight_kg, userBodyweight), userBodyweight)} × ${suggestion.target_reps}`
                 : `${suggestion.weight_kg}kg × ${suggestion.target_reps}`}
           </span>
-          <span className="mono text-[10px] tabular-nums" style={{ color: 'var(--accent)' }}>
+          <span className="mono text-xs tabular-nums text-secondary">
             · RPE {suggestion.rpe_target} ({rpeToRIR(suggestion.rpe_target)} RIR)
           </span>
-          <span className="text-[10px] text-[var(--text-low)] truncate flex-1 text-left">
+          <span className="text-xs text-tertiary truncate flex-1 text-left">
             {suggestion.reason}
           </span>
         </button>
@@ -257,8 +252,7 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
             inputMode="decimal"
             value={rpeStr}
             placeholder="RPE · 1–10"
-            className="flex-1 h-9 rounded-[var(--radius-inner)] text-center mono text-sm text-[var(--text-mid)] placeholder:text-[var(--text-faint)] placeholder:text-[11px] placeholder:tracking-wide focus:outline-none transition-colors"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
+            className="flex-1 min-h-11 rounded-control text-center mono text-sm text-secondary placeholder:text-tertiary placeholder:text-xs bg-surface-raised border border-border focus:outline-none focus:border-border-strong transition-colors"
             onFocus={() => { rpeFocused.current = true }}
             onChange={e => {
               const str = e.target.value
@@ -278,8 +272,7 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
           />
           <button
             onClick={handleRemove}
-            className="w-9 h-9 shrink-0 flex items-center justify-center rounded-[var(--radius-inner)] transition-colors hover:bg-[var(--rose)]/10"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)', color: 'var(--text-faint)' }}
+            className="w-11 h-11 shrink-0 flex items-center justify-center rounded-control bg-surface-raised border border-border text-tertiary transition-colors hover:bg-negative-soft"
             aria-label="Remove set"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -292,8 +285,7 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
         <div className="flex justify-end pb-1.5">
           <button
             onClick={handleRemove}
-            className="w-9 h-9 flex items-center justify-center rounded-[var(--radius-inner)] transition-colors hover:bg-[var(--rose)]/10"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)', color: 'var(--text-faint)' }}
+            className="w-11 h-11 flex items-center justify-center rounded-control bg-surface-raised border border-border text-tertiary transition-colors hover:bg-negative-soft"
             aria-label="Remove set"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -374,54 +366,52 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWei
       'overflow-hidden transition-all duration-300',
       pendingDelete ? 'max-h-0 opacity-0' : 'max-h-32 opacity-100',
     )}>
-      <div className="relative group overflow-hidden rounded-[var(--radius-inner)] mb-1">
+      <div className="relative group overflow-hidden rounded-control mb-1">
         {/* Swipe delete bg */}
-        <div className="absolute inset-y-0 right-0 w-16 flex items-center justify-center rounded-r-[var(--radius-inner)]"
-          style={{ background: swipeOffset < 0 ? 'rgba(230,163,154,0.12)' : 'transparent' }}>
-          <button onClick={handleRemove} className="w-full h-full flex items-center justify-center" style={{ color: 'var(--rose)' }}>
+        <div className={cn('absolute inset-y-0 right-0 w-16 flex items-center justify-center rounded-r-control', swipeOffset < 0 ? 'bg-negative-soft' : 'bg-transparent')}>
+          <button onClick={handleRemove} className="w-full h-full flex items-center justify-center text-negative">
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
 
         {/* Row */}
         <div
-          className="relative flex items-center gap-2 py-2.5 transition-transform duration-200"
-          style={{ background: 'rgba(255,255,255,0.02)', transform: `translateX(${swipeOffset}px)` }}
+          className="relative flex items-center gap-2 py-2.5 bg-surface transition-transform duration-200"
+          style={{ transform: `translateX(${swipeOffset}px)` }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
           {/* Untick */}
           <button onClick={onDone} className="w-8 shrink-0 flex items-center justify-center active:scale-90 transition-transform" aria-label="Untick set">
-            <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--accent)' }}>
-              <Check className="w-3.5 h-3.5" style={{ color: 'var(--accent-on)' }} strokeWidth={3} />
+            <div className="w-6 h-6 rounded flex items-center justify-center bg-accent">
+              <Check className="w-3.5 h-3.5 text-on-accent" strokeWidth={3} />
             </div>
           </button>
 
           {/* Set badge */}
           <span className={cn(
-            'mono text-[11px] w-5 h-5 flex items-center justify-center rounded shrink-0',
-            set.is_warmup ? 'bg-orange-500/10 text-orange-400' : 'bg-white/[0.04] text-[var(--text-faint)]',
+            'mono text-xs w-5 h-5 flex items-center justify-center rounded shrink-0',
+            set.is_warmup ? 'bg-caution-soft text-caution' : 'bg-surface-raised text-tertiary',
           )}>
             {set.is_warmup ? 'W' : set.set_number}
           </span>
 
           {/* Summary */}
-          <span className="flex-1 min-w-0 mono text-sm text-[var(--text-low)] tracking-tight">
+          <span className="flex-1 min-w-0 t-value">
             {isBodyweight ? 'BW' : isWeightedBodyweight && set.weight_kg > 0 ? formatWeightedSet(Math.max(set.weight_kg, userBodyweight), userBodyweight) : set.weight_kg > 0 ? `${set.weight_kg}kg` : '—'}
             {' × '}
             {set.reps > 0 ? set.reps : '—'}
-            {e1rm && <span className="text-[9px] text-[var(--text-faint)] ml-1.5">· ~{e1rm}kg</span>}
+            {e1rm && <span className="text-xs text-tertiary ml-1.5">· ~{e1rm}kg</span>}
             {!set.is_warmup && set.rpe !== null && (
-              <span className="text-[10px] text-[var(--text-faint)] ml-1.5">· RPE {set.rpe} ({rpeToRIR(set.rpe)} RIR)</span>
+              <span className="text-xs text-tertiary ml-1.5">· RPE {set.rpe} ({rpeToRIR(set.rpe)} RIR)</span>
             )}
           </span>
 
           {/* Desktop delete */}
           <button
             onClick={handleRemove}
-            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-[var(--text-faint)] opacity-0 group-hover:opacity-100 hover:bg-[var(--rose)]/10 transition-all"
-            style={{ color: 'var(--text-faint)' }}
+            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-tertiary opacity-0 group-hover:opacity-100 hover:bg-negative-soft transition-all"
             aria-label="Remove set"
           >
             <X className="w-3 h-3" />

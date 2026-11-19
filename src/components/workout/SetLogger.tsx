@@ -6,7 +6,7 @@ import { PRBanner }             from './PRBanner'
 import type { ActiveExercise, PRCheckResult } from '@/types/database'
 import { Plus, Check, MoreVertical, Calculator, Timer, ChevronDown } from 'lucide-react'
 import { BottomSheet } from '@/components/ui/BottomSheet'
-import { Button } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 import { useState, useEffect, useCallback } from 'react'
 import { useWorkoutStore }      from '@/store/workout.store'
 import { usePRStore }           from '@/store/pr.store'
@@ -146,32 +146,32 @@ export function SetLogger({
     return (
       <button
         onClick={onExpand}
-        className="w-full glass hover:border-[var(--accent-line)] mb-2 active:scale-[0.99] transition-all"
+        className="w-full glass hover:border-border-strong mb-2 active:scale-[0.99] transition-all"
         aria-label={`Expand ${exercise.exercise.name}`}
       >
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="text-left min-w-0 flex-1">
             <h3 className={cn(
-              'font-semibold text-[13px] truncate',
-              isDone ? 'text-[var(--text-low)] line-through' : 'text-[var(--accent)]',
+              'font-semibold text-sm truncate',
+              isDone ? 'text-tertiary line-through' : 'text-primary',
             )}>
               {exercise.exercise.name}
             </h3>
-            <p className="text-[10px] text-[var(--text-faint)] uppercase tracking-[0.15em] mt-0.5">
+            <p className="text-xs text-tertiary mt-0.5 truncate capitalize">
               {exercise.exercise.muscle_group}
               {targetReps > 0 && (
-                <span className="text-[var(--text-faint)]"> · {totalSets}×{targetReps}</span>
+                <span> · {totalSets}×{targetReps}</span>
               )}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span className={cn(
-              'mono text-[11px] tabular-nums',
-              isDone ? 'text-[var(--accent)]' : 'text-[var(--text-mid)]',
+              'mono text-sm tabular-nums',
+              isDone ? 'text-positive' : 'text-secondary',
             )}>
               {completedSets}/{totalSets}
             </span>
-            <ChevronDown className="w-4 h-4 text-[var(--text-faint)]" />
+            <ChevronDown className="w-4 h-4 text-tertiary" />
           </div>
         </div>
       </button>
@@ -183,32 +183,30 @@ export function SetLogger({
 
       {/* ── Exercise header ─────────────────────────────────────────────── */}
       <div
-        className="px-4 py-3 flex items-center justify-between"
-        style={{ borderBottom: '1px solid var(--glass-border)' }}
+        className="px-4 py-3 flex items-center justify-between gap-2 border-b border-border"
       >
-        <div>
-          <h3 className="font-semibold text-[15px] text-[var(--accent)]">{exercise.exercise.name}</h3>
-          <p className="text-[10px] text-[var(--text-faint)] uppercase tracking-[0.15em] mt-0.5">
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold text-base text-primary break-words">{exercise.exercise.name}</h3>
+          <p className="text-xs text-tertiary mt-0.5 capitalize">
             {exercise.exercise.muscle_group}
           </p>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           {/* Rest timer pill */}
           <button
             onClick={() => setShowDurationPicker(true)}
-            className="flex items-center gap-1 h-7 px-2.5 rounded-lg transition-colors hover:border-[var(--accent-line)]"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
+            className="flex items-center gap-1 min-h-9 px-2.5 rounded-lg transition-colors bg-surface-raised border border-border hover:border-border-strong"
             aria-label="Set rest timer duration"
           >
-            <Timer className="w-3 h-3 text-[var(--text-faint)]" />
-            <span className="mono text-[10px] text-[var(--text-mid)] tabular-nums">{restLabel}</span>
+            <Timer className="w-3 h-3 text-tertiary" />
+            <span className="mono text-xs text-secondary tabular-nums">{restLabel}</span>
           </button>
 
           {/* Plate calculator */}
           <button
             onClick={() => onOpenPlateCalc(workingWeight || 100)}
-            className="p-2 rounded-lg text-[var(--text-low)] hover:text-[var(--text-hi)] hover:bg-white/[0.06] transition-colors"
+            className="p-2 rounded-lg text-tertiary hover:text-primary hover:bg-surface-raised transition-colors"
             aria-label="Plate calculator"
           >
             <Calculator className="w-4 h-4" />
@@ -218,7 +216,7 @@ export function SetLogger({
           <div className="relative">
             <button
               onClick={() => setMenuOpen(o => !o)}
-              className="p-2 rounded-lg text-[var(--text-low)] hover:text-[var(--text-hi)] hover:bg-white/[0.06] transition-colors"
+              className="p-2 rounded-lg text-tertiary hover:text-primary hover:bg-surface-raised transition-colors"
             >
               <MoreVertical className="w-4 h-4" />
             </button>
@@ -227,45 +225,38 @@ export function SetLogger({
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
                 <div
-                  className="absolute right-0 top-full mt-1 w-48 z-20 rounded-[var(--radius-inner)] overflow-hidden"
-                  style={{
-                    background: 'rgba(10,13,24,0.97)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid var(--glass-border-strong)',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                  }}
+                  className="absolute right-0 top-full mt-1 w-48 z-20 rounded-control overflow-hidden bg-surface-raised border border-border-strong shadow-[var(--shadow-overlay)]"
                 >
                   {[
-                    { label: 'Replace Exercise', action: () => { onReplaceExercise?.(); setMenuOpen(false) } },
-                    { label: 'Move Up',          action: () => { moveExerciseUp(exerciseIndex); setMenuOpen(false) } },
-                    { label: 'Move Down',        action: () => { moveExerciseDown(exerciseIndex); setMenuOpen(false) } },
+                    { label: 'Replace exercise', action: () => { onReplaceExercise?.(); setMenuOpen(false) } },
+                    { label: 'Move up',          action: () => { moveExerciseUp(exerciseIndex); setMenuOpen(false) } },
+                    { label: 'Move down',        action: () => { moveExerciseDown(exerciseIndex); setMenuOpen(false) } },
                     ...(onSupersetWith && supersetCandidates && supersetCandidates.length > 0
                       ? [{ label: 'Superset with…', action: () => { setMenuOpen(false); setShowSupersetPicker(true) } }]
                       : []),
-                    ...(onUnpairSuperset ? [{ label: 'Remove from Superset', action: () => { onUnpairSuperset(); setMenuOpen(false) } }] : []),
+                    ...(onUnpairSuperset ? [{ label: 'Remove from superset', action: () => { onUnpairSuperset(); setMenuOpen(false) } }] : []),
                   ].map(item => (
                     <button
                       key={item.label}
                       onClick={item.action}
-                      className="w-full text-left px-4 py-3 text-[13px] text-[var(--text-hi)] hover:bg-white/[0.06] transition-colors"
+                      className="w-full text-left px-4 py-3 text-sm text-primary hover:bg-surface transition-colors"
                     >
                       {item.label}
                     </button>
                   ))}
-                  <div className="h-px bg-[var(--glass-border)]" />
+                  <div className="h-px bg-border" />
                   <button
                     onClick={async () => {
                       setMenuOpen(false)
                       const confirmed = await dialog.confirm({
-                        title: 'Remove Exercise', description: 'Remove this exercise from the workout?',
+                        title: 'Remove exercise', description: 'Remove this exercise from the workout?',
                         danger: true, confirmText: 'Remove',
                       })
                       if (confirmed) removeExercise(exerciseIndex)
                     }}
-                    className="w-full text-left px-4 py-3 text-[13px] transition-colors hover:bg-[var(--rose)]/10"
-                    style={{ color: 'var(--rose)' }}
+                    className="w-full text-left px-4 py-3 text-sm text-negative transition-colors hover:bg-negative-soft"
                   >
-                    Remove Exercise
+                    Remove exercise
                   </button>
                 </div>
               </>
@@ -282,13 +273,12 @@ export function SetLogger({
 
       {/* ── Column headers ──────────────────────────────────────────────── */}
       <div
-        className="flex items-center gap-2 px-4 py-2"
-        style={{ borderBottom: '1px solid var(--glass-border)' }}
+        className="flex items-center gap-2 px-4 py-2 border-b border-border"
       >
-        <span className="w-14 text-center text-[9px] font-medium text-[var(--text-faint)] uppercase tracking-widest">Set · Prev</span>
-        <span className="flex-1 text-center text-[9px] font-medium text-[var(--text-faint)] uppercase tracking-widest">kg</span>
-        <span className="flex-1 text-center text-[9px] font-medium text-[var(--text-faint)] uppercase tracking-widest">Reps</span>
-        <span className="w-10 text-center text-[9px] font-medium text-[var(--text-faint)] uppercase tracking-widest">
+        <span className="w-14 text-center text-xs font-medium text-tertiary">Set · Prev</span>
+        <span className="flex-1 text-center text-xs font-medium text-tertiary">kg</span>
+        <span className="flex-1 text-center text-xs font-medium text-tertiary">Reps</span>
+        <span className="w-10 text-center text-xs font-medium text-tertiary">
           <Check className="w-3 h-3 mx-auto" />
         </span>
       </div>
@@ -344,43 +334,32 @@ export function SetLogger({
         <div className="flex gap-2 mt-2">
           <button
             onClick={() => addWarmupSet(exerciseIndex)}
-            className="flex-1 flex items-center justify-center gap-1.5 h-9 text-[11px] font-medium uppercase tracking-widest rounded-[var(--radius-inner)] transition-colors border border-orange-500/20 bg-orange-500/5 text-orange-400 hover:bg-orange-500/10"
+            className="flex-1 flex items-center justify-center gap-1.5 min-h-11 text-sm font-medium rounded-pill transition-colors bg-caution-soft text-caution"
           >
             <Plus className="w-3 h-3" /> Warmup
           </button>
           <button
             onClick={() => addSet(exerciseIndex)}
-            className="flex-1 flex items-center justify-center gap-1.5 h-9 text-[11px] font-medium uppercase tracking-widest rounded-[var(--radius-inner)] transition-colors"
-            style={{
-              background: 'var(--accent-soft)',
-              border: '1px solid var(--accent-line)',
-              color: 'var(--accent)',
-            }}
+            className="flex-1 flex items-center justify-center gap-1.5 min-h-11 text-sm font-medium rounded-pill transition-colors bg-surface-raised border border-border-strong text-primary"
           >
-            <Plus className="w-3 h-3" /> Add Set
+            <Plus className="w-3 h-3" /> Add set
           </button>
         </div>
 
         {/* ── Rep bank progress (rep-sum mode) ────────────────────────── */}
         {isRepSum && repSumTarget > 0 && (
-          <div
-            className="mt-3 pt-2.5"
-            style={{ borderTop: '1px solid var(--glass-border)' }}
-          >
+          <div className="mt-3 pt-2.5 border-t border-border">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[9px] font-medium text-[var(--text-faint)] uppercase tracking-widest">Rep bank</span>
-              <span className="mono text-xs tabular-nums" style={{ color: sessionRepsLogged >= repSumTarget ? 'var(--accent)' : 'var(--text-mid)' }}>
+              <span className="text-xs font-medium text-tertiary">Rep bank</span>
+              <span className={cn('mono text-xs tabular-nums', sessionRepsLogged >= repSumTarget ? 'text-positive' : 'text-secondary')}>
                 {sessionRepsLogged}
-                <span className="text-[9px] text-[var(--text-faint)]">/{repSumTarget}</span>
+                <span className="text-xs text-tertiary">/{repSumTarget}</span>
               </span>
             </div>
-            <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="h-1 rounded-full overflow-hidden bg-surface-raised">
               <div
-                className="h-full rounded-full transition-all duration-300"
-                style={{
-                  width: `${Math.min(100, (sessionRepsLogged / repSumTarget) * 100)}%`,
-                  background: sessionRepsLogged >= repSumTarget ? 'var(--accent)' : 'var(--accent-line)',
-                }}
+                className={cn('h-full rounded-full transition-all duration-300', sessionRepsLogged >= repSumTarget ? 'bg-positive' : 'bg-secondary')}
+                style={{ width: `${Math.min(100, (sessionRepsLogged / repSumTarget) * 100)}%` }}
               />
             </div>
           </div>
@@ -388,14 +367,11 @@ export function SetLogger({
 
         {/* ── Session volume ──────────────────────────────────────────── */}
         {sessionVolume > 0 && !isRepSum && (
-          <div
-            className="flex items-center justify-between mt-3 pt-2.5"
-            style={{ borderTop: '1px solid var(--glass-border)' }}
-          >
-            <span className="text-[9px] font-medium text-[var(--text-faint)] uppercase tracking-widest">Session volume</span>
-            <span className="mono text-xs text-[var(--text-mid)] tabular-nums">
+          <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-border">
+            <span className="text-xs font-medium text-tertiary">Session volume</span>
+            <span className="mono text-xs text-secondary tabular-nums">
               {formatVolume(sessionVolume)}
-              <span className="text-[9px] text-[var(--text-faint)] ml-0.5">kg</span>
+              <span className="text-xs text-tertiary ml-0.5">kg</span>
             </span>
           </div>
         )}
@@ -420,8 +396,7 @@ export function SetLogger({
             <button
               key={candidate.index}
               onClick={() => { onSupersetWith?.(candidate.index); setShowSupersetPicker(false) }}
-              className="w-full text-left px-4 py-3 rounded-[var(--radius-inner)] text-[13px] text-[var(--text-hi)] hover:bg-white/[0.06] transition-colors"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}
+              className="w-full text-left px-4 py-3 rounded-control text-sm text-primary bg-surface border border-border hover:bg-surface-raised transition-colors"
             >
               {candidate.name}
             </button>
@@ -470,22 +445,18 @@ function RestDurationPicker({ isOpen, current, onChange, onClose }: RestDuration
   }
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="Rest Duration" icon={<Timer className="w-4 h-4 text-[var(--accent)]" />}>
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Rest duration" icon={<Timer className="w-4 h-4 text-secondary" />}>
       <div className="grid grid-cols-3 gap-2 mb-4">
         {REST_PRESETS.map(p => (
           <button
             key={p.seconds}
             onClick={() => onChange(p.seconds)}
             className={cn(
-              'py-3 rounded-[var(--radius-inner)] mono text-sm transition-all active:scale-95',
+              'min-h-12 rounded-control mono text-sm border transition-all active:scale-95',
               current === p.seconds
-                ? 'text-[var(--accent-on)]'
-                : 'text-[var(--text-mid)] hover:text-[var(--text-hi)]',
+                ? 'bg-primary border-border-strong text-bg'
+                : 'bg-surface-raised border-border text-secondary hover:text-primary',
             )}
-            style={current === p.seconds
-              ? { background: 'var(--accent)', border: '1px solid var(--accent)' }
-              : { background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }
-            }
           >
             {p.label}
           </button>
@@ -493,21 +464,20 @@ function RestDurationPicker({ isOpen, current, onChange, onClose }: RestDuration
       </div>
 
       <div className="flex gap-2">
-        <input
+        <Input
           type="number"
           inputMode="numeric"
           placeholder="Custom (seconds)"
           value={custom}
           onChange={e => setCustom(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleCustomSubmit()}
-          className="flex-1 h-11 rounded-[var(--radius-inner)] px-4 mono text-sm text-[var(--text-hi)] placeholder:text-[var(--text-faint)] focus:outline-none"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
+          className="flex-1 mono text-sm"
         />
         <Button onClick={handleCustomSubmit} fullWidth={false}>
           Set
         </Button>
       </div>
-      <p className="text-[10px] text-[var(--text-faint)] mt-2">
+      <p className="text-xs text-tertiary mt-2">
         Saved per exercise — pre-fills next time.
       </p>
     </BottomSheet>

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Sparkles, ArrowRight, Zap, Target } from 'lucide-react'
+import { Chip, getButtonClassName } from '@/components/ui'
 
 interface WorkoutCoachInsightCardProps {
   workoutTitle?: string | null
@@ -27,48 +28,43 @@ export function WorkoutCoachInsightCard({
 
   return (
     <div
-      className="glass p-4 rounded-2xl relative overflow-hidden"
-      style={{
-        borderColor: 'rgba(45, 212, 191, 0.25)',
-        background: 'linear-gradient(135deg, rgba(45,212,191,0.06) 0%, rgba(10,13,24,0.7) 100%)',
-      }}
+      className="card p-4 relative overflow-hidden"
     >
       <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-1.5">
-          <div className="p-1 rounded-md bg-teal-500/10 border border-teal-500/20 text-teal-400">
+          <div className="p-1 rounded-md bg-surface-raised text-secondary">
             <Sparkles className="w-3.5 h-3.5" />
           </div>
-          <span className="text-[10px] font-bold tracking-widest uppercase text-teal-400">
-            Workout Insight
+          <span className="text-xs font-semibold text-secondary">
+            Workout insight
           </span>
         </div>
 
         {prCount > 0 ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-mono text-teal-300 bg-teal-500/15 px-2 py-0.5 rounded-full border border-teal-500/30">
-            <Zap className="w-3 h-3 text-teal-400" />
-            {prCount} PR{prCount > 1 ? 's' : ''} Hit
-          </span>
+          <Chip tone="accent" icon={<Zap className="w-3 h-3" />}>
+            {prCount} PR{prCount > 1 ? 's' : ''} hit
+          </Chip>
         ) : (
-          <span className="inline-flex items-center gap-1 text-[10px] font-mono text-zinc-400">
-            <Target className="w-3 h-3 text-zinc-500" />
-            Volume Accumulation
+          <span className="inline-flex items-center gap-1 text-xs font-mono text-secondary">
+            <Target className="w-3 h-3 text-tertiary" />
+            Volume accumulation
           </span>
         )}
       </div>
 
-      <p className="text-[12px] text-[var(--text-hi)] font-medium leading-relaxed">
+      <p className="text-sm text-primary font-medium leading-relaxed">
         {prCount > 0
           ? `High-intensity output with ${prCount} personal record${prCount > 1 ? 's' : ''}. Strong progressive overload signal on compound movements.`
           : `Solid stimulus accumulation across ${totalSets} working sets. Focus on protein synthesis window and 48h recovery for ${musclesSummary}.`}
       </p>
 
-      <div className="mt-3 pt-2.5 border-t border-[rgba(255,255,255,0.05)] flex items-center justify-between">
-        <span className="text-[10px] text-zinc-500">
+      <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-between gap-2">
+        <span className="text-xs text-tertiary">
           Want personalized recovery guidance?
         </span>
         <Link
           href={`/coach?prompt=${encodeURIComponent(promptText)}`}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold text-teal-300 bg-teal-500/15 border border-teal-500/30 hover:bg-teal-500/25 active:scale-95 transition-all"
+          className={getButtonClassName({ variant: 'secondary', size: 'sm', fullWidth: false })}
         >
           <span>Ask Coach</span>
           <ArrowRight className="w-3 h-3" />

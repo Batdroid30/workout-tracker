@@ -46,9 +46,9 @@ export function useToast(): ToastContextType {
 // ─── Single toast item ────────────────────────────────────────────────────────
 
 const TOAST_ICONS: Record<ToastType, React.ReactNode> = {
-  success: <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: 'var(--accent)' }} />,
-  error:   <XCircle      className="w-4 h-4 shrink-0 text-red-400" />,
-  info:    <Info         className="w-4 h-4 shrink-0" style={{ color: 'var(--text-mid)' }} />,
+  success: <CheckCircle2 className="w-4 h-4 shrink-0 text-positive" />,
+  error:   <XCircle      className="w-4 h-4 shrink-0 text-negative" />,
+  info:    <Info         className="w-4 h-4 shrink-0 text-secondary" />,
 }
 
 interface ToastItemProps {
@@ -82,35 +82,24 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
     handleDismiss()
   }
 
-  const borderColor =
-    toast.type === 'success' ? 'var(--accent-line)' :
-    toast.type === 'error'   ? 'rgba(239,68,68,0.30)' :
-    'var(--glass-border)'
-
   return (
     <div
       className={cn(
-        'flex items-center gap-3 px-4 py-3 rounded-[var(--radius-inner)] shadow-2xl',
+        'flex items-center gap-3 px-4 py-3 rounded-control bg-surface-raised border border-border shadow-[var(--shadow-overlay)]',
         'transition-all duration-300 ease-out',
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4',
       )}
-      style={{
-        background: 'rgba(10,13,24,0.97)',
-        backdropFilter: 'blur(20px)',
-        border: `1px solid ${borderColor}`,
-      }}
     >
       {TOAST_ICONS[toast.type]}
 
-      <p className="flex-1 text-sm font-medium leading-snug" style={{ color: 'var(--text-hi)' }}>
+      <p className="flex-1 text-sm font-medium leading-snug text-primary">
         {toast.message}
       </p>
 
       {toast.action && (
         <button
           onClick={handleAction}
-          className="shrink-0 text-xs font-semibold uppercase tracking-widest transition-colors px-1 hover:opacity-80"
-          style={{ color: 'var(--accent)' }}
+          className="shrink-0 text-xs font-semibold text-primary transition-colors px-1 hover:opacity-80"
         >
           {toast.action.label}
         </button>
@@ -118,8 +107,7 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
 
       <button
         onClick={handleDismiss}
-        className="shrink-0 transition-colors hover:opacity-70"
-        style={{ color: 'var(--text-faint)' }}
+        className="shrink-0 transition-colors text-tertiary hover:opacity-70"
         aria-label="Dismiss"
       >
         <X className="w-3.5 h-3.5" />

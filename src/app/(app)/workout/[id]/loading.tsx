@@ -6,8 +6,7 @@ export default function WorkoutHistoryDetailLoading() {
 
       {/* Sticky header: back button + title + action buttons */}
       <div
-        className="sticky top-0 z-30 px-4 py-3 flex items-center justify-between"
-        style={{ background: 'rgba(6,7,13,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid var(--glass-border)' }}
+        className="sticky top-0 z-30 px-4 py-3 flex items-center justify-between bg-bg border-b border-border"
       >
         <div className="flex items-center gap-3">
           <Skeleton className="w-9 h-9 rounded-[var(--radius-inner)] shrink-0" />
@@ -49,8 +48,7 @@ export default function WorkoutHistoryDetailLoading() {
 
               {/* Exercise header: name + muscle group + delete */}
               <div
-                className="px-4 py-3 flex items-center justify-between"
-                style={{ background: 'var(--bg-1)', borderBottom: '1px solid var(--glass-border)' }}
+                className="px-4 py-3 flex items-center justify-between bg-surface border-b border-border"
               >
                 <div>
                   <Skeleton className="h-4 w-40 mb-1.5 rounded" />
@@ -61,8 +59,7 @@ export default function WorkoutHistoryDetailLoading() {
 
               {/* Column headers: Set | kg | Reps | PR */}
               <div
-                className="flex py-2 px-4"
-                style={{ borderBottom: '1px solid var(--glass-border)' }}
+                className="flex py-2 px-4 border-b border-border"
               >
                 <div className="w-10"><Skeleton className="h-2 w-6 rounded" /></div>
                 <div className="flex-1 flex justify-center"><Skeleton className="h-2 w-5 rounded" /></div>
@@ -74,8 +71,7 @@ export default function WorkoutHistoryDetailLoading() {
               {[...Array(sets)].map((_, i) => (
                 <div
                   key={i}
-                  className="flex items-center py-3 px-4"
-                  style={{ borderBottom: '1px solid var(--glass-border)' }}
+                  className="flex items-center py-3 px-4 border-b border-border"
                 >
                   <div className="w-10"><Skeleton className="w-6 h-6 rounded-lg" /></div>
                   <div className="flex-1 flex justify-center"><Skeleton className="h-4 w-10 rounded" /></div>
