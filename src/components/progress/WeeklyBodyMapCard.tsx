@@ -50,15 +50,6 @@ export function WeeklyBodyMapCard({ volumeLandmarks }: WeeklyBodyMapCardProps) {
     ? volumeLandmarks.find(point => point.muscleGroup === selected.muscleGroup)?.setCount ?? 0
     : 0
 
-  if (presentStatuses.length === 0) {
-    return (
-      <div className="glass p-4 flex flex-col items-center">
-        <BodyMap fills={{}} className="h-[260px] w-full" aria-label="Weekly muscle volume body map" />
-        <p className="t-caption text-center mt-2">No working sets logged this week yet.</p>
-      </div>
-    )
-  }
-
   return (
     <div className="glass p-4 flex flex-col items-center">
       <BodyMap
@@ -70,7 +61,9 @@ export function WeeklyBodyMapCard({ volumeLandmarks }: WeeklyBodyMapCardProps) {
       <p className="t-caption text-center mt-2 min-h-[1.25rem]" aria-live="polite">
         {selected
           ? `${capitalise(selected.muscleGroup)} · ${formatSetCount(selectedSetCount)} ${selectedSetCount === 1 ? 'set' : 'sets'} · ${VOLUME_STATUS_STYLES[selected.status].label}`
-          : 'Tap a muscle for details.'}
+          : presentStatuses.length === 0
+            ? 'No working sets logged this week yet.'
+            : 'Tap a muscle for details.'}
       </p>
       <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-3">
         {presentStatuses.map(status => (
