@@ -1,6 +1,7 @@
 import { Compass, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { DELOAD_THRESHOLDS } from '@/lib/workout-intelligence'
+import { formatSetCount } from '@/lib/muscle-sets'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
 import { MesocycleTimeline } from '@/components/phase-coach/MesocycleTimeline'
 import type { VolumeStatus, Mesocycle } from '@/lib/phase-coach'
@@ -375,7 +376,7 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
         
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-[11px] tabular-nums font-semibold" style={{ color: 'var(--text-hi)' }}>
-            {setCount} <span className="text-[9px] font-normal" style={{ color: 'var(--text-low)' }}>sets</span>
+            {formatSetCount(setCount)} <span className="text-[9px] font-normal" style={{ color: 'var(--text-low)' }}>sets</span>
           </span>
           <span
             className={cn(
@@ -455,12 +456,12 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
         </div>
         
         <span className="text-[9px] tracking-tight font-semibold" style={{ color: 'var(--text-mid)' }}>
-          {status === 'below_mv' && `+${landmarks.mv - setCount} to MV`}
-          {status === 'maintenance' && `+${landmarks.mev - setCount} to MEV`}
-          {status === 'sub_optimal' && `+${landmarks.mav.min - setCount} to MAV`}
+          {status === 'below_mv' && `+${formatSetCount(landmarks.mv - setCount)} to MV`}
+          {status === 'maintenance' && `+${formatSetCount(landmarks.mev - setCount)} to MEV`}
+          {status === 'sub_optimal' && `+${formatSetCount(landmarks.mav.min - setCount)} to MAV`}
           {status === 'optimal' && `Optimal range`}
-          {status === 'high' && `+${landmarks.mrv - setCount} to MRV`}
-          {status === 'over_mrv' && `${setCount - landmarks.mrv} over MRV`}
+          {status === 'high' && `+${formatSetCount(landmarks.mrv - setCount)} to MRV`}
+          {status === 'over_mrv' && `${formatSetCount(setCount - landmarks.mrv)} over MRV`}
         </span>
       </div>
     </div>

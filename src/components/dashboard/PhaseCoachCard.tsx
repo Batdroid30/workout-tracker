@@ -9,6 +9,7 @@ import type { BodyweightPoint } from '@/lib/data/bodyweight'
 import { MesocycleTimeline } from '@/components/phase-coach/MesocycleTimeline'
 import { calculateNutritionTargets } from '@/lib/algorithms'
 import Link from 'next/link'
+import { formatSetCount } from '@/lib/muscle-sets'
 
 interface PhaseCoachCardProps {
   trainingPhase:   TrainingPhase   | null
@@ -179,7 +180,7 @@ function MuscleRingCell({ point }: { point: MuscleVolumeLandmarkPoint }) {
           fill="var(--text-hi)"
           fontSize="15px"
         >
-          {setCount}
+          {formatSetCount(setCount)}
         </text>
       </svg>
       <span className="text-[9px] font-semibold text-[var(--text-mid)] truncate max-w-[56px]" title={label}>

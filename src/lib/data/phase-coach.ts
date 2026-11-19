@@ -15,6 +15,7 @@ import {
   type StrengthTrendStatus,
 } from '@/lib/phase-coach'
 import { getWeeklySetsByMuscle } from '@/lib/data/insights'
+import { formatSetCount } from '@/lib/muscle-sets'
 import type {
   StalledMovement,
   NeglectedMuscle,
@@ -539,7 +540,7 @@ export function buildThisWeekMissions(input: BuildMissionsInput): Mission[] {
       priority: 'critical',
       icon:     '🚨',
       headline: `Cut back on ${m.muscleGroup}`,
-      detail:   `${m.setCount} sets this week — more than your body can recover from (recommended max: ${m.landmarks.mrv}). Drop a set on your next session.`,
+      detail:   `${formatSetCount(m.setCount)} sets this week — more than your body can recover from (recommended max: ${m.landmarks.mrv}). Drop a set on your next session.`,
     })
   }
 
@@ -599,11 +600,11 @@ export function buildThisWeekMissions(input: BuildMissionsInput): Mission[] {
     .slice(0, 2)
 
   for (const m of gaps) {
-    const needed   = Math.max(1, m.landmarks.mev - m.setCount)
+    const needed   = Math.max(1, Number(formatSetCount(m.landmarks.mev - m.setCount)))
     const daysSince = neglectedDays.get(m.muscleGroup)
     const detail = daysSince !== undefined
       ? `Last trained ${daysSince} days ago. Add ${needed} more set${needed === 1 ? '' : 's'} this week — ${m.landmarks.mev} sets/week is the minimum needed for growth.`
-      : `Only ${m.setCount} of ${m.landmarks.mev} sets done this week. Add ${needed} more to hit the minimum for growth.`
+      : `Only ${formatSetCount(m.setCount)} of ${m.landmarks.mev} sets done this week. Add ${needed} more to hit the minimum for growth.`
     missions.push({
       id:       `gap-${m.muscleGroup}`,
       type:     'volume_gap',

@@ -2,6 +2,7 @@ import { cache } from 'react'
 import { resolveSupabaseClient } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { calculate1RM, type RecentExerciseLoad } from '@/lib/algorithms'
+import { addSetToMuscleCounts, readSecondaryMuscles } from '@/lib/muscle-sets'
 import { effectiveLoad, workoutBodyweight } from '@/lib/load'
 import type { KeyLift } from '@/lib/data/phase-coach'
 import type { ImprovedExercise } from '@/lib/data/insights'
@@ -111,7 +112,7 @@ export const getProgressSnapshot = cache(async (userId: string, runAsAdmin: bool
     .select(`
       weight_kg, reps, rpe, completed_at,
       workout_exercises!inner (
-        exercise:exercises ( id, name, muscle_group, movement_pattern ),
+        exercise:exercises ( id, name, muscle_group, secondary_muscles, movement_pattern ),
         workouts!inner ( id, started_at, user_id, bodyweight_kg )
       )
     `)
@@ -213,7 +214,7 @@ export const getProgressSnapshot = cache(async (userId: string, runAsAdmin: bool
 
     // ── Current-week sets per muscle ──────────────────────────────────────────
     if (muscle && weekKey === currentMonday) {
-      currentWeekSetsByMuscle[muscle] = (currentWeekSetsByMuscle[muscle] ?? 0) + 1
+      addSetToMuscleCounts(currentWeekSetsByMuscle, muscle, readSecondaryMuscles(exercise.secondary_muscles))
     }
 
     // ── Push / pull / legs totals ─────────────────────────────────────────────
