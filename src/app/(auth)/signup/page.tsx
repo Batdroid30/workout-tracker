@@ -19,7 +19,7 @@ export default async function SignupPage({ searchParams }: Props) {
       </div>
 
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium rounded-[var(--radius-inner)]">
+        <div className="p-3 bg-negative-soft text-negative text-xs font-medium rounded-control">
           {error}
         </div>
       )}
@@ -33,15 +33,15 @@ export default async function SignupPage({ searchParams }: Props) {
         <Input type="password" name="password" placeholder="Create a password" required />
       </div>
       <div className="space-y-1.5">
-        <label className="t-label block">Confirm Password</label>
+        <label className="t-label block">Confirm password</label>
         <Input type="password" name="confirmPassword" placeholder="Confirm password" required />
       </div>
 
-      <SubmitButton type="submit" className="mt-6 w-full" pendingText="Creating Account...">Create Account</SubmitButton>
+      <SubmitButton type="submit" className="mt-6 w-full" pendingText="Creating account...">Create account</SubmitButton>
 
-      <p className="text-center text-xs mt-4" style={{ color: 'var(--text-faint)' }}>
+      <p className="text-center text-xs mt-4 text-tertiary">
         Already have an account?{' '}
-        <Link href="/login" className="font-semibold hover:underline" style={{ color: 'var(--accent)' }}>
+        <Link href="/login" className="font-semibold text-primary hover:underline">
           Sign in
         </Link>
       </p>

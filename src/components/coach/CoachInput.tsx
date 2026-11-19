@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, type KeyboardEvent, type FormEvent } from 'react'
 import { ArrowUp, Square } from 'lucide-react'
+import { IconButton } from '@/components/ui'
 
 interface CoachInputProps {
   onSend: (message: string) => void
@@ -48,7 +49,7 @@ export function CoachInput({
   return (
     <form
       onSubmit={handleSubmit}
-      className="relative flex items-end gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/90 p-2 shadow-lg backdrop-blur-md focus-within:border-teal-500/50"
+      className="relative flex items-end gap-2 rounded-card border border-border-strong bg-surface-raised p-2 focus-within:border-accent"
     >
       <textarea
         ref={textareaRef}
@@ -58,27 +59,22 @@ export function CoachInput({
         onKeyDown={handleKeyDown}
         placeholder="Ask coach anything (exercises, volume, routines)..."
         disabled={disabled}
-        className="max-h-36 min-h-[40px] flex-1 resize-none bg-transparent px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none disabled:opacity-50"
+        className="max-h-36 min-h-[40px] flex-1 resize-none bg-transparent px-3 py-2 text-sm text-primary placeholder:text-tertiary focus:outline-none disabled:opacity-50"
       />
 
       {isStreaming ? (
-        <button
-          type="button"
-          onClick={onStop}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
-          title="Stop response"
-        >
+        <IconButton variant="secondary" aria-label="Stop response" onClick={onStop} className="shrink-0">
           <Square className="h-4 w-4 fill-current" />
-        </button>
+        </IconButton>
       ) : (
-        <button
+        <IconButton
           type="submit"
+          aria-label="Send message"
           disabled={!text.trim() || disabled}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white transition-all hover:bg-teal-500 disabled:opacity-30 disabled:hover:bg-teal-600 active:scale-95"
-          title="Send message"
+          className="shrink-0 bg-accent text-on-accent"
         >
           <ArrowUp className="h-4 w-4" />
-        </button>
+        </IconButton>
       )}
     </form>
   )

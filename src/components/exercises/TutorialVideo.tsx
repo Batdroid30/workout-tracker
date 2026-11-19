@@ -25,20 +25,16 @@ export function TutorialVideo({ videoId }: TutorialVideoProps) {
         aria-expanded={open}
       >
         <div className="flex items-center gap-2">
-          <PlayCircle className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-          <h2 className="t-label" style={{ color: 'var(--text-hi)' }}>How to perform</h2>
+          <PlayCircle className="w-4 h-4 text-secondary" />
+          <h2 className="t-label text-primary">How to perform</h2>
         </div>
         <ChevronDown
-          className="w-4 h-4 transition-transform duration-200"
-          style={{
-            color: 'var(--text-faint)',
-            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-          }}
+          className={`w-4 h-4 text-tertiary transition-transform duration-200 ${open ? 'rotate-180' : 'rotate-0'}`}
         />
       </button>
 
       {open && (
-        <div className="glass overflow-hidden" style={{ borderRadius: '12px' }}>
+        <div className="card overflow-hidden">
           {/* 16:9 aspect ratio wrapper */}
           <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
             <iframe

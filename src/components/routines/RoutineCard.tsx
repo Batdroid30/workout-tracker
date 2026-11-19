@@ -8,7 +8,6 @@ import { deleteRoutineAction } from '@/app/(app)/routines/actions'
 import { useDialog } from '@/providers/DialogProvider'
 import { useToast } from '@/providers/ToastProvider'
 import { Button } from '@/components/ui'
-import { cn } from '@/lib/utils'
 
 interface RoutineCardProps {
   routine: any
@@ -31,7 +30,7 @@ export function RoutineCard({ routine }: RoutineCardProps) {
   const handleDelete = async () => {
     setMenuOpen(false)
     const confirmed = await dialog.confirm({
-      title:       'Delete Routine',
+      title:       'Delete routine',
       description: 'Are you sure you want to delete this routine? This action cannot be undone.',
       danger:       true,
       confirmText: 'Delete',
@@ -64,15 +63,15 @@ export function RoutineCard({ routine }: RoutineCardProps) {
   if (deleted) return null
 
   return (
-    <div className="glass hover:border-[var(--accent-line)] transition-colors p-4 relative">
+    <div className="card p-4 relative">
       {/* Header row */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
-          <h3 className="text-[15px] font-semibold text-[var(--text-hi)] leading-snug">
+          <h3 className="text-base font-semibold text-primary leading-snug">
             {routine.title}
           </h3>
           {routine.notes && (
-            <p className="text-[12px] text-[var(--text-mid)] mt-0.5 line-clamp-1">{routine.notes}</p>
+            <p className="text-xs text-secondary mt-0.5 line-clamp-1">{routine.notes}</p>
           )}
         </div>
 
@@ -80,7 +79,7 @@ export function RoutineCard({ routine }: RoutineCardProps) {
         <div className="relative ml-2 shrink-0">
           <button
             onClick={() => setMenuOpen(o => !o)}
-            className="p-1.5 -mr-1 rounded-lg text-[var(--text-low)] hover:text-[var(--text-mid)] hover:bg-white/[0.06] transition-colors"
+            className="p-1.5 -mr-1 rounded-pill text-tertiary hover:text-primary hover:bg-surface-raised transition-colors"
             aria-label="Routine options"
           >
             <MoreVertical className="w-4 h-4" />
@@ -91,25 +90,19 @@ export function RoutineCard({ routine }: RoutineCardProps) {
               {/* Backdrop to close menu */}
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
               <div
-                className="absolute right-0 top-full mt-1 w-44 z-20 rounded-[var(--radius-inner)] overflow-hidden"
-                style={{
-                  background: 'rgba(14,19,32,0.95)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid var(--glass-border-strong)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                }}
+                className="absolute right-0 top-full mt-1 w-44 z-20 rounded-control overflow-hidden bg-surface-raised border border-border-strong shadow-[var(--shadow-overlay)]"
               >
                 <button
                   onClick={handleModify}
-                  className="w-full flex items-center gap-2.5 px-4 py-3 text-[13px] text-[var(--text-hi)] hover:bg-white/[0.06] transition-colors"
+                  className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-primary hover:bg-surface transition-colors"
                 >
-                  <Edit2 className="w-3.5 h-3.5 text-[var(--text-low)]" /> Edit
+                  <Edit2 className="w-3.5 h-3.5 text-tertiary" /> Edit
                 </button>
-                <div className="h-px bg-[var(--glass-border)]" />
+                <div className="h-px bg-border" />
                 <button
                   onClick={handleDelete}
                   disabled={isPending}
-                  className="w-full flex items-center gap-2.5 px-4 py-3 text-[13px] text-[var(--rose)] hover:bg-[var(--rose)]/10 transition-colors disabled:opacity-50"
+                  className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-negative hover:bg-negative-soft transition-colors disabled:opacity-50"
                 >
                   {isPending
                     ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -124,10 +117,10 @@ export function RoutineCard({ routine }: RoutineCardProps) {
       </div>
 
       {/* Exercise preview */}
-      <p className="text-[11px] text-[var(--text-low)] mb-4 truncate">
+      <p className="t-caption text-tertiary mb-4 truncate">
         {exerciseNames || 'No exercises added'}
         {exerciseCount > 0 && (
-          <span className="ml-2 text-[var(--text-faint)]">
+          <span className="ml-2 text-tertiary">
             · {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}
           </span>
         )}

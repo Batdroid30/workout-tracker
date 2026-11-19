@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { Search, ChevronRight, Plus } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 import Link from 'next/link'
 import { Exercise } from '@/types/database'
 import { CreateExerciseModal } from '@/components/exercises/CreateExerciseModal'
@@ -49,13 +49,7 @@ export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseList
   return (
     <div className="flex flex-col h-full">
       <div
-        className="sticky top-0 z-10 pb-4 pt-4 px-4 space-y-3"
-        style={{
-          background: 'rgba(6,7,13,0.90)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid var(--glass-border)',
-        }}
-      >
+        className="sticky top-0 z-10 pb-4 pt-4 px-4 space-y-3 bg-bg border-b border-border">
         {!hideTitle && (
           <div>
             <p className="t-label mb-0.5">Library</p>
@@ -68,15 +62,10 @@ export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseList
         </Button>
 
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-faint)' }} />
-          <input
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tertiary" />
+          <Input
             placeholder="Search exercises..."
-            className="w-full h-11 pl-9 pr-4 rounded-[var(--radius-inner)] text-sm focus:outline-none transition-colors"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid var(--glass-border)',
-              color: 'var(--text-hi)',
-            }}
+            className="pl-9 pr-4"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -87,11 +76,11 @@ export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseList
             <button
               key={mg}
               onClick={() => setActiveTab(mg)}
-              className="whitespace-nowrap h-8 px-3 rounded-[var(--radius-pill)] text-[11px] font-medium uppercase tracking-wider transition-colors shrink-0"
-              style={activeTab === mg
-                ? { background: 'var(--accent)', color: 'var(--accent-on)' }
-                : { background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)', color: 'var(--text-faint)' }
-              }
+              className={`whitespace-nowrap h-10 px-3 rounded-pill text-xs font-medium transition-colors shrink-0 ${
+                activeTab === mg
+                  ? 'bg-primary text-bg'
+                  : 'bg-surface-raised border border-border text-secondary'
+              }`}
             >
               {mg}
             </button>
@@ -107,14 +96,10 @@ export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseList
             filteredExercises.map((ex) => (
               <Link href={`/exercises/${ex.id}`} key={ex.id}>
                 <div
-                  className="flex items-center justify-between px-4 py-3.5 rounded-[var(--radius-inner)] transition-all active:scale-[0.98] mb-2 hover:opacity-90"
-                  style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid var(--glass-border)',
-                  }}
+                  className="card flex items-center justify-between px-4 py-3.5 rounded-control transition-all active:scale-[0.98] mb-2 hover:opacity-90"
                 >
                   <div className="min-w-0">
-                    <p className="font-semibold uppercase tracking-tight text-sm" style={{ color: 'var(--text-hi)' }}>
+                    <p className="font-semibold tracking-tight text-sm text-primary">
                       {ex.name}
                     </p>
                     <p className="t-caption mt-0.5 capitalize truncate">
@@ -125,7 +110,7 @@ export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseList
                       {ex.equipment ? ` · ${ex.equipment}` : ''}
                     </p>
                   </div>
-                  <ChevronRight className="w-4 h-4 shrink-0 ml-2" style={{ color: 'var(--text-faint)' }} />
+                  <ChevronRight className="w-4 h-4 shrink-0 ml-2 text-tertiary" />
                 </div>
               </Link>
             ))

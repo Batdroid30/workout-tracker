@@ -19,11 +19,11 @@ export default async function ForgotPasswordPage({ searchParams }: Props) {
           <h2 className="t-display-s">Check your email</h2>
           <p className="t-caption mt-1">Reset link sent if the account exists.</p>
         </div>
-        <div className="p-3 bg-[var(--accent-soft)] border border-[var(--accent-line)] text-[var(--accent)] text-xs font-medium rounded-[var(--radius-inner)]">
+        <div className="p-3 bg-positive-soft text-positive text-xs font-medium rounded-control">
           If <strong>{params?.email}</strong> has an account, you&apos;ll receive a password reset link shortly. Check your spam folder if it doesn&apos;t arrive.
         </div>
-        <p className="text-center text-xs mt-4" style={{ color: 'var(--text-faint)' }}>
-          <Link href="/login" className="font-semibold hover:underline" style={{ color: 'var(--accent)' }}>
+        <p className="text-center text-xs mt-4 text-tertiary">
+          <Link href="/login" className="font-semibold text-primary hover:underline">
             Back to sign in
           </Link>
         </p>
@@ -39,7 +39,7 @@ export default async function ForgotPasswordPage({ searchParams }: Props) {
       </div>
 
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium rounded-[var(--radius-inner)]">
+        <div className="p-3 bg-negative-soft text-negative text-xs font-medium rounded-control">
           {decodeURIComponent(error)}
         </div>
       )}
@@ -50,12 +50,12 @@ export default async function ForgotPasswordPage({ searchParams }: Props) {
       </div>
 
       <SubmitButton type="submit" className="mt-6 w-full" pendingText="Sending...">
-        Send Reset Link
+        Send reset link
       </SubmitButton>
 
-      <p className="text-center text-xs mt-4" style={{ color: 'var(--text-faint)' }}>
+      <p className="text-center text-xs mt-4 text-tertiary">
         Remembered it?{' '}
-        <Link href="/login" className="font-semibold hover:underline" style={{ color: 'var(--accent)' }}>
+        <Link href="/login" className="font-semibold text-primary hover:underline">
           Back to sign in
         </Link>
       </p>

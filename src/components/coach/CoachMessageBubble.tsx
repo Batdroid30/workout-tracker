@@ -12,16 +12,16 @@ export function CoachMessageBubble({ message }: CoachMessageBubbleProps) {
   return (
     <div className={`flex w-full gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
       {!isUser && (
-        <div className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400">
+        <div className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-control bg-surface-raised text-secondary">
           <Bot className="h-4 w-4" />
         </div>
       )}
 
       <div
-        className={`relative max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+        className={`relative max-w-[85%] rounded-card text-sm leading-relaxed text-primary ${
           isUser
-            ? 'bg-teal-600 text-white rounded-br-xs'
-            : 'bg-zinc-900 border border-zinc-800/80 text-zinc-200 rounded-bl-xs'
+            ? 'bg-surface-raised px-4 py-3 rounded-br-xs'
+            : 'py-1'
         }`}
       >
         <div className="whitespace-pre-wrap break-words">
@@ -38,7 +38,7 @@ export function CoachMessageBubble({ message }: CoachMessageBubbleProps) {
       </div>
 
       {isUser && (
-        <div className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-xl bg-zinc-800 text-zinc-300">
+        <div className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-control bg-surface-raised text-secondary">
           <User className="h-4 w-4" />
         </div>
       )}
@@ -52,10 +52,10 @@ export function CoachMessageBubble({ message }: CoachMessageBubbleProps) {
 function formatMessageContent(content: string) {
   if (!content) {
     return (
-      <span className="inline-flex items-center gap-1 text-zinc-500">
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal-400" />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal-400 [animation-delay:0.2s]" />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal-400 [animation-delay:0.4s]" />
+      <span className="inline-flex items-center gap-1 text-tertiary">
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-tertiary" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-tertiary [animation-delay:0.2s]" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-tertiary [animation-delay:0.4s]" />
       </span>
     )
   }
@@ -65,7 +65,7 @@ function formatMessageContent(content: string) {
   return parts.map((part, index) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <strong key={index} className="font-semibold text-zinc-100">
+        <strong key={index} className="font-semibold text-primary">
           {part.slice(2, -2)}
         </strong>
       )
@@ -74,7 +74,7 @@ function formatMessageContent(content: string) {
       return (
         <code
           key={index}
-          className="rounded bg-zinc-950/60 px-1.5 py-0.5 font-mono text-xs text-teal-300 border border-zinc-800"
+          className="rounded bg-surface-raised px-1.5 py-0.5 mono text-xs text-primary border border-border"
         >
           {part.slice(1, -1)}
         </code>

@@ -35,6 +35,14 @@ const MOVEMENT_PATTERNS: { value: MovementPattern; label: string }[] = [
   { value: 'isolation', label: 'Isolation' },
 ]
 
+const CHIP_BASE = 'py-2.5 px-2 rounded-pill text-xs font-medium transition-all active:scale-95'
+
+function getChipClassName(isSelected: boolean): string {
+  return `${CHIP_BASE} ${
+    isSelected ? 'bg-primary text-bg' : 'bg-surface-raised text-secondary border border-border'
+  }`
+}
+
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface ExerciseMetaEditorProps {
@@ -103,8 +111,7 @@ export function ExerciseMetaEditor({
     <>
       <button
         onClick={handleOpen}
-        className="p-1.5 rounded-lg transition-colors hover:bg-white/[0.06] hover:opacity-80"
-        style={{ color: 'var(--text-faint)' }}
+        className="p-1.5 rounded-pill transition-colors text-tertiary hover:bg-surface-raised hover:text-primary"
         aria-label="Edit muscle group and movement pattern"
       >
         <Pencil className="w-3.5 h-3.5" />
@@ -113,13 +120,13 @@ export function ExerciseMetaEditor({
       <BottomSheet
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
-        title="Edit Exercise"
-        icon={<Pencil className="w-4 h-4" style={{ color: 'var(--accent)' }} />}
+        title="Edit exercise"
+        icon={<Pencil className="w-4 h-4 text-secondary" />}
         position="center"
       >
         {/* Primary muscle group */}
         <div className="mb-6">
-          <p className="t-label mb-3">Primary Muscle</p>
+          <p className="t-label mb-3">Primary muscle</p>
           <div className="grid grid-cols-3 gap-2">
             {MUSCLE_GROUPS.map(({ value, label }) => {
               const isSelected = muscleGroup === value
@@ -130,11 +137,7 @@ export function ExerciseMetaEditor({
                     setMuscleGroup(value)
                     setSecondaryMuscles(prev => prev.filter(m => m !== value))
                   }}
-                  className="py-2.5 px-2 rounded-[var(--radius-inner)] text-xs font-medium uppercase tracking-wider transition-all active:scale-95"
-                  style={isSelected
-                    ? { background: 'var(--accent)', color: 'var(--accent-on)' }
-                    : { background: 'rgba(255,255,255,0.04)', color: 'var(--text-mid)', border: '1px solid var(--glass-border)' }
-                  }
+                  className={getChipClassName(isSelected)}
                 >
                   {label}
                 </button>
@@ -145,8 +148,8 @@ export function ExerciseMetaEditor({
 
         {/* Secondary muscles */}
         <div className="mb-6">
-          <p className="t-label mb-1">Secondary Muscles</p>
-          <p className="text-xs mb-3" style={{ color: 'var(--text-faint)' }}>
+          <p className="t-label mb-1">Secondary muscles</p>
+          <p className="text-xs mb-3 text-tertiary">
             Select all muscles this exercise works
           </p>
           <div className="grid grid-cols-3 gap-2">
@@ -158,11 +161,7 @@ export function ExerciseMetaEditor({
                   <button
                     key={value}
                     onClick={() => toggleSecondary(value)}
-                    className="py-2.5 px-2 rounded-[var(--radius-inner)] text-xs font-medium uppercase tracking-wider transition-all active:scale-95"
-                    style={isSelected
-                      ? { background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-line)' }
-                      : { background: 'rgba(255,255,255,0.04)', color: 'var(--text-mid)', border: '1px solid var(--glass-border)' }
-                    }
+                    className={getChipClassName(isSelected)}
                   >
                     {label}
                   </button>
@@ -173,7 +172,7 @@ export function ExerciseMetaEditor({
 
         {/* Movement pattern */}
         <div className="mb-8">
-          <p className="t-label mb-3">Movement Pattern</p>
+          <p className="t-label mb-3">Movement pattern</p>
           <div className="grid grid-cols-3 gap-2">
             {MOVEMENT_PATTERNS.map(({ value, label }) => {
               const isSelected = movementPattern === value
@@ -181,11 +180,7 @@ export function ExerciseMetaEditor({
                 <button
                   key={value}
                   onClick={() => setMovementPattern(value)}
-                  className="py-2.5 px-2 rounded-[var(--radius-inner)] text-xs font-medium uppercase tracking-wider transition-all active:scale-95"
-                  style={isSelected
-                    ? { background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-line)' }
-                    : { background: 'rgba(255,255,255,0.04)', color: 'var(--text-mid)', border: '1px solid var(--glass-border)' }
-                  }
+                  className={getChipClassName(isSelected)}
                 >
                   {label}
                 </button>

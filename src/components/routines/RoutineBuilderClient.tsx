@@ -34,7 +34,7 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
   const router = useRouter()
   const dialog = useDialog()
 
-  const [title,  setTitle]  = useState(initialRoutine?.title  || 'New Routine')
+  const [title,  setTitle]  = useState(initialRoutine?.title  || 'New routine')
   const [notes,  setNotes]  = useState(initialRoutine?.notes  || '')
 
   const [exercises, setExercises] = useState<RoutineExerciseBuilder[]>(
@@ -70,7 +70,7 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
 
   const handleSave = async () => {
     if (exercises.length === 0) {
-      dialog.alert({ title: 'Missing Exercises', description: 'Please add at least one exercise to your routine.' })
+      dialog.alert({ title: 'Missing exercises', description: 'Please add at least one exercise to your routine.' })
       return
     }
 
@@ -106,29 +106,18 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
     <div className="max-w-md mx-auto w-full pb-32 min-h-screen">
 
       {/* ── Top Nav ─────────────────────────────────────────────────────── */}
-      <div
-        className="sticky top-0 z-30 px-4 py-3 flex items-center gap-3"
-        style={{
-          background: 'rgba(6,7,13,0.85)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid var(--glass-border)',
-        }}
-      >
+      <div className="sticky top-0 z-30 px-4 py-3 flex items-center gap-3 bg-bg border-b border-border">
         {/* Back */}
         <Link
           href="/routines"
-          className="p-2.5 rounded-[var(--radius-inner)] transition-colors hover:bg-white/[0.06] shrink-0"
-          style={{ color: 'var(--text-mid)' }}
+          className="p-2.5 rounded-control transition-colors text-secondary hover:bg-surface-raised shrink-0"
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
 
         {/* Title — takes remaining space, truncates on narrow screens */}
-        <h1
-          className="flex-1 min-w-0 text-sm font-semibold uppercase tracking-widest truncate"
-          style={{ color: 'var(--text-hi)' }}
-        >
-          {initialRoutine ? 'Edit Routine' : 'Build Routine'}
+        <h1 className="flex-1 min-w-0 text-sm font-semibold text-primary truncate">
+          {initialRoutine ? 'Edit routine' : 'Build routine'}
         </h1>
 
         {/* Save — fixed width, not full-width */}
@@ -147,34 +136,29 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
       <div className="p-4 space-y-5">
 
         {/* ── Basic Info ──────────────────────────────────────────────────── */}
-        <div className="glass p-4 space-y-4">
+        <div className="card p-4 space-y-4">
           <div>
             <label className="t-label block mb-2">
-              Routine Title
+              Routine title
             </label>
             <Input
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="e.g. Push Day, Upper Body"
-              className="uppercase font-semibold tracking-tight"
+              className="font-semibold tracking-tight"
             />
           </div>
 
           <div>
             <label className="t-label block mb-2">
               Notes{' '}
-              <span className="normal-case font-normal tracking-normal" style={{ color: 'var(--text-faint)' }}>(optional)</span>
+              <span className="font-normal text-tertiary">(optional)</span>
             </label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              className="w-full rounded-[var(--radius-inner)] px-4 py-3 text-sm focus:outline-none resize-none h-20 transition-colors"
-              style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid var(--glass-border)',
-                color: 'var(--text-hi)',
-              }}
+              className="w-full rounded-control px-4 py-3 text-sm text-primary bg-surface-raised border border-border-strong placeholder:text-tertiary focus:border-accent focus:outline-none resize-none h-20 transition-colors"
               placeholder="e.g. Focus on slow eccentrics…"
             />
           </div>
@@ -187,28 +171,18 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
           {exercises.map((ex, i) => (
             <div
               key={i}
-              className="glass overflow-hidden"
+              className="card overflow-hidden"
             >
-              <div
-                className="px-4 py-3 flex justify-between items-center"
-                style={{
-                  background: 'var(--bg-1)',
-                  borderBottom: '1px solid var(--glass-border)',
-                }}
-              >
-                <div>
-                  <h4
-                    className="font-semibold uppercase tracking-tight text-sm"
-                    style={{ color: 'var(--accent)' }}
-                  >
+              <div className="px-4 py-3 flex justify-between items-center bg-surface-raised border-b border-border">
+                <div className="min-w-0">
+                  <h4 className="font-semibold tracking-tight text-sm text-primary truncate">
                     {ex.exercise.name}
                   </h4>
                   <p className="t-label mt-0.5 capitalize">{ex.exercise.muscle_group}</p>
                 </div>
                 <button
                   onClick={() => handleRemoveExercise(i)}
-                  className="p-2.5 rounded-[var(--radius-inner)] transition-colors hover:bg-red-500/10 hover:text-red-400"
-                  style={{ color: 'var(--text-faint)' }}
+                  className="p-2.5 rounded-control transition-colors text-tertiary hover:bg-negative-soft hover:text-negative"
                   aria-label={`Remove ${ex.exercise.name}`}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -218,10 +192,7 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
               <div className="p-4 space-y-3">
                 {/* Progression model toggle */}
                 <div>
-                  <label
-                    className="block text-[9px] font-medium uppercase tracking-widest mb-2"
-                    style={{ color: 'var(--text-faint)' }}
-                  >
+                  <label className="block text-xs font-medium mb-2 text-tertiary">
                     Progression
                   </label>
                   <div className="grid grid-cols-2 gap-1.5">
@@ -230,13 +201,13 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
                         key={model}
                         type="button"
                         onClick={() => handleUpdateExercise(i, { progression_model: model })}
-                        className="h-8 rounded-[var(--radius-inner)] text-[10px] font-medium uppercase tracking-widest transition-colors"
-                        style={ex.progression_model === model
-                          ? { background: 'var(--accent)', color: 'var(--accent-on)', border: '1px solid var(--accent)' }
-                          : { background: 'rgba(255,255,255,0.04)', color: 'var(--text-mid)', border: '1px solid var(--glass-border)' }
-                        }
+                        className={`h-10 rounded-pill text-xs font-medium transition-colors ${
+                          ex.progression_model === model
+                            ? 'bg-primary text-bg'
+                            : 'bg-surface-raised text-secondary border border-border'
+                        }`}
                       >
-                        {model === 'double' ? 'Double' : 'Rep Bank'}
+                        {model === 'double' ? 'Double' : 'Rep bank'}
                       </button>
                     ))}
                   </div>
@@ -245,10 +216,7 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
                 {/* Sets + Reps / Rep bank target */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="min-w-0">
-                    <label
-                      className="block text-[9px] font-medium uppercase tracking-widest mb-2 text-center"
-                      style={{ color: 'var(--text-faint)' }}
-                    >
+                    <label className="block text-xs font-medium mb-2 text-center text-tertiary">
                       Sets
                     </label>
                     <NumberStepper
@@ -259,11 +227,8 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
                     />
                   </div>
                   <div className="min-w-0">
-                    <label
-                      className="block text-[9px] font-medium uppercase tracking-widest mb-2 text-center"
-                      style={{ color: 'var(--text-faint)' }}
-                    >
-                      {ex.progression_model === 'rep_sum' ? 'Total Reps' : 'Reps'}
+                    <label className="block text-xs font-medium mb-2 text-center text-tertiary">
+                      {ex.progression_model === 'rep_sum' ? 'Total reps' : 'Reps'}
                     </label>
                     {ex.progression_model === 'rep_sum' ? (
                       <NumberStepper
@@ -289,13 +254,9 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
 
           <button
             onClick={() => setIsAddingExercise(true)}
-            className="w-full h-12 flex items-center justify-center gap-2 rounded-[var(--radius-inner)] text-xs font-medium uppercase tracking-widest transition-colors hover:bg-white/[0.04]"
-            style={{
-              border: '1px dashed var(--glass-border)',
-              color: 'var(--accent)',
-            }}
+            className="w-full h-12 flex items-center justify-center gap-2 rounded-pill border border-dashed border-border-strong text-sm font-medium text-primary transition-colors hover:bg-surface-raised"
           >
-            <Plus className="w-4 h-4" /> Add Exercise
+            <Plus className="w-4 h-4" /> Add exercise
           </button>
         </div>
       </div>

@@ -44,21 +44,17 @@ export function ProfileContent({ activeTab, children }: ProfileContentProps) {
     <>
       {/* ── Tab bar ───────────────────────────────────────────────── */}
       <div className="px-5 pt-4 pb-1">
-      <div
-        className="flex gap-1 p-1 rounded-[var(--radius-inner)]"
-        style={{ background: 'var(--bg-1)', border: '1px solid var(--glass-border)' }}
-      >
+      <div className="flex border-b border-border">
         {TABS.map(tab => (
           <button
             key={tab.id}
             onClick={() => navigate(tab.id)}
             className={cn(
-              'flex-1 py-2 text-[10px] font-semibold rounded-lg transition-all tracking-widest uppercase',
+              'flex-1 min-h-11 text-sm font-semibold border-b-2 -mb-px transition-colors',
+              displayTab === tab.id
+                ? 'text-primary border-primary'
+                : 'text-tertiary border-transparent',
             )}
-            style={displayTab === tab.id
-              ? { background: 'var(--accent)', color: 'var(--accent-on)' }
-              : { color: 'var(--text-faint)' }
-            }
           >
             {tab.label}
           </button>
@@ -89,19 +85,19 @@ function HistorySkeleton() {
   return (
     <div className="space-y-3">
       <div className="flex justify-end pb-2">
-        <Skeleton className="h-8 w-28 rounded-[var(--radius-pill)]" />
+        <Skeleton className="h-8 w-28 rounded-pill" />
       </div>
       {[1, 2, 3, 4, 5].map(i => (
-        <div key={i} className="glass p-4 rounded-[var(--radius-card)]">
+        <div key={i} className="card p-4">
           <div className="flex justify-between items-start mb-3">
             <div>
               <Skeleton className="h-4 w-32 rounded mb-2" />
               <Skeleton className="h-3 w-20 rounded" />
             </div>
-            <Skeleton className="h-6 w-14 rounded-lg" />
+            <Skeleton className="h-6 w-14 rounded-control" />
           </div>
-          <Skeleton className="h-5 w-16 rounded-full mb-3" />
-          <div className="h-px mb-2" style={{ background: 'var(--glass-border)' }} />
+          <Skeleton className="h-5 w-16 rounded-pill mb-3" />
+          <div className="h-px mb-2 bg-border" />
           <Skeleton className="h-3 w-48 rounded" />
         </div>
       ))}
@@ -113,13 +109,12 @@ function ExercisesSkeleton() {
   return (
     <div className="-mx-5">
       <div className="px-5 pb-3">
-        <Skeleton className="h-10 w-full rounded-[var(--radius-inner)]" />
+        <Skeleton className="h-10 w-full rounded-control" />
       </div>
       {[1, 2, 3, 4, 5, 6, 7].map(i => (
         <div
           key={i}
-          className="flex items-center justify-between py-3 px-5"
-          style={{ borderBottom: '1px solid var(--glass-border)' }}
+          className="flex items-center justify-between py-3 px-5 border-b border-border"
         >
           <div>
             <Skeleton className="h-4 w-36 rounded mb-1.5" />
@@ -138,10 +133,10 @@ function AccountSkeleton() {
       {[1, 2, 3, 4].map(i => (
         <div key={i}>
           <Skeleton className="h-3 w-20 rounded mb-1.5" />
-          <Skeleton className="h-11 w-full rounded-[var(--radius-inner)]" />
+          <Skeleton className="h-11 w-full rounded-control" />
         </div>
       ))}
-      <Skeleton className="h-11 w-full rounded-[var(--radius-pill)] mt-4" />
+      <Skeleton className="h-12 w-full rounded-pill mt-4" />
     </div>
   )
 }

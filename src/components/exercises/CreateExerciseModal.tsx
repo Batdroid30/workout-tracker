@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { BottomSheet } from '@/components/ui/BottomSheet'
-import { Button } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 import { useToast } from '@/providers/ToastProvider'
 import { createExerciseAction } from '@/app/(app)/exercises/actions'
 import type { MuscleGroup, MovementPattern } from '@/types/database'
@@ -38,22 +38,18 @@ const MOVEMENT_PATTERNS: { value: MovementPattern; label: string }[] = [
 
 const EQUIPMENT_OPTIONS = [
   'Barbell', 'Dumbbell', 'Cable', 'Machine',
-  'Bodyweight', 'Kettlebell', 'Resistance Band', 'Smith Machine',
+  'Bodyweight', 'Kettlebell', 'Resistance band', 'Smith machine',
 ]
 
 // ── Chip helpers ──────────────────────────────────────────────────────────────
 
-function chipStyle(isSelected: boolean, accent = false) {
-  if (isSelected && accent) {
-    return { background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-line)' }
-  }
-  if (isSelected) {
-    return { background: 'var(--accent)', color: 'var(--accent-on)' }
-  }
-  return { background: 'rgba(255,255,255,0.04)', color: 'var(--text-mid)', border: '1px solid var(--glass-border)' }
-}
+const CHIP_BASE = 'py-2.5 px-2 rounded-pill text-xs font-medium transition-all active:scale-95'
 
-const chipClass = 'py-2.5 px-2 rounded-[var(--radius-inner)] text-xs font-medium uppercase tracking-wider transition-all active:scale-95'
+function getChipClassName(isSelected: boolean): string {
+  return `${CHIP_BASE} ${
+    isSelected ? 'bg-primary text-bg' : 'bg-surface-raised text-secondary border border-border'
+  }`
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -121,31 +117,25 @@ export function CreateExerciseModal({ isOpen, onClose }: CreateExerciseModalProp
     <BottomSheet
       isOpen={isOpen}
       onClose={handleClose}
-      title="New Exercise"
-      icon={<Plus className="w-4 h-4" style={{ color: 'var(--accent)' }} />}
+      title="New exercise"
+      icon={<Plus className="w-4 h-4 text-secondary" />}
       position="center"
     >
       {/* Name */}
       <div className="mb-6">
-        <p className="t-label mb-2">Exercise Name</p>
-        <input
+        <p className="t-label mb-2">Exercise name</p>
+        <Input
           type="text"
           placeholder="e.g. Weighted Pull-Up"
           value={name}
           onChange={e => setName(e.target.value)}
-          className="w-full h-11 px-4 rounded-[var(--radius-inner)] text-sm focus:outline-none transition-colors"
-          style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid var(--glass-border)',
-            color: 'var(--text-hi)',
-          }}
           autoFocus
         />
       </div>
 
       {/* Primary muscle */}
       <div className="mb-6">
-        <p className="t-label mb-3">Primary Muscle <span style={{ color: 'var(--accent)' }}>*</span></p>
+        <p className="t-label mb-3">Primary muscle <span className="text-secondary">*</span></p>
         <div className="grid grid-cols-3 gap-2">
           {MUSCLE_GROUPS.map(({ value, label }) => (
             <button
@@ -154,8 +144,7 @@ export function CreateExerciseModal({ isOpen, onClose }: CreateExerciseModalProp
                 setMuscleGroup(value)
                 setSecondaryMuscles(prev => prev.filter(m => m !== value))
               }}
-              className={chipClass}
-              style={chipStyle(muscleGroup === value)}
+              className={getChipClassName(muscleGroup === value)}
             >
               {label}
             </button>
@@ -165,8 +154,8 @@ export function CreateExerciseModal({ isOpen, onClose }: CreateExerciseModalProp
 
       {/* Secondary muscles */}
       <div className="mb-6">
-        <p className="t-label mb-1">Secondary Muscles</p>
-        <p className="text-xs mb-3" style={{ color: 'var(--text-faint)' }}>
+        <p className="t-label mb-1">Secondary muscles</p>
+        <p className="text-xs mb-3 text-tertiary">
           For compound lifts like bench press, pull-ups, rows
         </p>
         <div className="grid grid-cols-3 gap-2">
@@ -176,8 +165,7 @@ export function CreateExerciseModal({ isOpen, onClose }: CreateExerciseModalProp
               <button
                 key={value}
                 onClick={() => toggleSecondary(value)}
-                className={chipClass}
-                style={chipStyle(secondaryMuscles.includes(value), true)}
+                className={getChipClassName(secondaryMuscles.includes(value))}
               >
                 {label}
               </button>
@@ -187,14 +175,13 @@ export function CreateExerciseModal({ isOpen, onClose }: CreateExerciseModalProp
 
       {/* Movement pattern */}
       <div className="mb-6">
-        <p className="t-label mb-3">Movement Pattern <span style={{ color: 'var(--accent)' }}>*</span></p>
+        <p className="t-label mb-3">Movement pattern <span className="text-secondary">*</span></p>
         <div className="grid grid-cols-3 gap-2">
           {MOVEMENT_PATTERNS.map(({ value, label }) => (
             <button
               key={value}
               onClick={() => setMovementPattern(value)}
-              className={chipClass}
-              style={chipStyle(movementPattern === value, true)}
+              className={getChipClassName(movementPattern === value)}
             >
               {label}
             </button>
@@ -210,8 +197,7 @@ export function CreateExerciseModal({ isOpen, onClose }: CreateExerciseModalProp
             <button
               key={eq}
               onClick={() => toggleEquipment(eq)}
-              className={chipClass}
-              style={chipStyle(equipment === eq)}
+              className={getChipClassName(equipment === eq)}
             >
               {eq}
             </button>

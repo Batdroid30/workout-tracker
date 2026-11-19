@@ -4,7 +4,7 @@ import { RoutineBuilderClient } from '@/components/routines/RoutineBuilderClient
 import { getRoutineById } from '@/lib/data/routines'
 
 export const metadata = {
-  title: 'Edit Routine | Lifts',
+  title: 'Edit routine | Lifts',
   description: 'Edit your workout routine',
 }
 

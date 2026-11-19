@@ -75,7 +75,7 @@ export default function ResetPasswordPage() {
           <p className="t-caption mt-1">Hang on while we validate your reset token.</p>
         </div>
         <div className="flex justify-center">
-          <div className="w-6 h-6 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin" />
+          <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
         </div>
       </div>
     )
@@ -88,7 +88,7 @@ export default function ResetPasswordPage() {
           <h2 className="t-display-s">Password updated</h2>
           <p className="t-caption mt-1">Redirecting you to sign in…</p>
         </div>
-        <div className="p-3 bg-[var(--accent-soft)] border border-[var(--accent-line)] text-[var(--accent)] text-xs font-medium rounded-[var(--radius-inner)]">
+        <div className="p-3 bg-positive-soft text-positive text-xs font-medium rounded-control">
           Your password has been changed. You can now sign in with your new password.
         </div>
       </div>
@@ -102,11 +102,11 @@ export default function ResetPasswordPage() {
           <h2 className="t-display-s">Link expired</h2>
           <p className="t-caption mt-1">This reset link is no longer valid.</p>
         </div>
-        <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium rounded-[var(--radius-inner)]">
+        <div className="p-3 bg-negative-soft text-negative text-xs font-medium rounded-control">
           Reset links expire after 1 hour. Request a new one below.
         </div>
-        <p className="text-center text-xs mt-4" style={{ color: 'var(--text-faint)' }}>
-          <Link href="/forgot-password" className="font-semibold hover:underline" style={{ color: 'var(--accent)' }}>
+        <p className="text-center text-xs mt-4 text-tertiary">
+          <Link href="/forgot-password" className="font-semibold text-primary hover:underline">
             Request a new link
           </Link>
         </p>
@@ -122,7 +122,7 @@ export default function ResetPasswordPage() {
       </div>
 
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium rounded-[var(--radius-inner)]">
+        <div className="p-3 bg-negative-soft text-negative text-xs font-medium rounded-control">
           {error}
         </div>
       )}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { History, MessageSquare, Trash2, Sparkles } from 'lucide-react'
 import { BottomSheet } from '@/components/ui/BottomSheet'
+import { Skeleton } from '@/components/ui'
 import type { CoachConversation } from '@/types/coach'
 
 interface CoachHistoryDrawerProps {
@@ -88,14 +89,14 @@ export function CoachHistoryDrawer({
     <BottomSheet
       isOpen={isOpen}
       onClose={onClose}
-      title="Chat History"
-      icon={<History className="h-4 w-4 text-teal-400" />}
+      title="Chat history"
+      icon={<History className="h-4 w-4 text-secondary" />}
     >
       {/* New Chat shortcut */}
       <button
         type="button"
         onClick={() => { onNewChat(); onClose() }}
-        className="flex w-full items-center gap-3 rounded-xl border border-teal-500/20 bg-teal-500/5 px-4 py-3 text-sm text-teal-400 transition-colors hover:bg-teal-500/10 active:scale-[0.98] mb-4"
+        className="flex w-full items-center gap-3 focus-ring rounded-pill border border-border-strong bg-surface-raised px-4 py-3 text-sm text-primary transition-colors active:scale-[0.98] mb-4"
       >
         <Sparkles className="h-4 w-4 shrink-0" />
         <span className="font-medium">New conversation</span>
@@ -104,14 +105,14 @@ export function CoachHistoryDrawer({
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 rounded-xl bg-zinc-800/60 animate-pulse" />
+            <Skeleton key={i} className="h-16 rounded-control" />
           ))}
         </div>
       ) : conversations.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-          <MessageSquare className="h-8 w-8 text-zinc-600" />
-          <p className="text-sm text-zinc-500">No past conversations yet</p>
-          <p className="text-xs text-zinc-600">Your chats with Coach will appear here</p>
+          <MessageSquare className="h-8 w-8 text-tertiary" />
+          <p className="text-sm text-secondary">No past conversations yet</p>
+          <p className="text-xs text-tertiary">Your chats with Coach will appear here</p>
         </div>
       ) : (
         <ul className="space-y-2">
@@ -122,25 +123,21 @@ export function CoachHistoryDrawer({
                 <button
                   type="button"
                   onClick={() => handleSelect(conv.id)}
-                  className="group flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors active:scale-[0.98]"
-                  style={{
-                    borderColor: isActive ? 'rgba(45,212,191,0.3)' : 'var(--glass-border)',
-                    background: isActive ? 'rgba(45,212,191,0.06)' : 'rgba(255,255,255,0.02)',
-                  }}
+                  className={`group flex w-full items-center gap-3 rounded-control border px-4 py-3 text-left transition-colors active:scale-[0.98] ${
+                    isActive ? 'border-border-strong bg-surface-raised' : 'border-border bg-surface'
+                  }`}
                 >
                   <MessageSquare
-                    className="h-4 w-4 shrink-0"
-                    style={{ color: isActive ? 'var(--accent)' : 'var(--text-faint)' }}
+                    className={`h-4 w-4 shrink-0 ${isActive ? 'text-primary' : 'text-tertiary'}`}
                   />
 
                   <div className="min-w-0 flex-1">
                     <p
-                      className="truncate text-[13px] font-medium"
-                      style={{ color: isActive ? 'var(--accent)' : 'var(--text-hi)' }}
+                      className={`truncate text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary'}`}
                     >
-                      {conv.title || 'Untitled Chat'}
+                      {conv.title || 'Untitled chat'}
                     </p>
-                    <p className="text-[11px]" style={{ color: 'var(--text-faint)' }}>
+                    <p className="text-xs text-tertiary">
                       {formatRelativeTime(conv.updated_at)}
                     </p>
                   </div>
@@ -150,7 +147,7 @@ export function CoachHistoryDrawer({
                     aria-label="Delete conversation"
                     onClick={e => handleDelete(e, conv.id)}
                     disabled={deletingId === conv.id}
-                    className="shrink-0 rounded-lg p-1.5 text-zinc-600 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100 disabled:animate-pulse"
+                    className="shrink-0 rounded-pill p-1.5 text-tertiary opacity-0 transition-opacity hover:text-negative group-hover:opacity-100 disabled:animate-pulse"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
