@@ -97,7 +97,8 @@ export function OverviewStatsRow({
       <StatCell
         icon={<TrendingUp className="w-4 h-4" style={{ color: 'var(--accent)' }} />}
         label="Lifetime"
-        value={`${formatLifetimeVolume(totalVolumeKg)} kg`}
+        value={formatLifetimeVolume(totalVolumeKg)}
+        sub="kg"
       />
     </div>
   )

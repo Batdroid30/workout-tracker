@@ -329,9 +329,7 @@ export default async function ProgressPage() {
 
         {/* ── Volume over time ─────────────────────────────────────────── */}
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="t-display-s">Volume Trend</h2>
-          </div>
+          <h2 className="t-display-s mb-3">Volume</h2>
           <div className="glass p-4">
             {chartData.length > 1 ? (
               <div className="h-[200px] w-full">
