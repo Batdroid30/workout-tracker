@@ -6,7 +6,7 @@ import { evaluateAndSaveAllPRs } from '@/lib/data/stats'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 import { getWorkoutHistoryPage } from '@/lib/data/workouts'
-import type { WorkoutItem } from '@/components/workout/WorkoutHistoryList'
+import type { WorkoutItem } from '@/types/workout-history'
 import { z } from 'zod'
 import type { TrainingGoal, TrainingPhase, TrainingStyle, ExperienceLevel } from '@/types/database'
 

@@ -7,6 +7,7 @@ import { deleteWorkoutAction } from '@/app/(app)/workout/actions'
 import { useDialog } from '@/providers/DialogProvider'
 import { useToast } from '@/providers/ToastProvider'
 import type { PRType } from '@/types/database'
+import type { WorkoutItem } from '@/types/workout-history'
 import { setVolume, workoutBodyweight } from '@/lib/load'
 import { BodyMapDefs } from '@/components/ui/BodyMap'
 import { toSessionExercises } from '@/lib/body-map'
@@ -22,19 +23,6 @@ const PR_BADGE_CONFIG: Record<PRType, { label: string; color: string; bg: string
 
 // Display order: weight → 1RM → volume
 const PR_DISPLAY_ORDER: PRType[] = ['best_weight', 'best_1rm', 'best_volume']
-
-export interface WorkoutItem {
-  id: string
-  title: string | null
-  started_at: string
-  duration_seconds: number | null
-  bodyweight_kg?: number | null
-  prTypes: PRType[]
-  workout_exercises: Array<{
-    exercise: { name: string; muscle_group: string | null; secondary_muscles: string[] | null }
-    sets: Array<{ weight_kg: number; reps: number; is_warmup: boolean | null }>
-  }>
-}
 
 type LoadMoreResult = { workouts: WorkoutItem[]; hasMore: boolean } | { error: string }
 

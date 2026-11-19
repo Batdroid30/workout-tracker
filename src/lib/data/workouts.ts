@@ -4,7 +4,7 @@ import { DatabaseError } from '@/lib/errors'
 import { calculate1RM } from '@/lib/algorithms'
 import { setVolume, workoutBodyweight } from '@/lib/load'
 import type { ActiveWorkout, PRType } from '@/types/database'
-import type { WorkoutItem } from '@/components/workout/WorkoutHistoryList'
+import type { WorkoutItem } from '@/types/workout-history'
 import { splitPage } from './history-page'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
