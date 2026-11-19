@@ -121,6 +121,7 @@ export const getProgressSnapshot = cache(async (userId: string, runAsAdmin: bool
     .gt('weight_kg', 0)
     .gt('reps', 0)
     .gte('workout_exercises.workouts.started_at', since.toISOString())
+    .not('completed_at', 'is', null)
 
   if (error) throw new DatabaseError('Failed to fetch progress snapshot', error)
   if (!data || data.length === 0) return makeEmptySnapshot()
@@ -161,6 +162,7 @@ export const getProgressSnapshot = cache(async (userId: string, runAsAdmin: bool
     const exercise = Array.isArray(we?.exercise)          ? we.exercise[0]           : we?.exercise
     const workout  = Array.isArray(we?.workouts)          ? we.workouts[0]           : we?.workouts
     if (!exercise?.id || !workout?.id || !workout?.started_at) continue
+    if (typeof row.completed_at !== 'string') continue
 
     const weight      = Number(row.weight_kg)
     const reps        = Number(row.reps)
@@ -169,7 +171,7 @@ export const getProgressSnapshot = cache(async (userId: string, runAsAdmin: bool
     const weekKey     = getMondayOf(new Date(workout.started_at))
     const workoutId   = workout.id as string
     const muscle      = exercise.muscle_group as string | undefined
-    const completedAt = row.completed_at as string
+    const completedAt: string = row.completed_at
     const dateKey     = completedAt.split('T')[0]
 
     // ── Weekly volume ─────────────────────────────────────────────────────────
