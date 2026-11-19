@@ -88,6 +88,8 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
       if (result?.error) {
         setDeleted(false)
         toast.error(result.error || 'Failed to delete workout')
+      } else if (result.prError) {
+        toast.error(result.prError)
       } else {
         toast.success('Workout deleted')
       }

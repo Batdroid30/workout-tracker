@@ -121,14 +121,18 @@ export async function clearAllWorkoutDataAction(): Promise<{ success: true } | {
   const { userId } = await requireAuth()
   const supabase = await getSupabaseServer()
 
-  // PRs first, then workouts: deleting a workout cascades to its
-  // workout_exercises and sets, so no child rows need to be listed by id.
+  // Workouts first: deleting a workout cascades to its workout_exercises and
+  // sets (PRs keep their row, set_id becomes null), so no child rows need to be
+  // listed by id, and a failure here leaves the user's data untouched.
   // Custom exercises go last, once no workout references them.
-  const { error: prError } = await supabase.from('personal_records').delete().eq('user_id', userId)
-  if (prError) return failClearData(prError.message)
-
   const { error: workoutError } = await supabase.from('workouts').delete().eq('user_id', userId)
   if (workoutError) return failClearData(workoutError.message)
+
+  const { error: prError } = await supabase.from('personal_records').delete().eq('user_id', userId)
+  if (prError) {
+    revalidateAll()
+    return failClearData(prError.message)
+  }
 
   const { error: exerciseError } = await supabase
     .from('exercises')

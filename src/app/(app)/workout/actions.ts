@@ -38,28 +38,41 @@ export async function finishWorkoutAction(activeWorkout: any) {
   }
 }
 
+const PR_REBUILD_FAILED_MESSAGE = 'Workout deleted, but your personal records could not be updated.'
+
 export async function deleteWorkoutAction(workoutId: string) {
-  const { userId, session } = await requireAuth()
+  const { userId } = await requireAuth()
 
   try {
     await deleteWorkout(workoutId, userId)
-
-    // The deleted workout may have contained PR-setting sets. Those set rows are
-    // now gone (cascade), but personal_records rows pointing to them are orphaned.
-    // Wipe the user's PRs and rebuild from the remaining sets so the dashboard
-    // reflects reality without requiring a manual recalculate.
-    const supabase = await getSupabaseServer()
-    const { error: wipeError } = await supabase.from('personal_records').delete().eq('user_id', userId)
-    if (wipeError) throw new DatabaseError(`Failed to reset PRs: ${wipeError.message}`, wipeError)
-    await evaluateAndSaveAllPRs(userId)
-
-    revalidateAll()
-
-    return { success: true }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to delete workout:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to delete workout' }
   }
+
+  // The workout is gone from here on, so never report failure: the history
+  // list would put it back on screen. A PR problem is a warning, like the
+  // partial success in finishWorkoutAction.
+  try {
+    await rebuildPersonalRecords(userId)
+    revalidateAll()
+    return { success: true }
+  } catch (error: unknown) {
+    console.error('PR rebuild failed after deleting workout', workoutId, error)
+    revalidateAll()
+    return { success: true, prError: PR_REBUILD_FAILED_MESSAGE }
+  }
+}
+
+// The deleted workout may have contained PR-setting sets. Those set rows are
+// gone (cascade), but personal_records rows pointing to them are orphaned.
+// Wipe the user's PRs and rebuild from the remaining sets so the dashboard
+// reflects reality without requiring a manual recalculate.
+async function rebuildPersonalRecords(userId: string): Promise<void> {
+  const supabase = await getSupabaseServer()
+  const { error } = await supabase.from('personal_records').delete().eq('user_id', userId)
+  if (error) throw new DatabaseError(`Failed to reset PRs: ${error.message}`, error)
+  await evaluateAndSaveAllPRs(userId)
 }
 
 // ─── Exercise frequency for "suggest next" ───────────────────────────────────
