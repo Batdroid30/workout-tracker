@@ -1,30 +1,62 @@
-import { ButtonHTMLAttributes, forwardRef } from 'react'
+import { ButtonHTMLAttributes, forwardRef, ReactNode } from 'react'
+import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'outline'
+const BUTTON_VARIANTS = {
+  primary: 'bg-accent text-on-accent active:bg-[var(--lime-pressed)]',
+  secondary: 'bg-surface-raised text-primary border border-border-strong',
+  ghost: 'text-secondary hover:text-primary',
+  outline: 'border border-border-strong text-primary',
+  destructive: 'bg-negative-soft text-negative',
+} as const
+
+const BUTTON_SIZES = {
+  md: 'min-h-12',
+  sm: 'min-h-10',
+} as const
+
+export type ButtonVariant = keyof typeof BUTTON_VARIANTS
+export type ButtonSize = keyof typeof BUTTON_SIZES
+
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  loading?: boolean
+  leadingIcon?: ReactNode
+  fullWidth?: boolean
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', style, ...props }, ref) => {
-    const variantStyle =
-      variant === 'primary'   ? { background: 'var(--accent)',                    color: 'var(--accent-on)' } :
-      variant === 'secondary' ? { background: 'rgba(255,255,255,0.05)',           color: 'var(--text-mid)', border: '1px solid var(--glass-border)' } :
-      variant === 'outline'   ? { background: 'transparent', border: '1px solid var(--accent-line)', color: 'var(--accent)' } :
-      {}
-
-    return (
-      <button
-        ref={ref}
-        className={cn(
-          'min-h-[44px] w-full flex items-center justify-center font-semibold px-4 rounded-[var(--radius-pill)] transition-all active:scale-[0.97] tracking-widest uppercase text-xs hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed',
-          variant === 'ghost' && 'bg-transparent text-[var(--text-mid)] hover:text-[var(--text-hi)] hover:opacity-100',
-          className,
-        )}
-        style={{ ...variantStyle, ...style }}
-        {...props}
-      />
-    )
-  }
+  (
+    {
+      className,
+      variant = 'primary',
+      size = 'md',
+      loading = false,
+      leadingIcon,
+      fullWidth = true,
+      disabled,
+      children,
+      ...props
+    },
+    ref,
+  ) => (
+    <button
+      ref={ref}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      className={cn(
+        'focus-ring inline-flex items-center justify-center gap-2 px-5 rounded-pill text-[15px] font-semibold transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed',
+        BUTTON_VARIANTS[variant],
+        BUTTON_SIZES[size],
+        fullWidth && 'w-full',
+        className,
+      )}
+      {...props}
+    >
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : leadingIcon}
+      {children}
+    </button>
+  ),
 )
 Button.displayName = 'Button'
