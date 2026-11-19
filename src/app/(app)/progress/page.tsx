@@ -268,6 +268,17 @@ export default async function ProgressPage() {
           totalVolumeKg={totalVolume}
         />
 
+        {/* ── Phase Coach detail ───────────────────────────────────────── */}
+        <PhaseCoachDetail
+          trainingPhase={profile?.training_phase    ?? null}
+          experienceLevel={profile?.experience_level ?? null}
+          weeksInPhase={weeksInPhase}
+          strengthIndex={strengthIndex}
+          volumeLandmarks={volumeLandmarks}
+          keyLifts={snapshot.keyLifts}
+          mesocycle={mesocycle}
+        />
+
         {/* ── Consistency section ─────────────────────────────────────── */}
         <section>
           <h2 className="t-display-s mb-3">Consistency</h2>
@@ -291,17 +302,6 @@ export default async function ProgressPage() {
             />
           </div>
         </section>
-
-        {/* ── Phase Coach detail ───────────────────────────────────────── */}
-        <PhaseCoachDetail
-          trainingPhase={profile?.training_phase    ?? null}
-          experienceLevel={profile?.experience_level ?? null}
-          weeksInPhase={weeksInPhase}
-          strengthIndex={strengthIndex}
-          volumeLandmarks={volumeLandmarks}
-          keyLifts={snapshot.keyLifts}
-          mesocycle={mesocycle}
-        />
 
         {/* ── Strength section ─────────────────────────────────────────── */}
         <section>
