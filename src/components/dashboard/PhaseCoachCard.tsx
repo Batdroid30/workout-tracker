@@ -10,6 +10,7 @@ import { MesocycleTimeline } from '@/components/phase-coach/MesocycleTimeline'
 import { calculateNutritionTargets } from '@/lib/algorithms'
 import Link from 'next/link'
 import { formatSetCount } from '@/lib/muscle-sets'
+import { STATUS_PRIORITY } from '@/components/progress/volume-status-styles'
 
 interface PhaseCoachCardProps {
   trainingPhase:   TrainingPhase   | null
@@ -22,11 +23,6 @@ interface PhaseCoachCardProps {
   profile:         Profile         | null
   bwHistory:       BodyweightPoint[]
   weeklyGoal:      number
-}
-
-// Priority for sorting — problems first
-const STATUS_PRIORITY: Record<VolumeStatus, number> = {
-  over_mrv: 0, below_mv: 1, maintenance: 2, sub_optimal: 3, high: 4, optimal: 5,
 }
 
 // ── Arc ring geometry constants ────────────────────────────────────────────────
