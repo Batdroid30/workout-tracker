@@ -48,3 +48,5 @@ GEMINI.md
 PLAN.md
 AGENTS.md
 SYSTEM_MANUAL.md
+# Planning docs (plans/specs) are local-only — never commit
+docs/superpowers/
