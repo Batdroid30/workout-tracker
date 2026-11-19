@@ -1,26 +1,20 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Lexend, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { DialogProvider } from "@/providers/DialogProvider";
 import { ToastProvider } from "@/providers/ToastProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-});
-
-const lexend = Lexend({
-  variable: "--font-lexend",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -46,11 +40,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor:   "#000000",
+  themeColor:   "#0b0d10",
   width:        "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 };
 
 export default function RootLayout({
@@ -62,9 +54,9 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${spaceGrotesk.variable} ${lexend.variable} ${geistMono.variable} h-full antialiased dark`}
+      className={`${geist.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col bg-[var(--bg-0)] text-[var(--text-hi)] font-sans selection:bg-[var(--accent)] selection:text-[var(--accent-on)]">
+      <body className="min-h-full flex flex-col bg-bg text-primary font-sans selection:bg-accent selection:text-on-accent">
         <ThemeProvider>
           <DialogProvider>
             <ToastProvider>
