@@ -115,7 +115,7 @@ export function DashboardTabs({
         <span className="text-xs font-bold text-tertiary">
           Lifts
         </span>
-        <Link href="/profile">
+        <Link href="/account" aria-label="Account">
           <div className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden transition-transform active:scale-95 border border-border-strong bg-surface-raised">
             {avatarUrl ? (
               <img

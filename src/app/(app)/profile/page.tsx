@@ -1,88 +1,11 @@
-import { requireAuth } from '@/lib/auth'
-import { getProfile } from '@/lib/data/profile'
 import { redirect } from 'next/navigation'
-import { Suspense } from 'react'
-import { ProfileContent } from '@/components/profile/ProfileContent'
-import { ProfileForm } from './ProfileForm'
-import { ExerciseListClient } from '@/app/(app)/exercises/ExerciseListClient'
-import { getWorkoutHistoryPage } from '@/lib/data/workouts'
-import { loadMoreWorkoutsAction } from './actions'
-import { getExercises } from '@/lib/data/exercises'
-import { WorkoutHistoryList } from '@/components/workout/WorkoutHistoryList'
-import { User } from 'lucide-react'
-import { ClearDataButton } from '@/components/profile/ClearDataButton'
-
-type Tab = 'history' | 'exercises' | 'account'
+import { profileRedirectTarget } from './redirect-target'
 
 export default async function ProfilePage({
   searchParams,
 }: {
   searchParams: Promise<{ tab?: string }>
 }) {
-  const { userId, session } = await requireAuth()
-  const { tab: rawTab } = await searchParams
-  const VALID_TABS: Tab[] = ['history', 'exercises', 'account']
-  const tab: Tab = VALID_TABS.includes(rawTab as Tab) ? (rawTab as Tab) : 'history'
-
-  const profile = await getProfile(userId)
-
-  return (
-    <div className="min-h-screen pb-24">
-
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="pt-4 px-5 pb-3">
-        <div className="t-label mb-1.5">Profile</div>
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-control overflow-hidden flex items-center justify-center shrink-0 bg-surface-raised border-2 border-border-strong">
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              <User className="w-7 h-7 text-tertiary" />
-            )}
-          </div>
-          <div className="min-w-0">
-            <h1 className="t-display-m">
-              {profile?.first_name
-                ? `${profile.first_name}${profile.last_name ? ` ${profile.last_name}` : ''}`
-                : 'Your profile'}
-            </h1>
-            <p className="t-caption mt-0.5">{session.user.email}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Tab bar + content (client component handles instant skeleton) ── */}
-      <ProfileContent activeTab={tab}>
-        {/* Suspense lets RSC stream — ProfileContent already shows the skeleton */}
-        <Suspense fallback={null}>
-          {tab === 'history'   && <HistoryTab userId={userId} />}
-          {tab === 'exercises' && <ExercisesTab />}
-          {tab === 'account'   && <ProfileForm profile={profile} userEmail={session.user.email || ''} />}
-        </Suspense>
-      </ProfileContent>
-    </div>
-  )
+  const { tab } = await searchParams
+  redirect(profileRedirectTarget(tab))
 }
-
-async function HistoryTab({ userId }: { userId: string }) {
-  const { workouts, hasMore } = await getWorkoutHistoryPage(userId, null)
-
-  return (
-    <div className="space-y-3">
-      <div className="flex justify-end pb-2">
-        <ClearDataButton />
-      </div>
-      <WorkoutHistoryList workouts={workouts} initialHasMore={hasMore} onLoadMore={loadMoreWorkoutsAction} />
-    </div>
-  )
-}
-
-async function ExercisesTab() {
-  const exercises = await getExercises()
-  return (
-    <div className="-mx-5">
-      <ExerciseListClient initialExercises={exercises} hideTitle />
-    </div>
-  )
-}
-
