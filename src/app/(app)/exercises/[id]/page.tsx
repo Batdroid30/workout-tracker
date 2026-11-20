@@ -46,23 +46,13 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
   )
 
   return (
-    <div className="min-h-screen pb-24" style={{ color: 'var(--text-hi)' }}>
+    <div className="min-h-screen pb-24 text-primary">
 
       {/* ── Top Nav ──────────────────────────────────────────────────── */}
-      <div
-        className="sticky top-0 z-30 px-4 py-3 flex items-center gap-3"
-        style={{
-          background: 'rgba(6,7,13,0.85)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid var(--glass-border)',
-        }}
-      >
+      <div className="sticky top-0 z-30 px-4 py-3 flex items-center gap-3 bg-bg border-b border-border">
         <BackButton />
         <div className="flex-1 min-w-0">
-          <h1
-            className="text-sm font-semibold uppercase tracking-widest leading-tight truncate"
-            style={{ color: 'var(--text-hi)' }}
-          >
+          <h1 className="text-sm font-semibold leading-tight truncate text-primary">
             {exercise.name}
           </h1>
           <div className="flex items-center gap-1 mt-0.5">
@@ -92,36 +82,33 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
 
         {/* ── PRs ──────────────────────────────────────────────────────── */}
         <section className="fade-up">
-          <h2 className="t-label mb-3">Personal Records</h2>
+          <h2 className="t-label mb-3">Personal records</h2>
           <div className="grid grid-cols-2 gap-3">
-            <div className="glass p-4 text-center">
-              <Trophy className="w-4 h-4 mx-auto mb-2" style={{ color: 'var(--text-faint)' }} />
+            <div className="card p-4 text-center">
+              <Trophy className="w-4 h-4 mx-auto mb-2 text-tertiary" />
               <p className="t-label">Current e1RM</p>
-              <p className="mono text-xl mt-1 tracking-tight" style={{ color: 'var(--text-hi)' }}>
-                {display(current1RM)} <span className="text-xs" style={{ color: 'var(--text-faint)' }}>kg</span>
+              <p className="mono text-xl mt-1 tracking-tight text-primary">
+                {display(current1RM)} <span className="text-xs text-tertiary">kg</span>
               </p>
             </div>
-            <div
-              className="glass p-4 text-center"
-              style={{ borderColor: 'var(--accent-line)' }}
-            >
-              <Trophy className="w-4 h-4 mx-auto mb-2" style={{ color: 'var(--accent)' }} />
-              <p className="t-label" style={{ color: 'var(--accent)' }}>Best e1RM</p>
-              <p className="mono text-xl mt-1 tracking-tight" style={{ color: 'var(--accent)', textShadow: '0 0 16px var(--accent-glow)' }}>
-                {display(best1RM)} <span className="text-xs" style={{ color: 'var(--accent-line)' }}>kg</span>
+            <div className="card border-border-strong p-4 text-center">
+              <Trophy className="w-4 h-4 mx-auto mb-2 text-primary" />
+              <p className="t-label text-primary">Best e1RM</p>
+              <p className="mono text-xl mt-1 tracking-tight text-primary">
+                {display(best1RM)} <span className="text-xs text-tertiary">kg</span>
               </p>
             </div>
-            <div className="glass p-4 text-center">
-              <Trophy className="w-4 h-4 mx-auto mb-2" style={{ color: 'var(--text-faint)' }} />
-              <p className="t-label">{assisted ? 'Least Assistance' : 'Max Weight'}</p>
-              <p className="mono text-xl mt-1 tracking-tight" style={{ color: 'var(--text-hi)' }}>
-                {display(bestWeight)} <span className="text-xs" style={{ color: 'var(--text-faint)' }}>kg</span>
+            <div className="card p-4 text-center">
+              <Trophy className="w-4 h-4 mx-auto mb-2 text-tertiary" />
+              <p className="t-label">{assisted ? 'Least assistance' : 'Max weight'}</p>
+              <p className="mono text-xl mt-1 tracking-tight text-primary">
+                {display(bestWeight)} <span className="text-xs text-tertiary">kg</span>
               </p>
             </div>
-            <div className="glass p-4 text-center">
-              <Trophy className="w-4 h-4 mx-auto mb-2" style={{ color: 'var(--text-faint)' }} />
+            <div className="card p-4 text-center">
+              <Trophy className="w-4 h-4 mx-auto mb-2 text-tertiary" />
               <p className="t-label">Sessions</p>
-              <p className="mono text-xl mt-1 tracking-tight" style={{ color: 'var(--text-hi)' }}>
+              <p className="mono text-xl mt-1 tracking-tight text-primary">
                 {progression.length}
               </p>
             </div>
@@ -131,8 +118,8 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
         {/* ── e1RM Progression chart ────────────────────────────────────── */}
         {chartData1RM.length > 1 && (
           <section className="fade-up">
-            <h2 className="t-label mb-3">Est. 1RM Progression</h2>
-            <div className="glass p-4">
+            <h2 className="t-label mb-3">Est. 1RM progression</h2>
+            <div className="card p-4">
               <div className="h-[180px] w-full">
                 <ProgressionLineChart data={chartData1RM} formatType="number" />
               </div>
@@ -143,22 +130,22 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
         {/* ── Max Weight Progression chart ─────────────────────────────── */}
         {chartDataWeight.length > 1 && (
           <section className="fade-up">
-            <h2 className="t-label mb-3">{assisted ? 'Assistance Progression' : 'Max Weight Progression'}</h2>
-            <div className="glass p-4">
+            <h2 className="t-label mb-3">{assisted ? 'Assistance progression' : 'Max weight progression'}</h2>
+            <div className="card p-4">
               <div className="h-[180px] w-full">
-                <ProgressionLineChart data={chartDataWeight} color="#7fd9c8" formatType="number" />
+                <ProgressionLineChart data={chartDataWeight} color="var(--data-2)" formatType="number" />
               </div>
             </div>
           </section>
         )}
 
-        {/* ── Session Volume chart ──────────────────────────────────── */}
+        {/* ── Session volume chart ──────────────────────────────────── */}
         {chartDataVolume.length > 1 && (
           <section className="fade-up">
-            <h2 className="t-label mb-3">Session Volume</h2>
-            <div className="glass p-4">
+            <h2 className="t-label mb-3">Session volume</h2>
+            <div className="card p-4">
               <div className="h-[180px] w-full">
-                <ProgressionLineChart data={chartDataVolume} color="#a78bfa" formatType="volume" />
+                <ProgressionLineChart data={chartDataVolume} color="var(--data-3)" formatType="volume" />
               </div>
             </div>
           </section>
@@ -166,8 +153,7 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
 
         {progression.length <= 1 && (
           <div
-            className="glass p-8 text-center"
-            style={{ borderStyle: 'dashed' }}
+            className="card border-dashed p-8 text-center"
           >
             <p className="t-caption">
               Log this exercise at least twice to see progression charts.
@@ -175,32 +161,23 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
           </div>
         )}
 
-        {/* ── Coach Insights ────────────────────────────────────────── */}
+        {/* ── Coach insights ────────────────────────────────────────── */}
         {insights.length > 0 && (
           <section className="fade-up">
-            <h2 className="t-label mb-3">Coach Insights</h2>
+            <h2 className="t-label mb-3">Coach insights</h2>
             <div className="space-y-2">
               {insights.map((insight, i) => (
-                <div key={i} className="glass p-4 flex items-start gap-3">
+                <div key={i} className="card p-4 flex items-start gap-3">
                   {insight.type === 'positive' && (
-                    <TrendingUp
-                      className="w-4 h-4 mt-0.5 shrink-0"
-                      style={{ color: 'var(--accent)' }}
-                    />
+                    <TrendingUp className="w-4 h-4 mt-0.5 shrink-0 text-positive" />
                   )}
                   {insight.type === 'warning' && (
-                    <AlertTriangle
-                      className="w-4 h-4 mt-0.5 shrink-0"
-                      style={{ color: '#f59e0b' }}
-                    />
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-caution" />
                   )}
                   {insight.type === 'info' && (
-                    <Info
-                      className="w-4 h-4 mt-0.5 shrink-0"
-                      style={{ color: 'var(--text-mid)' }}
-                    />
+                    <Info className="w-4 h-4 mt-0.5 shrink-0 text-secondary" />
                   )}
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-mid)' }}>
+                  <p className="text-sm leading-relaxed text-secondary">
                     {insight.message}
                   </p>
                 </div>

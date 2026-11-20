@@ -1,24 +1,14 @@
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center p-4 bg-[var(--bg-0)]">
-      {/* Aurora background — pointer-events:none so it never blocks inputs */}
-      <div className="aurora-page" aria-hidden="true" />
-
-      <div className="w-full max-w-sm space-y-8 relative z-10">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-bg">
+      <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
-          <p
-            className="text-[10px] font-medium tracking-[0.3em] uppercase mb-1"
-            style={{ color: 'var(--accent)', opacity: 0.7 }}
-          >
-            Smart Strength Tracker
-          </p>
-          <h1 className="text-5xl font-black italic uppercase tracking-tighter" style={{ color: 'var(--text-hi)' }}>
-            LIFTS
-          </h1>
+          <p className="t-label text-tertiary mb-1">Smart strength tracker</p>
+          <h1 className="text-5xl font-bold tracking-tight text-primary">Lifts</h1>
           <p className="mt-3 t-caption">Track every rep. Break every record.</p>
         </div>
 
-        <div className="glass p-6">
+        <div className="card p-6">
           {children}
         </div>
       </div>

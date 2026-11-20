@@ -10,21 +10,21 @@ export default function ProfileLoading() {
 
       <div className="max-w-md mx-auto space-y-8">
         <div className="flex flex-col items-center">
-          <Skeleton className="w-20 h-20 rounded-[var(--radius-inner)] mb-4" />
+          <Skeleton className="w-20 h-20 rounded-card mb-4" />
           <Skeleton className="h-4 w-32 mb-2" />
           <Skeleton className="h-4 w-24" />
         </div>
 
-        <Skeleton className="h-11 w-full rounded-[var(--radius-inner)]" />
+        <Skeleton className="h-11 w-full rounded-control" />
 
-        <div className="glass p-4 space-y-4">
+        <div className="card p-4 space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i}>
               <Skeleton className="h-3 w-16 mb-2" />
-              <Skeleton className="h-11 w-full rounded-[var(--radius-inner)]" />
+              <Skeleton className="h-11 w-full rounded-control" />
             </div>
           ))}
-          <Skeleton className="h-12 w-full rounded-[var(--radius-pill)] mt-2" />
+          <Skeleton className="h-12 w-full rounded-pill mt-2" />
         </div>
       </div>
     </div>

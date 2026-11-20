@@ -46,12 +46,12 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
     <div
       className="text-xs px-2.5 py-1.5 rounded-lg"
       style={{
-        background: 'var(--surface-3)',
-        border:     '1px solid var(--border)',
-        color:      'var(--text-hi)',
+        background: 'var(--surface-raised)',
+        border:     '1px solid var(--border-strong)',
+        color:      'var(--text-secondary)',
       }}
     >
-      <div style={{ color: 'var(--text-lo)' }}>{label}</div>
+      <div style={{ color: 'var(--text-primary)' }}>{label}</div>
       <div className="font-semibold mt-0.5">
         {sessions} session{sessions === 1 ? '' : 's'}
       </div>
@@ -80,38 +80,37 @@ export function FrequencyTrendChart({ weeklyData, weeklyGoal = 3 }: FrequencyTre
         <BarChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: -24 }}>
           <XAxis
             dataKey="label"
-            tick={{ fontSize: 9, fill: 'var(--text-lo)' }}
+            tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
             tickLine={false}
             axisLine={false}
             // Show every 4th label on mobile to prevent crowding
             interval={Math.floor(data.length / 4)}
           />
           <YAxis
-            tick={{ fontSize: 9, fill: 'var(--text-lo)' }}
+            tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
             tickLine={false}
             axisLine={false}
             domain={[0, yMax]}
             allowDecimals={false}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--surface-2)', radius: 4 }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--surface-raised)', radius: 4 }} />
           {/* Weekly goal reference line */}
           <ReferenceLine
             y={weeklyGoal}
-            stroke="var(--accent)"
+            stroke="var(--text-tertiary)"
             strokeDasharray="4 4"
-            strokeOpacity={0.45}
+            strokeOpacity={0.8}
           />
           <Bar dataKey="sessions" radius={[3, 3, 0, 0]} maxBarSize={20}>
             {data.map((entry, index) => (
               <Cell
                 key={index}
                 fill={
-                  entry.sessions >= weeklyGoal
-                    ? 'var(--accent)'
-                    : entry.isCurrent
-                    ? 'color-mix(in srgb, var(--accent) 55%, transparent)'
-                    : 'var(--surface-3, #2a2a2a)'
+                  entry.sessions >= weeklyGoal || entry.isCurrent
+                    ? 'var(--data-1)'
+                    : 'var(--border-strong)'
                 }
+                fillOpacity={entry.sessions < weeklyGoal && entry.isCurrent ? 0.55 : 1}
               />
             ))}
           </Bar>

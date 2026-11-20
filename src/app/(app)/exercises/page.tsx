@@ -8,7 +8,7 @@ export default async function ExercisesPage() {
   const exercises = await getExercises()
 
   return (
-    <div className="flex flex-col h-full bg-black text-white">
+    <div className="flex flex-col h-full bg-bg text-primary">
       <ExerciseListClient initialExercises={exercises} />
     </div>
   )

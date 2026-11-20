@@ -41,9 +41,9 @@ function DensityTooltip({ active, payload, label }: CustomTooltipProps) {
   return (
     <div
       className="text-xs px-2.5 py-1.5 rounded-lg"
-      style={{ background: 'var(--surface-3)', border: '1px solid var(--border)', color: 'var(--text-hi)' }}
+      style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-secondary)' }}
     >
-      <div style={{ color: 'var(--text-lo)' }}>{label}</div>
+      <div style={{ color: 'var(--text-primary)' }}>{label}</div>
       <div className="font-semibold">{val.toLocaleString()} kg/session</div>
     </div>
   )
@@ -56,9 +56,9 @@ function RPETooltip({ active, payload, label }: CustomTooltipProps) {
   return (
     <div
       className="text-xs px-2.5 py-1.5 rounded-lg"
-      style={{ background: 'var(--surface-3)', border: '1px solid var(--border)', color: 'var(--text-hi)' }}
+      style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-strong)', color: 'var(--text-secondary)' }}
     >
-      <div style={{ color: 'var(--text-lo)' }}>{label}</div>
+      <div style={{ color: 'var(--text-primary)' }}>{label}</div>
       <div className="font-semibold">RPE {val}</div>
     </div>
   )
@@ -80,19 +80,19 @@ export function ReadinessTrendCharts({ weeklyData }: ReadinessTrendChartsProps) 
     <div className="space-y-4">
       {/* Training density */}
       <div>
-        <div className="t-label mb-2">Volume / Session</div>
+        <div className="t-label mb-2">Volume / session</div>
         <div className="h-[120px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 9, fill: 'var(--text-lo)' }}
+                tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
                 tickLine={false}
                 axisLine={false}
                 interval={Math.floor(data.length / 3)}
               />
               <YAxis
-                tick={{ fontSize: 9, fill: 'var(--text-lo)' }}
+                tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : String(v)}
@@ -101,11 +101,11 @@ export function ReadinessTrendCharts({ weeklyData }: ReadinessTrendChartsProps) 
               <Line
                 type="monotone"
                 dataKey="density"
-                stroke="var(--accent)"
+                stroke="var(--data-1)"
                 strokeWidth={2}
                 dot={false}
                 connectNulls={false}
-                activeDot={{ r: 3, fill: 'var(--accent)' }}
+                activeDot={{ r: 3, fill: 'var(--data-1)' }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -121,13 +121,13 @@ export function ReadinessTrendCharts({ weeklyData }: ReadinessTrendChartsProps) 
               <LineChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -16 }}>
                 <XAxis
                   dataKey="label"
-                  tick={{ fontSize: 9, fill: 'var(--text-lo)' }}
+                  tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
                   tickLine={false}
                   axisLine={false}
                   interval={Math.floor(data.length / 3)}
                 />
                 <YAxis
-                  tick={{ fontSize: 9, fill: 'var(--text-lo)' }}
+                  tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
                   tickLine={false}
                   axisLine={false}
                   domain={[5, 10]}
@@ -137,24 +137,24 @@ export function ReadinessTrendCharts({ weeklyData }: ReadinessTrendChartsProps) 
                 {/* Hard effort reference lines */}
                 <ReferenceLine
                   y={8.5}
-                  stroke="var(--error, #f87171)"
+                  stroke="var(--negative)"
                   strokeDasharray="4 4"
                   strokeOpacity={0.5}
                 />
                 <ReferenceLine
                   y={7.5}
-                  stroke="#f59e0b"
+                  stroke="var(--caution)"
                   strokeDasharray="4 4"
                   strokeOpacity={0.4}
                 />
                 <Line
                   type="monotone"
                   dataKey="rpe"
-                  stroke="var(--accent)"
+                  stroke="var(--data-1)"
                   strokeWidth={2}
                   dot={false}
                   connectNulls={false}
-                  activeDot={{ r: 3, fill: 'var(--accent)' }}
+                  activeDot={{ r: 3, fill: 'var(--data-1)' }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -166,7 +166,7 @@ export function ReadinessTrendCharts({ weeklyData }: ReadinessTrendChartsProps) 
       )}
 
       {!hasRPE && (
-        <p className="t-caption" style={{ color: 'var(--text-lo)' }}>
+        <p className="t-caption text-tertiary">
           Start logging RPE on your sets to see average effort trends.
         </p>
       )}

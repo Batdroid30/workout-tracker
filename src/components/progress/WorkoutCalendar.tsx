@@ -21,6 +21,9 @@ interface MonthGridProps {
   todayStr:     string
 }
 
+// Share of --positive painted for 1, 2 and 3+ sessions in a day.
+const HEAT_INTENSITY = [35, 65, 100]
+
 function pad(n: number): string { return String(n).padStart(2, '0') }
 
 function MonthGrid({ year, month, workoutDates, todayStr }: MonthGridProps) {
@@ -47,11 +50,9 @@ function MonthGrid({ year, month, workoutDates, todayStr }: MonthGridProps) {
         const isToday = dateStr === todayStr
         const isFuture = dateStr > todayStr
 
-        // Intensity: 1 session = 45%, 2 = 65%, 3+ = 85%
-        const intensity = count === 0 ? 0 : count === 1 ? 45 : count === 2 ? 65 : 85
         const bg = count > 0
-          ? `color-mix(in srgb, var(--accent) ${intensity}%, transparent)`
-          : 'var(--surface-2)'
+          ? `color-mix(in srgb, var(--positive) ${HEAT_INTENSITY[Math.min(count, 3) - 1]}%, transparent)`
+          : 'var(--surface-raised)'
 
         return (
           <div
@@ -60,13 +61,13 @@ function MonthGrid({ year, month, workoutDates, todayStr }: MonthGridProps) {
             className="aspect-square rounded-[4px] flex items-center justify-center transition-all duration-150 active:scale-95 border select-none"
             style={{
               background:   bg,
-              borderColor:  isToday ? 'var(--accent)' : 'transparent',
+              borderColor:  isToday ? 'var(--text-primary)' : 'transparent',
               opacity:      isFuture ? 0.3 : 1,
             }}
           >
             <span
-              className="text-[9px] font-medium leading-none"
-              style={{ color: count > 0 ? 'var(--text-hi)' : 'var(--text-low)' }}
+              className="text-xs font-medium leading-none"
+              style={{ color: count >= 2 ? 'var(--bg)' : count > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
             >
               {day}
             </span>
@@ -205,53 +206,53 @@ export function WorkoutCalendar({ entries, monthCount = 6 }: WorkoutCalendarProp
   }, [activeIndex, months, entries])
 
   return (
-    <div className="glass p-4">
+    <div className="card p-4">
       {/* Header with Navigation */}
       <div className="flex items-center justify-between mb-4">
-        <span className="t-label select-none">Training Activity</span>
+        <span className="t-label select-none">Training activity</span>
         
         {/* Month Selector */}
-        <div className="flex items-center gap-1 bg-surface-2/60 border border-border-soft rounded-lg p-0.5 shrink-0">
+        <div className="flex items-center gap-1 bg-surface-raised border border-border rounded-lg p-0.5 shrink-0">
           <button
             onClick={scrollPrev}
             disabled={activeIndex === 0}
-            className="p-1 rounded-md transition-colors hover:bg-surface-3 disabled:opacity-20 disabled:pointer-events-none active:scale-95 shrink-0"
+            className="p-1 rounded-md transition-colors hover:bg-surface disabled:opacity-20 disabled:pointer-events-none active:scale-95 shrink-0"
             title="Previous Month"
           >
-            <ChevronLeft className="w-3.5 h-3.5 text-text-hi" />
+            <ChevronLeft className="w-3.5 h-3.5 text-primary" />
           </button>
-          <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 select-none min-w-[76px] text-center text-text-hi">
+          <span className="text-xs font-semibold px-2.5 select-none min-w-[76px] text-center text-primary">
             {activeMonthLabel}
           </span>
           <button
             onClick={scrollNext}
             disabled={activeIndex === months.length - 1}
-            className="p-1 rounded-md transition-colors hover:bg-surface-3 disabled:opacity-20 disabled:pointer-events-none active:scale-95 shrink-0"
+            className="p-1 rounded-md transition-colors hover:bg-surface disabled:opacity-20 disabled:pointer-events-none active:scale-95 shrink-0"
             title="Next Month"
           >
-            <ChevronRight className="w-3.5 h-3.5 text-text-hi" />
+            <ChevronRight className="w-3.5 h-3.5 text-primary" />
           </button>
         </div>
       </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-3 gap-2 mb-4">
-        <div className="bg-surface-2/30 border border-border-soft/60 rounded-xl p-2.5 flex flex-col">
-          <span className="text-[8px] uppercase tracking-wider text-text-low font-semibold">Workouts</span>
-          <span className="mono text-[15px] font-bold text-text-hi mt-0.5 leading-none">
+        <div className="bg-surface-raised border border-border rounded-xl p-2.5 flex flex-col">
+          <span className="text-xs text-tertiary font-semibold">Workouts</span>
+          <span className="mono text-base font-bold text-primary mt-0.5 leading-none">
             {activeMonthStats.workouts}
           </span>
         </div>
-        <div className="bg-surface-2/30 border border-border-soft/60 rounded-xl p-2.5 flex flex-col">
-          <span className="text-[8px] uppercase tracking-wider text-text-low font-semibold">Active Days</span>
-          <span className="mono text-[15px] font-bold text-text-hi mt-0.5 leading-none">
+        <div className="bg-surface-raised border border-border rounded-xl p-2.5 flex flex-col">
+          <span className="text-xs text-tertiary font-semibold">Active days</span>
+          <span className="mono text-base font-bold text-primary mt-0.5 leading-none">
             {activeMonthStats.activeDays}
           </span>
         </div>
-        <div className="bg-surface-2/30 border border-border-soft/60 rounded-xl p-2.5 flex flex-col">
-          <span className="text-[8px] uppercase tracking-wider text-text-low font-semibold">Frequency</span>
-          <span className="mono text-[15px] font-bold text-text-hi mt-0.5 leading-none">
-            {activeMonthStats.frequency} <span className="text-[8px] font-normal text-text-low lowercase">/wk</span>
+        <div className="bg-surface-raised border border-border rounded-xl p-2.5 flex flex-col">
+          <span className="text-xs text-tertiary font-semibold">Frequency</span>
+          <span className="mono text-base font-bold text-primary mt-0.5 leading-none">
+            {activeMonthStats.frequency} <span className="text-xs font-normal text-tertiary">/wk</span>
           </span>
         </div>
       </div>
@@ -261,8 +262,7 @@ export function WorkoutCalendar({ entries, monthCount = 6 }: WorkoutCalendarProp
         {DAY_HEADERS.map((d, i) => (
           <div
             key={i}
-            className="text-center text-[9px] font-semibold select-none"
-            style={{ color: 'var(--text-low)' }}
+            className="text-center text-xs font-semibold select-none text-tertiary"
           >
             {d}
           </div>
@@ -298,7 +298,7 @@ export function WorkoutCalendar({ entries, monthCount = 6 }: WorkoutCalendarProp
               className="h-1 rounded-full transition-all duration-300 focus:outline-none"
               style={{
                 width: idx === activeIndex ? '14px' : '4px',
-                background: idx === activeIndex ? 'var(--accent)' : 'var(--border)',
+                background: idx === activeIndex ? 'var(--text-primary)' : 'var(--border-strong)',
               }}
               title={`Go to month ${idx + 1}`}
             />
@@ -307,20 +307,20 @@ export function WorkoutCalendar({ entries, monthCount = 6 }: WorkoutCalendarProp
       )}
 
       {/* Legend */}
-      <div className="flex items-center justify-between pt-3.5 border-t border-border-soft mt-3">
+      <div className="flex items-center justify-between pt-3.5 border-t border-border mt-3">
         <div className="flex items-center gap-1.5">
-          <span className="text-[9px] uppercase tracking-wider text-text-low font-semibold">No workout</span>
-          <div className="w-2.5 h-2.5 rounded-[2px]" style={{ background: 'var(--surface-2)' }} />
+          <span className="text-xs text-tertiary font-semibold">No workout</span>
+          <div className="w-2.5 h-2.5 rounded-[2px]" style={{ background: 'var(--surface-raised)' }} />
         </div>
         <div className="flex items-center gap-1">
-          {[45, 65, 85].map((pct, i) => (
+          {HEAT_INTENSITY.map((pct, i) => (
             <div
               key={i}
               className="w-2.5 h-2.5 rounded-[2px]"
-              style={{ background: `color-mix(in srgb, var(--accent) ${pct}%, transparent)` }}
+              style={{ background: `color-mix(in srgb, var(--positive) ${pct}%, transparent)` }}
             />
           ))}
-          <span className="text-[9px] uppercase tracking-wider text-text-low font-semibold ml-1">1 / 2 / 3+ sessions</span>
+          <span className="text-xs text-tertiary font-semibold ml-1">1 / 2 / 3+ sessions</span>
         </div>
       </div>
     </div>

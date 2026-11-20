@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { importHevyCSVAction, recalculatePRsAfterImportAction } from './actions'
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui'
 
 const IMPORT_PHASES = [
   { threshold: 15,  message: 'Parsing CSV data...'    },
@@ -98,30 +99,24 @@ export default function ImportPage() {
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-8">
       <div className="space-y-2">
-        <h1 className="t-display-l">Import Data</h1>
+        <h1 className="t-display-l">Import data</h1>
         <p className="t-caption">
           Upload your workout data from other apps. Currently supporting Hevy CSV exports.
         </p>
       </div>
 
-      <div className="glass p-6 space-y-6">
+      <div className="card p-6 space-y-6">
         {!isUploading && !result && (
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
               <label
                 htmlFor="csv-upload"
-                className="flex flex-col items-center justify-center w-full h-48 rounded-[var(--radius-inner)] cursor-pointer transition-all group hover:opacity-90"
-                style={{
-                  border: '2px dashed var(--glass-border)',
-                }}
+                className="flex flex-col items-center justify-center w-full h-48 rounded-control border-2 border-dashed border-border-strong cursor-pointer transition-all group hover:opacity-90"
               >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Upload
-                    className="w-10 h-10 mb-3 transition-colors"
-                    style={{ color: 'var(--text-faint)' }}
-                  />
-                  <p className="mb-2 text-sm font-medium uppercase tracking-tight" style={{ color: 'var(--text-mid)' }}>
-                    <span style={{ color: 'var(--accent)' }}>Click to upload</span> or drag and drop
+                  <Upload className="w-10 h-10 mb-3 text-tertiary transition-colors" />
+                  <p className="mb-2 text-sm font-medium text-secondary">
+                    <span className="text-primary underline">Click to upload</span> or drag and drop
                   </p>
                   <p className="t-label">Hevy CSV export file</p>
                 </div>
@@ -135,16 +130,10 @@ export default function ImportPage() {
               </label>
 
               {file && (
-                <div
-                  className="flex items-center gap-3 p-3 rounded-[var(--radius-inner)]"
-                  style={{ background: 'var(--bg-1)', border: '1px solid var(--glass-border)' }}
-                >
-                  <FileText className="w-5 h-5 shrink-0" style={{ color: 'var(--accent)' }} />
+                <div className="flex items-center gap-3 p-3 rounded-control bg-surface-raised border border-border">
+                  <FileText className="w-5 h-5 shrink-0 text-secondary" />
                   <div className="flex-1 min-w-0">
-                    <p
-                      className="text-xs font-medium truncate uppercase tracking-tight"
-                      style={{ color: 'var(--text-hi)' }}
-                    >
+                    <p className="text-xs font-medium truncate text-primary">
                       {file.name}
                     </p>
                     <p className="t-caption">{(file.size / 1024).toFixed(1)} KB</p>
@@ -152,8 +141,7 @@ export default function ImportPage() {
                   <button
                     type="button"
                     onClick={() => setFile(null)}
-                    className="text-[10px] font-medium uppercase tracking-widest transition-colors hover:opacity-80"
-                    style={{ color: 'var(--text-faint)' }}
+                    className="text-xs font-medium text-tertiary transition-colors hover:text-primary min-h-10 px-2"
                   >
                     Remove
                   </button>
@@ -161,14 +149,9 @@ export default function ImportPage() {
               )}
             </div>
 
-            <button
-              type="submit"
-              disabled={!file || isUploading}
-              className="w-full h-12 rounded-[var(--radius-pill)] font-semibold uppercase tracking-widest transition-all active:scale-[0.98] hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-            >
-              Start Import
-            </button>
+            <Button type="submit" disabled={!file || isUploading}>
+              Start import
+            </Button>
           </form>
         )}
 
@@ -176,40 +159,31 @@ export default function ImportPage() {
           <div className="py-8 space-y-6">
             <div className="flex flex-col items-center justify-center text-center space-y-4">
               <div className="relative w-16 h-16">
-                <Loader2 className="w-16 h-16 animate-spin opacity-20" style={{ color: 'var(--accent)' }} />
+                <Loader2 className="w-16 h-16 animate-spin opacity-20 text-primary" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>
+                  <span className="text-xs font-semibold text-primary">
                     {Math.round(progress)}%
                   </span>
                 </div>
               </div>
               <div className="space-y-1">
-                <p
-                  className="text-sm font-semibold uppercase tracking-widest"
-                  style={{ color: 'var(--text-hi)' }}
-                >
+                <p className="text-sm font-semibold text-primary">
                   {phaseMessage}
                 </p>
-                <p className="t-caption uppercase tracking-tight">This may take a few minutes for large files</p>
+                <p className="t-caption">This may take a few minutes for large files</p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <div
-                className="h-2 w-full rounded-full overflow-hidden"
-                style={{ background: 'var(--bg-1)', border: '1px solid var(--glass-border)' }}
-              >
+              <div className="h-2 w-full rounded-pill overflow-hidden bg-surface-raised border border-border">
                 <div
-                  className="h-full transition-all duration-500 ease-out rounded-full"
-                  style={{ width: `${progress}%`, background: 'var(--accent)' }}
+                  className="h-full transition-all duration-500 ease-out rounded-pill bg-primary"
+                  style={{ width: `${progress}%` }}
                 />
               </div>
-              <div
-                className="flex justify-between items-center text-[9px] font-medium uppercase tracking-widest"
-                style={{ color: 'var(--text-faint)' }}
-              >
-                <span>Status: Processing</span>
-                <span>{file?.name}</span>
+              <div className="flex justify-between items-center gap-3 text-xs font-medium text-tertiary">
+                <span className="shrink-0">Status: Processing</span>
+                <span className="truncate">{file?.name}</span>
               </div>
             </div>
           </div>
@@ -217,22 +191,17 @@ export default function ImportPage() {
 
         {result && (
           <div
-            className="p-4 rounded-[var(--radius-inner)]"
-            style={result.success
-              ? { background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }
-              : { background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.20)' }
-            }
+            className={`p-4 rounded-control ${result.success ? 'bg-positive-soft' : 'bg-negative-soft'}`}
           >
             <div className="flex gap-3">
               {result.success ? (
-                <CheckCircle2 className="w-5 h-5 shrink-0" style={{ color: 'var(--accent)' }} />
+                <CheckCircle2 className="w-5 h-5 shrink-0 text-positive" />
               ) : (
-                <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+                <AlertCircle className="w-5 h-5 text-negative shrink-0" />
               )}
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0">
                 <p
-                  className="text-[11px] font-semibold uppercase tracking-widest"
-                  style={{ color: result.success ? 'var(--accent)' : '#f87171' }}
+                  className={`text-sm font-semibold ${result.success ? 'text-positive' : 'text-negative'}`}
                 >
                   {result.success
                     ? `Imported ${result.count} workout${result.count !== 1 ? 's' : ''}${result.skipped ? ` · ${result.skipped} already existed` : ''}`
@@ -249,28 +218,29 @@ export default function ImportPage() {
                 )}
               </div>
             </div>
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-4"
               onClick={() => result.success ? router.push('/dashboard') : setResult(null)}
-              className="mt-4 w-full h-10 rounded-[var(--radius-inner)] text-[10px] font-medium uppercase tracking-widest transition-all hover:opacity-80"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)', color: 'var(--text-mid)' }}
             >
-              {result.success ? 'Go to Dashboard' : 'Try Again'}
-            </button>
+              {result.success ? 'Go to dashboard' : 'Try again'}
+            </Button>
           </div>
         )}
       </div>
 
-      <div className="glass p-6">
+      <div className="card p-6">
         <h3 className="t-label mb-4 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4" style={{ color: 'var(--text-faint)' }} />
+          <AlertCircle className="w-4 h-4 text-tertiary" />
           How to get your Hevy CSV
         </h3>
         <ol className="t-caption space-y-2 list-decimal list-inside leading-relaxed">
           <li>Open the Hevy app on your phone</li>
-          <li>Go to your <span style={{ color: 'var(--text-hi)' }}>Profile</span> tab</li>
-          <li>Tap the <span style={{ color: 'var(--text-hi)' }}>Settings</span> icon (top right)</li>
-          <li>Scroll down to <span style={{ color: 'var(--text-hi)' }}>Export &amp; Import Data</span></li>
-          <li>Select <span style={{ color: 'var(--text-hi)' }}>Export Workouts (CSV)</span></li>
+          <li>Go to your <span className="text-primary">Profile</span> tab</li>
+          <li>Tap the <span className="text-primary">Settings</span> icon (top right)</li>
+          <li>Scroll down to <span className="text-primary">Export &amp; Import Data</span></li>
+          <li>Select <span className="text-primary">Export Workouts (CSV)</span></li>
           <li>Send the file to your computer and upload it here</li>
         </ol>
       </div>

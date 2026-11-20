@@ -15,19 +15,19 @@ interface MesocycleTimelineProps {
 }
 
 const STATUS_STYLES: Record<MesocycleCellStatus, { bg: string; border: string; text: string }> = {
-  good:    { bg: 'bg-[var(--teal)]/20',    border: 'border-[var(--teal)]/40',    text: 'text-[var(--teal)]'    },
-  low:     { bg: 'bg-orange-400/15',       border: 'border-orange-400/30',       text: 'text-orange-300'        },
-  missed:  { bg: 'bg-red-500/10',          border: 'border-red-500/30',          text: 'text-red-400'           },
-  current: { bg: 'bg-[var(--accent)]/15',  border: 'border-[var(--accent-line)]', text: 'text-[var(--accent)]' },
-  pending: { bg: 'bg-white/[0.02]',        border: 'border-[var(--glass-border)]', text: 'text-[var(--text-faint)]' },
-  deload:  { bg: 'bg-purple-400/15',       border: 'border-purple-400/40',       text: 'text-purple-300'        },
+  good:    { bg: 'bg-positive-soft',     border: 'border-positive/40',     text: 'text-positive'    },
+  low:     { bg: 'bg-caution-soft',      border: 'border-caution/40',      text: 'text-caution'     },
+  missed:  { bg: 'bg-negative-soft',     border: 'border-negative/40',     text: 'text-negative'    },
+  current: { bg: 'bg-surface-raised',    border: 'border-border-strong',   text: 'text-primary'     },
+  pending: { bg: 'bg-surface',           border: 'border-border',          text: 'text-tertiary'    },
+  deload:  { bg: 'bg-surface-raised',    border: 'border-border-strong',   text: 'text-secondary'   },
 }
 
 const STATUS_ICONS: Record<MesocycleCellStatus, React.ReactNode> = {
   good:    <Check className="w-2.5 h-2.5" />,
   low:     <Minus className="w-2.5 h-2.5" />,
   missed:  <X     className="w-2.5 h-2.5" />,
-  current: <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />,
+  current: <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />,
   pending: null,
   deload:  <Zap className="w-2.5 h-2.5" />,
 }
@@ -51,12 +51,12 @@ function CompactTimeline({ mesocycle }: { mesocycle: Mesocycle }) {
             className={cn(
               'flex-1 h-7 rounded border flex items-center justify-center transition-colors',
               styles.bg, styles.border, styles.text,
-              cell.isCurrent && 'ring-1 ring-[var(--accent)]',
+              cell.isCurrent && 'ring-1 ring-primary',
             )}
             title={tooltipFor(cell)}
           >
             {STATUS_ICONS[cell.status] ?? (
-              <span className="text-[8px] font-medium tabular-nums opacity-60">
+              <span className="text-xs font-medium tabular-nums opacity-60">
                 {cell.weekNumber}
               </span>
             )}
@@ -79,26 +79,26 @@ function FullTimeline({ mesocycle }: { mesocycle: Mesocycle }) {
           <div
             key={cell.weekNumber}
             className={cn(
-              'flex-1 rounded-lg border py-2 px-1 flex flex-col items-center gap-0.5',
+              'flex-1 min-w-0 rounded-lg border py-2 px-1 flex flex-col items-center gap-0.5',
               styles.bg, styles.border,
-              cell.isCurrent && 'ring-1 ring-[var(--accent)]',
+              cell.isCurrent && 'ring-1 ring-primary',
             )}
           >
-            <span className={cn('text-[8px] font-medium uppercase tracking-widest', styles.text)}>
+            <span className={cn('text-xs font-medium max-w-full truncate', styles.text)}>
               W{cell.weekNumber}
             </span>
             <div className="flex items-center justify-center min-h-[16px]">
               {cell.status === 'deload' ? (
-                <Zap className="w-3.5 h-3.5 text-purple-300" />
+                <Zap className="w-3.5 h-3.5 text-secondary" />
               ) : showCount ? (
                 <span className={cn('text-base font-semibold tabular-nums leading-none', styles.text)}>
                   {cell.sessionCount}
                 </span>
               ) : (
-                <span className="text-[var(--text-faint)] text-xs">·</span>
+                <span className="text-tertiary text-xs">·</span>
               )}
             </div>
-            <span className={cn('text-[8px] font-medium uppercase tracking-widest opacity-70', styles.text)}>
+            <span className={cn('text-xs font-medium max-w-full truncate opacity-70', styles.text)}>
               {LABEL[cell.status]}
             </span>
           </div>

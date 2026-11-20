@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Scale } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui'
 
 interface BodyweightLoggerProps {
   latestWeight: number | null
@@ -40,7 +40,7 @@ export function BodyweightLogger({ latestWeight }: BodyweightLoggerProps) {
 
   return (
     <div className="flex items-center gap-2 pt-1">
-      <Scale className="w-3.5 h-3.5 text-[var(--text-low)] shrink-0" />
+      <Scale className="w-3.5 h-3.5 text-tertiary shrink-0" />
 
       <div className="relative flex-1">
         <input
@@ -53,27 +53,24 @@ export function BodyweightLogger({ latestWeight }: BodyweightLoggerProps) {
           onChange={e => setValue(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleLog()}
           placeholder={latestWeight ? `Last: ${latestWeight}` : 'Enter weight'}
-          className="w-full h-9 bg-white/[0.04] border border-[var(--glass-border)] rounded-xl px-3 pr-8 mono text-[13px] text-[var(--text-hi)] placeholder:text-[var(--text-faint)] focus:outline-none focus:border-[var(--accent-line)] text-center tabular-nums"
+          className="w-full h-9 bg-surface-raised border border-border rounded-field px-3 pr-8 mono text-sm text-primary placeholder:text-tertiary focus:outline-none focus:border-border-strong text-center tabular-nums"
         />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-[var(--text-faint)] pointer-events-none">
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-tertiary pointer-events-none">
           kg
         </span>
       </div>
 
-      <button
+      <Button
         onClick={handleLog}
-        disabled={isBusy || !value}
-        className={cn(
-          'shrink-0 h-9 px-4 font-medium text-[10px] uppercase tracking-widest rounded-xl transition-all active:scale-95',
-          status === 'saved'
-            ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
-            : status === 'error'
-            ? 'bg-[var(--rose)]/20 text-[var(--rose)]'
-            : 'bg-[var(--accent)] text-[var(--accent-on)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed',
-        )}
+        disabled={!value}
+        loading={isBusy}
+        size="sm"
+        fullWidth={false}
+        variant={status === 'error' ? 'destructive' : status === 'saved' ? 'secondary' : 'primary'}
+        className="shrink-0"
       >
-        {status === 'saving' ? '…' : status === 'saved' ? '✓' : status === 'error' ? 'Error' : 'Log'}
-      </button>
+        {status === 'saved' ? '✓' : status === 'error' ? 'Error' : 'Log'}
+      </Button>
     </div>
   )
 }

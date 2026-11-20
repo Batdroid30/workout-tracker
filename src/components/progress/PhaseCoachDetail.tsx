@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils'
 import { DELOAD_THRESHOLDS } from '@/lib/workout-intelligence'
 import { formatSetCount } from '@/lib/muscle-sets'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
+import { Chip } from '@/components/ui'
 import { MesocycleTimeline } from '@/components/phase-coach/MesocycleTimeline'
 import { VOLUME_STATUS_STYLES, STATUS_PRIORITY } from '@/components/progress/volume-status-styles'
 import type { Mesocycle } from '@/lib/phase-coach'
@@ -38,7 +39,7 @@ export function PhaseCoachDetail({
   keyLifts,
   mesocycle,
 }: PhaseCoachDetailProps) {
-  const phaseLabel  = trainingPhase ? trainingPhase.toUpperCase() : null
+  const phaseLabel  = trainingPhase ? trainingPhase.charAt(0).toUpperCase() + trainingPhase.slice(1) : null
   const cycleLength = (trainingPhase && experienceLevel)
     ? DELOAD_THRESHOLDS[experienceLevel][trainingPhase]
     : null
@@ -58,19 +59,16 @@ export function PhaseCoachDetail({
       <div className="flex items-center justify-between mb-3">
         <h2 className="t-display-s">Phase Coach</h2>
         {phaseLabel && (
-          <span
-            className="text-[9px] font-medium uppercase tracking-widest px-2.5 py-1 rounded-lg"
-            style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)', color: 'var(--accent)' }}
-          >
+          <Chip>
             {phaseLabel}
-            {weeksInPhase ? ` · WK ${weeksInPhase}` : ''}
-          </span>
+            {weeksInPhase ? ` · Wk ${weeksInPhase}` : ''}
+          </Chip>
         )}
       </div>
 
       {/* ── Mesocycle timeline (full) ───────────────────────────────── */}
       {mesocycle && (
-        <div className="glass p-4 mb-4">
+        <div className="card p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="t-label">
               Mesocycle · Wk {mesocycle.currentWeek} / {mesocycle.totalWeeks}
@@ -86,24 +84,23 @@ export function PhaseCoachDetail({
       )}
 
       {/* ── Strength Index full chart ──────────────────────────────── */}
-      <div className="glass p-4 mb-4">
+      <div className="card p-4 mb-4">
         <div className="flex items-center gap-2 mb-1">
-          <Compass className="w-3.5 h-3.5" style={{ color: 'var(--teal)' }} />
-          <h3 className="t-label">Strength Index</h3>
+          <Compass className="w-3.5 h-3.5 text-secondary" />
+          <h3 className="t-label">Strength index</h3>
         </div>
 
         <StrengthIndexBlock summary={strengthIndex} chartData={indexChartData} />
 
         {/* Tracked lifts */}
         {keyLifts.length > 0 && (
-          <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--glass-border)' }}>
+          <div className="mt-4 pt-3 border-t border-border">
             <p className="t-label mb-2">Tracked lifts ({keyLifts.length})</p>
             <div className="flex flex-wrap gap-1.5">
               {keyLifts.map(lift => (
                 <span
                   key={lift.exerciseId}
-                  className="text-[10px] font-medium uppercase tracking-tight rounded px-2 py-1"
-                  style={{ color: 'var(--text-mid)', background: 'var(--bg-1)', border: '1px solid var(--glass-border)' }}
+                  className="text-xs font-medium rounded px-2 py-1 text-secondary bg-surface-raised border border-border"
                   title={`${lift.sessionCount} sessions in last 12 weeks`}
                 >
                   {lift.exerciseName}
@@ -118,9 +115,9 @@ export function PhaseCoachDetail({
       </div>
 
       {/* ── Volume Landmarks ───────────────────────────────────────── */}
-      <div className="glass p-4 mb-4">
+      <div className="card p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="t-label">Volume Landmarks · This Week</h3>
+          <h3 className="t-label">Volume landmarks · this week</h3>
           <p className="t-caption">sets / week</p>
         </div>
 
@@ -140,9 +137,9 @@ export function PhaseCoachDetail({
 
       {/* ── Honesty footer ─────────────────────────────────────────── */}
       <div className="flex items-start gap-2 px-1">
-        <Info className="w-3 h-3 shrink-0 mt-0.5" style={{ color: 'var(--text-faint)' }} />
+        <Info className="w-3 h-3 shrink-0 mt-0.5 text-tertiary" />
         <p className="t-caption leading-relaxed">
-          Strength gain is a <span className="text-[var(--text-mid)] font-semibold">proxy</span> for muscle gain, not a direct measure.
+          Strength gain is a <span className="text-secondary font-semibold">proxy</span> for muscle gain, not a direct measure.
           Track bodyweight and progress photos alongside it for the complete picture.
         </p>
       </div>
@@ -174,10 +171,10 @@ function StrengthIndexBlock({ summary, chartData }: StrengthIndexBlockProps) {
   const pctPerWeek = summary.pctPerWeek
 
   const trendColor =
-    summary.status === 'on_track'       ? 'text-[var(--teal)]' :
-    summary.status === 'above_expected' ? 'text-[var(--teal)]' :
-    summary.status === 'below_expected' ? 'text-orange-400' :
-    'text-[var(--text-mid)]'
+    summary.status === 'on_track'       ? 'text-positive' :
+    summary.status === 'above_expected' ? 'text-positive' :
+    summary.status === 'below_expected' ? 'text-caution' :
+    'text-secondary'
 
   const trendLabel =
     summary.status === 'on_track'       ? 'On track for your level' :
@@ -190,15 +187,9 @@ function StrengthIndexBlock({ summary, chartData }: StrengthIndexBlockProps) {
       {/* Headline numbers */}
       <div className="flex items-end justify-between mt-1 mb-3">
         <div>
-          <p
-            className="mono text-3xl tabular-nums tracking-tighter"
-            style={{
-              color: 'var(--text-hi)',
-              textShadow: totalPct >= 0 ? '0 0 24px var(--accent-glow)' : 'none',
-            }}
-          >
+          <p className="mono text-3xl tabular-nums tracking-tighter text-primary">
             {totalPct >= 0 ? '+' : ''}{totalPct.toFixed(1)}
-            <span className="text-base ml-0.5" style={{ color: 'var(--text-faint)', textShadow: 'none' }}>%</span>
+            <span className="text-base ml-0.5 text-tertiary">%</span>
           </p>
           <p className="t-label mt-0.5">Since phase start</p>
         </div>
@@ -214,11 +205,11 @@ function StrengthIndexBlock({ summary, chartData }: StrengthIndexBlockProps) {
 
       {/* Full chart */}
       <div className="h-[180px] w-full">
-        <ProgressionLineChart data={chartData} color="#7fd9c8" formatType="number" />
+        <ProgressionLineChart data={chartData} color="var(--data-1)" formatType="number" />
       </div>
 
       {trendLabel && (
-        <p className={cn('text-[11px] font-semibold uppercase tracking-wider mt-2 text-center', trendColor)}>
+        <p className={cn('t-caption font-semibold mt-2 text-center', trendColor)}>
           {trendLabel}
         </p>
       )}
@@ -234,25 +225,25 @@ function StrengthIndexBlock({ summary, chartData }: StrengthIndexBlockProps) {
 
 function VolumeLegend() {
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-2 text-[9px] p-3.5 bg-ink/30 rounded-xl border border-glass-border/40" style={{ color: 'var(--text-low)' }}>
+    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs p-3.5 bg-bg rounded-xl border border-border text-tertiary">
       <span className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded bg-orange-400/20 border border-orange-400/35" />
+        <span className={`w-2 h-2 rounded border ${VOLUME_STATUS_STYLES.maintenance.zone} ${VOLUME_STATUS_STYLES.maintenance.zoneBorder}`} />
         <span>MV – MEV <span className="ml-0.5 opacity-60">(Maintain)</span></span>
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded bg-yellow-400/25 border border-yellow-400/35" />
+        <span className={`w-2 h-2 rounded border ${VOLUME_STATUS_STYLES.sub_optimal.zone} ${VOLUME_STATUS_STYLES.sub_optimal.zoneBorder}`} />
         <span>MEV – MAV <span className="ml-0.5 opacity-60">(Growing)</span></span>
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded bg-emerald-500/25 border border-emerald-500/35" />
-        <span className="font-semibold text-[var(--teal)]">MAV <span className="ml-0.5 opacity-65">(Optimal)</span></span>
+        <span className={`w-2 h-2 rounded border ${VOLUME_STATUS_STYLES.optimal.zone} ${VOLUME_STATUS_STYLES.optimal.zoneBorder}`} />
+        <span className="font-semibold text-positive">MAV <span className="ml-0.5 opacity-65">(Optimal)</span></span>
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded bg-orange-500/25 border border-orange-500/35" />
+        <span className={`w-2 h-2 rounded border ${VOLUME_STATUS_STYLES.high.zone} ${VOLUME_STATUS_STYLES.high.zoneBorder}`} />
         <span>MAV – MRV <span className="ml-0.5 opacity-60">(High)</span></span>
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded bg-red-500/25 border border-red-500/35" />
+        <span className={`w-2 h-2 rounded border ${VOLUME_STATUS_STYLES.over_mrv.zone} ${VOLUME_STATUS_STYLES.over_mrv.zoneBorder}`} />
         <span>Over MRV <span className="ml-0.5 opacity-60">(Fatiguing)</span></span>
       </span>
     </div>
@@ -278,22 +269,22 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
   const freqSessions = weeklyFrequency > 0 ? Math.max(1, Math.round(weeklyFrequency)) : 0
   const freqLabel    = freqSessions > 0 ? `${freqSessions}×/wk` : null
   const freqStyle    = freqSessions >= 2
-    ? 'bg-[var(--teal)]/10 border border-[var(--teal)]/20 text-[var(--teal)]'
-    : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400'
+    ? 'bg-positive-soft text-positive'
+    : 'bg-caution-soft text-caution'
 
   return (
-    <div className="glass-strong p-3.5 rounded-[var(--radius-inner)] border border-glass-border hover:border-glass-border-strong transition-all duration-300 group">
+    <div className="bg-surface-raised p-3.5 rounded-control border border-border hover:border-border-strong transition-colors duration-300 group">
       {/* Header Info */}
-      <div className="flex items-center justify-between mb-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-2.5">
         <div className="flex items-center gap-2 min-w-0">
           <span className={cn('w-2 h-2 rounded-full shrink-0 animate-pulse', styles.dot)} />
-          <span className="text-xs font-bold uppercase tracking-wider truncate" style={{ color: 'var(--text-hi)' }}>
+          <span className="text-xs font-bold capitalize truncate text-primary">
             {muscleGroup}
           </span>
           {freqLabel && (
             <span
               className={cn(
-                "text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0",
+                "text-xs font-bold px-1.5 py-0.5 rounded shrink-0",
                 freqStyle
               )}
             >
@@ -303,14 +294,13 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
         </div>
         
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[11px] tabular-nums font-semibold" style={{ color: 'var(--text-hi)' }}>
-            {formatSetCount(setCount)} <span className="text-[9px] font-normal" style={{ color: 'var(--text-low)' }}>sets</span>
+          <span className="text-xs tabular-nums font-semibold text-primary">
+            {formatSetCount(setCount)} <span className="text-xs font-normal text-tertiary">sets</span>
           </span>
           <span
             className={cn(
-              "text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border shrink-0",
+              "text-xs font-bold px-2 py-0.5 rounded-full shrink-0",
               styles.bg,
-              styles.border,
               styles.text
             )}
           >
@@ -320,24 +310,24 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
       </div>
 
       {/* Bar visual */}
-      <div className="relative h-2.5 rounded-full overflow-hidden bg-ink/75 border border-border-soft/60">
+      <div className="relative h-2.5 rounded-full overflow-hidden bg-bg border border-border">
         {/* Shaded Landmark Zones */}
-        <div className="absolute top-0 h-full bg-orange-400/5"
+        <div className={`absolute top-0 h-full ${VOLUME_STATUS_STYLES.maintenance.zone}`}
              style={{ left: `${mvPct}%`, width: `${Math.max(0, mevPct - mvPct)}%` }} />
-        <div className="absolute top-0 h-full bg-yellow-400/10"
+        <div className={`absolute top-0 h-full ${VOLUME_STATUS_STYLES.sub_optimal.zone}`}
              style={{ left: `${mevPct}%`, width: `${Math.max(0, mavMinPct - mevPct)}%` }} />
-        <div className="absolute top-0 h-full bg-emerald-500/15"
+        <div className={`absolute top-0 h-full ${VOLUME_STATUS_STYLES.optimal.zone}`}
              style={{ left: `${mavMinPct}%`, width: `${Math.max(0, mavMaxPct - mavMinPct)}%` }} />
-        <div className="absolute top-0 h-full bg-orange-400/10"
+        <div className={`absolute top-0 h-full ${VOLUME_STATUS_STYLES.high.zone}`}
              style={{ left: `${mavMaxPct}%`, width: `${Math.max(0, mrvPct - mavMaxPct)}%` }} />
-        <div className="absolute top-0 h-full bg-red-500/20"
+        <div className={`absolute top-0 h-full ${VOLUME_STATUS_STYLES.over_mrv.zone}`}
              style={{ left: `${mrvPct}%`, right: 0 }} />
 
         {/* Zone Ticks/Dividers */}
         {[mvPct, mevPct, mavMinPct, mavMaxPct, mrvPct].map((p, idx) => (
           <div
             key={idx}
-            className="absolute top-0 bottom-0 w-[1px] bg-ink/30 z-10"
+            className="absolute top-0 bottom-0 w-[1px] bg-border-strong z-10"
             style={{ left: `${p}%` }}
           />
         ))}
@@ -345,45 +335,41 @@ function VolumeLandmarkRow({ point }: { point: MuscleVolumeLandmarkPoint }) {
         {/* User sets progress fill */}
         <div
           className={cn(
-            "absolute top-0 left-0 h-full rounded-l-full bg-gradient-to-r transition-all duration-500 ease-out",
-            styles.fillGradient
+            "absolute top-0 left-0 h-full rounded-l-full transition-all duration-500 ease-out",
+            styles.bar
           )}
           style={{ width: `${markerPct}%` }}
         />
 
-        {/* Glowing Cursor thumb */}
+        {/* Cursor thumb */}
         <div
-          className="absolute -top-0.5 bottom-[-2px] w-1 h-[14px] rounded-full bg-white transition-all duration-500 ease-out"
-          style={{
-            left: `${markerPct}%`,
-            transform: 'translateX(-50%)',
-            boxShadow: `0 0 8px ${styles.glowColor}, 0 0 3px #ffffff`
-          }}
+          className="absolute -top-0.5 bottom-[-2px] w-1 h-[14px] rounded-full bg-primary transition-all duration-500 ease-out"
+          style={{ left: `${markerPct}%`, transform: 'translateX(-50%)' }}
         />
       </div>
 
       {/* Threshold Row */}
-      <div className="flex items-center justify-between mt-2.5 px-0.5 text-[9px] font-medium" style={{ color: 'var(--text-low)' }}>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mt-2.5 px-0.5 text-xs font-medium text-tertiary">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-orange-400/40" />
-            <span>MV <strong style={{ color: 'var(--text-mid)' }}>{landmarks.mv}</strong></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-caution/40" />
+            <span>MV <strong className="text-secondary">{landmarks.mv}</strong></span>
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400/40" />
-            <span>MEV <strong style={{ color: 'var(--text-mid)' }}>{landmarks.mev}</strong></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-caution/40" />
+            <span>MEV <strong className="text-secondary">{landmarks.mev}</strong></span>
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/40" />
-            <span>MAV <strong style={{ color: 'var(--text-mid)' }}>{landmarks.mav.min}-{landmarks.mav.max}</strong></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-positive/40" />
+            <span>MAV <strong className="text-secondary">{landmarks.mav.min}-{landmarks.mav.max}</strong></span>
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500/40" />
-            <span>MRV <strong style={{ color: 'var(--text-mid)' }}>{landmarks.mrv}</strong></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-negative/40" />
+            <span>MRV <strong className="text-secondary">{landmarks.mrv}</strong></span>
           </span>
         </div>
         
-        <span className="text-[9px] tracking-tight font-semibold" style={{ color: 'var(--text-mid)' }}>
+        <span className="text-xs font-semibold text-secondary">
           {status === 'below_mv' && `+${formatSetCount(landmarks.mv - setCount)} to MV`}
           {status === 'maintenance' && `+${formatSetCount(landmarks.mev - setCount)} to MEV`}
           {status === 'sub_optimal' && `+${formatSetCount(landmarks.mav.min - setCount)} to MAV`}

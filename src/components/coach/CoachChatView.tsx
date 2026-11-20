@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState } from 'react'
 import { Plus, Sparkles, AlertCircle, History } from 'lucide-react'
+import { Chip } from '@/components/ui'
 import { useCoachChat } from '@/hooks/useCoachChat'
 import { CoachMessageBubble } from './CoachMessageBubble'
 import { CoachEmptyState } from './CoachEmptyState'
@@ -61,29 +62,27 @@ export function CoachChatView({
       }}
     >
       {/* Top Header Bar */}
-      <div className="flex items-center justify-between border-b border-zinc-800/80 px-4 py-3 shrink-0 backdrop-blur-md bg-zinc-950/60 sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <div className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400">
+      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3 shrink-0 bg-bg sticky top-0 z-10">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-surface-raised text-secondary">
             <Sparkles className="h-4 w-4" />
-            <span className="absolute bottom-0.5 right-0.5 h-2 w-2 rounded-full bg-teal-400 ring-2 ring-zinc-950" />
+            <span className="absolute bottom-0.5 right-0.5 h-2 w-2 rounded-full bg-positive ring-2 ring-bg" />
           </div>
-          <div>
-            <h1 className="text-sm font-bold text-zinc-100 flex items-center gap-1.5">
+          <div className="min-w-0">
+            <h1 className="text-sm font-bold text-primary flex items-center gap-1.5">
               AI Coach
-              <span className="rounded bg-teal-500/10 px-1.5 py-0.2 text-[10px] font-mono text-teal-400 border border-teal-500/20">
-                PRO
-              </span>
+              <Chip>PRO</Chip>
             </h1>
-            <p className="text-[11px] text-zinc-500">Live Science &amp; Routine Engine</p>
+            <p className="truncate text-xs text-tertiary">Live science &amp; routine engine</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {/* History drawer toggle */}
           <button
             type="button"
             onClick={() => setHistoryOpen(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:text-white active:scale-95"
+            className="focus-ring flex min-h-10 items-center gap-1.5 rounded-pill border border-border-strong bg-surface-raised px-3 text-xs font-medium text-primary transition-colors active:scale-95"
             aria-label="Open chat history"
           >
             <History className="h-3.5 w-3.5" />
@@ -94,7 +93,7 @@ export function CoachChatView({
           <button
             type="button"
             onClick={resetChat}
-            className="flex items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:text-white active:scale-95"
+            className="focus-ring flex min-h-10 items-center gap-1.5 rounded-pill border border-border-strong bg-surface-raised px-3 text-xs font-medium text-primary transition-colors active:scale-95"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>New</span>
@@ -114,7 +113,7 @@ export function CoachChatView({
 
         {/* Error notification */}
         {error && (
-          <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-950/30 p-3 text-xs text-red-400">
+          <div className="flex items-center gap-2 rounded-control bg-negative-soft p-3 text-xs text-negative">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -124,7 +123,7 @@ export function CoachChatView({
       </div>
 
       {/* Input Area */}
-      <div className="p-3 shrink-0 bg-gradient-to-t from-zinc-950 via-zinc-950/90 to-transparent">
+      <div className="p-3 shrink-0 bg-bg">
         <CoachInput
           onSend={sendMessage}
           onStop={stopStreaming}

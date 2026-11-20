@@ -1,8 +1,8 @@
 import type { CSSProperties } from 'react'
 import type { BodyRegion } from '@/lib/body-map'
 
-export const DEFAULT_NEUTRAL_FILL = 'var(--surface-2)'
-export const OUTLINE_STROKE = 'var(--glass-border)'
+export const DEFAULT_NEUTRAL_FILL = 'var(--surface-raised)'
+export const OUTLINE_STROKE = 'var(--border)'
 export const OUTLINE_STROKE_WIDTH = 0.3
 export const FRONT_SYMBOL_ID = 'body-map-front'
 export const BACK_SYMBOL_ID = 'body-map-back'

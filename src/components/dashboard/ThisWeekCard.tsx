@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowRight, Check, Pencil, Target, X } from 'lucide-react'
 import { updateWeeklyGoalAction } from '@/app/(app)/profile/actions'
 import { cn } from '@/lib/utils'
+import { getButtonClassName } from '@/components/ui'
 import type { Mission, MissionPriority } from '@/lib/data/phase-coach'
 import type { WeeklySummary, NextWorkoutSuggestion } from '@/lib/data/insights'
 import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
@@ -18,10 +19,10 @@ interface ThisWeekCardProps {
   isDeloadWeek?:  boolean
 }
 
-const PRIORITY_BAR_STYLE: Record<MissionPriority, React.CSSProperties> = {
-  critical: { background: 'var(--critical)', boxShadow: '0 0 6px rgba(114,9,183,0.6)'  },
-  high:     { background: 'var(--warning)',  boxShadow: '0 0 6px rgba(181,23,158,0.5)' },
-  normal:   { background: 'rgba(247,37,133,0.25)' },
+const PRIORITY_BAR_CLASS: Record<MissionPriority, string> = {
+  critical: 'bg-negative',
+  high:     'bg-caution',
+  normal:   'bg-border-strong',
 }
 
 export function ThisWeekCard({
@@ -49,28 +50,28 @@ export function ThisWeekCard({
   }
 
   return (
-    <div className="glass border border-[var(--accent-line)] p-4">
+    <div className="card border border-border-strong p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Target className="w-3.5 h-3.5 text-[var(--accent)]" />
-          <h3 className="t-label">This Week</h3>
+          <Target className="w-3.5 h-3.5 text-primary" />
+          <h3 className="t-label">This week</h3>
         </div>
         {isDeloadWeek ? (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--accent-soft)] border border-[var(--accent-line)]">
-            <span className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-widest">
-              Deload Week
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-raised border border-border-strong">
+            <span className="text-xs font-semibold text-primary">
+              Deload week
             </span>
-            <span className="text-[10px] text-[var(--text-low)]">
+            <span className="text-xs text-tertiary">
               recover &amp; rebuild
             </span>
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--accent-soft)] border border-[var(--accent-line)]">
-            <span className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-widest">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-raised border border-border-strong">
+            <span className="text-xs font-semibold text-primary">
               {dupScheme.label}
             </span>
-            <span className="text-[10px] text-[var(--text-low)]">
+            <span className="text-xs text-tertiary">
               {dupScheme.repRange.min}–{dupScheme.repRange.max} reps
             </span>
           </div>
@@ -93,47 +94,34 @@ export function ThisWeekCard({
               <div>
                 <div className="flex items-baseline gap-2">
                   <span
-                    className="mono font-bold tabular-nums tracking-tighter leading-none"
-                    style={{
-                      fontSize:   '3.25rem',
-                      color:      'var(--text-hi)',
-                      textShadow: reached ? '0 0 40px var(--accent-glow)' : thisWeekCount > 0 ? '0 0 24px var(--accent-glow)' : 'none',
-                    }}
+                    className="mono font-bold tabular-nums tracking-tighter leading-none text-primary"
+                    style={{ fontSize: '3.25rem' }}
                   >
                     {thisWeekCount}
                   </span>
-                  <span className="text-base" style={{ color: 'var(--text-faint)' }}>/ {goalSessions}</span>
+                  <span className="text-base text-tertiary">/ {goalSessions}</span>
                 </div>
-                <p className="text-[10px] mt-1" style={{ color: 'var(--text-low)' }}>sessions this week</p>
+                <p className="text-xs mt-1 text-tertiary">sessions this week</p>
               </div>
               <button
                 onClick={() => setEditing(true)}
-                className="transition-colors p-2 rounded-xl hover:bg-white/[0.04]"
-                style={{ color: 'var(--text-faint)' }}
+                className="transition-colors p-2 rounded-xl text-tertiary hover:bg-surface-raised"
                 aria-label="Edit weekly goal"
               >
                 <Pencil className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+            <div className="h-1.5 bg-surface-raised rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${sessionPct}%`,
-                  background: 'var(--accent)',
-                  boxShadow: reached
-                    ? '0 0 16px var(--accent-glow)'
-                    : sessionPct > 0
-                    ? '0 0 8px var(--accent-glow)'
-                    : 'none',
-                }}
+                className="h-full rounded-full bg-primary transition-all duration-500"
+                style={{ width: `${sessionPct}%` }}
               />
             </div>
 
             <div className="flex items-center justify-between mt-2">
               {reached ? (
-                <p className="t-label text-[var(--accent)]">Goal reached</p>
+                <p className="t-label text-primary">Goal reached</p>
               ) : (
                 <p className="t-caption">{remaining} more session{remaining !== 1 ? 's' : ''} to go</p>
               )}
@@ -151,16 +139,12 @@ export function ThisWeekCard({
             {missions.map(m => (
               <div
                 key={m.id}
-                className="flex gap-3 p-3 rounded-xl"
-                style={{
-                  background: 'rgba(255,255,255,0.02)',
-                  border:     '1px solid rgba(255,255,255,0.04)',
-                }}
+                className="flex gap-3 p-3 rounded-control bg-surface-raised border border-border"
               >
-                <div className="w-0.5 rounded-full self-stretch shrink-0" style={PRIORITY_BAR_STYLE[m.priority]} />
+                <div className={cn('w-0.5 rounded-full self-stretch shrink-0', PRIORITY_BAR_CLASS[m.priority])} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-semibold" style={{ color: 'var(--text-hi)' }}>{m.headline}</p>
-                  <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--text-low)' }}>{m.detail}</p>
+                  <p className="text-xs font-semibold text-primary">{m.headline}</p>
+                  <p className="t-caption mt-0.5 leading-relaxed text-tertiary">{m.detail}</p>
                 </div>
                 <span className="text-lg shrink-0 leading-none mt-0.5">{m.icon}</span>
               </div>
@@ -170,25 +154,26 @@ export function ThisWeekCard({
       )}
 
       {/* Next session footer */}
-      <div className="flex items-center gap-3 pt-3 border-t border-white/[0.05]">
+      <div className="flex items-center gap-3 pt-3 border-t border-border">
         <div className="flex-1 min-w-0">
           {nextWorkout ? (
             <>
               <p className="t-label mb-1">Next session</p>
-              <p className="text-[13px] font-medium text-[var(--text-hi)] truncate">{nextWorkout.focus}</p>
-              <p className="text-[10px] text-[var(--text-low)] truncate mt-0.5">{nextWorkout.reason}</p>
+              <p className="t-caption font-medium text-primary truncate">{nextWorkout.focus}</p>
+              <p className="text-xs text-tertiary truncate mt-0.5">{nextWorkout.reason}</p>
             </>
           ) : (
             <>
               <p className="t-label mb-1">Ready when you are</p>
-              <p className="text-[10px] text-[var(--text-low)] mt-0.5">Pick any session to keep momentum.</p>
+              <p className="text-xs text-tertiary mt-0.5">Pick any session to keep momentum.</p>
             </>
           )}
         </div>
-        <Link href="/routines">
-          <button className="shrink-0 flex items-center gap-1 bg-[var(--accent)] text-[var(--accent-on)] text-[10px] font-semibold uppercase tracking-widest px-3 py-2 rounded-lg active:scale-95 transition-transform">
-            Start <ArrowRight className="w-3 h-3" />
-          </button>
+        <Link
+          href="/routines"
+          className={cn(getButtonClassName({ variant: 'secondary', size: 'sm', fullWidth: false }), 'shrink-0')}
+        >
+          Start <ArrowRight className="w-3 h-3" />
         </Link>
       </div>
     </div>
@@ -206,28 +191,28 @@ interface GoalEditorProps {
 function GoalEditor({ draftGoal, isPending, onChange, onSave, onCancel }: GoalEditorProps) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[11px] text-[var(--text-low)]">Sessions per week:</span>
+      <span className="t-caption text-tertiary">Sessions per week:</span>
       <div className="flex items-center gap-1 ml-auto">
         <button
           onClick={() => onChange(Math.max(1, draftGoal - 1))}
-          className="w-7 h-7 bg-white/[0.04] border border-[var(--glass-border)] rounded-lg text-[var(--text-mid)] flex items-center justify-center hover:border-[var(--accent-line)] transition-colors"
+          className="w-7 h-7 bg-surface-raised border border-border rounded-lg text-secondary flex items-center justify-center hover:border-border-strong transition-colors"
         >−</button>
-        <span className="w-6 text-center text-sm font-medium text-[var(--text-hi)] mono tabular-nums">{draftGoal}</span>
+        <span className="w-6 text-center text-sm font-medium text-primary mono tabular-nums">{draftGoal}</span>
         <button
           onClick={() => onChange(Math.min(14, draftGoal + 1))}
-          className="w-7 h-7 bg-white/[0.04] border border-[var(--glass-border)] rounded-lg text-[var(--text-mid)] flex items-center justify-center hover:border-[var(--accent-line)] transition-colors"
+          className="w-7 h-7 bg-surface-raised border border-border rounded-lg text-secondary flex items-center justify-center hover:border-border-strong transition-colors"
         >+</button>
       </div>
       <button
         onClick={onSave}
         disabled={isPending}
-        className="ml-2 w-7 h-7 bg-[var(--accent)] text-[var(--accent-on)] rounded-lg flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
+        className="ml-2 w-7 h-7 bg-primary text-bg rounded-lg flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
       >
         <Check className="w-3.5 h-3.5" />
       </button>
       <button
         onClick={onCancel}
-        className="w-7 h-7 bg-white/[0.04] border border-[var(--glass-border)] rounded-lg text-[var(--text-low)] flex items-center justify-center hover:text-[var(--text-hi)] transition-colors"
+        className="w-7 h-7 bg-surface-raised border border-border rounded-lg text-tertiary flex items-center justify-center hover:text-primary transition-colors"
       >
         <X className="w-3.5 h-3.5" />
       </button>
@@ -240,7 +225,7 @@ function VolumeDelta({ pct }: { pct: number | null }) {
   if (pct === 0)    return <span className="t-caption">same volume</span>
   const up = pct > 0
   return (
-    <span className={cn('text-[10px] font-medium mono', up ? 'text-[var(--teal)]' : 'text-[var(--rose)]')}>
+    <span className={cn('text-xs font-medium mono', up ? 'text-positive' : 'text-caution')}>
       {up ? '↑' : '↓'} {Math.abs(pct)}% vol
     </span>
   )

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Trophy } from 'lucide-react'
+import { Chip } from '@/components/ui'
 import type { PRCheckResult, PRType } from '@/types/database'
 import { formatVolume, formatWeightedPR } from '@/lib/load'
 import { useWorkoutStore } from '@/store/workout.store'
@@ -15,10 +16,10 @@ interface PRBannerProps {
   duration?: number
 }
 
-const PR_CONFIG: Record<PRType, { label: string; color: string; bg: string }> = {
-  best_weight: { label: 'Weight PR', color: 'text-spectrum-1000', bg: 'bg-spectrum-1000/15' },
-  best_1rm:    { label: 'Est. 1RM',  color: 'text-spectrum-100',  bg: 'bg-spectrum-100/15'  },
-  best_volume: { label: 'Volume',    color: 'text-spectrum-900',  bg: 'bg-spectrum-900/15'  },
+const PR_CONFIG: Record<PRType, { label: string }> = {
+  best_weight: { label: 'Weight PR' },
+  best_1rm:    { label: 'Est. 1RM' },
+  best_volume: { label: 'Volume' },
 }
 
 function formatValue(prType: PRType, value: number, weightedBodyweightKg: number | null): string {
@@ -65,51 +66,43 @@ export function PRBanner({ prs, exerciseName, isWeighted, isAssisted, onDismiss,
       }`}
     >
       <div
-        className="rounded-[var(--radius-card)] shadow-2xl shadow-black/60 overflow-hidden"
-        style={{
-          background: 'rgba(7,6,26,0.97)',
-          backdropFilter: 'blur(28px)',
-          border: '1px solid var(--accent-line)',
-          boxShadow: '0 0 40px rgba(247,37,133,0.18)',
-        }}
+        className="rounded-card bg-surface-raised border border-border shadow-[var(--shadow-overlay)] overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5">
           <div className="flex items-center gap-2.5">
             <div
-              className="w-8 h-8 rounded-[var(--radius-inner)] flex items-center justify-center shrink-0"
-              style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }}
+              className="w-8 h-8 rounded-control flex items-center justify-center shrink-0 bg-accent-soft"
             >
-              <Trophy className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              <Trophy className="w-4 h-4 text-accent" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--accent)' }}>
-                {prs.length === 1 ? 'New Record' : `${prs.length} New Records`}
-              </p>
-              <p className="text-[10px] text-[var(--text-faint)] truncate max-w-[180px]">{exerciseName}</p>
+              <Chip tone="accent">
+                {prs.length === 1 ? 'New record' : `${prs.length} new records`}
+              </Chip>
+              <p className="text-xs text-tertiary truncate max-w-[180px] mt-0.5">{exerciseName}</p>
             </div>
           </div>
           <button
             onPointerDown={onDismiss}
-            className="text-[9px] font-medium uppercase tracking-widest text-[var(--text-low)] hover:text-[var(--text-hi)] px-2.5 py-1.5 rounded-lg transition-colors active:scale-95"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
+            className="text-xs font-medium text-secondary hover:text-primary px-3 min-h-11 rounded-pill bg-surface border border-border transition-colors active:scale-95"
           >
             Got it
           </button>
         </div>
 
-        {/* PR rows — keep their distinct colours for type differentiation */}
+        {/* PR rows */}
         <div className="px-4 pb-3 space-y-1.5">
           {prs.map(pr => {
             const cfg = PR_CONFIG[pr.pr_type]
             return (
-              <div key={pr.pr_type} className={`flex items-center justify-between rounded-[var(--radius-inner)] px-3 py-2 ${cfg.bg}`}>
-                <span className={`text-[10px] font-semibold uppercase tracking-widest ${cfg.color}`}>
-                  {isAssisted && pr.pr_type === 'best_weight' ? 'Less Assistance' : cfg.label}
+              <div key={pr.pr_type} className="flex items-center justify-between rounded-control px-3 py-2 bg-surface">
+                <span className="text-xs font-semibold text-secondary">
+                  {isAssisted && pr.pr_type === 'best_weight' ? 'Less assistance' : cfg.label}
                 </span>
-                <span className="mono text-sm text-[var(--text-hi)] tabular-nums">
+                <span className="mono text-sm text-primary tabular-nums">
                   {pr.old_value !== null && (
-                    <span className="text-[10px] text-[var(--text-faint)] mr-2 line-through">{formatValue(pr.pr_type, pr.old_value, weightedBodyweightKg)}</span>
+                    <span className="text-xs text-tertiary mr-2 line-through">{formatValue(pr.pr_type, pr.old_value, weightedBodyweightKg)}</span>
                   )}
                   {formatValue(pr.pr_type, pr.new_value, weightedBodyweightKg)}
                 </span>
@@ -119,10 +112,10 @@ export function PRBanner({ prs, exerciseName, isWeighted, isAssisted, onDismiss,
         </div>
 
         {/* Countdown bar */}
-        <div className="h-0.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <div className="h-0.5 bg-surface">
           <div
-            className="h-full transition-none"
-            style={{ width: `${progress}%`, background: 'var(--accent)' }}
+            className="h-full transition-none bg-accent"
+            style={{ width: `${progress}%` }}
           />
         </div>
       </div>

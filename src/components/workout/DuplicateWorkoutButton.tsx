@@ -2,9 +2,20 @@
 
 import { Copy } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui'
 import { useWorkoutStore } from '@/store/workout.store'
+import type { ActiveSet, Exercise } from '@/types/database'
 
-export function DuplicateWorkoutButton({ workout }: { workout: any }) {
+type DuplicableSet = Pick<ActiveSet, 'set_number' | 'weight_kg' | 'reps' | 'rpe'> & { is_warmup: boolean | null }
+
+type DuplicableExercise = Pick<Exercise, 'id' | 'name' | 'muscle_group' | 'secondary_muscles' | 'equipment'>
+
+interface DuplicableWorkout {
+  title: string | null
+  workout_exercises: Array<{ exercise: DuplicableExercise; sets: DuplicableSet[] }>
+}
+
+export function DuplicateWorkoutButton({ workout }: { workout: DuplicableWorkout }) {
   const router = useRouter()
   const copyWorkout = useWorkoutStore((state) => state.copyWorkout)
 
@@ -14,12 +25,14 @@ export function DuplicateWorkoutButton({ workout }: { workout: any }) {
   }
 
   return (
-    <button
+    <Button
+      variant="secondary"
+      size="sm"
+      fullWidth={false}
+      leadingIcon={<Copy className="w-4 h-4" />}
       onClick={handleDuplicate}
-      className="bg-brand text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-brand-hover active:scale-95 transition-all flex items-center gap-2"
     >
-      <Copy className="w-4 h-4" />
-      Perform Again
-    </button>
+      Perform again
+    </Button>
   )
 }

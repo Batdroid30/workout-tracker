@@ -12,11 +12,11 @@ export function HypertrophicDissociationCard({ dissociation }: HypertrophicDisso
   return (
     <InsightCard
       title="Hypertrophic Dissociation"
-      icon={<TrendingUp className="w-3.5 h-3.5" style={{ color: 'var(--rose)' }} />}
+      icon={<TrendingUp className="w-3.5 h-3.5 text-caution" />}
       variant="warning"
       dismissKey="insight-dissociation-dismiss"
     >
-      <p className="text-sm text-[var(--text-low)] leading-relaxed">
+      <p className="text-sm text-tertiary leading-relaxed">
         {dissociation.message}
       </p>
     </InsightCard>

@@ -38,10 +38,9 @@ export function WarmupRamp({ workingWeight, onAddSet }: WarmupRampProps) {
 
   return (
     <div
-      className="px-4 py-2.5"
-      style={{ borderBottom: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)' }}
+      className="px-4 py-2.5 border-b border-border bg-surface"
     >
-      <p className="text-[9px] font-medium text-[var(--text-faint)] uppercase tracking-widest mb-2">
+      <p className="text-xs font-medium text-tertiary mb-2">
         Warmup ramp · tap to add
       </p>
       <div className="flex items-center gap-1 flex-wrap">
@@ -49,18 +48,17 @@ export function WarmupRamp({ workingWeight, onAddSet }: WarmupRampProps) {
           <div key={i} className="flex items-center gap-1">
             <button
               onClick={() => onAddSet?.(s.weight, s.reps)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all active:scale-95"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' }}
+              className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg bg-surface-raised border border-border transition-all active:scale-95"
               aria-label={`Add warmup ${s.weight}kg × ${s.reps}`}
             >
-              <Plus className="w-2.5 h-2.5 text-orange-400/60 shrink-0" />
-              <span className="text-[8px] font-medium text-[var(--text-faint)] uppercase">{s.label}</span>
-              <span className="mono text-[11px] text-[var(--text-mid)]">
-                {s.weight}<span className="text-[9px] text-[var(--text-faint)] ml-0.5">kg</span>
+              <Plus className="w-2.5 h-2.5 text-caution shrink-0" />
+              <span className="text-xs font-medium text-tertiary">{s.label}</span>
+              <span className="mono text-xs text-secondary">
+                {s.weight}<span className="text-xs text-tertiary ml-0.5">kg</span>
               </span>
-              <span className="text-[9px] text-[var(--text-faint)]">×{s.reps}</span>
+              <span className="text-xs text-tertiary">×{s.reps}</span>
             </button>
-            {i < steps.length - 1 && <span className="text-[var(--text-faint)] text-[10px]">›</span>}
+            {i < steps.length - 1 && <span className="text-tertiary text-xs">›</span>}
           </div>
         ))}
       </div>

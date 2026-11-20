@@ -12,7 +12,7 @@ import {
   refreshCacheAction,
   updateTrainingProfileAction,
 } from './actions'
-import { Button } from '@/components/ui/Button'
+import { Button, Input, ToggleChip, getButtonClassName } from '@/components/ui'
 import { useDialog } from '@/providers/DialogProvider'
 import { resizeImageToDataUrl } from '@/lib/image/resize-image'
 
@@ -32,7 +32,7 @@ interface TileOption<T extends string> {
 
 const GOAL_OPTIONS: TileOption<TrainingGoal>[] = [
   { value: 'strength', label: 'Strength',     description: 'Lift heavier', emoji: '🏋️' },
-  { value: 'muscle',   label: 'Build Muscle', description: 'Get bigger',   emoji: '💪' },
+  { value: 'muscle',   label: 'Build muscle', description: 'Get bigger',   emoji: '💪' },
   { value: 'both',     label: 'Both',         description: 'Mix of both',  emoji: '⚡' },
 ]
 
@@ -68,28 +68,27 @@ function TileGroup<T extends string>({ label, options, selected, saving, onSelec
     <div className="space-y-2">
       <p className="t-label">{label}</p>
       <div className={cn('grid gap-2', options.length === 2 ? 'grid-cols-2' : 'grid-cols-3')}>
-        {options.map(opt => (
+        {options.map(opt => {
+          const isSelected = selected === opt.value
+          return (
           <button
             key={opt.value}
             type="button"
             disabled={saving}
             onClick={() => onSelect(opt.value)}
-            className="flex flex-col items-center gap-1 p-3 rounded-[var(--radius-inner)] transition-all text-center disabled:opacity-50 active:scale-95"
-            style={selected === opt.value
-              ? { border: '1px solid var(--accent-line)', background: 'var(--accent-soft)' }
-              : { border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.03)' }
-            }
+            className={cn(
+              'flex min-w-0 flex-col items-center gap-1 p-3 rounded-control transition-all text-center disabled:opacity-50 active:scale-95',
+              isSelected ? 'bg-primary text-bg border border-primary' : 'bg-surface-raised border border-border',
+            )}
           >
             <span className="text-lg">{opt.emoji}</span>
-            <span
-              className="text-[10px] font-semibold uppercase tracking-tight leading-tight"
-              style={{ color: selected === opt.value ? 'var(--accent)' : 'var(--text-mid)' }}
-            >
+            <span className={cn('text-xs font-semibold leading-tight', isSelected ? 'text-bg' : 'text-primary')}>
               {opt.label}
             </span>
-            <span className="t-caption leading-tight">{opt.description}</span>
+            <span className={cn('t-caption leading-tight', isSelected && 'text-bg/70')}>{opt.description}</span>
           </button>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
@@ -179,36 +178,29 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
     <div className="space-y-6">
 
       {/* ── Avatar ───────────────────────────────────────────────────── */}
-      <div className="glass p-5 flex flex-col items-center">
+      <div className="card p-5 flex flex-col items-center">
         <div className="relative mb-4">
           <div
-            className="w-24 h-24 rounded-[var(--radius-inner)] overflow-hidden flex items-center justify-center relative"
-            style={{ background: 'var(--bg-2)', border: '2px solid var(--accent-line)' }}
+            className="w-24 h-24 rounded-card overflow-hidden flex items-center justify-center relative bg-surface-raised border-2 border-border-strong"
           >
             {avatarUrl ? (
               <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              <User className="w-10 h-10" style={{ color: 'var(--text-faint)' }} />
+              <User className="w-10 h-10 text-tertiary" />
             )}
             {isUploading && (
-              <div
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ background: 'rgba(6,7,13,0.70)' }}
-              >
-                <div
-                  className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin"
-                  style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}
-                />
+              <div className="absolute inset-0 flex items-center justify-center bg-bg/70">
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
             )}
           </div>
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="absolute -bottom-1 -right-1 p-1.5 rounded-lg shadow-lg hover:opacity-90 active:scale-95 transition-all"
-            style={{ background: 'var(--accent)' }}
+            aria-label="Change avatar"
+            className="absolute -bottom-1 -right-1 p-1.5 rounded-pill bg-primary text-bg hover:opacity-90 active:scale-95 transition-all"
           >
-            <Camera className="w-3.5 h-3.5" style={{ color: 'var(--accent-on)' }} />
+            <Camera className="w-3.5 h-3.5" />
           </button>
           <input
             type="file"
@@ -223,37 +215,25 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
 
       {/* ── Personal Info ─────────────────────────────────────────────── */}
       <form onSubmit={handleSave} className="space-y-5">
-        <div className="glass p-4 space-y-4">
-          <h3 className="t-label">Personal Info</h3>
+        <div className="card p-4 space-y-4">
+          <h3 className="t-label">Personal info</h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="t-label block">First Name</label>
-              <input
+              <label className="t-label block">First name</label>
+              <Input
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 placeholder="First"
-                className="w-full rounded-[var(--radius-inner)] px-3 py-2.5 text-sm focus:outline-none transition-colors"
-                style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid var(--glass-border)',
-                  color: 'var(--text-hi)',
-                }}
               />
             </div>
             <div className="space-y-1.5">
-              <label className="t-label block">Last Name</label>
-              <input
+              <label className="t-label block">Last name</label>
+              <Input
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder="Last"
-                className="w-full rounded-[var(--radius-inner)] px-3 py-2.5 text-sm focus:outline-none transition-colors"
-                style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid var(--glass-border)',
-                  color: 'var(--text-hi)',
-                }}
               />
             </div>
           </div>
@@ -262,7 +242,7 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="t-label block">Height (cm)</label>
-              <input
+              <Input
                 type="number"
                 inputMode="numeric"
                 value={heightCm}
@@ -270,17 +250,11 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
                 placeholder="e.g. 178"
                 min={100}
                 max={250}
-                className="w-full rounded-[var(--radius-inner)] px-3 py-2.5 text-sm focus:outline-none transition-colors"
-                style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid var(--glass-border)',
-                  color: 'var(--text-hi)',
-                }}
               />
             </div>
             <div className="space-y-1.5">
               <label className="t-label block">Age</label>
-              <input
+              <Input
                 type="number"
                 inputMode="numeric"
                 value={ageYears}
@@ -288,12 +262,6 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
                 placeholder="e.g. 28"
                 min={13}
                 max={100}
-                className="w-full rounded-[var(--radius-inner)] px-3 py-2.5 text-sm focus:outline-none transition-colors"
-                style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid var(--glass-border)',
-                  color: 'var(--text-hi)',
-                }}
               />
             </div>
           </div>
@@ -302,48 +270,29 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
             <label className="t-label block">Sex</label>
             <div className="grid grid-cols-2 gap-2">
               {(['male', 'female'] as const).map(s => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSex(s)}
-                  className="h-9 rounded-[var(--radius-inner)] text-[11px] font-medium uppercase tracking-widest transition-colors"
-                  style={sex === s
-                    ? { background: 'var(--accent)', color: 'var(--accent-on)', border: '1px solid var(--accent)' }
-                    : { background: 'rgba(255,255,255,0.04)', color: 'var(--text-mid)', border: '1px solid var(--glass-border)' }
-                  }
-                >
+                <ToggleChip key={s} size="sm" selected={sex === s} onClick={() => setSex(s)}>
                   {s === 'male' ? 'Male' : 'Female'}
-                </button>
+                </ToggleChip>
               ))}
             </div>
           </div>
         </div>
-        <Button type="submit" disabled={isSaving} className="w-full h-12">
-          {isSaving ? 'Saving...' : (
-            <div className="flex items-center gap-2">
-              <Save className="w-4 h-4" /> Save Changes
-            </div>
-          )}
+        <Button type="submit" loading={isSaving} leadingIcon={<Save className="w-4 h-4" />}>
+          {isSaving ? 'Saving...' : 'Save changes'}
         </Button>
       </form>
 
       {/* ── Training Profile ──────────────────────────────────────────── */}
-      <div className="glass p-4 space-y-5">
+      <div className="card p-4 space-y-5">
         <div className="flex items-center justify-between">
-          <h3 className="t-label">Training Profile</h3>
+          <h3 className="t-label">Training profile</h3>
           {lastSavedField && (
-            <span
-              className="flex items-center gap-1 text-[9px] font-medium uppercase tracking-widest"
-              style={{ color: 'var(--accent)' }}
-            >
+            <span className="flex items-center gap-1 text-xs font-medium text-positive">
               <Check className="w-3 h-3" /> Saved
             </span>
           )}
           {savingField && !lastSavedField && (
-            <div
-              className="w-3 h-3 border border-t-transparent rounded-full animate-spin"
-              style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}
-            />
+            <div className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin" />
           )}
         </div>
 
@@ -356,7 +305,7 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
         />
 
         <TileGroup
-          label="Current Phase"
+          label="Current phase"
           options={PHASE_OPTIONS}
           selected={trainingPhase}
           saving={savingField === 'training_phase'}
@@ -364,7 +313,7 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
         />
 
         <TileGroup
-          label="Training Style"
+          label="Training style"
           options={STYLE_OPTIONS}
           selected={trainingStyle}
           saving={savingField === 'training_style'}
@@ -386,36 +335,27 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
       </div>
 
       {/* ── Account Actions ───────────────────────────────────────────── */}
-      <div className="space-y-2 pt-2" style={{ borderTop: '1px solid var(--glass-border)' }}>
+      <div className="space-y-2 pt-2 border-t border-border">
         <p className="t-label mb-3">Account</p>
 
-        <button
+        <Button
           type="button"
+          variant="secondary"
           onClick={() => { window.location.href = '/api/export' }}
-          className="w-full h-11 flex items-center justify-center gap-2 rounded-[var(--radius-inner)] text-xs font-medium uppercase tracking-widest transition-colors hover:opacity-90 active:scale-95"
-          style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid var(--glass-border)',
-            color: 'var(--text-mid)',
-          }}
         >
-          Export Workout Data (CSV)
-        </button>
+          Export workout data (CSV)
+        </Button>
 
         <Link
           href="/profile/import"
-          className="w-full h-11 flex items-center justify-center gap-2 rounded-[var(--radius-inner)] text-xs font-medium uppercase tracking-widest transition-colors hover:opacity-90 active:scale-95"
-          style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid var(--glass-border)',
-            color: 'var(--text-mid)',
-          }}
+          className={getButtonClassName({ variant: 'secondary' })}
         >
-          <Upload className="w-4 h-4" style={{ color: 'var(--accent)' }} /> Import logs (CSV)
+          <Upload className="w-4 h-4 text-secondary" /> Import logs (CSV)
         </Link>
 
-        <button
+        <Button
           type="button"
+          variant="secondary"
           disabled={isRefreshing}
           onClick={async () => {
             setIsRefreshing(true)
@@ -423,25 +363,19 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
             setIsRefreshing(false)
             window.location.reload()
           }}
-          className="w-full h-11 flex items-center justify-center gap-2 rounded-[var(--radius-inner)] text-xs font-medium uppercase tracking-widest transition-colors hover:opacity-90 active:scale-95 disabled:opacity-40"
-          style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid var(--glass-border)',
-            color: 'var(--text-mid)',
-          }}
+          leadingIcon={<RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />}
         >
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
-        </button>
+          {isRefreshing ? 'Refreshing...' : 'Refresh data'}
+        </Button>
 
-        <button
+        <Button
           type="button"
+          variant="destructive"
           onClick={() => logoutAction()}
-          className="w-full h-11 flex items-center justify-center gap-2 rounded-[var(--radius-inner)] text-xs font-medium uppercase tracking-widest transition-colors hover:bg-red-500/10 active:scale-95"
-          style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.20)', color: 'rgba(239,68,68,0.70)' }}
+          leadingIcon={<LogOut className="w-4 h-4" />}
         >
-          <LogOut className="w-4 h-4" /> Log Out
-        </button>
+          Log out
+        </Button>
       </div>
 
     </div>

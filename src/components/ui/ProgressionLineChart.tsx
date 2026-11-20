@@ -29,13 +29,13 @@ function fmt(value: number, formatType: string): string {
 
 export function ProgressionLineChart({
   data,
-  color = '#F72585',
+  color = 'var(--data-1)',
   formatType = 'number',
 }: ProgressionLineChartProps) {
   if (!data || data.length === 0) {
     return (
       <div className="h-full w-full flex items-center justify-center">
-        <p className="text-[11px]" style={{ color: 'var(--text-faint)' }}>
+        <p className="t-caption text-tertiary">
           Not enough data yet.
         </p>
       </div>
@@ -44,12 +44,6 @@ export function ProgressionLineChart({
 
   const colorKey = color.replace(/[^a-zA-Z0-9]/g, '')
   const gradId   = `lg-${colorKey}`
-
-  const glowColor =
-    color === '#F72585' ? 'rgba(247,37,133,0.75)'  :
-    color === '#4CC9F0' ? 'rgba(76,201,240,0.75)'  :
-    color === '#B5179E' ? 'rgba(181,23,158,0.75)'  :
-    `${color}bb`
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -62,14 +56,14 @@ export function ProgressionLineChart({
         </defs>
 
         <CartesianGrid
-          stroke="rgba(255,255,255,0.04)"
+          stroke="var(--border)"
           strokeDasharray="0"
           vertical={false}
         />
 
         <XAxis
           dataKey="date"
-          tick={{ fill: 'rgba(255,255,255,0.28)', fontSize: 9 }}
+          tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
           tickLine={false}
           axisLine={false}
           dy={8}
@@ -77,7 +71,7 @@ export function ProgressionLineChart({
         />
 
         <YAxis
-          tick={{ fill: 'rgba(255,255,255,0.28)', fontSize: 9 }}
+          tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
           tickLine={false}
           axisLine={false}
           tickFormatter={v => fmt(Number(v), formatType)}
@@ -86,20 +80,20 @@ export function ProgressionLineChart({
 
         <Tooltip
           contentStyle={{
-            backgroundColor: '#050505',
-            border: `1px solid ${color}44`,
+            background: 'var(--surface-raised)',
+            border: '1px solid var(--border-strong)',
             borderRadius: 12,
             padding: '8px 12px',
           }}
           itemStyle={{
-            color,
+            color: 'var(--text-secondary)',
             fontFamily: 'monospace',
             fontSize: 13,
             fontWeight: 600,
           }}
-          labelStyle={{ color: 'rgba(255,255,255,0.38)', fontSize: 9, marginBottom: 2 }}
-          cursor={{ stroke: 'rgba(255,255,255,0.06)', strokeWidth: 1 }}
-          formatter={(value: any) => [fmt(Number(value), formatType), '']}
+          labelStyle={{ color: 'var(--text-primary)', fontSize: 12, marginBottom: 2 }}
+          cursor={{ stroke: 'var(--border-strong)', strokeWidth: 1 }}
+          formatter={(value) => [fmt(Number(value), formatType), '']}
         />
 
         <Area
@@ -112,11 +106,9 @@ export function ProgressionLineChart({
           activeDot={{
             r: 4,
             fill: color,
-            stroke: '#000',
+            stroke: 'var(--bg)',
             strokeWidth: 2,
-            style: { filter: `drop-shadow(0 0 6px ${glowColor})` },
           }}
-          style={{ filter: `drop-shadow(0 0 3px ${glowColor})` }}
         />
       </AreaChart>
     </ResponsiveContainer>

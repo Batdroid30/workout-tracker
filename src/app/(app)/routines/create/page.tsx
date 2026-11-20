@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { RoutineBuilderClient } from '@/components/routines/RoutineBuilderClient'
 
 export const metadata = {
-  title: 'Create Routine | Lifts',
+  title: 'Create routine | Lifts',
   description: 'Create a new workout routine',
 }
 

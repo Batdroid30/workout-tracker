@@ -10,7 +10,7 @@ export function ClearDataButton() {
 
   const handleClear = async () => {
     const confirmed = await dialog.confirm({
-      title: 'Clear All Data?',
+      title: 'Clear all data?',
       description: 'This will permanently delete all your workouts, sets, personal records, and custom exercises. This action cannot be undone.',
     })
 
@@ -44,15 +44,14 @@ export function ClearDataButton() {
     <button
       onClick={handleClear}
       disabled={isLoading}
-      className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-widest transition-colors py-2 hover:text-red-400 disabled:opacity-40"
-      style={{ color: 'var(--text-faint)' }}
+      className="flex items-center gap-2 text-xs font-medium text-tertiary transition-colors min-h-10 hover:text-negative disabled:opacity-40"
     >
       {isLoading ? (
         <Loader2 className="w-3 h-3 animate-spin" />
       ) : (
         <Trash2 className="w-3 h-3" />
       )}
-      <span>Clear All Data</span>
+      <span>Clear all data</span>
     </button>
   )
 }

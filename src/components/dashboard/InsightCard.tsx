@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface InsightCardProps {
   title:       string
@@ -13,16 +14,10 @@ interface InsightCardProps {
 
 const DISMISS_DURATION_MS = 14 * 24 * 60 * 60 * 1000
 
-const VARIANT_STYLE: Record<NonNullable<InsightCardProps['variant']>, React.CSSProperties> = {
-  neutral:  {},
-  positive: {
-    borderColor: 'var(--accent-line)',
-    background:  'linear-gradient(145deg, rgba(247,37,133,0.07) 0%, rgba(247,37,133,0.02) 100%)',
-  },
-  warning: {
-    borderColor: 'rgba(181,23,158,0.40)',
-    background:  'linear-gradient(145deg, rgba(181,23,158,0.07) 0%, rgba(181,23,158,0.02) 100%)',
-  },
+const VARIANT_CLASS: Record<NonNullable<InsightCardProps['variant']>, string> = {
+  neutral:  '',
+  positive: 'bg-positive-soft',
+  warning:  'bg-caution-soft',
 }
 
 export function InsightCard({
@@ -48,7 +43,7 @@ export function InsightCard({
   if (dismissed) return null
 
   return (
-    <div className="glass p-4" style={VARIANT_STYLE[variant]}>
+    <div className={cn('card p-4', VARIANT_CLASS[variant])}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="leading-none">{icon}</span>
@@ -57,8 +52,7 @@ export function InsightCard({
         {dismissKey && (
           <button
             onClick={handleDismiss}
-            className="transition-colors p-2 -mr-1.5 -mt-0.5 rounded-lg hover:bg-white/[0.04]"
-            style={{ color: 'var(--text-faint)' }}
+            className="transition-colors p-2 -mr-1.5 -mt-0.5 rounded-lg text-tertiary hover:bg-surface-raised"
             aria-label="Dismiss"
           >
             <X className="w-3.5 h-3.5" />

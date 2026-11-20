@@ -1,80 +1,84 @@
 import type { VolumeStatus } from '@/lib/phase-coach'
 
 // ── Volume status styling, shared across Phase Coach and the body map ──────
-// Tailwind classes style the HTML badges; `fill` is the raw SVG colour used
-// to paint muscles on the body map.
+// Tailwind classes style the HTML badges; `fill` is the CSS colour used to
+// paint muscles on the body map; `zone`/`zoneBorder` shade the landmark bar
+// and legend swatches. Statuses are ordered by volume, and each one differs
+// from every other in hue or by at least two opacity steps:
+//   below MV (faint red) < maintenance (grey) < sub-optimal (faint amber)
+//   < optimal (green) < high (strong amber) < over MRV (red)
 
 export interface VolumeStatusStyle {
   dot: string
   text: string
   label: string
   bg: string
-  border: string
-  fillGradient: string
-  glowColor: string
+  bar: string
   fill: string
+  zone: string
+  zoneBorder: string
 }
 
 export const VOLUME_STATUS_STYLES: Record<VolumeStatus, VolumeStatusStyle> = {
   below_mv: {
-    dot: 'bg-red-400',
-    text: 'text-red-400',
+    dot: 'bg-negative/40',
+    text: 'text-negative',
     label: 'Below MV',
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/20',
-    fillGradient: 'from-red-500/20 to-red-400/80',
-    glowColor: 'rgba(239, 68, 68, 0.4)',
-    fill: '#f87171',
+    bg: 'bg-negative-soft',
+    bar: 'bg-negative/40',
+    fill: 'color-mix(in srgb, var(--negative) 40%, transparent)',
+    zone: 'bg-negative/15',
+    zoneBorder: 'border-negative/30',
   },
   maintenance: {
-    dot: 'bg-orange-400',
-    text: 'text-orange-400',
+    dot: 'bg-tertiary',
+    text: 'text-secondary',
     label: 'Maintaining',
-    bg: 'bg-orange-500/10',
-    border: 'border-orange-500/20',
-    fillGradient: 'from-orange-500/20 to-orange-400/80',
-    glowColor: 'rgba(249, 115, 22, 0.4)',
-    fill: '#fb923c',
+    bg: 'bg-surface',
+    bar: 'bg-tertiary',
+    fill: 'var(--text-tertiary)',
+    zone: 'bg-tertiary/25',
+    zoneBorder: 'border-tertiary/50',
   },
   sub_optimal: {
-    dot: 'bg-yellow-400',
-    text: 'text-yellow-400',
+    dot: 'bg-caution/40',
+    text: 'text-caution',
     label: 'Sub-optimal',
-    bg: 'bg-yellow-500/10',
-    border: 'border-yellow-500/20',
-    fillGradient: 'from-yellow-500/20 to-yellow-400/80',
-    glowColor: 'rgba(234, 179, 8, 0.4)',
-    fill: '#facc15',
+    bg: 'bg-caution-soft',
+    bar: 'bg-caution/40',
+    fill: 'color-mix(in srgb, var(--caution) 40%, transparent)',
+    zone: 'bg-caution/15',
+    zoneBorder: 'border-caution/35',
   },
   optimal: {
-    dot: 'bg-emerald-500',
-    text: 'text-emerald-400',
+    dot: 'bg-positive',
+    text: 'text-positive',
     label: 'Optimal',
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/30',
-    fillGradient: 'from-emerald-600/30 to-emerald-400',
-    glowColor: 'rgba(16, 185, 129, 0.5)',
-    fill: '#10b981',
+    bg: 'bg-positive-soft',
+    bar: 'bg-positive',
+    fill: 'var(--positive)',
+    zone: 'bg-positive/25',
+    zoneBorder: 'border-positive/40',
   },
   high: {
-    dot: 'bg-orange-400',
-    text: 'text-orange-400',
-    label: 'High Volume',
-    bg: 'bg-orange-500/10',
-    border: 'border-orange-500/20',
-    fillGradient: 'from-orange-500/20 to-orange-400/80',
-    glowColor: 'rgba(249, 115, 22, 0.4)',
-    fill: '#fb923c',
+    dot: 'bg-caution',
+    text: 'text-caution',
+    label: 'High volume',
+    bg: 'bg-caution/25',
+    bar: 'bg-caution',
+    fill: 'var(--caution)',
+    zone: 'bg-caution/45',
+    zoneBorder: 'border-caution/60',
   },
   over_mrv: {
-    dot: 'bg-red-500',
-    text: 'text-red-500',
+    dot: 'bg-negative',
+    text: 'text-negative',
     label: 'Over MRV',
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/30',
-    fillGradient: 'from-red-600/30 to-red-500',
-    glowColor: 'rgba(239, 68, 68, 0.5)',
-    fill: '#ef4444',
+    bg: 'bg-negative-soft',
+    bar: 'bg-negative',
+    fill: 'var(--negative)',
+    zone: 'bg-negative/40',
+    zoneBorder: 'border-negative/60',
   },
 }
 

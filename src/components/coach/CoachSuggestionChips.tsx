@@ -22,9 +22,9 @@ export function CoachSuggestionChips({ onSelect, disabled }: CoachSuggestionChip
           type="button"
           disabled={disabled}
           onClick={() => onSelect(prompt)}
-          className="flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900/80 px-3 py-1.5 text-xs text-zinc-300 transition-all hover:border-teal-500/50 hover:bg-zinc-800/80 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+          className="focus-ring flex min-h-10 items-center gap-1.5 rounded-pill bg-surface-raised px-3 py-1.5 text-left text-xs text-secondary transition-all hover:text-primary active:scale-95 disabled:pointer-events-none disabled:opacity-50"
         >
-          <Sparkles className="h-3 w-3 text-teal-400 shrink-0" />
+          <Sparkles className="h-3 w-3 text-tertiary shrink-0" />
           <span>{prompt}</span>
         </button>
       ))}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { IconButton } from './IconButton'
 
 interface BottomSheetProps {
   /** Controls visibility. Nothing renders when false. */
@@ -24,7 +25,7 @@ interface BottomSheetProps {
  * Shared overlay used throughout the app.
  *
  * Renders into document.body via a React portal so it is never clipped by
- * an ancestor's stacking context (e.g. sticky nav with backdrop-blur).
+ * an ancestor's stacking context (e.g. sticky nav).
  */
 export function BottomSheet({
   isOpen,
@@ -46,7 +47,7 @@ export function BottomSheet({
     <div className="fixed inset-0 z-[200]">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -55,7 +56,7 @@ export function BottomSheet({
         /* Scroll layer — sits above backdrop, scrollable for tall panels */
         <div className="absolute inset-0 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative w-full max-w-sm rounded-2xl p-5 pb-6" style={{ background: 'rgba(10,13,24,0.98)', border: '1px solid var(--glass-border)' }}>
+            <div className="relative w-full max-w-sm rounded-sheet border border-border bg-surface-raised p-5 pb-6 shadow-[var(--shadow-overlay)]">
               {title && <SheetHeader title={title} icon={icon} onClose={onClose} />}
               {children}
             </div>
@@ -63,7 +64,7 @@ export function BottomSheet({
         </div>
       ) : (
         /* Bottom panel */
-        <div className="absolute bottom-0 left-0 right-0 rounded-t-2xl p-5 pb-8 max-h-[85dvh] overflow-y-auto" style={{ background: 'rgba(10,13,24,0.98)', borderTop: '1px solid var(--glass-border)' }}>
+        <div className="absolute bottom-0 left-0 right-0 rounded-t-[var(--radius-sheet)] border-t border-border bg-surface-raised p-5 pb-8 shadow-[var(--shadow-overlay)] max-h-[85dvh] overflow-y-auto">
           {title && <SheetHeader title={title} icon={icon} onClose={onClose} />}
           {children}
         </div>
@@ -89,16 +90,11 @@ function SheetHeader({
     <div className="flex items-center justify-between mb-5">
       <div className="flex items-center gap-2">
         {icon}
-        <h2 className="text-sm font-black uppercase tracking-widest text-white">{title}</h2>
+        <h2 className="t-title-3 text-primary">{title}</h2>
       </div>
-      <button
-        onClick={onClose}
-        className="p-2.5 rounded-lg transition-colors hover:opacity-80"
-        style={{ color: 'var(--text-faint)' }}
-        aria-label="Close"
-      >
+      <IconButton aria-label="Close" onClick={onClose}>
         <X className="w-4 h-4" />
-      </button>
+      </IconButton>
     </div>
   )
 }

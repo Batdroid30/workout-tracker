@@ -28,37 +28,26 @@ function PairRow({ labelA, setsA, labelB, setsB }: PairRowProps) {
 
   const isBalanced = pctA >= 38 && pctA <= 62
   const aHeavy     = pctA > 62
-  const barColorA  = aHeavy
-    ? 'var(--error, #f87171)'
-    : isBalanced
-    ? 'var(--accent)'
-    : 'color-mix(in srgb, var(--accent) 55%, transparent)'
-  const barColorB  = !isBalanced && !aHeavy
-    ? 'var(--error, #f87171)'
-    : isBalanced
-    ? 'var(--accent)'
-    : 'color-mix(in srgb, var(--accent) 55%, transparent)'
+  const barColorA  = aHeavy ? 'var(--negative)' : isBalanced ? 'var(--positive)' : 'var(--text-tertiary)'
+  const barColorB  = !isBalanced && !aHeavy ? 'var(--negative)' : isBalanced ? 'var(--positive)' : 'var(--text-tertiary)'
 
   return (
     <div>
       {/* Labels + set counts */}
       <div className="flex items-baseline justify-between mb-1">
-        <span className="text-[11px]" style={{ color: aHeavy ? 'var(--error, #f87171)' : 'var(--text-hi)' }}>
-          {labelA} <span className="text-[10px]" style={{ color: 'var(--text-lo)' }}>({setsA})</span>
+        <span className={`t-caption ${aHeavy ? 'text-negative' : 'text-primary'}`}>
+          {labelA} <span className="text-xs text-tertiary">({setsA})</span>
         </span>
-        <span
-          className="text-[10px] font-medium"
-          style={{ color: isBalanced ? 'var(--accent)' : 'var(--text-lo)' }}
-        >
+        <span className={`text-xs font-medium ${isBalanced ? 'text-positive' : 'text-tertiary'}`}>
           {Math.round(pctA)}:{Math.round(pctB)}
         </span>
-        <span className="text-[11px]" style={{ color: !isBalanced && !aHeavy ? 'var(--error, #f87171)' : 'var(--text-hi)' }}>
-          <span className="text-[10px]" style={{ color: 'var(--text-lo)' }}>({setsB})</span> {labelB}
+        <span className={`t-caption ${!isBalanced && !aHeavy ? 'text-negative' : 'text-primary'}`}>
+          <span className="text-xs text-tertiary">({setsB})</span> {labelB}
         </span>
       </div>
 
       {/* Dual progress bar */}
-      <div className="flex h-1.5 rounded-full overflow-hidden gap-px" style={{ background: 'var(--surface-2)' }}>
+      <div className="flex h-1.5 rounded-full overflow-hidden gap-px" style={{ background: 'var(--surface-raised)' }}>
         <div
           className="h-full rounded-l-full"
           style={{ width: `${pctA}%`, background: barColorA, transition: 'width 0.4s ease' }}
@@ -80,8 +69,8 @@ export function AntagonistBalanceCard({ sets }: AntagonistBalanceCardProps) {
   if (chest + totalBack + quads + hamstrings + biceps + triceps === 0) return null
 
   return (
-    <div className="glass p-4">
-      <div className="t-label mb-4">Antagonist Balance</div>
+    <div className="card p-4">
+      <div className="t-label mb-4">Antagonist balance</div>
 
       <div className="space-y-4">
         {(chest > 0 || totalBack > 0) && (

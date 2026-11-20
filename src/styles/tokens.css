@@ -1,0 +1,115 @@
+/* Ink + Lime design tokens. Every colour, radius and shadow value lives here. */
+:root {
+  /* Surfaces */
+  --bg:             #0b0d10;
+  --surface:        #15181d;
+  --surface-raised: #1d2128;
+  --border:         #232830;
+  --border-strong:  #2a3039;
+
+  /* Text */
+  --text-primary:   #f3f5f7;
+  --text-secondary: #9aa3ae;
+  --text-tertiary:  #828b96;
+
+  /* Accent (lime) */
+  --lime:         #c5f04a;
+  --lime-pressed: #b3dc38;
+  --on-accent:    #0b0d10;
+  --lime-soft:    rgba(197, 240, 74, 0.12);
+
+  /* Status */
+  --positive:      #5fd38d;
+  --caution:       #ffc94d;
+  --negative:      #ff6b6b;
+  --positive-soft: rgba(95, 211, 141, 0.14);
+  --caution-soft:  rgba(255, 201, 77, 0.14);
+  --negative-soft: rgba(255, 107, 107, 0.14);
+
+  /* Categorical chart series */
+  --data-1: #c5f04a;
+  --data-2: #5ab8ff;
+  --data-3: #a58bff;
+  --data-4: #ffc94d;
+  --data-5: #ff8a7a;
+  --data-6: #3dd6c6;
+
+  /* Shape and depth */
+  --radius-card:    16px;
+  --radius-sheet:   20px;
+  --radius-control: 12px;
+  --radius-field:   10px;
+  --radius-pill:    999px;
+  --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Legacy aliases — remove in step 6 ── */
+:root {
+  --ink:         var(--bg);
+  --bg-0:        var(--bg);
+  --bg-1:        var(--surface);
+  --bg-2:        var(--surface-raised);
+  --surface-2:   var(--surface-raised);
+  --surface-3:   var(--surface-raised);
+  --border-soft: var(--border);
+
+  --text:       var(--text-primary);
+  --text-hi:    var(--text-primary);
+  --text-muted: var(--text-secondary);
+  --text-mid:   var(--text-secondary);
+  --text-dim:   var(--text-tertiary);
+  --text-low:   var(--text-tertiary);
+  --text-lo:    var(--text-tertiary);
+  --text-faint: var(--text-tertiary);
+
+  --glass-fill:          var(--surface);
+  --glass-fill-strong:   var(--surface-raised);
+  --glass-border:        var(--border);
+  --glass-border-strong: var(--border-strong);
+  --glass-highlight:     transparent;
+  --glass-blur:          0px;
+
+  --accent:      var(--text-primary);
+  --accent-on:   var(--bg);
+  --accent-soft: rgba(243, 245, 247, 0.08);
+  --accent-line: var(--border-strong);
+  --accent-glow: transparent;
+  --brand:       var(--text-primary);
+  --brand-deep:  var(--text-secondary);
+
+  --teal:        var(--positive);
+  --success:     var(--positive);
+  --accent-cool: var(--positive);
+  --rose:        var(--caution);
+  --warning:     var(--caution);
+  --critical:    var(--negative);
+  --info:        var(--data-2);
+  --blue:        var(--data-2);
+  --blue-soft:   rgba(90, 184, 255, 0.14);
+
+  --spectrum-100:  var(--data-6);
+  --spectrum-200:  var(--data-2);
+  --spectrum-300:  var(--data-2);
+  --spectrum-400:  var(--data-3);
+  --spectrum-500:  var(--data-3);
+  --spectrum-600:  var(--data-3);
+  --spectrum-700:  var(--data-3);
+  --spectrum-800:  var(--data-5);
+  --spectrum-900:  var(--caution);
+  --spectrum-1000: var(--text-primary);
+
+  --zone-1: var(--data-6);
+  --zone-2: var(--data-2);
+  --zone-3: var(--data-3);
+  --zone-4: var(--caution);
+  --zone-5: var(--negative);
+
+  --chart-1: var(--data-1);
+  --chart-2: var(--data-2);
+  --chart-3: var(--data-3);
+  --chart-4: var(--data-4);
+  --chart-5: var(--data-5);
+  --chart-6: var(--data-6);
+
+  --radius-inner: var(--radius-control);
+}

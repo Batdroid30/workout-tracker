@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Pencil } from 'lucide-react'
 import { BottomSheet } from '@/components/ui/BottomSheet'
+import { Button, ToggleChip } from '@/components/ui'
 import { useToast } from '@/providers/ToastProvider'
 import { updateExerciseAction } from '@/app/(app)/exercises/actions'
 import type { MuscleGroup, MovementPattern } from '@/types/database'
@@ -102,8 +103,7 @@ export function ExerciseMetaEditor({
     <>
       <button
         onClick={handleOpen}
-        className="p-1.5 rounded-lg transition-colors hover:bg-white/[0.06] hover:opacity-80"
-        style={{ color: 'var(--text-faint)' }}
+        className="p-1.5 rounded-pill transition-colors text-tertiary hover:bg-surface-raised hover:text-primary"
         aria-label="Edit muscle group and movement pattern"
       >
         <Pencil className="w-3.5 h-3.5" />
@@ -112,31 +112,28 @@ export function ExerciseMetaEditor({
       <BottomSheet
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
-        title="Edit Exercise"
-        icon={<Pencil className="w-4 h-4" style={{ color: 'var(--accent)' }} />}
+        title="Edit exercise"
+        icon={<Pencil className="w-4 h-4 text-secondary" />}
         position="center"
       >
         {/* Primary muscle group */}
         <div className="mb-6">
-          <p className="t-label mb-3">Primary Muscle</p>
+          <p className="t-label mb-3">Primary muscle</p>
           <div className="grid grid-cols-3 gap-2">
             {MUSCLE_GROUPS.map(({ value, label }) => {
               const isSelected = muscleGroup === value
               return (
-                <button
+                <ToggleChip
                   key={value}
                   onClick={() => {
                     setMuscleGroup(value)
                     setSecondaryMuscles(prev => prev.filter(m => m !== value))
                   }}
-                  className="py-2.5 px-2 rounded-[var(--radius-inner)] text-xs font-medium uppercase tracking-wider transition-all active:scale-95"
-                  style={isSelected
-                    ? { background: 'var(--accent)', color: 'var(--accent-on)' }
-                    : { background: 'rgba(255,255,255,0.04)', color: 'var(--text-mid)', border: '1px solid var(--glass-border)' }
-                  }
+                  selected={isSelected}
+                  className="px-2"
                 >
                   {label}
-                </button>
+                </ToggleChip>
               )
             })}
           </div>
@@ -144,8 +141,8 @@ export function ExerciseMetaEditor({
 
         {/* Secondary muscles */}
         <div className="mb-6">
-          <p className="t-label mb-1">Secondary Muscles</p>
-          <p className="text-xs mb-3" style={{ color: 'var(--text-faint)' }}>
+          <p className="t-label mb-1">Secondary muscles</p>
+          <p className="text-xs mb-3 text-tertiary">
             Select all muscles this exercise works
           </p>
           <div className="grid grid-cols-3 gap-2">
@@ -154,17 +151,14 @@ export function ExerciseMetaEditor({
               .map(({ value, label }) => {
                 const isSelected = secondaryMuscles.includes(value)
                 return (
-                  <button
+                  <ToggleChip
                     key={value}
                     onClick={() => toggleSecondary(value)}
-                    className="py-2.5 px-2 rounded-[var(--radius-inner)] text-xs font-medium uppercase tracking-wider transition-all active:scale-95"
-                    style={isSelected
-                      ? { background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-line)' }
-                      : { background: 'rgba(255,255,255,0.04)', color: 'var(--text-mid)', border: '1px solid var(--glass-border)' }
-                    }
+                    selected={isSelected}
+                    className="px-2"
                   >
                     {label}
-                  </button>
+                  </ToggleChip>
                 )
               })}
           </div>
@@ -172,36 +166,28 @@ export function ExerciseMetaEditor({
 
         {/* Movement pattern */}
         <div className="mb-8">
-          <p className="t-label mb-3">Movement Pattern</p>
+          <p className="t-label mb-3">Movement pattern</p>
           <div className="grid grid-cols-3 gap-2">
             {MOVEMENT_PATTERNS.map(({ value, label }) => {
               const isSelected = movementPattern === value
               return (
-                <button
+                <ToggleChip
                   key={value}
                   onClick={() => setMovementPattern(value)}
-                  className="py-2.5 px-2 rounded-[var(--radius-inner)] text-xs font-medium uppercase tracking-wider transition-all active:scale-95"
-                  style={isSelected
-                    ? { background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-line)' }
-                    : { background: 'rgba(255,255,255,0.04)', color: 'var(--text-mid)', border: '1px solid var(--glass-border)' }
-                  }
+                  selected={isSelected}
+                  className="px-2"
                 >
                   {label}
-                </button>
+                </ToggleChip>
               )
             })}
           </div>
         </div>
 
         {/* Save */}
-        <button
-          onClick={handleSave}
-          disabled={!isDirty || isPending}
-          className="w-full py-3.5 rounded-[var(--radius-pill)] font-semibold uppercase tracking-widest text-sm transition-all active:scale-95 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-        >
-          {isPending ? 'Saving…' : 'Save Changes'}
-        </button>
+        <Button onClick={handleSave} disabled={!isDirty} loading={isPending}>
+          {isPending ? 'Saving…' : 'Save changes'}
+        </Button>
       </BottomSheet>
     </>
   )

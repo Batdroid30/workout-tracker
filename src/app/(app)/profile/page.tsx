@@ -33,21 +33,18 @@ export default async function ProfilePage({
       <div className="pt-4 px-5 pb-3">
         <div className="t-label mb-1.5">Profile</div>
         <div className="flex items-center gap-4">
-          <div
-            className="w-14 h-14 rounded-[var(--radius-inner)] overflow-hidden flex items-center justify-center shrink-0"
-            style={{ background: 'var(--bg-2)', border: '2px solid var(--accent-line)' }}
-          >
+          <div className="w-14 h-14 rounded-control overflow-hidden flex items-center justify-center shrink-0 bg-surface-raised border-2 border-border-strong">
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              <User className="w-7 h-7" style={{ color: 'var(--text-faint)' }} />
+              <User className="w-7 h-7 text-tertiary" />
             )}
           </div>
-          <div>
+          <div className="min-w-0">
             <h1 className="t-display-m">
               {profile?.first_name
                 ? `${profile.first_name}${profile.last_name ? ` ${profile.last_name}` : ''}`
-                : 'Your Profile'}
+                : 'Your profile'}
             </h1>
             <p className="t-caption mt-0.5">{session.user.email}</p>
           </div>

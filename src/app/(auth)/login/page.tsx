@@ -20,13 +20,13 @@ export default async function LoginPage({ searchParams }: Props) {
       </div>
 
       {message && (
-        <div className="p-3 bg-[var(--accent-soft)] border border-[var(--accent-line)] text-[var(--accent)] text-xs font-medium rounded-[var(--radius-inner)]">
+        <div className="p-3 bg-positive-soft text-positive text-xs font-medium rounded-control">
           {decodeURIComponent(message)}
         </div>
       )}
 
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium rounded-[var(--radius-inner)]">
+        <div className="p-3 bg-negative-soft text-negative text-xs font-medium rounded-control">
           {error}
         </div>
       )}
@@ -38,18 +38,18 @@ export default async function LoginPage({ searchParams }: Props) {
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
           <label className="t-label block">Password</label>
-          <Link href="/forgot-password" className="text-[10px] font-medium hover:underline" style={{ color: 'var(--accent)' }}>
+          <Link href="/forgot-password" className="text-xs font-medium text-primary hover:underline">
             Forgot password?
           </Link>
         </div>
         <Input type="password" name="password" placeholder="••••••••" required />
       </div>
 
-      <SubmitButton type="submit" className="mt-6 w-full" pendingText="Signing in...">Sign In</SubmitButton>
+      <SubmitButton type="submit" className="mt-6 w-full" pendingText="Signing in...">Sign in</SubmitButton>
 
-      <p className="text-center text-xs mt-4" style={{ color: 'var(--text-faint)' }}>
+      <p className="text-center text-xs mt-4 text-tertiary">
         Don&apos;t have an account?{' '}
-        <Link href="/signup" className="font-semibold hover:underline" style={{ color: 'var(--accent)' }}>
+        <Link href="/signup" className="font-semibold text-primary hover:underline">
           Sign up
         </Link>
       </p>

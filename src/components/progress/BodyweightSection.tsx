@@ -1,5 +1,6 @@
 import { Scale, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
+import { Chip } from '@/components/ui'
 import { BodyweightLogger } from './BodyweightLogger'
 import type { BodyweightPoint } from '@/lib/data/bodyweight'
 import type { TrainingPhase } from '@/types/database'
@@ -39,16 +40,11 @@ export function BodyweightSection({
       <div className="flex items-center justify-between mb-3">
         <h2 className="t-display-s">Bodyweight</h2>
         {latestWeight && (
-          <span
-            className="text-[9px] font-medium uppercase tracking-widest px-2.5 py-1 rounded-lg"
-            style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)', color: 'var(--accent)' }}
-          >
-            {latestWeight.weight_kg} kg
-          </span>
+          <Chip>{latestWeight.weight_kg} kg</Chip>
         )}
       </div>
 
-      <div className="glass p-4 space-y-3">
+      <div className="card p-4 space-y-3">
 
         {/* ── Trend chart ────────────────────────────────────────────── */}
         {chartData.length > 1 ? (
@@ -67,19 +63,19 @@ export function BodyweightSection({
             {delta4w !== null && (
               <div className="flex items-center gap-1.5">
                 {delta4w > 0.2
-                  ? <TrendingUp   className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
+                  ? <TrendingUp   className="w-3.5 h-3.5 text-primary" />
                   : delta4w < -0.2
-                  ? <TrendingDown className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
-                  : <Minus        className="w-3.5 h-3.5" style={{ color: 'var(--text-faint)' }} />
+                  ? <TrendingDown className="w-3.5 h-3.5 text-primary" />
+                  : <Minus        className="w-3.5 h-3.5 text-tertiary" />
                 }
-                <span className="text-[11px] font-semibold tabular-nums text-[var(--text-hi)]">
+                <span className="t-caption font-semibold tabular-nums text-primary">
                   {delta4w > 0 ? '+' : ''}{delta4w.toFixed(1)} kg
                 </span>
                 <span className="t-caption">vs 4 wks ago</span>
               </div>
             )}
             {signal && (
-              <p className={`text-[10px] font-semibold uppercase tracking-wider ${signal.color}`}>
+              <p className={`text-xs font-semibold ${signal.color}`}>
                 {signal.label}
               </p>
             )}
@@ -136,19 +132,19 @@ function phaseSignal(delta: number | null, phase: TrainingPhase | null): PhaseSi
   if (delta === null || !phase) return null
 
   if (phase === 'bulking') {
-    if (delta >  0.3) return { label: 'Trending up — bulk on track',        color: 'text-[var(--teal)]'  }
-    if (delta < -0.3) return { label: 'Weight dropping — increase intake',  color: 'text-orange-400' }
-    return               { label: 'Stable — small surplus needed',          color: 'text-yellow-400' }
+    if (delta >  0.3) return { label: 'Trending up — bulk on track',        color: 'text-positive' }
+    if (delta < -0.3) return { label: 'Weight dropping — increase intake',  color: 'text-caution'  }
+    return               { label: 'Stable — small surplus needed',          color: 'text-caution'  }
   }
 
   if (phase === 'cutting') {
-    if (delta < -0.2) return { label: 'Trending down — cut on track',       color: 'text-[var(--teal)]'  }
-    if (delta >  0.2) return { label: 'Weight rising — review intake',      color: 'text-orange-400' }
-    return               { label: 'Stable — maintain deficit',              color: 'text-yellow-400' }
+    if (delta < -0.2) return { label: 'Trending down — cut on track',       color: 'text-positive' }
+    if (delta >  0.2) return { label: 'Weight rising — review intake',      color: 'text-caution'  }
+    return               { label: 'Stable — maintain deficit',              color: 'text-caution'  }
   }
 
   // maingaining
-  if (Math.abs(delta) <= 0.5) return { label: 'Stable — maingaining on track',       color: 'text-[var(--teal)]'  }
-  if (delta >  0.5)           return { label: 'Slight gain — strength-first working', color: 'text-yellow-400' }
-  return                       { label: 'Weight drifting down — check intake',        color: 'text-orange-400' }
+  if (Math.abs(delta) <= 0.5) return { label: 'Stable — maingaining on track',       color: 'text-positive' }
+  if (delta >  0.5)           return { label: 'Slight gain — strength-first working', color: 'text-caution'  }
+  return                       { label: 'Weight drifting down — check intake',        color: 'text-caution'  }
 }

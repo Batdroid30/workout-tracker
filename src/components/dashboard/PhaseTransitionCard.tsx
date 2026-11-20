@@ -57,10 +57,10 @@ export function PhaseTransitionCard({ experienceLevel, trainingPhase, phaseStart
   }
 
   return (
-    <InsightCard title="Time to switch phases?" icon={<RefreshCw className="w-3.5 h-3.5" style={{ color: 'var(--rose)' }} />} variant="warning" dismissKey="phase_transition_dismissed_at">
-      <p className="text-[13px] text-[var(--text-hi)] leading-relaxed mb-3">
-        You've been <span className="text-[var(--text-hi)] font-medium">{trainingPhase}</span> for{' '}
-        <span className="text-[var(--text-hi)] font-medium">{Math.floor(weeksInPhase)} weeks</span>.
+    <InsightCard title="Time to switch phases?" icon={<RefreshCw className="w-3.5 h-3.5 text-caution" />} variant="warning" dismissKey="phase_transition_dismissed_at">
+      <p className="t-caption text-primary leading-relaxed mb-3">
+        You've been <span className="text-primary font-medium">{trainingPhase}</span> for{' '}
+        <span className="text-primary font-medium">{Math.floor(weeksInPhase)} weeks</span>.
         Most cycles cap out around {threshold} weeks. Pick what's next.
       </p>
 
@@ -74,23 +74,23 @@ export function PhaseTransitionCard({ experienceLevel, trainingPhase, phaseStart
               onClick={() => handleSwitch(opt.key)}
               disabled={isCurrent || pending}
               className={cn(
-                'flex flex-col items-start gap-1 p-3 rounded-[14px] border text-left transition-all',
+                'flex flex-col items-start gap-1 p-3 rounded-control border text-left min-w-0 transition-all',
                 isCurrent
-                  ? 'bg-white/[0.03] border-[var(--glass-border)] opacity-50 cursor-not-allowed'
-                  : 'bg-white/[0.03] border-[var(--glass-border)] hover:border-[var(--accent-line)] hover:bg-[var(--accent-soft)] active:scale-[0.97]',
+                  ? 'bg-surface-raised border-border opacity-50 cursor-not-allowed'
+                  : 'bg-surface-raised border-border hover:border-border-strong hover:bg-surface-raised active:scale-[0.97]',
                 pending && !isLoading && 'opacity-50',
               )}
             >
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {isLoading
-                  ? <Loader2 className="w-3 h-3 text-[var(--accent)] animate-spin" />
-                  : <opt.Icon className={cn('w-3 h-3', isCurrent ? 'text-[var(--text-faint)]' : 'text-[var(--accent)]/60')} />
+                  ? <Loader2 className="w-3 h-3 text-primary animate-spin" />
+                  : <opt.Icon className={cn('w-3 h-3', isCurrent ? 'text-tertiary' : 'text-secondary')} />
                 }
-                <span className={cn('text-[11px] font-medium uppercase tracking-tight', isCurrent ? 'text-[var(--text-low)]' : 'text-[var(--text-hi)]')}>
+                <span className={cn('text-xs font-medium', isCurrent ? 'text-tertiary' : 'text-primary')}>
                   {opt.label}
                 </span>
               </div>
-              <span className="text-[9px] text-[var(--text-low)] leading-snug">
+              <span className="text-xs text-tertiary leading-snug">
                 {isCurrent ? 'Current' : opt.blurb}
               </span>
             </button>

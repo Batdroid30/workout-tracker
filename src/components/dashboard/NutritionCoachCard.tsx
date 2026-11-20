@@ -4,6 +4,7 @@ import { calculateNutritionTargets } from '@/lib/algorithms'
 import type { Profile } from '@/types/database'
 import type { BodyweightPoint } from '@/lib/data/bodyweight'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 
 interface NutritionCoachCardProps {
   profile:    Profile | null
@@ -28,12 +29,12 @@ export function NutritionCoachCard({ profile, bwHistory, weeklyGoal }: Nutrition
     return (
       <InsightCard
         title="Nutrition Targets"
-        icon={<Flame className="w-3.5 h-3.5" style={{ color: 'var(--rose)' }} />}
+        icon={<Flame className="w-3.5 h-3.5 text-caution" />}
         variant="neutral"
       >
-        <p className="text-sm text-[var(--text-low)] leading-relaxed">
+        <p className="text-sm text-tertiary leading-relaxed">
           Add your height, age, and sex in{' '}
-          <Link href="/profile" className="underline" style={{ color: 'var(--accent)' }}>
+          <Link href="/profile" className="underline text-primary">
             your profile
           </Link>{' '}
           to unlock calorie and protein targets.
@@ -55,10 +56,10 @@ export function NutritionCoachCard({ profile, bwHistory, weeklyGoal }: Nutrition
     return (
       <InsightCard
         title="Nutrition Targets"
-        icon={<Flame className="w-3.5 h-3.5" style={{ color: 'var(--rose)' }} />}
+        icon={<Flame className="w-3.5 h-3.5 text-caution" />}
         variant="neutral"
       >
-        <p className="text-sm text-[var(--text-low)] leading-relaxed">
+        <p className="text-sm text-tertiary leading-relaxed">
           Unable to estimate targets — check your profile height, age, and weight are correct.
         </p>
       </InsightCard>
@@ -76,13 +77,13 @@ export function NutritionCoachCard({ profile, bwHistory, weeklyGoal }: Nutrition
   return (
     <InsightCard
       title="Nutrition Targets"
-      icon={<Flame className="w-3.5 h-3.5" style={{ color: 'var(--rose)' }} />}
+      icon={<Flame className="w-3.5 h-3.5 text-caution" />}
       variant="neutral"
       dismissKey="insight-nutrition-dismiss"
     >
       <div className="space-y-2.5">
         {/* Phase label */}
-        <p className="text-[10px] font-medium uppercase tracking-widest" style={{ color: 'var(--text-faint)' }}>
+        <p className="text-xs font-medium text-tertiary">
           {phaseLabel} phase · {latestWeight} kg bodyweight
         </p>
 
@@ -106,13 +107,13 @@ export function NutritionCoachCard({ profile, bwHistory, weeklyGoal }: Nutrition
           />
         </div>
 
-        <p className="text-[10px] text-[var(--text-faint)] leading-relaxed">
+        <p className="text-xs text-tertiary leading-relaxed">
           {surplusLabel !== 'maintenance'
             ? `${targets.targetCalories.toLocaleString()} kcal/day (${surplusLabel}) · ${targets.proteinGrams}g protein to preserve lean mass.`
             : `${targets.targetCalories.toLocaleString()} kcal/day at maintenance · ${targets.proteinGrams}g protein.`
           }
         </p>
-        <p className="text-[9px] text-[var(--text-faint)] leading-relaxed mt-1" style={{ opacity: 0.6 }}>
+        <p className="text-xs text-tertiary leading-relaxed mt-1 opacity-60">
           Estimate only — formulas carry ±10–15% individual variance and don't account for daily non-gym activity. Track for 2 weeks, observe your weight trend, then adjust by ±100–200 kcal as needed.
         </p>
       </div>
@@ -128,14 +129,16 @@ function StatCell({ label, value, unit, highlight = false }: {
 }) {
   return (
     <div
-      className="rounded-[var(--radius-inner)] p-2.5 text-center"
-      style={{ background: highlight ? 'var(--accent-soft)' : 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}
+      className={cn(
+        'rounded-control p-2.5 text-center bg-surface-raised border',
+        highlight ? 'border-border-strong' : 'border-border',
+      )}
     >
-      <p className="mono text-base font-semibold tabular-nums leading-none mb-0.5" style={{ color: highlight ? 'var(--accent)' : 'var(--text-hi)', textShadow: highlight ? '0 0 16px var(--accent-glow)' : 'none' }}>
+      <p className="mono text-base font-semibold tabular-nums leading-none mb-0.5 text-primary">
         {value}
       </p>
-      <p className="text-[9px] text-[var(--text-faint)] uppercase tracking-wide leading-tight">{unit}</p>
-      <p className="text-[8px] text-[var(--text-faint)] mt-0.5 leading-tight truncate">{label}</p>
+      <p className="text-xs text-tertiary leading-tight">{unit}</p>
+      <p className="text-xs text-tertiary mt-0.5 leading-tight truncate">{label}</p>
     </div>
   )
 }

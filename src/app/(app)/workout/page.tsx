@@ -13,7 +13,7 @@ import { updateRoutineExercisesAction } from '@/app/(app)/routines/actions'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useDialog } from '@/providers/DialogProvider'
-import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui'
 import { FALLBACK_BODYWEIGHT_KG } from '@/lib/load'
 import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
 import { WorkoutFocusSheet } from '@/components/workout/WorkoutFocusSheet'
@@ -263,22 +263,17 @@ export default function WorkoutPage() {
       <>
         <div className="flex flex-col items-center justify-center h-[calc(100vh-80px)] p-6 text-center">
           <div
-            className="w-20 h-20 rounded-[var(--radius-card)] flex items-center justify-center mb-6"
-            style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }}
+            className="w-20 h-20 rounded-card flex items-center justify-center mb-6 bg-surface-raised border border-border"
           >
-            <Dumbbell className="w-8 h-8" style={{ color: 'var(--accent)' }} />
+            <Dumbbell className="w-8 h-8 text-secondary" />
           </div>
           <h1 className="t-display-m mb-2">Ready to lift?</h1>
           <p className="t-body mb-8 max-w-xs">
             Pick a focus to get starter exercises, or jump straight in blank.
           </p>
-          <button
-            onClick={() => setFocusSheetOpen(true)}
-            className="h-12 px-8 rounded-[var(--radius-pill)] text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95"
-            style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-          >
-            Pick a Focus
-          </button>
+          <Button onClick={() => setFocusSheetOpen(true)} fullWidth={false} className="px-8">
+            Pick a focus
+          </Button>
 
         </div>
 
@@ -297,18 +292,12 @@ export default function WorkoutPage() {
 
       {/* ── Sticky header ─────────────────────────────────────────────────── */}
       <div
-        className="sticky top-0 z-30 flex flex-col"
-        style={{
-          background: 'rgba(6,7,13,0.85)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderBottom: '1px solid var(--glass-border)',
-        }}
+        className="sticky top-0 z-30 flex flex-col bg-bg border-b border-border"
       >
         {/* Title row */}
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2 flex-1 mr-3">
-            <Link href="/dashboard" className="p-2 -ml-1 rounded-[var(--radius-inner)] text-[var(--text-low)] hover:text-[var(--text-hi)] hover:bg-white/[0.06] transition-colors">
+            <Link href="/dashboard" className="p-2 -ml-1 rounded-control text-tertiary hover:text-primary hover:bg-surface-raised transition-colors">
               <ChevronLeft className="w-5 h-5" />
             </Link>
             <input
@@ -316,33 +305,26 @@ export default function WorkoutPage() {
               value={activeWorkout.title}
               onChange={e => updateTitle(e.target.value)}
               placeholder="Session title"
-              className="bg-transparent border-none text-[15px] font-semibold text-[var(--text-hi)] focus:ring-0 p-0 w-full placeholder:text-[var(--text-faint)] outline-none"
+              className="bg-transparent border-none text-base font-semibold text-primary focus:ring-0 p-0 w-full placeholder:text-tertiary outline-none"
             />
           </div>
-          <button
-            onClick={handleFinish}
-            disabled={isFinishing}
-            className={cn(
-              'h-9 px-4 rounded-[var(--radius-pill)] text-[11px] font-semibold uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50',
-            )}
-            style={{ background: 'var(--accent)', color: 'var(--accent-on)' }}
-          >
+          <Button onClick={handleFinish} loading={isFinishing} size="sm" fullWidth={false}>
             {isFinishing ? 'Saving…' : 'Finish'}
-          </button>
+          </Button>
         </div>
 
         {/* DUP week scheme pill */}
         <div className="px-4 pb-2.5">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--accent-soft)] border border-[var(--accent-line)]">
-            <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-pill bg-surface-raised border border-border">
+            <span className="text-xs font-semibold text-primary">
               {dupScheme.label}
             </span>
-            <span className="w-px h-3 bg-[var(--accent-line)]" />
-            <span className="text-[10px] text-[var(--text-mid)] tabular-nums">
+            <span className="w-px h-3 bg-border-strong" />
+            <span className="text-xs text-secondary tabular-nums">
               {dupScheme.repRange.min}–{dupScheme.repRange.max} reps
             </span>
-            <span className="w-px h-3 bg-[var(--accent-line)]" />
-            <span className="text-[10px] text-[var(--text-low)]">
+            <span className="w-px h-3 bg-border-strong" />
+            <span className="text-xs text-tertiary">
               RPE {dupScheme.rpeTarget}
             </span>
           </div>
@@ -358,12 +340,11 @@ export default function WorkoutPage() {
         {activeWorkout.exercises.length === 0 ? (
           <div className="glass border-dashed text-center py-16 mt-4">
             <div
-              className="w-14 h-14 rounded-[var(--radius-inner)] flex items-center justify-center mx-auto mb-4"
-              style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)' }}
+              className="w-14 h-14 rounded-control flex items-center justify-center mx-auto mb-4 bg-surface-raised border border-border"
             >
-              <Plus className="w-7 h-7" style={{ color: 'var(--accent)' }} />
+              <Plus className="w-7 h-7 text-secondary" />
             </div>
-            <p className="text-[13px] font-medium text-[var(--text-hi)] mb-1">Workout is empty</p>
+            <p className="text-sm font-medium text-primary mb-1">Workout is empty</p>
             <p className="t-caption">Add an exercise to start tracking.</p>
           </div>
         ) : (
@@ -391,23 +372,17 @@ export default function WorkoutPage() {
         {/* ── Add exercise ──────────────────────────────────────────────── */}
         <button
           onClick={() => setAddingExerciseMode({ mode: 'add' })}
-          className="w-full h-12 mt-4 rounded-[var(--radius-inner)] flex items-center justify-center gap-2 text-[11px] font-medium uppercase tracking-widest border border-dashed transition-colors"
-          style={{
-            borderColor: 'var(--accent-line)',
-            color: 'var(--accent)',
-            background: 'var(--accent-soft)',
-          }}
+          className="w-full min-h-12 mt-4 rounded-pill flex items-center justify-center gap-2 text-sm font-medium border border-dashed border-border-strong text-primary bg-surface-raised transition-colors"
         >
-          <Plus className="w-4 h-4" /> Add Exercise
+          <Plus className="w-4 h-4" /> Add exercise
         </button>
 
         {/* ── Discard ───────────────────────────────────────────────────── */}
         <button
           onClick={handleDiscard}
-          className="w-full h-10 mt-4 text-[11px] font-medium uppercase tracking-widest rounded-[var(--radius-inner)] transition-colors"
-          style={{ color: 'var(--rose)' }}
+          className="w-full min-h-11 mt-4 text-sm font-medium text-negative rounded-pill transition-colors"
         >
-          Discard Workout
+          Discard workout
         </button>
       </div>
 

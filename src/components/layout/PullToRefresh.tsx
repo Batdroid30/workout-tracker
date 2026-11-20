@@ -70,7 +70,7 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
         <div
           className={`w-5 h-5 rounded-full border-2 border-t-transparent ${isRefreshing ? 'animate-spin' : ''}`}
           style={{
-            borderColor: 'var(--accent)',
+            borderColor: 'var(--text-primary)',
             borderTopColor: 'transparent',
             ...(isRefreshing ? {} : { transform: `rotate(${spinDeg}deg)` }),
           }}
