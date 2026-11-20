@@ -6,7 +6,8 @@ import { getProfile } from '@/lib/data/profile'
 import { getProgressSnapshot } from '@/lib/data/progress-snapshot'
 import { getStrengthLifts } from '@/lib/data/strength-lifts'
 import { computeStrengthIndex } from '@/lib/data/phase-coach'
-import { getRecentPRs, getWorkoutCalendarData } from '@/lib/data/insights'
+import { getWorkoutCalendarData } from '@/lib/data/insights'
+import { countRecentPRs } from '@/lib/data/recent-pr-count'
 import { getBodyweightHistory } from '@/lib/data/bodyweight'
 import { liftTrend } from '@/lib/tracked-lifts'
 import { bodyweightTrend, workoutsInMonth } from '@/lib/progress-overview'
@@ -31,11 +32,11 @@ const LINKS = [
 
 export default async function ProgressPage() {
   const { userId } = await requireAuth()
-  const [profile, snapshot, strengthLifts, recentPRs, calendar, bodyweight] = await Promise.all([
+  const [profile, snapshot, strengthLifts, prsThisMonth, calendar, bodyweight] = await Promise.all([
     getProfile(userId),
     getProgressSnapshot(userId),
     getStrengthLifts(userId),
-    getRecentPRs(userId, PR_WINDOW_DAYS),
+    countRecentPRs(userId, PR_WINDOW_DAYS),
     getWorkoutCalendarData(userId),
     getBodyweightHistory(userId, BODYWEIGHT_WEEKS),
   ])
@@ -72,10 +73,18 @@ export default async function ProgressPage() {
         <ProgressTiles
           strengthPctPerWeek={strengthIndex.pctPerWeek}
           indexLiftCount={strengthLifts.indexLifts.length}
-          prsThisMonth={recentPRs.length}
+          prsThisMonth={prsThisMonth}
           workoutsThisMonth={workoutsInMonth(calendar.calendarEntries, new Date())}
           streakWeeks={calendar.currentStreak}
           bodyweight={bodyweightTrend(bodyweight)}
+          pickAction={(
+            <TrackedLiftsSheet
+              key={`tile-${strengthLifts.lifts.map(lift => lift.exerciseId).join(',')}`}
+              initial={strengthLifts.lifts.map(lift => ({ id: lift.exerciseId, name: lift.exerciseName }))}
+              withData={[...snapshot.exerciseWeeklyE1RM.keys()]}
+              label="Pick lifts"
+            />
+          )}
         />
 
         <CoachingSection userId={userId} />
