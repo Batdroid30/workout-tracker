@@ -18,12 +18,22 @@ export function pointsInRange<T extends { date: string }>(points: T[], range: Li
   return points.filter(point => point.date >= from)
 }
 
+// The chart opens on 12 weeks, widening only when that would leave it empty.
+const DEFAULT_RANGE_ORDER: LiftRange[] = ['12w', '1y', 'all']
+
+export function defaultRange<T extends { date: string }>(points: T[], now: Date): LiftRange {
+  return DEFAULT_RANGE_ORDER.find(range => pointsInRange(points, range, now).length > 1) ?? '12w'
+}
+
 export interface LiftHeadline {
   current: number | null
   best: number | null
   isBest: boolean
   /** Latest minus the earliest session in the last 12 weeks; null with fewer than two. */
   change12w: number | null
+  lastTrained: string | null
+  /** No sessions in the last 12 weeks, so "current" is an old number. */
+  isStale: boolean
 }
 
 // Monday of the date's week (UTC), the same week Progress uses.
@@ -44,32 +54,41 @@ function weeklyBests(points: { date: string; best1RM: number }[]): number[] {
 
 // Week-by-week, like the Progress overview: so both pages show the same numbers.
 export function liftHeadline(points: { date: string; best1RM: number }[], now: Date): LiftHeadline {
-  if (points.length === 0) return { current: null, best: null, isBest: false, change12w: null }
+  if (points.length === 0) return { current: null, best: null, isBest: false, change12w: null, lastTrained: null, isStale: false }
   const weeks = weeklyBests(points)
   const current = weeks[weeks.length - 1]
   const best = Math.max(...weeks)
-  const windowWeeks = weeklyBests(points.filter(point => point.date >= cutoff(HEADLINE_WEEKS_DAYS, now)))
+  const windowStart = cutoff(HEADLINE_WEEKS_DAYS, now)
+  const windowWeeks = weeklyBests(points.filter(point => point.date >= windowStart))
   const change12w = windowWeeks.length >= 2
     ? Math.round((windowWeeks[windowWeeks.length - 1] - windowWeeks[0]) * 10) / 10
     : null
-  return { current, best, isBest: current >= best, change12w }
+  const lastTrained = points.reduce((latest, point) => (point.date > latest ? point.date : latest), points[0].date)
+  return { current, best, isBest: current >= best, change12w, lastTrained, isStale: lastTrained < windowStart }
 }
 
 export interface RecentSession {
+  /** The workout's id: two workouts can fall on the same day. */
+  id: string
   date: string
   sets: { weight: number; reps: number }[]
 }
 
-// Working sets only, newest session first.
-export function recentSessionsFrom(
-  sessions: { date: string; sets: { weight_kg: number | null; reps: number | null; is_warmup: boolean | null }[] }[],
-  limit: number,
-): RecentSession[] {
+interface SessionInput {
+  id: string
+  startedAt: string
+  sets: { weight_kg: number | null; reps: number | null; is_warmup: boolean | null; set_number: number | null }[]
+}
+
+// Working sets only, in the order they were done; newest session first.
+export function recentSessionsFrom(sessions: SessionInput[], limit: number): RecentSession[] {
   return [...sessions]
-    .sort((a, b) => b.date.localeCompare(a.date))
+    .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
     .map(session => ({
-      date: session.date,
-      sets: session.sets
+      id: session.id,
+      date: new Date(session.startedAt).toISOString().slice(0, 10),
+      sets: [...session.sets]
+        .sort((a, b) => (a.set_number ?? 0) - (b.set_number ?? 0))
         .filter(set => !set.is_warmup && (set.weight_kg ?? 0) > 0 && (set.reps ?? 0) > 0)
         .map(set => ({ weight: Number(set.weight_kg), reps: Number(set.reps) })),
     }))

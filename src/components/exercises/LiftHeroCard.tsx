@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Trophy } from 'lucide-react'
 import { Card, Chip, ToggleChip } from '@/components/ui'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
-import { liftHeadline, pointsInRange, type LiftRange } from '@/lib/lift-range'
+import { defaultRange, liftHeadline, pointsInRange, type LiftRange } from '@/lib/lift-range'
 
 const RANGES: { value: LiftRange; label: string }[] = [
   { value: '4w', label: '4W' },
@@ -23,9 +23,13 @@ function formatKg(value: number): string {
   return String(Math.round(value * 10) / 10)
 }
 
+function dayLabel(date: string): string {
+  return new Date(`${date}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+}
+
 export function LiftHeroCard({ points, today }: LiftHeroCardProps) {
-  const [range, setRange] = useState<LiftRange>('12w')
   const now = new Date(`${today}T12:00:00Z`)
+  const [range, setRange] = useState<LiftRange>(() => defaultRange(points, now))
   const headline = liftHeadline(points, now)
   const shown = pointsInRange(points, range, now)
 
@@ -48,8 +52,11 @@ export function LiftHeroCard({ points, today }: LiftHeroCardProps) {
       <div className="mt-1 flex items-baseline gap-2">
         <span className="t-stat">{formatKg(headline.current)}</span>
         <span className="mono text-secondary">kg</span>
-        {headline.isBest && <Chip tone="accent" icon={<Trophy className="h-3.5 w-3.5" aria-hidden="true" />}>Best ever</Chip>}
+        {headline.isBest && !headline.isStale && <Chip tone="accent" icon={<Trophy className="h-3.5 w-3.5" aria-hidden="true" />}>Best ever</Chip>}
       </div>
+      {headline.isStale && headline.lastTrained && (
+        <p className="t-body-sm mt-1">Last trained {dayLabel(headline.lastTrained)}</p>
+      )}
       {change !== null && (
         <p className={`mono mt-1 text-sm ${tone}`}>{arrow} {formatKg(Math.abs(change))} kg in 12 weeks</p>
       )}
