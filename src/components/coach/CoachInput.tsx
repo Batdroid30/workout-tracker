@@ -59,7 +59,7 @@ export function CoachInput({
         onKeyDown={handleKeyDown}
         placeholder="Ask coach anything (exercises, volume, routines)..."
         disabled={disabled}
-        className="max-h-36 min-h-[40px] flex-1 resize-none bg-transparent px-3 py-2 text-sm text-primary placeholder:text-tertiary focus:outline-none disabled:opacity-50"
+        className="max-h-36 min-h-[40px] flex-1 resize-none bg-transparent px-3 py-2 text-base text-primary placeholder:text-tertiary focus:outline-none disabled:opacity-50"
       />
 
       {isStreaming ? (
