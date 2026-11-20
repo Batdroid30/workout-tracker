@@ -4,9 +4,13 @@ import { SetRow }               from './SetRow'
 import { WarmupRamp }           from './WarmupRamp'
 import { PRBanner }             from './PRBanner'
 import type { ActiveExercise, PRCheckResult } from '@/types/database'
-import { Plus, Check, MoreVertical, Calculator, Timer, ChevronDown } from 'lucide-react'
+import { Plus, MoreVertical, Calculator, Timer } from 'lucide-react'
 import { BottomSheet } from '@/components/ui/BottomSheet'
-import { Button, Input } from '@/components/ui'
+import { Button, IconButton, Input } from '@/components/ui'
+import { ExerciseTallyRow } from './ExerciseTallyRow'
+import { SetTableHeader } from './SetTableHeader'
+import { exerciseTally } from '@/lib/workout-session'
+import type { ReactNode } from 'react'
 import { useState, useEffect, useCallback } from 'react'
 import { useWorkoutStore }      from '@/store/workout.store'
 import { usePRStore }           from '@/store/pr.store'
@@ -33,13 +37,15 @@ interface SetLoggerProps {
   exercise: ActiveExercise
   onReplaceExercise?: () => void
   onOpenPlateCalc: (weight: number) => void
-  onRestTimerStart: (restSeconds: number) => void
+  onRestTimerStart: (restSeconds: number, exerciseIndex: number) => void
   isCollapsed?: boolean
   onExpand?:    () => void
   // Superset controls — provided by the parent workout page
   onSupersetWith?:   (otherIndex: number) => void
   supersetCandidates?: SupersetCandidate[]
   onUnpairSuperset?:   () => void
+  /** The drag handle, when the list is reorderable. */
+  dragHandle?: ReactNode
 }
 
 export function SetLogger({
@@ -53,6 +59,7 @@ export function SetLogger({
   onSupersetWith,
   supersetCandidates,
   onUnpairSuperset,
+  dragHandle = null,
 }: SetLoggerProps) {
   const { updateSet, markSetDone, addSet, addWarmupSet, removeExercise, removeSet, insertSet, updateExerciseRestSeconds } = useWorkoutStore()
 
@@ -116,9 +123,8 @@ export function SetLogger({
   }, [exerciseIndex, exercise.exercise.id, updateExerciseRestSeconds])
 
   const handleSetCompleted = useCallback(() => {
-    onRestTimerStart(restSeconds)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restSeconds, onRestTimerStart])
+    onRestTimerStart(restSeconds, exerciseIndex)
+  }, [restSeconds, onRestTimerStart, exerciseIndex])
 
   const { cycle }     = useTrainingCycle()
   const dupRpeTarget  = cycle?.scheme.rpeTarget ?? DEFAULT_RPE_TARGET
@@ -141,89 +147,37 @@ export function SetLogger({
 
   // ── Collapsed view ───────────────────────────────────────────────────────
   if (isCollapsed) {
-    const workingSets   = exercise.sets.filter(s => !s.is_warmup)
-    const completedSets = workingSets.filter(s => s.completed).length
-    const totalSets     = workingSets.length
-    const isDone        = totalSets > 0 && completedSets === totalSets
-    const targetReps    = workingSets[0]?.reps ?? 0
-
     return (
-      <button
-        onClick={onExpand}
-        className="w-full glass hover:border-border-strong mb-2 active:scale-[0.99] transition-all"
-        aria-label={`Expand ${exercise.exercise.name}`}
-      >
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div className="text-left min-w-0 flex-1">
-            <h3 className={cn(
-              'font-semibold text-sm truncate',
-              isDone ? 'text-tertiary line-through' : 'text-primary',
-            )}>
-              {exercise.exercise.name}
-            </h3>
-            <p className="text-xs text-tertiary mt-0.5 truncate capitalize">
-              {exercise.exercise.muscle_group}
-              {targetReps > 0 && (
-                <span> · {totalSets}×{targetReps}</span>
-              )}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className={cn(
-              'mono text-sm tabular-nums',
-              isDone ? 'text-positive' : 'text-secondary',
-            )}>
-              {completedSets}/{totalSets}
-            </span>
-            <ChevronDown className="w-4 h-4 text-tertiary" />
-          </div>
-        </div>
-      </button>
+      <div className="mb-2.5">
+        <ExerciseTallyRow
+          name={exercise.exercise.name}
+          muscle={exercise.exercise.muscle_group}
+          tally={exerciseTally(exercise)}
+          onOpen={() => onExpand?.()}
+          handle={dragHandle}
+        />
+      </div>
     )
   }
 
   return (
-    <div className="glass mb-4 overflow-hidden">
+    <div className="mb-2.5 overflow-hidden rounded-card border border-border-strong bg-surface">
 
       {/* ── Exercise header ─────────────────────────────────────────────── */}
-      <div
-        className="px-4 py-3 flex items-center justify-between gap-2 border-b border-border"
-      >
+      <div className="flex items-center gap-1 py-2 pr-2">
+        {dragHandle ?? <span className="w-4" aria-hidden="true" />}
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-base text-primary break-words">{exercise.exercise.name}</h3>
-          <p className="text-xs text-tertiary mt-0.5 capitalize">
-            {exercise.exercise.muscle_group}
-          </p>
+          <h3 className="t-title-3 break-words">{exercise.exercise.name}</h3>
+          <p className="t-caption capitalize">{exercise.exercise.muscle_group}</p>
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          {/* Rest timer pill */}
-          <button
-            onClick={() => setShowDurationPicker(true)}
-            className="flex items-center gap-1 min-h-9 px-2.5 rounded-lg transition-colors bg-surface-raised border border-border hover:border-border-strong"
-            aria-label="Set rest timer duration"
-          >
-            <Timer className="w-3 h-3 text-tertiary" />
-            <span className="mono text-xs text-secondary tabular-nums">{restLabel}</span>
-          </button>
-
-          {/* Plate calculator */}
-          <button
-            onClick={() => onOpenPlateCalc(workingWeight || 100)}
-            className="p-2 rounded-lg text-tertiary hover:text-primary hover:bg-surface-raised transition-colors"
-            aria-label="Plate calculator"
-          >
-            <Calculator className="w-4 h-4" />
-          </button>
 
           {/* Exercise menu */}
           <div className="relative">
-            <button
-              onClick={() => setMenuOpen(o => !o)}
-              className="p-2 rounded-lg text-tertiary hover:text-primary hover:bg-surface-raised transition-colors"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
+            <IconButton aria-label={`More for ${exercise.exercise.name}`} onClick={() => setMenuOpen(o => !o)}>
+              <MoreVertical className="w-5 h-5" aria-hidden="true" />
+            </IconButton>
 
             {menuOpen && (
               <>
@@ -273,20 +227,30 @@ export function SetLogger({
         onAddSet={(w, r) => addWarmupSet(exerciseIndex, w, r)}
       />
 
-      {/* ── Column headers ──────────────────────────────────────────────── */}
-      <div
-        className="flex items-center gap-2 px-4 py-2 border-b border-border"
-      >
-        <span className="w-14 text-center text-xs font-medium text-tertiary">Set · Prev</span>
-        <span className="flex-1 text-center text-xs font-medium text-tertiary">kg</span>
-        <span className="flex-1 text-center text-xs font-medium text-tertiary">Reps</span>
-        <span className="w-10 text-center text-xs font-medium text-tertiary">
-          <Check className="w-3 h-3 mx-auto" />
-        </span>
+      {/* ── Tools ───────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap gap-2 px-4 pb-3">
+        <button
+          type="button"
+          onClick={() => setShowDurationPicker(true)}
+          className="focus-ring inline-flex min-h-11 items-center gap-1.5 rounded-pill border border-border bg-surface-raised px-3.5 text-sm text-secondary"
+          aria-label={`Rest time, ${restLabel}`}
+        >
+          <Timer className="h-4 w-4" aria-hidden="true" />
+          <span className="mono">{restLabel}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onOpenPlateCalc(workingWeight || 100)}
+          className="focus-ring inline-flex min-h-11 items-center gap-1.5 rounded-pill border border-border bg-surface-raised px-3.5 text-sm text-secondary"
+        >
+          <Calculator className="h-4 w-4" aria-hidden="true" />
+          Plates
+        </button>
       </div>
 
       {/* ── Set rows ────────────────────────────────────────────────────── */}
-      <div className="px-4 py-3">
+      <div className="px-4 pb-3">
+        <SetTableHeader />
         {exercise.sets.map((set, setIndex) => {
           const workingSetsBefore = exercise.sets.slice(0, setIndex).filter(s => !s.is_warmup).length
           const lastSetAtPosition = !set.is_warmup ? lastWorkoutSets[workingSetsBefore] : undefined

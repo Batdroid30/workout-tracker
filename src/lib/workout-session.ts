@@ -88,6 +88,15 @@ export function firstOpenExerciseId(exercises: ActiveExercise[]): string | null 
   return (withWorkLeft ?? exercises[0])?.clientId ?? null
 }
 
+// What the rest bar says comes next: the following exercise with work left,
+// but only once the current exercise is finished.
+export function restLabelAfter(exercises: ActiveExercise[], exerciseIndex: number): string | null {
+  const current = exercises[exerciseIndex]
+  if (!current || !exerciseTally(current).complete) return null
+  const next = exercises.slice(exerciseIndex + 1).find(entry => !exerciseTally(entry).complete)
+  return next?.exercise.name ?? null
+}
+
 // ─── Finishing ───────────────────────────────────────────────────────────────
 
 export type FinishPayload = Omit<ActiveWorkout, 'openExerciseId' | 'rest' | 'exercises'> & {

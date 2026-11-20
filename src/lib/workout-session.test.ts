@@ -5,6 +5,7 @@ import {
   firstOpenExerciseId,
   migrateActiveWorkout,
   moveBlock,
+  restLabelAfter,
   toFinishPayload,
   workoutProgress,
 } from './workout-session'
@@ -149,5 +150,23 @@ describe('toFinishPayload', () => {
     expect(payload).not.toHaveProperty('openExerciseId')
     expect(payload).not.toHaveProperty('rest')
     expect(payload.exercises[0]).not.toHaveProperty('clientId')
+  })
+})
+
+describe('restLabelAfter', () => {
+  it('names the next exercise when the current one is finished', () => {
+    const exercises = [
+      exercise('Bench', { sets: [set({ completed: true })] }),
+      exercise('Lateral Raise'),
+    ]
+    expect(restLabelAfter(exercises, 0)).toBe('Lateral Raise')
+  })
+
+  it('stays quiet while the current exercise has sets left', () => {
+    expect(restLabelAfter([exercise('Bench', { sets: [set({ completed: true }), set()] }), exercise('Row')], 0)).toBeNull()
+  })
+
+  it('stays quiet when everything is done', () => {
+    expect(restLabelAfter([exercise('Bench', { sets: [set({ completed: true })] })], 0)).toBeNull()
   })
 })

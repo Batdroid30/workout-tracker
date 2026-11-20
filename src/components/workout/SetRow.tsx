@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { useToast } from '@/providers/ToastProvider'
 import { useWorkoutStore } from '@/store/workout.store'
 import { formatAddedWeight, formatWeightedSet } from '@/lib/load'
+import { SET_GRID } from './SetTableHeader'
 
 interface SetRowProps {
   set: ActiveSet
@@ -127,20 +128,17 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
       removing ? 'max-h-0 opacity-0 mb-0' : 'max-h-64 opacity-100 mb-1.5',
     )}>
 
-      {/* Row 1: [set# + prev] · weight · reps · ✓ */}
-      <div className="flex items-center gap-2 py-1.5">
-        {/* Set badge + prev */}
-        <div className="w-14 shrink-0 flex flex-col items-center gap-0.5">
-          <span className={cn(
-            'mono text-xs w-6 h-6 flex items-center justify-center rounded',
-            set.is_warmup
-              ? 'bg-caution-soft text-caution'
-              : 'bg-surface-raised text-secondary',
-          )}>
-            {set.is_warmup ? 'W' : set.set_number}
-          </span>
-          <span className="text-xs text-tertiary leading-none tabular-nums whitespace-nowrap">{prevSetText}</span>
-        </div>
+      {/* Row 1: set · last time · weight · reps · ✓ (columns match SetTableHeader) */}
+      <div className={cn(SET_GRID, 'py-1.5')}>
+        <span className={cn(
+          'mono text-sm w-7 h-7 flex items-center justify-center rounded-field',
+          set.is_warmup
+            ? 'bg-caution-soft text-caution'
+            : 'bg-surface-raised text-secondary',
+        )}>
+          {set.is_warmup ? 'W' : set.set_number}
+        </span>
+        <span data-col="last" className="mono truncate text-sm text-tertiary">{prevSetText}</span>
 
         {/* Weight — hidden for pure bodyweight exercises */}
         {isBodyweight ? (
@@ -203,14 +201,14 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
       </div>
 
       {isWeightedBodyweight && (
-        <p className="mono text-xs pb-1 pl-16 tabular-nums text-tertiary">
+        <p className="mono text-xs pb-1 pl-[96px] tabular-nums text-tertiary">
           BW {userBodyweight} + {getDisplayWeight(set.weight_kg)} = {Math.round(Math.max(set.weight_kg, userBodyweight) * 10) / 10} kg
           {bodyweightLogged === false && <span> · using 75 kg — log your bodyweight in Progress</span>}
         </p>
       )}
 
       {isAssisted && set.weight_kg >= userBodyweight && (
-        <p className="text-xs pb-1 pl-16 text-caution">
+        <p className="text-xs pb-1 pl-[96px] text-caution">
           Assistance is at or above your bodyweight ({userBodyweight} kg) — check the number.
         </p>
       )}
@@ -377,29 +375,23 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWei
 
         {/* Row */}
         <div
-          className="relative flex items-center gap-2 py-2.5 bg-surface transition-transform duration-200"
+          className={cn(SET_GRID, 'relative py-1.5 bg-surface transition-transform duration-200')}
           style={{ transform: `translateX(${swipeOffset}px)` }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {/* Untick */}
-          <button onClick={onDone} className="w-8 shrink-0 flex items-center justify-center active:scale-90 transition-transform" aria-label="Untick set">
-            <div className="w-6 h-6 rounded flex items-center justify-center bg-accent">
-              <Check className="w-3.5 h-3.5 text-on-accent" strokeWidth={3} />
-            </div>
-          </button>
-
           {/* Set badge */}
           <span className={cn(
-            'mono text-xs w-5 h-5 flex items-center justify-center rounded shrink-0',
+            'mono text-sm w-7 h-7 flex items-center justify-center rounded-field shrink-0',
             set.is_warmup ? 'bg-caution-soft text-caution' : 'bg-surface-raised text-tertiary',
           )}>
             {set.is_warmup ? 'W' : set.set_number}
           </span>
 
-          {/* Summary */}
-          <span className="flex-1 min-w-0 t-value">
+          {/* Summary (spans last time, kg and reps) */}
+          <span className="col-span-3 flex min-w-0 items-center gap-1">
+          <span className="min-w-0 flex-1 truncate t-value">
             {isBodyweight ? 'BW' : isWeightedBodyweight && set.weight_kg > 0 ? formatWeightedSet(Math.max(set.weight_kg, userBodyweight), userBodyweight) : set.weight_kg > 0 ? `${set.weight_kg}kg` : '—'}
             {' × '}
             {set.reps > 0 ? set.reps : '—'}
@@ -416,6 +408,12 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWei
             aria-label="Remove set"
           >
             <X className="w-3 h-3" />
+          </button>
+          </span>
+
+          {/* Untick — the lime tick stays full size where it was tapped */}
+          <button onClick={onDone} className="w-11 h-11 shrink-0 rounded-control flex items-center justify-center bg-accent text-on-accent active:scale-95 transition-transform" aria-label="Untick set">
+            <Check className="w-4 h-4" strokeWidth={3} />
           </button>
         </div>
       </div>

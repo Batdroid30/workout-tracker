@@ -3,15 +3,15 @@ import React, { useState, useCallback, useEffect } from 'react'
 import { useWorkoutStore } from '@/store/workout.store'
 import { SetLogger } from '@/components/workout/SetLogger'
 import { PlateCalculator } from '@/components/workout/PlateCalculator'
-import { RestTimer } from '@/components/workout/RestTimer'
-import { Plus, Dumbbell, ChevronLeft } from 'lucide-react'
+import { RestBar } from '@/components/workout/RestBar'
+import { LoggerHeader } from '@/components/workout/LoggerHeader'
+import { Plus, Dumbbell } from 'lucide-react'
 import { AddExerciseModal } from '@/components/workout/AddExerciseModal'
 import { SuggestNextChip } from '@/components/workout/SuggestNextChip'
 import { useExerciseStore } from '@/store/exercise.store'
 import { finishWorkoutAction, getUserExerciseFrequency, getUserLatestBodyweight } from './actions'
 import { updateRoutineExercisesAction } from '@/app/(app)/routines/actions'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useDialog } from '@/providers/DialogProvider'
 import { Button } from '@/components/ui'
 import { FALLBACK_BODYWEIGHT_KG } from '@/lib/load'
@@ -20,17 +20,19 @@ import { WorkoutFocusSheet } from '@/components/workout/WorkoutFocusSheet'
 import { SupersetWrapper } from '@/components/workout/SupersetWrapper'
 import { buildWorkoutTemplate } from '@/lib/template-generator'
 import { FailureTrainingTip } from '@/components/workout/FailureTrainingTip'
+import { canGoBack } from '@/components/ui/BackButton'
+import { firstOpenExerciseId, restLabelAfter, workoutProgress } from '@/lib/workout-session'
+import { weekLabel } from '@/lib/home'
 import type { Exercise, ActiveExercise } from '@/types/database'
 
 // ── Superset grouping ─────────────────────────────────────────────────────────
 
 interface RenderOptions {
-  isRoutineWorkout: boolean
-  expandedIndex: number | null
-  onExpand: (i: number) => void
+  openExerciseId: string | null
+  onExpand: (clientId: string) => void
   onReplaceExercise: (i: number) => void
   onOpenPlateCalc: (weight: number) => void
-  onRestTimerStart: (seconds: number) => void
+  onRestTimerStart: (seconds: number, exerciseIndex: number) => void
   onPairAsSuperset: (a: number, b: number) => void
   onUnpairSuperset: (i: number) => void
 }
@@ -63,14 +65,14 @@ function renderExercises(exercises: ActiveExercise[], opts: RenderOptions) {
       const candidates = standaloneCandidates.filter(c => c.index !== i)
       nodes.push(
         <SetLogger
-          key={i}
+          key={ex.clientId}
           exerciseIndex={i}
           exercise={ex}
           onReplaceExercise={() => opts.onReplaceExercise(i)}
           onOpenPlateCalc={opts.onOpenPlateCalc}
           onRestTimerStart={opts.onRestTimerStart}
-          isCollapsed={opts.isRoutineWorkout && opts.expandedIndex !== i}
-          onExpand={() => opts.onExpand(i)}
+          isCollapsed={opts.openExerciseId !== ex.clientId}
+          onExpand={() => opts.onExpand(ex.clientId)}
           onSupersetWith={candidates.length > 0 ? (otherIdx) => opts.onPairAsSuperset(i, otherIdx) : undefined}
           supersetCandidates={candidates}
         />
@@ -85,14 +87,14 @@ function renderExercises(exercises: ActiveExercise[], opts: RenderOptions) {
         <SupersetWrapper key={groupId} exerciseNames={exerciseNames}>
           {group.map(({ ex: gex, idx }, pos) => (
             <SetLogger
-              key={idx}
+              key={gex.clientId}
               exerciseIndex={idx}
               exercise={gex}
               onReplaceExercise={() => opts.onReplaceExercise(idx)}
               onOpenPlateCalc={opts.onOpenPlateCalc}
               onRestTimerStart={pos === group.length - 1 ? opts.onRestTimerStart : () => {}}
-              isCollapsed={opts.isRoutineWorkout && opts.expandedIndex !== idx}
-              onExpand={() => opts.onExpand(idx)}
+              isCollapsed={opts.openExerciseId !== gex.clientId}
+              onExpand={() => opts.onExpand(gex.clientId)}
               onUnpairSuperset={() => opts.onUnpairSuperset(idx)}
             />
           ))}
@@ -103,6 +105,8 @@ function renderExercises(exercises: ActiveExercise[], opts: RenderOptions) {
 
   return nodes
 }
+
+const LOGGER_SCROLL_KEY = 'logger-scroll'
 
 export default function WorkoutPage() {
   const router = useRouter()
@@ -131,11 +135,27 @@ export default function WorkoutPage() {
   const [plateCalc, setPlateCalc] = useState<{ isOpen: boolean; weight: number }>({ isOpen: false, weight: 100 })
   const handleOpenPlateCalc = useCallback((weight: number) => setPlateCalc({ isOpen: true, weight }), [])
 
-  const [restTimer, setRestTimer] = useState<{ isVisible: boolean; seconds: number; key: number }>({
-    isVisible: false, seconds: 90, key: 0,
-  })
-  const handleRestTimerStart = useCallback((seconds: number) => {
-    setRestTimer(prev => ({ isVisible: true, seconds, key: prev.key + 1 }))
+  // Rest lives in the saved workout as an end time, so it survives leaving
+  // the logger and the phone going to sleep.
+  const startRest = useWorkoutStore(state => state.startRest)
+  const extendRest = useWorkoutStore(state => state.extendRest)
+  const clearRest = useWorkoutStore(state => state.clearRest)
+  const setOpenExercise = useWorkoutStore(state => state.setOpenExercise)
+  const handleRestTimerStart = useCallback((seconds: number, exerciseIndex: number) => {
+    const exercises = useWorkoutStore.getState().activeWorkout?.exercises ?? []
+    startRest(seconds, restLabelAfter(exercises, exerciseIndex))
+  }, [startRest])
+
+  const minimize = useCallback(() => {
+    if (canGoBack(window.history.length)) router.back()
+    else router.push('/dashboard')
+  }, [router])
+
+  // Coming back from the workout bar lands where the lifter left off.
+  useEffect(() => {
+    const saved = Number(sessionStorage.getItem(LOGGER_SCROLL_KEY))
+    if (saved > 0) window.scrollTo(0, saved)
+    return () => sessionStorage.setItem(LOGGER_SCROLL_KEY, String(window.scrollY))
   }, [])
 
   // Focus sheet — shown on the "no active workout" landing screen
@@ -164,17 +184,6 @@ export default function WorkoutPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkout?.started_at])
 
-  // Accordion for routine workouts — one exercise expanded at a time
-  const isRoutineWorkout = !!activeWorkout?.routine_id
-  const [expandedIndex,  setExpandedIndex] = useState<number | null>(null)
-
-  useEffect(() => {
-    if (!isRoutineWorkout || expandedIndex !== null || !activeWorkout) return
-    const firstIncomplete = activeWorkout.exercises.findIndex(ex =>
-      ex.sets.some(s => !s.completed)
-    )
-    setExpandedIndex(firstIncomplete >= 0 ? firstIncomplete : 0)
-  }, [isRoutineWorkout, activeWorkout, expandedIndex])
 
   const handleFinish = async () => {
     if (!activeWorkout) return
@@ -291,48 +300,16 @@ export default function WorkoutPage() {
   return (
     <div className="pb-32 min-h-screen">
 
-      {/* ── Sticky header ─────────────────────────────────────────────────── */}
-      <div
-        className="sticky top-0 z-30 flex flex-col bg-bg border-b border-border"
-      >
-        {/* Title row */}
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-1 mr-3">
-            <Link href="/dashboard" className="p-2 -ml-1 rounded-control text-tertiary hover:text-primary hover:bg-surface-raised transition-colors">
-              <ChevronLeft className="w-5 h-5" />
-            </Link>
-            <input
-              type="text"
-              value={activeWorkout.title}
-              onChange={e => updateTitle(e.target.value)}
-              placeholder="Session title"
-              className="bg-transparent border-none text-base font-semibold text-primary focus:ring-0 p-0 w-full placeholder:text-tertiary outline-none"
-            />
-          </div>
-          <Button onClick={handleFinish} loading={isFinishing} size="sm" fullWidth={false}>
-            {isFinishing ? 'Saving…' : 'Finish'}
-          </Button>
-        </div>
-
-        {/* Training-week scheme pill (hidden until the cycle loads) */}
-        {dupScheme && (
-        <div className="px-4 pb-2.5">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-pill bg-surface-raised border border-border">
-            <span className="text-xs font-semibold text-primary">
-              {dupScheme.label}
-            </span>
-            <span className="w-px h-3 bg-border-strong" />
-            <span className="text-xs text-secondary tabular-nums">
-              {dupScheme.repRange.min}–{dupScheme.repRange.max} reps
-            </span>
-            <span className="w-px h-3 bg-border-strong" />
-            <span className="text-xs text-tertiary">
-              RPE {dupScheme.rpeTarget}
-            </span>
-          </div>
-        </div>
-        )}
-      </div>
+      <LoggerHeader
+        title={activeWorkout.title}
+        onTitleChange={updateTitle}
+        startedAt={activeWorkout.started_at}
+        progress={workoutProgress(activeWorkout)}
+        weekChip={dupScheme ? `${weekLabel(dupScheme, false)} · ${dupScheme.repRange.min}–${dupScheme.repRange.max} reps · RPE ${dupScheme.rpeTarget}` : null}
+        onMinimize={minimize}
+        onFinish={handleFinish}
+        isFinishing={isFinishing}
+      />
 
       <div className="p-4 space-y-2">
 
@@ -352,9 +329,8 @@ export default function WorkoutPage() {
           </div>
         ) : (
           renderExercises(activeWorkout.exercises, {
-            isRoutineWorkout,
-            expandedIndex,
-            onExpand: setExpandedIndex,
+            openExerciseId: activeWorkout.openExerciseId ?? firstOpenExerciseId(activeWorkout.exercises),
+            onExpand: setOpenExercise,
             onReplaceExercise: (i) => setAddingExerciseMode({ mode: 'replace', index: i }),
             onOpenPlateCalc: handleOpenPlateCalc,
             onRestTimerStart: handleRestTimerStart,
@@ -364,7 +340,7 @@ export default function WorkoutPage() {
         )}
 
         {/* ── Suggest-next chips — blank workouts only ──────────────────── */}
-        {!isRoutineWorkout && activeWorkout.exercises.length > 0 && (
+        {!activeWorkout.routine_id && activeWorkout.exercises.length > 0 && (
           <SuggestNextChip
             workoutExercises={activeWorkout.exercises}
             usageFrequency={usageFrequency}
@@ -403,7 +379,7 @@ export default function WorkoutPage() {
       />
 
       {/*
-        PlateCalculator and RestTimer live here — NOT inside SetLogger cards.
+        PlateCalculator and RestBar live here — NOT inside SetLogger cards.
         backdrop-filter creates a new CSS containing block which breaks
         fixed-position children. Rendering here ensures viewport-level positioning.
       */}
@@ -413,14 +389,7 @@ export default function WorkoutPage() {
         initialWeight={plateCalc.weight}
       />
 
-      {restTimer.isVisible && (
-        <RestTimer
-          key={restTimer.key}
-          seconds={restTimer.seconds}
-          onSkip={() => setRestTimer(p => ({ ...p, isVisible: false }))}
-          onComplete={() => setRestTimer(p => ({ ...p, isVisible: false }))}
-        />
-      )}
+      <RestBar rest={activeWorkout.rest} onExtend={extendRest} onSkip={clearRest} />
     </div>
   )
 }
