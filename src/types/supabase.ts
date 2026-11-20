@@ -193,6 +193,8 @@ export type Database = {
           id: string
           last_name: string | null
           phase_started_at: string | null
+          cycle_started_at: string | null
+          break_prompt_dismissed_at: string | null
           rest_timer_seconds: number
           training_goal: string | null
           training_phase: string | null
@@ -207,6 +209,8 @@ export type Database = {
           id: string
           last_name?: string | null
           phase_started_at?: string | null
+          cycle_started_at?: string | null
+          break_prompt_dismissed_at?: string | null
           rest_timer_seconds?: number
           training_goal?: string | null
           training_phase?: string | null
@@ -221,6 +225,8 @@ export type Database = {
           id?: string
           last_name?: string | null
           phase_started_at?: string | null
+          cycle_started_at?: string | null
+          break_prompt_dismissed_at?: string | null
           rest_timer_seconds?: number
           training_goal?: string | null
           training_phase?: string | null

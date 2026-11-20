@@ -38,6 +38,8 @@ export const getProfile = cache(async (userId: string): Promise<Profile | null> 
     training_style:   null,
     experience_level: null,
     phase_started_at: null,
+    cycle_started_at:          null,
+    break_prompt_dismissed_at: null,
     height_cm:        null,
     age_years:        null,
     sex:              null,
