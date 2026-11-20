@@ -3,6 +3,10 @@ import { getSupabaseServer } from '@/lib/supabase/server'
 import { calculate1RM } from '@/lib/algorithms'
 import { prCandidates, beatsPR, isAssisted, effectiveLoad, workoutBodyweight } from '@/lib/load'
 import type { PRType, PRCheckResult } from '@/types/database'
+import { DatabaseError } from '@/lib/errors'
+import { recentSessionsFrom, type RecentSession } from '@/lib/lift-range'
+
+const RECENT_SESSION_COUNT = 5
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -22,13 +26,14 @@ export interface PREvaluationResult {
 export const getExerciseProgression = cache(async (userId: string, exerciseId: string) => {
   const supabase = await getSupabaseServer()
 
-  const { data: prs } = await supabase
+  const { data: prs, error: prsError } = await supabase
     .from('personal_records')
     .select('*')
     .eq('user_id', userId)
     .eq('exercise_id', exerciseId)
+  if (prsError) throw new DatabaseError(`Failed to fetch personal records: ${prsError.message}`, prsError)
 
-  const { data: workouts } = await supabase
+  const { data: workouts, error: workoutsError } = await supabase
     .from('workouts')
     .select(`
       started_at,
@@ -42,6 +47,7 @@ export const getExerciseProgression = cache(async (userId: string, exerciseId: s
     .eq('user_id', userId)
     .eq('workout_exercises.exercise_id', exerciseId)
     .order('started_at', { ascending: true })
+  if (workoutsError) throw new DatabaseError(`Failed to fetch exercise history: ${workoutsError.message}`, workoutsError)
 
   const progressionData: { date: string; maxWeight: number; best1RM: number; volume: number }[] = []
 
@@ -67,11 +73,19 @@ export const getExerciseProgression = cache(async (userId: string, exerciseId: s
       })
     })
     if (maxW > 0 || best1 > 0) {
-      progressionData.push({ date: dateStr, maxWeight: maxW, best1RM: Math.round(best1), volume: vol })
+      progressionData.push({ date: dateStr, maxWeight: maxW, best1RM: Math.round(best1 * 10) / 10, volume: vol })
     }
   })
 
-  return { prs: prs || [], progression: progressionData }
+  const sessions: RecentSession[] = recentSessionsFrom(
+    (workouts ?? []).map(workout => ({
+      date: new Date(workout.started_at).toISOString().split('T')[0],
+      sets: workout.workout_exercises.flatMap(entry => entry.sets ?? []),
+    })),
+    RECENT_SESSION_COUNT,
+  )
+
+  return { prs: prs || [], progression: progressionData, sessions }
 })
 
 /**

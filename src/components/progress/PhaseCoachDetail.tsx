@@ -1,4 +1,5 @@
 import { Compass, Info } from 'lucide-react'
+import { IndexLiftChips } from './IndexLiftChips'
 import { cn } from '@/lib/utils'
 import { DELOAD_THRESHOLDS } from '@/lib/workout-intelligence'
 import { formatSetCount } from '@/lib/muscle-sets'
@@ -27,6 +28,7 @@ interface PhaseCoachDetailProps {
   strengthIndex:    StrengthIndexSummary
   volumeLandmarks:  MuscleVolumeLandmarkPoint[]
   keyLifts:         KeyLift[]
+  liftSource:       'picked' | 'auto'
   mesocycle:        Mesocycle       | null
 }
 
@@ -37,6 +39,7 @@ export function PhaseCoachDetail({
   strengthIndex,
   volumeLandmarks,
   keyLifts,
+  liftSource,
   mesocycle,
 }: PhaseCoachDetailProps) {
   const phaseLabel  = trainingPhase ? trainingPhase.charAt(0).toUpperCase() + trainingPhase.slice(1) : null
@@ -92,26 +95,7 @@ export function PhaseCoachDetail({
 
         <StrengthIndexBlock summary={strengthIndex} chartData={indexChartData} />
 
-        {/* Tracked lifts */}
-        {keyLifts.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-border">
-            <p className="t-label mb-2">Tracked lifts ({keyLifts.length})</p>
-            <div className="flex flex-wrap gap-1.5">
-              {keyLifts.map(lift => (
-                <span
-                  key={lift.exerciseId}
-                  className="text-xs font-medium rounded px-2 py-1 text-secondary bg-surface-raised border border-border"
-                  title={`${lift.sessionCount} sessions in last 12 weeks`}
-                >
-                  {lift.exerciseName}
-                </span>
-              ))}
-            </div>
-            <p className="t-caption mt-2">
-              Auto-detected from your most-frequent compound lifts in the last 12 weeks.
-            </p>
-          </div>
-        )}
+        <IndexLiftChips lifts={keyLifts} source={liftSource} />
       </div>
 
       {/* ── Volume Landmarks ───────────────────────────────────────── */}

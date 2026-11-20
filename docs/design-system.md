@@ -176,6 +176,19 @@ Loading placeholder: `surface-raised`, `radius-field`, `motion-safe:animate-puls
 - **BottomNav** (`src/components/layout/BottomNav.tsx`, tabs in `nav-config.ts`): a floating, iOS-style tinted capsule — 64px tall, 14px from the sides and 18px above the safe area, `surface-raised` at 92% with a 20px backdrop blur, `border-strong` hairline and `shadow-overlay`. Four tabs: **Home** `/dashboard`, **Train** `/routines`, **Progress** `/progress`, **Coach** `/coach`; 20px icons over 12px labels. The active tab is lime on a sliding `accent-soft` pill; others `text-tertiary`. Account pages highlight Home; history, exercises and finished-workout detail highlight Progress.
   - **Scroll:** past 80px from the top, scrolling down 24px collapses the bar to the active tab's icon and slides in a lime "Start workout" button (→ `/routines`), or "Resume workout" (→ `/workout`) while a session is active. Scrolling up 24px or returning to the top expands it. No animation under reduced motion.
   - Hidden on the live workout screen (`/workout`). Page roots reserve `pb-28` so the last item clears it.
+- **Progress** (`/progress`; strength rules in `src/lib/tracked-lifts.ts`): answers "am I getting stronger?" first.
+  - **Your lifts** (`YourLiftsCard`): up to 6 lifts the lifter picks, or their 5 most-trained compound lifts until they pick ("Your most-trained lifts"). Each row shows the estimated max in `t-value`, the 12-week change and a `Sparkline`, and links to the lift's page.
+    - Trend colours: up `text-positive`, flat (±1 kg) `text-tertiary`, down `text-caution`. Never lime.
+    - A lift with no sets in 12 weeks says so.
+  - **Pick your lifts** (`TrackedLiftsSheet`): opens pre-filled with what the list shows. It has search, "You train often", drag to order (same grip as the logger), a cap of 6, and "Use my most-trained lifts". Saved through `save_tracked_lifts` (all-or-nothing). A failed save keeps the picks and shows a toast.
+  - **Tiles** (`ProgressTiles`):
+    - Overall strength: the weekly % across *your lifts*, excluding assisted and no-data lifts. It needs 3 lifts with data, and says why when it can't show.
+    - Recent PRs this month (any exercise).
+    - Workouts this month and streak.
+    - Bodyweight trend.
+  - **Then** Coaching, and links to Workout history, All exercises and **More stats** (`/progress/more`, every deeper chart).
+  - **One strength index everywhere:** coaching and the phase-coach detail use the same lifts (`getStrengthLifts`).
+- **Lift page** (`/exercises/[id]`): estimated max in `t-stat` with an accent "Best ever" chip, the 12-week change, and one chart with a 4W / 12W / 1Y / All `ToggleChip` switch (`LiftHeroCard`). Then quick facts (Heaviest or Least assistance, Best recent set, Sessions) and Recent sessions set by set. The PR cards, max-weight and volume charts, coach insights and video follow. Numbers match Progress: weekly bests, one decimal.
 - **Workout logger** (`/workout`; session rules in `src/lib/workout-session.ts`, times in `src/lib/time.ts`): built for one hand between sets.
   - **Header:** a 44px ⌄ **Minimize workout** button (leaves the workout running; never discards it), the editable title, `elapsed · N of M exercises` in mono, lime **Finish**, and one neutral chip "Hypertrophy week · 8–12 reps · RPE 7.5".
   - **Exercise cards:** one is open at a time, in every kind of workout. Closed cards are one row with a tally ("2/3", or "3/3 ✓" in `text-positive`).
@@ -189,6 +202,7 @@ Loading placeholder: `surface-raised`, `radius-field`, `motion-safe:animate-puls
 - **Home** (`src/app/(app)/dashboard/page.tsx`, cards in `src/components/home/`, decisions in `src/lib/home.ts`): answers three questions and stops. Top to bottom:
   - **Header:** date in `t-caption`, greeting in `t-title-1` (wraps, never truncates), a 44px avatar → `/account`.
   - **Today** (`TodayCard`, shared with Train): a neutral week chip ("Strength week" / "Deload week", only once a phase is running), the suggested routine with "N exercises · M sets", lime **Start workout** and ghost **Not today**. A rest day shows a secondary **Train anyway**. With nothing to suggest it still says "Start a workout" → `/routines`.
+  - **This week's muscles** (`ThisWeekMuscles`): the front/back muscle map under Today, with Details → More stats.
   - **This week** (`ThisWeekStats`): Workouts `done/goal`, Volume in tonnes, Readiness 0–100 = `round((avg(sleep, recovery, energy) − 1) / 4 × 100)` with Good (≥75, `positive`) · Fair (50–74, `caution`) · Low (<50, `negative`). No check-in today → "—" and **Check in**, which opens the check-in sheet.
   - **One coach note at most** (`CoachNoteCard`), the first that applies: light-weeks restart › deload › phase complete › size up, strength flat › stalled lift › neglected muscle. Each links to its detail, mostly `/progress#coaching`. The restart note is the Restart / Keep going card itself.
   - **Done for today:** after a split day is logged, Today shows "{day} ✓ · Done for today · N min" and "Up next tomorrow: …" until the phone's own midnight, with a secondary **Train again**.

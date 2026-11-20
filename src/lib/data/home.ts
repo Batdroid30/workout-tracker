@@ -5,6 +5,7 @@ import { getRecentWorkouts } from '@/lib/data/workouts'
 import { getTodayReadiness } from '@/lib/data/readiness'
 import { getRecentPRs, type RecentPR } from '@/lib/data/insights'
 import { getProgressSnapshot } from '@/lib/data/progress-snapshot'
+import { getVolumeLandmarksByMuscle, type MuscleVolumeLandmarkPoint } from '@/lib/data/phase-coach'
 import { getSessionSuggestion, type SessionSuggestion } from '@/lib/data/splits'
 import { getCoachSignals } from '@/lib/data/coach-signals'
 import { setVolume, workoutBodyweight } from '@/lib/load'
@@ -92,6 +93,7 @@ export interface HomeData {
   routines: Awaited<ReturnType<typeof getRoutines>>
   profile: Profile | null
   missedWeeks: number
+  volumeLandmarks: MuscleVolumeLandmarkPoint[]
 }
 
 export const getHomeData = cache(async (userId: string): Promise<HomeData> => {
@@ -122,5 +124,7 @@ export const getHomeData = cache(async (userId: string): Promise<HomeData> => {
     lastWorkout: lastWorkout ? toHighlightWorkout(lastWorkout) : null,
   })
 
-  return { model, suggestion, routines, profile, missedWeeks: cycle.missedWeeks }
+  const volumeLandmarks = await getVolumeLandmarksByMuscle(userId, profile, snapshot.currentWeekSetsByMuscle, snapshot.muscleFrequency)
+
+  return { model, suggestion, routines, profile, missedWeeks: cycle.missedWeeks, volumeLandmarks }
 })

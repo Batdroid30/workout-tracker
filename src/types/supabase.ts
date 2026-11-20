@@ -521,6 +521,32 @@ export type Database = {
           },
         ]
       }
+      tracked_lifts: {
+        Row: {
+          exercise_id: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          exercise_id: string
+          position: number
+          user_id: string
+        }
+        Update: {
+          exercise_id?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracked_lifts_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_split_items: {
         Row: {
           id: string
@@ -639,6 +665,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      save_tracked_lifts: {
+        Args: { p_exercise_ids: string[] }
+        Returns: undefined
+      }
       get_user_exercise_frequency: {
         Args: never
         Returns: {
