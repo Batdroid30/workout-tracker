@@ -8,7 +8,8 @@ import { cn } from '@/lib/utils'
 import { getButtonClassName } from '@/components/ui'
 import type { Mission, MissionPriority } from '@/lib/data/phase-coach'
 import type { WeeklySummary, NextWorkoutSuggestion } from '@/lib/data/insights'
-import { useTrainingCycle } from '@/hooks/useTrainingCycle'
+import { weekLabel } from '@/lib/home'
+import type { WUPScheme } from '@/lib/workout-intelligence'
 
 interface ThisWeekCardProps {
   thisWeekCount:  number
@@ -17,6 +18,8 @@ interface ThisWeekCardProps {
   missions:       Mission[]
   nextWorkout:    NextWorkoutSuggestion | null
   isDeloadWeek?:  boolean
+  /** Current training week, read on the server so a restart shows at once. */
+  scheme:         WUPScheme | null
 }
 
 const PRIORITY_BAR_CLASS: Record<MissionPriority, string> = {
@@ -32,6 +35,7 @@ export function ThisWeekCard({
   missions,
   nextWorkout,
   isDeloadWeek = false,
+  scheme,
 }: ThisWeekCardProps) {
   const [editing,   setEditing]   = useState(false)
   const [draftGoal, setDraftGoal] = useState(goalSessions)
@@ -40,7 +44,6 @@ export function ThisWeekCard({
   const sessionPct = Math.min(100, Math.round((thisWeekCount / goalSessions) * 100))
   const reached    = thisWeekCount >= goalSessions
   const remaining  = Math.max(0, goalSessions - thisWeekCount)
-  const dupScheme  = useTrainingCycle().cycle?.scheme ?? null
 
   const saveGoal = () => {
     startTransition(async () => {
@@ -66,13 +69,13 @@ export function ThisWeekCard({
               recover &amp; rebuild
             </span>
           </div>
-        ) : dupScheme && (
+        ) : scheme && (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-raised border border-border-strong">
             <span className="text-xs font-semibold text-primary">
-              {dupScheme.label}
+              {weekLabel(scheme, false)}
             </span>
             <span className="text-xs text-tertiary">
-              {dupScheme.repRange.min}–{dupScheme.repRange.max} reps
+              {scheme.repRange.min}–{scheme.repRange.max} reps
             </span>
           </div>
         )}
