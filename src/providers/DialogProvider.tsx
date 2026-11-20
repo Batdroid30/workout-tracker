@@ -63,7 +63,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       {children}
       {isOpen && options && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0 bg-black/60 animate-in fade-in duration-200"
+          className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0 bg-black/60 animate-in fade-in duration-200"
         >
           <div
             className="p-6 rounded-card bg-surface-raised border border-border shadow-[var(--shadow-overlay)] w-full max-w-sm animate-in zoom-in-95 slide-in-from-bottom-4 duration-200"
