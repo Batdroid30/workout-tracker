@@ -22,6 +22,8 @@ export type SessionSuggestion =
       routineTitle: string | null
       exerciseCount: number
       setCount: number
+      // Saved position of the day after next, for "Skip to next".
+      skipToPosition: number
     }
   | FallbackSuggestion
 
@@ -115,6 +117,7 @@ export const getSessionSuggestion = cache(async (userId: string): Promise<Sessio
         routineTitle: routine?.title ?? null,
         exerciseCount: exercises.length,
         setCount: exercises.reduce<number>((sum, exercise) => sum + routineExerciseFacts(exercise).sets, 0),
+        skipToPosition: active.items[(next.index + 1) % active.items.length].position,
       }
     }
   }

@@ -158,7 +158,7 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              className="w-full rounded-control px-4 py-3 text-sm text-primary bg-surface-raised border border-border-strong placeholder:text-tertiary focus:border-accent focus:outline-none resize-none h-20 transition-colors"
+              className="w-full rounded-control px-4 py-3 text-base text-primary bg-surface-raised border border-border-strong placeholder:text-tertiary focus:border-accent focus:outline-none resize-none h-20 transition-colors"
               placeholder="e.g. Focus on slow eccentrics…"
             />
           </div>

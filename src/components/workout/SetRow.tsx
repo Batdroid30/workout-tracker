@@ -253,7 +253,7 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
             inputMode="decimal"
             value={rpeStr}
             placeholder="RPE · 1–10"
-            className="flex-1 min-h-11 rounded-control text-center mono text-sm text-secondary placeholder:text-tertiary placeholder:text-xs bg-surface-raised border border-border focus:outline-none focus:border-border-strong transition-colors"
+            className="flex-1 min-h-11 rounded-control text-center mono text-base text-secondary placeholder:text-tertiary placeholder:text-xs bg-surface-raised border border-border focus:outline-none focus:border-border-strong transition-colors"
             onFocus={() => { rpeFocused.current = true }}
             onChange={e => {
               const str = e.target.value

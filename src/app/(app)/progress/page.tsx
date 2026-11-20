@@ -14,6 +14,7 @@ import { getWorkoutCalendarData } from '@/lib/data/insights'
 import { buildMesocycleTimeline } from '@/lib/phase-coach'
 import { getTrainingCycle } from '@/lib/data/training-cycle'
 import { OverviewStatsRow } from '@/components/progress/OverviewStatsRow'
+import { CoachingSection } from '@/components/progress/CoachingSection'
 import { WorkoutCalendar } from '@/components/progress/WorkoutCalendar'
 import { FrequencyTrendChart } from '@/components/progress/FrequencyTrendChart'
 import { KeyLiftsTrendSection } from '@/components/progress/KeyLiftsTrendSection'
@@ -269,6 +270,8 @@ export default async function ProgressPage() {
             </Link>
           ))}
         </Card>
+
+        <CoachingSection userId={userId} />
 
         {/* ── Muscle focus body map ───────────────────────────────────────── */}
         <section>

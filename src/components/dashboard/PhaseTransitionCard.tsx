@@ -5,11 +5,10 @@ import { TrendingUp, TrendingDown, Minus, Loader2, RefreshCw } from 'lucide-reac
 import { useRouter } from 'next/navigation'
 import { InsightCard } from './InsightCard'
 import { updateTrainingProfileAction } from '@/app/(app)/profile/actions'
+import { isPhaseTransitionDue } from '@/lib/phase-transition'
 import { DELOAD_THRESHOLDS } from '@/lib/workout-intelligence'
 import { cn } from '@/lib/utils'
 import type { TrainingPhase, ExperienceLevel } from '@/types/database'
-
-const TRANSITION_GRACE_WEEKS = 4
 
 interface PhaseTransitionCardProps {
   experienceLevel: ExperienceLevel | null
@@ -36,13 +35,10 @@ export function PhaseTransitionCard({ experienceLevel, trainingPhase, phaseWeek 
   const [pending, startTransition] = useTransition()
   const [switching, setSwitching]  = useState<TrainingPhase | null>(null)
 
-  if (!trainingPhase || phaseWeek === null) return null
+  if (!trainingPhase || phaseWeek === null || !isPhaseTransitionDue({ experienceLevel, trainingPhase, phaseWeek })) return null
 
-  const experience   = experienceLevel ?? 'intermediate'
-  const threshold    = DELOAD_THRESHOLDS[experience][trainingPhase]
+  const threshold    = DELOAD_THRESHOLDS[experienceLevel ?? 'intermediate'][trainingPhase]
   const weeksInPhase = phaseWeek - 1
-
-  if (weeksInPhase < threshold + TRANSITION_GRACE_WEEKS) return null
 
   const handleSwitch = (next: TrainingPhase) => {
     if (next === trainingPhase || switching) return

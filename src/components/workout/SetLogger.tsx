@@ -475,7 +475,7 @@ function RestDurationPicker({ isOpen, current, onChange, onClose }: RestDuration
           value={custom}
           onChange={e => setCustom(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleCustomSubmit()}
-          className="flex-1 mono text-sm"
+          className="flex-1 mono text-base"
         />
         <Button onClick={handleCustomSubmit} fullWidth={false}>
           Set

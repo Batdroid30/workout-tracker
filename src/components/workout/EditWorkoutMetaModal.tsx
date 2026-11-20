@@ -76,7 +76,7 @@ export function EditWorkoutMetaModal({ workoutId, initialTitle, initialDuration,
                 <textarea 
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
-                  className="w-full bg-surface-raised border border-border-strong rounded-control px-4 py-3 text-primary text-sm placeholder:text-tertiary focus:outline-none focus:border-accent h-20 resize-none"
+                  className="w-full bg-surface-raised border border-border-strong rounded-control px-4 py-3 text-primary text-base placeholder:text-tertiary focus:outline-none focus:border-accent h-20 resize-none"
                 />
               </div>
             </div>

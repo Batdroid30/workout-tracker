@@ -53,7 +53,7 @@ export function BodyweightLogger({ latestWeight }: BodyweightLoggerProps) {
           onChange={e => setValue(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleLog()}
           placeholder={latestWeight ? `Last: ${latestWeight}` : 'Enter weight'}
-          className="w-full h-9 bg-surface-raised border border-border rounded-field px-3 pr-8 mono text-sm text-primary placeholder:text-tertiary focus:outline-none focus:border-border-strong text-center tabular-nums"
+          className="w-full h-9 bg-surface-raised border border-border rounded-field px-3 pr-8 mono text-base text-primary placeholder:text-tertiary focus:outline-none focus:border-border-strong text-center tabular-nums"
         />
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-tertiary pointer-events-none">
           kg

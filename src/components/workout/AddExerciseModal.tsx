@@ -106,7 +106,7 @@ export function AddExerciseModal({ isOpen, onClose, onConfirm }: AddExerciseModa
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tertiary" />
           <input
             placeholder="Search exercises…"
-            className="w-full h-11 pl-9 pr-4 rounded-field text-sm text-primary placeholder:text-tertiary bg-surface-raised border border-border focus:outline-none transition-colors"
+            className="w-full h-11 pl-9 pr-4 rounded-field text-base text-primary placeholder:text-tertiary bg-surface-raised border border-border focus:outline-none transition-colors"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             autoFocus
