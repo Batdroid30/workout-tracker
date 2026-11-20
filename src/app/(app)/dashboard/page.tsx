@@ -20,6 +20,7 @@ import {
 import { buildMesocycleTimeline } from '@/lib/phase-coach'
 import { DELOAD_THRESHOLDS } from '@/lib/workout-intelligence'
 import { getTrainingCycle } from '@/lib/data/training-cycle'
+import { LongBreakCard } from '@/components/dashboard/LongBreakCard'
 import { getBadges } from '@/lib/data/achievements'
 import { assessFatigueLevel } from '@/lib/algorithms'
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
@@ -209,6 +210,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen p-5 pb-36">
+      {trainingCycle.offerRestart && (
+        <div className="mb-5">
+          <LongBreakCard missedWeeks={trainingCycle.missedWeeks} />
+        </div>
+      )}
       <DashboardTabs
         userId={userId}
         firstName={firstName}

@@ -4,10 +4,12 @@ import { getProfile } from '@/lib/data/profile'
 import { BackButton } from '@/components/ui/BackButton'
 import { ClearDataButton } from '@/components/profile/ClearDataButton'
 import { ProfileForm } from '../profile/ProfileForm'
+import { getTrainingCycle } from '@/lib/data/training-cycle'
+import { TrainingCycleSection } from '@/components/account/TrainingCycleSection'
 
 export default async function AccountPage() {
   const { userId, session } = await requireAuth()
-  const profile = await getProfile(userId)
+  const [profile, trainingCycle] = await Promise.all([getProfile(userId), getTrainingCycle(userId)])
   const displayName = profile?.first_name
     ? `${profile.first_name}${profile.last_name ? ` ${profile.last_name}` : ''}`
     : 'Your account'
@@ -33,6 +35,8 @@ export default async function AccountPage() {
       </header>
 
       <ProfileForm profile={profile} userEmail={session.user.email || ''} />
+
+      <TrainingCycleSection cycle={trainingCycle} hasPhase={Boolean(profile?.phase_started_at)} />
 
       <section className="mt-10 pt-6 border-t border-border">
         <h2 className="t-label mb-3">Danger zone</h2>
