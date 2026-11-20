@@ -76,7 +76,8 @@ function routineExerciseFacts(exercise: unknown): { sets: number; muscleGroup: s
   return { sets, muscleGroup }
 }
 
-async function getRecentSplitWorkouts(userId: string, routineIds: string[]): Promise<SplitWorkout[]> {
+// One workout per day in the split is enough to place a repeated routine.
+async function getRecentSplitWorkouts(userId: string, routineIds: string[], limit: number): Promise<SplitWorkout[]> {
   if (routineIds.length === 0) return []
   const supabase = await getSupabaseServer()
   const { data, error } = await supabase
@@ -86,7 +87,7 @@ async function getRecentSplitWorkouts(userId: string, routineIds: string[]): Pro
     .not('completed_at', 'is', null)
     .in('routine_id', routineIds)
     .order('started_at', { ascending: false })
-    .limit(2)
+    .limit(limit)
 
   if (error) throw new DatabaseError(`Failed to fetch split workouts: ${error.message}`, error)
   return (data ?? []).flatMap(row => (row.routine_id ? [{ routineId: row.routine_id, startedAt: row.started_at }] : []))
@@ -100,7 +101,7 @@ export const getSessionSuggestion = cache(async (userId: string): Promise<Sessio
     const routineIds = [...new Set(active.items.flatMap(item => (item.routineId ? [item.routineId] : [])))]
     const next = getNextSplitItem({
       items: active.items,
-      recentSplitWorkouts: await getRecentSplitWorkouts(userId, routineIds),
+      recentSplitWorkouts: await getRecentSplitWorkouts(userId, routineIds, active.items.length),
       skip: active.skip,
       now: new Date(),
     })

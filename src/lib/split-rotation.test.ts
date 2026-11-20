@@ -77,6 +77,35 @@ describe('getNextSplitItem', () => {
     expect(result?.isRest).toBe(true)
   })
 
+  it('finishes a weekly loop where a run of routines repeats', () => {
+    const items: SplitItem[] = ['push', 'pull', 'legs', null, 'push', 'pull', 'legs'].map((routineId, position) => ({ id: `w${position}`, position, routineId }))
+    const history = [did('legs', 6), did('pull', 5), did('push', 4), did('legs', 2), did('pull', 1), did('push', 0)]
+    expect(getNextSplitItem({ items, skip: null, now: day(7), recentSplitWorkouts: history })?.index).toBe(0)
+  })
+
+  it('reaches the second variant of a repeated block', () => {
+    const items: SplitItem[] = ['push', 'pull', 'legsA', 'push', 'pull', 'legsB'].map((routineId, position) => ({ id: `v${position}`, position, routineId }))
+    const history = [did('pull', 4), did('push', 3), did('legsA', 2), did('pull', 1), did('push', 0)]
+    expect(getNextSplitItem({ items, skip: null, now: day(5), recentSplitWorkouts: history })?.item.routineId).toBe('legsB')
+  })
+
+  it('reads the skip pointer as a saved position, so a deleted day in between does not shift it', () => {
+    const withGap = PPL_UL.filter(item => item.position !== 1)
+    const skip = { position: 4, setAt: day(1, 9).toISOString() }
+    expect(getNextSplitItem({ items: withGap, recentSplitWorkouts: [did('push', 0)], skip, now: day(1) })?.item.routineId).toBe('upper')
+  })
+
+  it('ignores a skip pointer whose day no longer exists', () => {
+    const skip = { position: 12, setAt: day(1, 9).toISOString() }
+    expect(next([did('pull', 0)], day(1), { skip })?.item.routineId).toBe('legs')
+  })
+
+  it('moves past a skipped-to rest day once that day is over', () => {
+    const skip = { position: 3, setAt: day(1, 9).toISOString() }
+    expect(next([did('pull', 0)], day(1), { skip })?.isRest).toBe(true)
+    expect(next([did('pull', 0)], day(2), { skip })?.item.routineId).toBe('upper')
+  })
+
   it('starts from the first item when the last routine left the split', () => {
     expect(next([did('arms', 0)], day(1))?.item.routineId).toBe('push')
   })
