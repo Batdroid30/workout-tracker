@@ -7,6 +7,7 @@ import { WorkoutFocusSheet } from './WorkoutFocusSheet'
 import { buildWorkoutTemplate } from '@/lib/template-generator'
 import { useTrainingCycle } from '@/hooks/useTrainingCycle'
 import { getUserExerciseFrequency } from '@/app/(app)/workout/actions'
+import { useStartWorkout } from '@/hooks/useStartWorkout'
 import type { Exercise, TrainingPhase } from '@/types/database'
 
 interface FocusWorkoutLauncherProps {
@@ -25,11 +26,15 @@ export function FocusWorkoutLauncher({ trainingPhase, children }: FocusWorkoutLa
   const [isOpen, setIsOpen] = useState(false)
   const [usageFrequency, setUsageFrequency] = useState<Record<string, number>>({})
 
-  const open = useCallback(async () => {
+  const { start, sheet } = useStartWorkout()
+
+  const openPicker = useCallback(async () => {
     setIsOpen(true)
     // The sheet renders at once; exercises re-rank when frequency arrives.
     setUsageFrequency(await getUserExerciseFrequency())
   }, [])
+
+  const open = () => start(() => { void openPicker() }, 'a new workout')
 
   const pick = useCallback((exercises: Exercise[]) => {
     if (exercises.length === 0) startWorkout()
@@ -40,6 +45,7 @@ export function FocusWorkoutLauncher({ trainingPhase, children }: FocusWorkoutLa
   return (
     <>
       {children(open)}
+      {sheet}
       <WorkoutFocusSheet isOpen={isOpen} onClose={() => setIsOpen(false)} usageFrequency={usageFrequency} onPick={pick} />
     </>
   )

@@ -9,6 +9,7 @@ import { useWorkoutStore } from '@/store/workout.store'
 import { useToast } from '@/providers/ToastProvider'
 import { setSplitPositionAction } from '@/app/(app)/routines/split-actions'
 import { FocusWorkoutLauncher } from '@/components/workout/FocusWorkoutLauncher'
+import { useStartWorkout } from '@/hooks/useStartWorkout'
 import type { TrainingPhase } from '@/types/database'
 import type { SessionSuggestion } from '@/lib/data/splits'
 import type { getRoutines } from '@/lib/data/routines'
@@ -30,6 +31,7 @@ export function TodayCard({ suggestion, routines, weekLabel, trainingPhase = nul
   const router = useRouter()
   const startRoutine = useWorkoutStore(state => state.startRoutine)
   const toast = useToast()
+  const { start: guardedStart, sheet } = useStartWorkout()
 
   const start = (routineId: string | null) => {
     const routine = routines.find(candidate => candidate.id === routineId)
@@ -38,12 +40,15 @@ export function TodayCard({ suggestion, routines, weekLabel, trainingPhase = nul
       router.push(ROUTINES_HREF)
       return
     }
-    startRoutine(routine)
-    router.push('/workout')
+    guardedStart(() => {
+      startRoutine(routine)
+      router.push('/workout')
+    }, routine.title)
   }
 
   return (
     <Card>
+      {sheet}
       {weekLabel && <Chip>{weekLabel}</Chip>}
       <div className={weekLabel ? 'mt-3' : undefined}>
         <TodayBody suggestion={suggestion} onStart={start} trainingPhase={trainingPhase} />
