@@ -55,7 +55,7 @@ export default async function WorkoutHistoryDetail({ params }: { params: Promise
       >
         <div className="flex items-center gap-3">
           <Link
-            href="/profile?tab=history"
+            href="/history"
             className="p-2.5 rounded-control transition-colors text-secondary hover:bg-surface-raised"
           >
             <ArrowLeft className="w-5 h-5" />

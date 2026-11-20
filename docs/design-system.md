@@ -77,7 +77,7 @@ Not on selections, tiles, icons, links or emphasis. In code, the raw CSS variabl
 - Grid `var(--border)`; axis ticks `var(--text-secondary)` at 12px.
 - Tooltip: `surface-raised` background, `border-strong` border, 12px radius; label `text-primary`, values `text-secondary`.
 
-No gradients, glows or blur anywhere. Cards are flat.
+No gradients or glows. Cards are flat. The only blur is the tab bar's tinted capsule (see BottomNav).
 
 ---
 
@@ -117,7 +117,7 @@ No gradients, glows or blur anywhere. Cards are flat.
 
 - 4px spacing grid (Tailwind steps). Cards pad 16px; sheets pad 20px with 32px at the bottom; cards stack 12px apart.
 - Nest radii outward-in: card 16 → control 12 → field 10.
-- Overlays dim the page with black at 60%, no blur.
+- Overlays dim the page with black at 60%, no blur (the tab bar's capsule is the one exception).
 
 ---
 
@@ -173,7 +173,14 @@ Loading placeholder: `surface-raised`, `radius-field`, `motion-safe:animate-puls
 ### Feature components with fixed rules
 - **SetRow** (`src/components/workout/SetRow.tsx`): values in `t-value` inside 44px `surface-raised` fields; focused field gets a lime border; the 44px check fills lime when the set is done and the row dims to 60% — the one lime moment per set. Must hold `1,000 kg` and `102.5 × 12` at 375px.
 - **PRBanner** (`src/components/workout/PRBanner.tsx`): solid `surface-raised` panel with `shadow-overlay`, lime trophy on `lime-soft`, "New record" in lime, old value struck through in `text-tertiary`, 2px lime countdown, auto-dismiss after 5s.
-- **BottomNav** (`src/components/layout/BottomNav.tsx`): `surface-raised` pill, 44px tabs, 18px icons, 12px labels; active tab lime, others `text-tertiary`.
+- **BottomNav** (`src/components/layout/BottomNav.tsx`, tabs in `nav-config.ts`): a floating, iOS-style tinted capsule — 64px tall, 14px from the sides and 18px above the safe area, `surface-raised` at 92% with a 20px backdrop blur, `border-strong` hairline and `shadow-overlay`. Four tabs: **Home** `/dashboard`, **Train** `/routines`, **Progress** `/progress`, **Coach** `/coach`; 20px icons over 12px labels. The active tab is lime on a sliding `accent-soft` pill; others `text-tertiary`. Account pages highlight Home; history, exercises and finished-workout detail highlight Progress.
+  - **Scroll:** past 80px from the top, scrolling down 24px collapses the bar to the active tab's icon and slides in a lime "Start workout" button (→ `/routines`), or "Resume workout" (→ `/workout`) while a session is active. Scrolling up 24px or returning to the top expands it. No animation under reduced motion.
+  - Hidden on the live workout screen (`/workout`). Page roots reserve `pb-28` so the last item clears it.
+
+### Where things live
+- Account and settings: the profile picture on Home → `/account` (import at `/account/import`, "Clear all data" under Danger zone).
+- Workout history `/history` and exercises `/exercises`, both reached from the top of Progress.
+- Old `/profile` links redirect (`?tab=history` → `/history`, `?tab=exercises` → `/exercises`, everything else → `/account`).
 
 ---
 
@@ -198,4 +205,4 @@ All are at zero. A real exception takes an inline `eslint-disable-next-line` wit
 
 ## What's next
 
-This is step 1 of the redesign. Coming: four tabs (Home, Train, Progress, Coach) in an iOS-style tinted capsule that shrinks on scroll, account behind the profile picture, then redesigned Home, workout logger, Progress (with history and exercises) and Coach. Legacy token aliases are deleted in the last step.
+Steps 1 (visual foundation) and 2 (navigation) are done. Coming: redesigned Home, workout logger, Progress (with history and exercises) and Coach. Legacy token aliases are deleted in the last step.

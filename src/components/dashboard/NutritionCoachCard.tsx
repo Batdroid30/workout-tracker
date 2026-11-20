@@ -34,7 +34,7 @@ export function NutritionCoachCard({ profile, bwHistory, weeklyGoal }: Nutrition
       >
         <p className="text-sm text-tertiary leading-relaxed">
           Add your height, age, and sex in{' '}
-          <Link href="/profile" className="underline text-primary">
+          <Link href="/account" className="underline text-primary">
             your profile
           </Link>{' '}
           to unlock calorie and protein targets.

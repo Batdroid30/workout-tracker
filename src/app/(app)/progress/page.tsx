@@ -1,7 +1,6 @@
 import { Suspense } from 'react'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
-import { Chip, getButtonClassName } from '@/components/ui'
-import { cn } from '@/lib/utils'
+import { Card, Chip } from '@/components/ui'
 import { WeeklyBodyMapCard } from '@/components/progress/WeeklyBodyMapCard'
 import { PhaseCoachDetail } from '@/components/progress/PhaseCoachDetail'
 import { BodyweightSection } from '@/components/progress/BodyweightSection'
@@ -30,7 +29,13 @@ import type { OverlayPoint } from '@/components/progress/BodyCompositionOverlayC
 import type { StrengthIndexPoint } from '@/lib/data/phase-coach'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Activity } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
+
+// Entry points to the lifter's full data, until Progress is redesigned.
+const DATA_LINKS = [
+  { href: '/history',   label: 'Workout history', hint: "Every session you've logged" },
+  { href: '/exercises', label: 'Exercises',       hint: 'Your library and per-lift stats' },
+] as const
 import type { BodyweightPoint } from '@/lib/data/bodyweight'
 import type { TrainingPhase } from '@/types/database'
 
@@ -235,7 +240,7 @@ export default async function ProgressPage() {
     : null
 
   return (
-    <div className="min-h-screen pb-24 p-5">
+    <div className="min-h-screen p-5 pb-28">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="pt-4 mb-7">
@@ -246,6 +251,22 @@ export default async function ProgressPage() {
       </div>
 
       <div className="space-y-5">
+
+        <Card padding="none" as="section">
+          {DATA_LINKS.map((link, index) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`flex min-h-14 items-center justify-between gap-3 px-4 py-3 ${index > 0 ? 'border-t border-border' : ''}`}
+            >
+              <span className="min-w-0">
+                <span className="t-body block">{link.label}</span>
+                <span className="t-caption block truncate">{link.hint}</span>
+              </span>
+              <ChevronRight className="w-5 h-5 shrink-0 text-tertiary" aria-hidden="true" />
+            </Link>
+          ))}
+        </Card>
 
         {/* ── Muscle focus body map ───────────────────────────────────────── */}
         <section>
@@ -365,25 +386,6 @@ export default async function ProgressPage() {
           )}
         </div>
 
-        {/* ── Exercise drill-down ──────────────────────────────────────── */}
-        <section>
-          <h2 className="t-display-s mb-3">Exercise detail</h2>
-          <div className="card p-4 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-control bg-surface-raised border border-border flex items-center justify-center shrink-0">
-              <Activity className="w-5 h-5 text-secondary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="t-caption font-semibold text-primary">Per-exercise stats</p>
-              <p className="t-caption mt-0.5">View e1RM progression, max weight and PRs for any exercise.</p>
-            </div>
-            <Link
-              href="/exercises"
-              className={cn(getButtonClassName({ size: 'sm', fullWidth: false }), 'shrink-0')}
-            >
-              Browse
-            </Link>
-          </div>
-        </section>
 
       </div>
     </div>

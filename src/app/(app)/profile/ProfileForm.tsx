@@ -347,7 +347,7 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
         </Button>
 
         <Link
-          href="/profile/import"
+          href="/account/import"
           className={getButtonClassName({ variant: 'secondary' })}
         >
           <Upload className="w-4 h-4 text-secondary" /> Import logs (CSV)

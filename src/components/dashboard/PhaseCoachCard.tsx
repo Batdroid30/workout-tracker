@@ -263,7 +263,7 @@ export function PhaseCoachCard({
             <div className="my-auto">
               <p className="t-caption text-tertiary leading-relaxed">
                 Add height, age, and sex in{' '}
-                <Link href="/profile" className="underline font-semibold text-primary">
+                <Link href="/account" className="underline font-semibold text-primary">
                   your profile
                 </Link>{' '}
                 to calculate custom calorie & protein targets.
