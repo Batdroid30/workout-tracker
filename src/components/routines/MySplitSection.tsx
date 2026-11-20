@@ -70,7 +70,8 @@ function ActiveSplit({ split, suggestion, routines }: {
   const skipToNext = () => {
     setSheetOpen(false)
     startTransition(async () => {
-      const result = await setSplitPositionAction(split.id, (next.index + 1) % split.items.length)
+      const following = split.items[(next.index + 1) % split.items.length]
+      const result = await setSplitPositionAction(split.id, following.position)
       if (!result.success) toast.error(result.error)
     })
   }

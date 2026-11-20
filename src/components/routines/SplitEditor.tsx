@@ -88,12 +88,13 @@ export function SplitEditor({ split, routines }: SplitEditorProps) {
     })
   }
 
-  const startFrom = (position: number) => {
+  const startFrom = (index: number) => {
     if (!split) return
+    const position = split.items[index].position
     startTransition(async () => {
       const result = await setSplitPositionAction(split.id, position)
       if (!result.success) return toast.error(result.error)
-      toast.success(`Up next: ${titleFor(items[position].routineId)}`)
+      toast.success(`Up next: ${titleFor(items[index].routineId)}`)
       router.push('/routines')
     })
   }

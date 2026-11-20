@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SplitInputSchema } from './split-schemas'
+import { SplitInputSchema, splitRenamePayload } from './split-schemas'
 
 const PUSH = '11111111-1111-4111-8111-111111111111'
 const LEGS = '22222222-2222-4222-8222-222222222222'
@@ -24,5 +24,11 @@ describe('SplitInputSchema', () => {
     ['a routine id that is not a uuid', { ...valid, items: [{ routineId: 'push' }] }],
   ])('rejects %s', (_label, input) => {
     expect(SplitInputSchema.safeParse(input).success).toBe(false)
+  })
+})
+
+describe('splitRenamePayload', () => {
+  it('clears a skip pointer, because saving renumbers the days', () => {
+    expect(splitRenamePayload('PPL')).toEqual({ name: 'PPL', skip_to_position: null, skip_set_at: null })
   })
 })

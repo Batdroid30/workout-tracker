@@ -15,3 +15,9 @@ export type SplitInput = z.infer<typeof SplitInputSchema>
 
 export const SplitIdSchema = z.string().uuid()
 export const PositionSchema = z.number().int().min(0).max(MAX_SPLIT_ITEMS - 1)
+
+// Saving rewrites every day's position, so a skip pointer set before the edit
+// would point at a different day afterwards.
+export function splitRenamePayload(name: string) {
+  return { name, skip_to_position: null, skip_set_at: null }
+}

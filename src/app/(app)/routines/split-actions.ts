@@ -4,7 +4,7 @@ import { requireAuth } from '@/lib/auth'
 import { revalidateAll } from '@/lib/cache'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
-import { PositionSchema, SplitIdSchema, SplitInputSchema, type SplitInput } from './split-schemas'
+import { PositionSchema, SplitIdSchema, SplitInputSchema, splitRenamePayload, type SplitInput } from './split-schemas'
 
 type ActionResult = { success: true; id?: string } | { success: false; error: string }
 
@@ -34,7 +34,7 @@ export async function saveSplitAction(splitId: string | null, input: SplitInput)
     if (id) {
       SplitIdSchema.parse(id)
       await assertOwnSplit(userId, id)
-      const { error } = await supabase.from('training_splits').update({ name: parsed.name }).eq('id', id).eq('user_id', userId)
+      const { error } = await supabase.from('training_splits').update(splitRenamePayload(parsed.name)).eq('id', id).eq('user_id', userId)
       if (error) throw new DatabaseError(`Failed to rename split: ${error.message}`, error)
       const { error: clearError } = await supabase.from('training_split_items').delete().eq('split_id', id)
       if (clearError) throw new DatabaseError(`Failed to update split days: ${clearError.message}`, clearError)
