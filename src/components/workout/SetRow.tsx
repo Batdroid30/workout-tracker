@@ -190,6 +190,7 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
         {/* Done */}
         <button
           onClick={handleDone}
+          aria-label="Complete set"
           className={cn(
             'w-11 h-11 shrink-0 rounded-control flex items-center justify-center border transition-all duration-150 active:scale-95',
             ticked

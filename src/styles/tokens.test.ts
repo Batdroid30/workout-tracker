@@ -50,7 +50,7 @@ describe('tokens.css', () => {
 
   const pairs: [fg: string, bg: string, min: number][] = [
     ['--text-primary', '--bg', 7], ['--text-primary', '--surface', 7], ['--text-primary', '--surface-raised', 7],
-    ['--text-secondary', '--surface', 4.5], ['--text-secondary', '--surface-raised', 4.5],
+    ['--text-secondary', '--bg', 4.5], ['--text-secondary', '--surface', 4.5], ['--text-secondary', '--surface-raised', 4.5],
     ['--text-tertiary', '--surface', 4.5], ['--text-tertiary', '--surface-raised', 4.5],
     ['--on-accent', '--lime', 4.5], ['--lime', '--surface', 4.5],
     ['--positive', '--surface', 4.5], ['--caution', '--surface', 4.5], ['--negative', '--surface', 4.5],

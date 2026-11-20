@@ -53,9 +53,9 @@ function formatMessageContent(content: string) {
   if (!content) {
     return (
       <span className="inline-flex items-center gap-1 text-tertiary">
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-tertiary" />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-tertiary [animation-delay:0.2s]" />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-tertiary [animation-delay:0.4s]" />
+        <span className="h-1.5 w-1.5 motion-safe:animate-bounce rounded-full bg-tertiary" />
+        <span className="h-1.5 w-1.5 motion-safe:animate-bounce rounded-full bg-tertiary [animation-delay:0.2s]" />
+        <span className="h-1.5 w-1.5 motion-safe:animate-bounce rounded-full bg-tertiary [animation-delay:0.4s]" />
       </span>
     )
   }

@@ -11,7 +11,7 @@ export default function DashboardLoading() {
       </div>
 
       {/* ── PREMIUM HERO CARD ── */}
-      <div className="card p-5 rounded-2xl flex flex-col gap-5 relative overflow-hidden h-[300px]">
+      <div className="card p-5 flex flex-col gap-5 relative overflow-hidden h-[300px]">
         {/* Top greeting + Active Phase Badge */}
         <div className="flex items-start justify-between">
           <div className="space-y-2">

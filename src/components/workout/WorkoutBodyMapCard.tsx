@@ -42,7 +42,7 @@ export function WorkoutBodyMapCard({ exercises }: WorkoutBodyMapCardProps) {
   )
   const maxSets = Math.max(0, ...Object.values(regionMuscles).map(({ sets }) => sets))
   const regionEntries = Object.entries(regionMuscles)
-  const fills = Object.fromEntries(regionEntries.map(([region]) => [region, 'var(--accent)']))
+  const fills = Object.fromEntries(regionEntries.map(([region]) => [region, 'var(--positive)']))
   const opacities = Object.fromEntries(
     regionEntries.map(([region, { sets }]) => [region, toHeatLevel(sets / maxSets)]),
   )

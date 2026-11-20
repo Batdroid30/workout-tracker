@@ -10,7 +10,7 @@ interface SessionBodyMapProps {
   exercises: SessionExerciseInput[]
 }
 
-const TRAINED_FILL = 'var(--accent)'
+const TRAINED_FILL = 'var(--positive)'
 
 export function SessionBodyMap({ exercises }: SessionBodyMapProps) {
   const intensityByMuscle = calculateSessionIntensity(exercises)

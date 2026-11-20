@@ -394,7 +394,7 @@ export default async function ProgressPage() {
 
 function BodyweightSkeleton() {
   return (
-    <div className="card p-4 animate-pulse">
+    <div className="card p-4 motion-safe:animate-pulse">
       <div className="h-4 w-32 bg-surface-raised rounded mb-3" />
       <div className="h-24 bg-surface-raised rounded" />
     </div>
@@ -403,7 +403,7 @@ function BodyweightSkeleton() {
 
 function BodyCompSkeleton() {
   return (
-    <div className="space-y-3 animate-pulse">
+    <div className="space-y-3 motion-safe:animate-pulse">
       <div className="card p-4 h-[80px]">
         <div className="h-3 w-28 bg-surface-raised rounded mb-3" />
         <div className="h-5 w-40 bg-surface-raised rounded" />
@@ -418,7 +418,7 @@ function BodyCompSkeleton() {
 
 function PRSectionSkeleton() {
   return (
-    <div className="space-y-4 animate-pulse">
+    <div className="space-y-4 motion-safe:animate-pulse">
       <div className="space-y-2">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="card p-3 flex items-center gap-3">

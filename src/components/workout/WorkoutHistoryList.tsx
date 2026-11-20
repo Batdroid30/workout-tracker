@@ -203,7 +203,7 @@ export function WorkoutHistoryList({ workouts: initialWorkouts, initialHasMore =
         <button
           onClick={handleLoadMore}
           disabled={isLoadingMore}
-          className="w-full min-h-[44px] glass rounded-lg text-sm font-medium text-secondary hover:border-border-strong transition-colors disabled:opacity-50"
+          className="w-full min-h-[44px] card text-sm font-medium text-secondary hover:border-border-strong transition-colors disabled:opacity-50"
         >
           {isLoadingMore ? 'Loading…' : 'Load more'}
         </button>

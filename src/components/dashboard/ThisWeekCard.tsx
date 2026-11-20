@@ -171,7 +171,7 @@ export function ThisWeekCard({
         </div>
         <Link
           href="/routines"
-          className={cn(getButtonClassName({ size: 'sm', fullWidth: false }), 'shrink-0')}
+          className={cn(getButtonClassName({ variant: 'secondary', size: 'sm', fullWidth: false }), 'shrink-0')}
         >
           Start <ArrowRight className="w-3 h-3" />
         </Link>
