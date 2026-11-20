@@ -103,10 +103,10 @@ export type FinishSituation = { kind: 'empty' } | { kind: 'ready' } | { kind: 'u
 
 // A set "has data" once the lifter typed a weight or reps; only those count.
 export function finishSituation(workout: ActiveWorkout): FinishSituation {
-  if (workout.exercises.length === 0) return { kind: 'empty' }
-  const count = workout.exercises
-    .flatMap(entry => entry.sets)
-    .filter(set => !set.completed && (set.weight_kg > 0 || set.reps > 0)).length
+  const sets = workout.exercises.flatMap(entry => entry.sets)
+  const count = sets.filter(set => !set.completed && (set.weight_kg > 0 || set.reps > 0)).length
+  // Nothing ticked and nothing typed: finishing would save an empty workout.
+  if (count === 0 && !sets.some(set => set.completed)) return { kind: 'empty' }
   return count > 0 ? { kind: 'unticked', count } : { kind: 'ready' }
 }
 

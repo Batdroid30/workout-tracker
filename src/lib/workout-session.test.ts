@@ -190,3 +190,11 @@ describe('finishSituation', () => {
     expect(finishSituation(workout(exercises))).toEqual({ kind: 'unticked', count: 2 })
   })
 })
+
+describe('finishSituation with nothing done', () => {
+  it('treats exercises with nothing logged as an empty workout', () => {
+    const untouched = exercise('A', { sets: [set({ weight_kg: 0, reps: 0 })] })
+    expect(finishSituation({ id: null, title: 'Push A', started_at: new Date(), openExerciseId: null, rest: null, exercises: [untouched] }))
+      .toEqual({ kind: 'empty' })
+  })
+})
