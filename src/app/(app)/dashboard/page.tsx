@@ -3,13 +3,14 @@ import { getHomeData } from '@/lib/data/home'
 import { greetingFor, homeDateLabel } from '@/lib/home'
 import { HomeHeader } from '@/components/home/HomeHeader'
 import { TodayCard } from '@/components/home/TodayCard'
+import { ThisWeekMuscles } from '@/components/home/ThisWeekMuscles'
 import { ThisWeekStats } from '@/components/home/ThisWeekStats'
 import { CoachNoteCard } from '@/components/home/CoachNoteCard'
 import { LatestHighlight } from '@/components/home/LatestHighlight'
 
 export default async function DashboardPage() {
   const { userId, session } = await requireAuth()
-  const { model, suggestion, routines, profile, missedWeeks } = await getHomeData(userId)
+  const { model, suggestion, routines, profile, missedWeeks, volumeLandmarks } = await getHomeData(userId)
 
   const email = session?.user?.email ?? ''
   const firstName = profile?.first_name ?? (email.split('@')[0] || 'athlete')
@@ -25,6 +26,7 @@ export default async function DashboardPage() {
         initial={(email[0] ?? 'U').toUpperCase()}
       />
       <TodayCard suggestion={suggestion} routines={routines} weekLabel={model.weekLabel} trainingPhase={profile?.training_phase ?? null} />
+      <ThisWeekMuscles volumeLandmarks={volumeLandmarks} />
       <ThisWeekStats
         workoutsDone={model.workoutsDone}
         workoutsGoal={model.workoutsGoal}
