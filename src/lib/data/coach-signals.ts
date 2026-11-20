@@ -14,7 +14,8 @@ import { computeStrengthIndex, getVolumeLandmarksByMuscle, buildThisWeekMissions
 import { getProgressSnapshot, type ProgressSnapshot, type StalenessEntry } from '@/lib/data/progress-snapshot'
 import { getTrainingCycle } from '@/lib/data/training-cycle'
 import { assessFatigueLevel, type FatigueAssessment } from '@/lib/algorithms'
-import { DELOAD_THRESHOLDS, STALL_VARIATION_ADVICE } from '@/lib/workout-intelligence'
+import { STALL_VARIATION_ADVICE } from '@/lib/workout-intelligence'
+import { isPhaseTransitionDue } from '@/lib/phase-transition'
 import { PUSH_MUSCLES, PULL_MUSCLES } from '@/lib/training-constants'
 import type { TrainingCycle } from '@/lib/training-cycle'
 import type { CoachSignalsInput } from '@/lib/home'
@@ -104,9 +105,6 @@ export const getCoachSignals = cache(async (userId: string): Promise<CoachSignal
   const dissociation = detectHypertrophicDissociation(bwHistory, strengthIndex.pctPerWeek, profile?.training_phase ?? null)
 
   const phaseWeek = profile?.phase_started_at ? trainingCycle.phaseWeek : null
-  const cycleLength = profile?.training_phase && profile.experience_level
-    ? DELOAD_THRESHOLDS[profile.experience_level][profile.training_phase]
-    : null
   const isDeloadWeek = fatigue.shouldSuggest || trainingCycle.isDeloadWeek
 
   const missions = buildThisWeekMissions({
@@ -134,7 +132,11 @@ export const getCoachSignals = cache(async (userId: string): Promise<CoachSignal
       missedWeeks: trainingCycle.missedWeeks,
       shouldDeload: fatigue.shouldSuggest,
       deloadReason: fatigue.signals[0] ?? null,
-      phaseTransitionDue: phaseWeek !== null && cycleLength !== null && phaseWeek > cycleLength,
+      phaseTransitionDue: isPhaseTransitionDue({
+        experienceLevel: profile?.experience_level ?? null,
+        trainingPhase: profile?.training_phase ?? null,
+        phaseWeek,
+      }),
       dissociation: { hasDissociation: dissociation.detected, message: dissociation.message },
       stalledLift: topStall ? { exerciseName: topStall.exerciseName, pctPerWeek: topStall.pctPerWeek } : null,
       neglectedMuscle: topNeglected ?? null,
