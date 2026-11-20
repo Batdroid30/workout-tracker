@@ -34,7 +34,7 @@ export function ReadinessCheckIn() {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="focus-ring -ml-1 rounded px-1 text-sm font-medium text-primary underline underline-offset-4"
+        className="focus-ring -ml-1 inline-flex min-h-11 items-center rounded px-1 text-sm font-medium text-primary underline underline-offset-4"
       >
         Check in
       </button>

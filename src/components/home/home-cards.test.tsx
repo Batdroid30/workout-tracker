@@ -26,6 +26,7 @@ describe('ThisWeekStats', () => {
     const markup = renderToStaticMarkup(<ThisWeekStats workoutsDone={0} workoutsGoal={3} volumeTonnes="0.0" readiness={null} />)
     expect(markup).toContain('—')
     expect(markup).toContain('Check in')
+    expect(markup).toMatch(/<button[^>]*min-h-11[^>]*>Check in</)
   })
 })
 
