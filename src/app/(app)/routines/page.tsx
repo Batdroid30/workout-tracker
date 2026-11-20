@@ -41,7 +41,7 @@ export default async function RoutinesPage() {
         <StartEmptyWorkout trainingPhase={profile?.training_phase ?? null} />
       </div>
 
-      <MySplitSection splits={splits} suggestion={suggestion} routines={routines} />
+      <MySplitSection splits={splits} suggestion={suggestion} routines={routines} trainingPhase={profile?.training_phase ?? null} />
 
       {/* ── Routines section ───────────────────────────────────── */}
       <div id="routines" className="scroll-mt-5">

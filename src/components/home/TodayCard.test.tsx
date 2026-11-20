@@ -5,6 +5,9 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('@/store/workout.store', () => ({ useWorkoutStore: () => vi.fn() }))
 vi.mock('@/providers/ToastProvider', () => ({ useToast: () => ({ error: vi.fn() }) }))
 vi.mock('@/app/(app)/routines/split-actions', () => ({ setSplitPositionAction: vi.fn() }))
+vi.mock('@/app/(app)/workout/actions', () => ({ getUserExerciseFrequency: vi.fn() }))
+vi.mock('@/store/exercise.store', () => ({ useExerciseStore: () => ({ exercises: [], load: vi.fn(), isLoading: false }) }))
+vi.mock('@/hooks/useTrainingCycle', () => ({ useTrainingCycle: () => ({ cycle: null }) }))
 
 import { TodayCard } from './TodayCard'
 import type { SessionSuggestion } from '@/lib/data/splits'
@@ -49,6 +52,14 @@ describe('TodayCard', () => {
     const markup = render({ kind: 'routine', routineId: 'pull', title: 'Pull A', reason: 'Covers back — 6 days since you trained it' })
     expect(markup).toContain('Pull A')
     expect(markup).toContain('Covers back')
+  })
+
+  it('starts a focus session in place instead of sending the lifter away', () => {
+    const markup = render({ kind: 'focus', focus: 'Pull Day', muscleGroups: ['back'], reason: 'Back last trained 12 days ago' })
+    expect(markup).toContain('>Pull Day<')
+    expect(markup).not.toContain('Pull Day day')
+    expect(markup).not.toContain('href="/routines"')
+    expect(markup).toMatch(/<button[^>]*bg-accent [^>]*>.*Start workout/)
   })
 
   it('still gives one clear action when there is nothing to suggest', () => {

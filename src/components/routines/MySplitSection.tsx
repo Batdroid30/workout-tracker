@@ -7,14 +7,16 @@ import { TodayCard, type RoutineWithExercises } from '@/components/home/TodayCar
 import { useToast } from '@/providers/ToastProvider'
 import { setActiveSplitAction } from '@/app/(app)/routines/split-actions'
 import type { SessionSuggestion, SplitWithItems } from '@/lib/data/splits'
+import type { TrainingPhase } from '@/types/database'
 
 interface MySplitSectionProps {
   splits: SplitWithItems[]
   suggestion: SessionSuggestion | null
   routines: RoutineWithExercises[]
+  trainingPhase?: TrainingPhase | null
 }
 
-export function MySplitSection({ splits, suggestion, routines }: MySplitSectionProps) {
+export function MySplitSection({ splits, suggestion, routines, trainingPhase = null }: MySplitSectionProps) {
   const active = splits.find(split => split.isActive) ?? null
   const others = splits.filter(split => !split.isActive)
   const hasActiveSuggestion = active !== null && suggestion?.kind === 'split'
@@ -31,7 +33,7 @@ export function MySplitSection({ splits, suggestion, routines }: MySplitSectionP
         ) : (
           <SetUpSplit />
         )}
-        {suggestion && <TodayCard suggestion={suggestion} routines={routines} weekLabel={null} />}
+        {suggestion && <TodayCard suggestion={suggestion} routines={routines} weekLabel={null} trainingPhase={trainingPhase} />}
         {others.length > 0 && <OtherSplits splits={others} />}
       </div>
     </section>

@@ -8,6 +8,8 @@ import { BottomSheet, Button, Card, Chip, getButtonClassName } from '@/component
 import { useWorkoutStore } from '@/store/workout.store'
 import { useToast } from '@/providers/ToastProvider'
 import { setSplitPositionAction } from '@/app/(app)/routines/split-actions'
+import { FocusWorkoutLauncher } from '@/components/workout/FocusWorkoutLauncher'
+import type { TrainingPhase } from '@/types/database'
 import type { SessionSuggestion } from '@/lib/data/splits'
 import type { getRoutines } from '@/lib/data/routines'
 
@@ -17,13 +19,14 @@ interface TodayCardProps {
   suggestion: SessionSuggestion | null
   routines: RoutineWithExercises[]
   weekLabel: string | null
+  trainingPhase?: TrainingPhase | null
 }
 
 const ROUTINES_HREF = '/routines#routines'
 const playIcon = <Play className="w-4 h-4 fill-current" aria-hidden="true" />
 
 // The one card that answers "what do I do today?" — on Home and on Train.
-export function TodayCard({ suggestion, routines, weekLabel }: TodayCardProps) {
+export function TodayCard({ suggestion, routines, weekLabel, trainingPhase = null }: TodayCardProps) {
   const router = useRouter()
   const startRoutine = useWorkoutStore(state => state.startRoutine)
   const toast = useToast()
@@ -43,13 +46,17 @@ export function TodayCard({ suggestion, routines, weekLabel }: TodayCardProps) {
     <Card>
       {weekLabel && <Chip>{weekLabel}</Chip>}
       <div className={weekLabel ? 'mt-3' : undefined}>
-        <TodayBody suggestion={suggestion} onStart={start} />
+        <TodayBody suggestion={suggestion} onStart={start} trainingPhase={trainingPhase} />
       </div>
     </Card>
   )
 }
 
-function TodayBody({ suggestion, onStart }: { suggestion: SessionSuggestion | null; onStart: (routineId: string | null) => void }) {
+function TodayBody({ suggestion, onStart, trainingPhase }: {
+  suggestion: SessionSuggestion | null
+  onStart: (routineId: string | null) => void
+  trainingPhase: TrainingPhase | null
+}) {
   if (!suggestion) {
     return (
       <Summary title="Start a workout" detail="Pick a routine or start empty.">
@@ -68,8 +75,10 @@ function TodayBody({ suggestion, onStart }: { suggestion: SessionSuggestion | nu
 
   if (suggestion.kind === 'focus') {
     return (
-      <Summary title={`${suggestion.focus} day`} detail={suggestion.reason}>
-        <Link href="/routines" className={getButtonClassName({})}>{playIcon} Start workout</Link>
+      <Summary title={suggestion.focus} detail={suggestion.reason}>
+        <FocusWorkoutLauncher trainingPhase={trainingPhase}>
+          {open => <Button onClick={open} leadingIcon={playIcon}>Start workout</Button>}
+        </FocusWorkoutLauncher>
       </Summary>
     )
   }

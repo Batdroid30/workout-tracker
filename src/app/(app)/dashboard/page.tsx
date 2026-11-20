@@ -30,7 +30,7 @@ export default async function DashboardPage() {
         avatarUrl={profile?.avatar_url ?? null}
         initial={(email[0] ?? 'U').toUpperCase()}
       />
-      <TodayCard suggestion={suggestion} routines={routines} weekLabel={model.weekLabel} />
+      <TodayCard suggestion={suggestion} routines={routines} weekLabel={model.weekLabel} trainingPhase={profile?.training_phase ?? null} />
       <ThisWeekStats
         workoutsDone={model.workoutsDone}
         workoutsGoal={model.workoutsGoal}
