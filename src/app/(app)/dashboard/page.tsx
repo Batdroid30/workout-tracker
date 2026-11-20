@@ -17,8 +17,10 @@ import {
   getVolumeLandmarksByMuscle,
   buildThisWeekMissions,
 } from '@/lib/data/phase-coach'
-import { getWeeksInPhase, buildMesocycleTimeline } from '@/lib/phase-coach'
-import { DELOAD_THRESHOLDS, isCurrentWeekDeload } from '@/lib/workout-intelligence'
+import { buildMesocycleTimeline } from '@/lib/phase-coach'
+import { DELOAD_THRESHOLDS } from '@/lib/workout-intelligence'
+import { getTrainingCycle } from '@/lib/data/training-cycle'
+import { LongBreakCard } from '@/components/dashboard/LongBreakCard'
 import { getBadges } from '@/lib/data/achievements'
 import { assessFatigueLevel } from '@/lib/algorithms'
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs'
@@ -120,9 +122,11 @@ export default async function DashboardPage() {
   const [
     volumeLandmarks,
     badges,
+    trainingCycle,
   ] = await Promise.all([
     getVolumeLandmarksByMuscle(userId, profile, snapshot.currentWeekSetsByMuscle, snapshot.muscleFrequency),
     getBadges(userId, totalVolume, totalWorkouts),
+    getTrainingCycle(userId),
   ])
 
   // Pure in-memory calculation for Strength Index
@@ -158,7 +162,7 @@ export default async function DashboardPage() {
     return p.charAt(0).toUpperCase() + p.slice(1).replace(/_/g, ' ')
   })()
 
-  const phaseWeek   = getWeeksInPhase(profile?.phase_started_at ?? null)
+  const phaseWeek   = profile?.phase_started_at ? trainingCycle.phaseWeek : null
   const cycleLength = (profile?.training_phase && profile?.experience_level)
     ? DELOAD_THRESHOLDS[profile.experience_level][profile.training_phase]
     : null
@@ -169,19 +173,21 @@ export default async function DashboardPage() {
     experience_level: profile.experience_level,
     training_phase:   profile.training_phase,
     phase_started_at: profile.phase_started_at,
+    phase_week:       trainingCycle.phaseWeek,
   } : null, recentReadiness)
   
-  const isDeloadWeek = fatigue.shouldSuggest || isCurrentWeekDeload(profile
-    ? { phase_started_at: profile.phase_started_at ?? null, experience_level: profile.experience_level, training_phase: profile.training_phase }
-    : null)
+  const isDeloadWeek = fatigue.shouldSuggest || trainingCycle.isDeloadWeek
   
   const nextWorkout     = deriveNextWorkoutSuggestion(neglectedMuscles)
   const mesocycle       = buildMesocycleTimeline({
     phaseStartedAt:     profile?.phase_started_at ?? null,
     experienceLevel:    profile?.experience_level ?? null,
     trainingPhase:      profile?.training_phase   ?? null,
-    weeklyData:         weeks,
     weeklyGoalSessions,
+    phaseWeek:           trainingCycle.phaseWeek,
+    phaseTrainingWeeks:  trainingCycle.phaseTrainingWeeks,
+    currentWeekStart:    trainingCycle.currentWeekStart,
+    currentWeekSessions: trainingCycle.currentWeekSessions,
   })
 
   const missions = buildThisWeekMissions({
@@ -191,6 +197,8 @@ export default async function DashboardPage() {
     pushPullBalance: pushPull,
     keyLifts,
     recentLoads,
+    scheme:       trainingCycle.scheme,
+    isDeloadWeek: trainingCycle.isDeloadWeek,
     profile: profile
       ? {
           training_goal:    profile.training_goal,
@@ -203,6 +211,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen p-5 pb-36">
+      {trainingCycle.offerRestart && (
+        <div className="mb-5">
+          <LongBreakCard missedWeeks={trainingCycle.missedWeeks} />
+        </div>
+      )}
       <DashboardTabs
         userId={userId}
         firstName={firstName}

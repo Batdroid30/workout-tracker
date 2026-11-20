@@ -11,8 +11,8 @@ import {
 import { getRecentReadinessLogs } from '@/lib/data/readiness'
 import { getRoutines } from '@/lib/data/routines'
 import { assessFatigueLevel } from '@/lib/algorithms'
-import { getCurrentWUPScheme } from '@/lib/workout-intelligence'
-import { getWeeksInPhase } from '@/lib/phase-coach'
+import { WUP_CYCLE, type WUPScheme } from '@/lib/workout-intelligence'
+import { getTrainingCycle } from '@/lib/data/training-cycle'
 import { formatSetCount } from '@/lib/muscle-sets'
 import type { Profile } from '@/types/database'
 
@@ -47,6 +47,7 @@ export async function buildUserTrainingContext(userId: string): Promise<string> 
     streak,
     readinessLogs,
     routines,
+    trainingCycle,
   ] = await Promise.all([
     getProfile(userId).catch(() => null),
     getWeeklyTrainingSummary(userId).catch(() => []),
@@ -58,13 +59,19 @@ export async function buildUserTrainingContext(userId: string): Promise<string> 
     getTrainingStreak(userId).catch(() => ({ currentStreak: 0, longestStreak: 0 })),
     getRecentReadinessLogs(userId, 7).catch(() => []),
     getRoutines(userId).catch(() => []),
+    getTrainingCycle(userId).catch(() => null),
   ])
 
   // Compute fatigue assessment
   const daysSinceLastPR = recentPRs.length > 0 ? recentPRs[0].daysAgo : null
-  const fatigue = assessFatigueLevel(weeklySummaries, daysSinceLastPR, profile, readinessLogs)
-  const wupScheme = getCurrentWUPScheme()
-  const weeksInPhase = profile ? getWeeksInPhase(profile.phase_started_at) : null
+  const fatigue = assessFatigueLevel(
+    weeklySummaries,
+    daysSinceLastPR,
+    profile ? { ...profile, phase_week: trainingCycle?.phaseWeek ?? null } : null,
+    readinessLogs,
+  )
+  const wupScheme = trainingCycle?.scheme ?? WUP_CYCLE[0]
+  const weeksInPhase = profile?.phase_started_at && trainingCycle ? trainingCycle.phaseWeek : null
 
   return [
     formatProfileSection(profile, weeksInPhase),
@@ -102,7 +109,7 @@ function formatProfileSection(profile: Profile | null, weeksInPhase: number | nu
 ${stats ? `- Bio: ${stats}` : ''}`
 }
 
-function formatPeriodizationSection(wupScheme: ReturnType<typeof getCurrentWUPScheme>): string {
+function formatPeriodizationSection(wupScheme: WUPScheme): string {
   return `### CURRENT PERIODIZATION (Weekly Undulating Periodization - WUP)
 - Cycle: ${wupScheme.label}
 - Target Rep Range: ${wupScheme.repRange.min}–${wupScheme.repRange.max} reps
@@ -192,14 +199,16 @@ export async function buildCompactContext(userId: string): Promise<string> {
     stalledMovements,
     neglectedMuscles,
     recentPRs,
+    trainingCycle,
   ] = await Promise.all([
     getProfile(userId).catch(() => null),
     getStalledMovements(userId).catch(() => []),
     getNeglectedMuscles(userId).catch(() => []),
     getRecentPRs(userId, 14).catch(() => []),
+    getTrainingCycle(userId).catch(() => null),
   ])
 
-  const weeksInPhase = profile ? getWeeksInPhase(profile.phase_started_at) : null
+  const weeksInPhase = profile?.phase_started_at && trainingCycle ? trainingCycle.phaseWeek : null
 
   const lines: string[] = [
     formatProfileSection(profile, weeksInPhase),

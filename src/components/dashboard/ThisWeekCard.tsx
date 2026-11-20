@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { getButtonClassName } from '@/components/ui'
 import type { Mission, MissionPriority } from '@/lib/data/phase-coach'
 import type { WeeklySummary, NextWorkoutSuggestion } from '@/lib/data/insights'
-import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
+import { useTrainingCycle } from '@/hooks/useTrainingCycle'
 
 interface ThisWeekCardProps {
   thisWeekCount:  number
@@ -40,7 +40,7 @@ export function ThisWeekCard({
   const sessionPct = Math.min(100, Math.round((thisWeekCount / goalSessions) * 100))
   const reached    = thisWeekCount >= goalSessions
   const remaining  = Math.max(0, goalSessions - thisWeekCount)
-  const dupScheme  = getCurrentDUPScheme()
+  const dupScheme  = useTrainingCycle().cycle?.scheme ?? null
 
   const saveGoal = () => {
     startTransition(async () => {
@@ -66,7 +66,7 @@ export function ThisWeekCard({
               recover &amp; rebuild
             </span>
           </div>
-        ) : (
+        ) : dupScheme && (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-raised border border-border-strong">
             <span className="text-xs font-semibold text-primary">
               {dupScheme.label}

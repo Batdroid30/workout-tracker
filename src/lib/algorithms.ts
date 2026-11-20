@@ -52,6 +52,8 @@ export function assessFatigueLevel(
     experience_level: ExperienceLevel | null
     training_phase:   TrainingPhase   | null
     phase_started_at: string          | null
+    /** Training-week position in the phase (src/lib/training-cycle.ts). */
+    phase_week?:      number          | null
   } | null,
   readinessLogs?: { sleep_score: number; soreness_score: number; energy_score: number }[] | null,
 ): FatigueAssessment {
@@ -156,12 +158,13 @@ export function assessFatigueLevel(
   }
 
   // ── Signal 5: mesocycle too long ─────────────────────────────────────────
-  // Uses phase_started_at from profile — no extra DB query.
-  if (profile?.phase_started_at) {
+  // Counts training weeks completed in the phase, so time off never makes a
+  // deload look overdue. Skipped when the position isn't known.
+  if (profile?.phase_started_at && profile.phase_week != null) {
     const experience = profile.experience_level ?? 'intermediate'
     const phase      = profile.training_phase   ?? 'maingaining'
     const threshold  = DELOAD_THRESHOLDS[experience][phase]
-    const weeksInPhase = (Date.now() - new Date(profile.phase_started_at).getTime()) / (7 * 24 * 60 * 60 * 1000)
+    const weeksInPhase = profile.phase_week - 1
 
     if (weeksInPhase >= threshold + 2) {
       score += 2

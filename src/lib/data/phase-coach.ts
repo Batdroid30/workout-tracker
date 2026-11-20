@@ -2,7 +2,7 @@ import { cache } from 'react'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { calculate1RM, suggestNextSet } from '@/lib/algorithms'
-import { getCurrentDUPScheme, isCurrentWeekDeload } from '@/lib/workout-intelligence'
+import type { WUPScheme } from '@/lib/workout-intelligence'
 import type { RecentExerciseLoad } from '@/lib/algorithms'
 import {
   getAdjustedLandmarks,
@@ -510,6 +510,9 @@ export interface BuildMissionsInput {
   pushPullBalance:  PushPullBalance
   keyLifts:         KeyLift[]
   recentLoads:      RecentExerciseLoad[]
+  /** Current training-week scheme and deload flag (src/lib/training-cycle.ts). */
+  scheme:           WUPScheme
+  isDeloadWeek:     boolean
   profile?: {
     training_goal:    TrainingGoal    | null
     experience_level: ExperienceLevel | null
@@ -625,8 +628,8 @@ export function buildThisWeekMissions(input: BuildMissionsInput): Mission[] {
     .filter((entry): entry is { lift: KeyLift; load: RecentExerciseLoad } => !!entry.load)
     .slice(0, 2)
 
-  const dupScheme    = getCurrentDUPScheme()
-  const deloadActive = isCurrentWeekDeload(input.profile ?? null)
+  const dupScheme    = input.scheme
+  const deloadActive = input.isDeloadWeek
 
   for (const { lift, load } of overloadPicks) {
     const suggestion = suggestNextSet({

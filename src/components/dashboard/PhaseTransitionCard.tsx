@@ -14,7 +14,8 @@ const TRANSITION_GRACE_WEEKS = 4
 interface PhaseTransitionCardProps {
   experienceLevel: ExperienceLevel | null
   trainingPhase:   TrainingPhase   | null
-  phaseStartedAt:  string          | null
+  /** Training-week position in the phase (src/lib/training-cycle.ts). */
+  phaseWeek:       number          | null
 }
 
 interface PhaseOption {
@@ -30,16 +31,16 @@ const PHASE_OPTIONS: PhaseOption[] = [
   { key: 'maingaining', label: 'Maingaining', blurb: 'Maintenance, slow gains', Icon: Minus        },
 ]
 
-export function PhaseTransitionCard({ experienceLevel, trainingPhase, phaseStartedAt }: PhaseTransitionCardProps) {
+export function PhaseTransitionCard({ experienceLevel, trainingPhase, phaseWeek }: PhaseTransitionCardProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [switching, setSwitching]  = useState<TrainingPhase | null>(null)
 
-  if (!trainingPhase || !phaseStartedAt) return null
+  if (!trainingPhase || phaseWeek === null) return null
 
   const experience   = experienceLevel ?? 'intermediate'
   const threshold    = DELOAD_THRESHOLDS[experience][trainingPhase]
-  const weeksInPhase = (Date.now() - new Date(phaseStartedAt).getTime()) / (7 * 86400000)
+  const weeksInPhase = phaseWeek - 1
 
   if (weeksInPhase < threshold + TRANSITION_GRACE_WEEKS) return null
 

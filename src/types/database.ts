@@ -29,6 +29,9 @@ export interface Profile {
   training_style:   TrainingStyle   | null
   experience_level: ExperienceLevel | null
   phase_started_at: string          | null
+  // Training-week anchors (see src/lib/training-cycle.ts)
+  cycle_started_at:          string | null
+  break_prompt_dismissed_at: string | null
   // Body stats — used for TDEE / nutrition coaching card
   height_cm:        number          | null
   age_years:        number          | null

@@ -185,7 +185,7 @@ export function DashboardTabs({
           <PhaseTransitionCard
             experienceLevel={profile?.experience_level ?? null}
             trainingPhase={profile?.training_phase ?? null}
-            phaseStartedAt={profile?.phase_started_at ?? null}
+            phaseWeek={phaseWeek ?? null}
           />
         </div>
       )}

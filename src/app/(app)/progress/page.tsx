@@ -11,7 +11,8 @@ import { getProgressSnapshot, getMondayOf } from '@/lib/data/progress-snapshot'
 import { computeStrengthIndex, getVolumeLandmarksByMuscle } from '@/lib/data/phase-coach'
 import { getBodyweightHistory } from '@/lib/data/bodyweight'
 import { getWorkoutCalendarData } from '@/lib/data/insights'
-import { getWeeksInPhase, buildMesocycleTimeline } from '@/lib/phase-coach'
+import { buildMesocycleTimeline } from '@/lib/phase-coach'
+import { getTrainingCycle } from '@/lib/data/training-cycle'
 import { OverviewStatsRow } from '@/components/progress/OverviewStatsRow'
 import { WorkoutCalendar } from '@/components/progress/WorkoutCalendar'
 import { FrequencyTrendChart } from '@/components/progress/FrequencyTrendChart'
@@ -152,11 +153,12 @@ export default async function ProgressPage() {
 
   // Core queries — run in parallel. Snapshot replaces 6 independent sets scans.
   // calendarData fetches workouts table only (no joins) — very lightweight.
-  const [snapshot, profile, { totalVolume }, calendarData] = await Promise.all([
+  const [snapshot, profile, { totalVolume }, calendarData, trainingCycle] = await Promise.all([
     getProgressSnapshot(userId),
     getProfile(userId),
     getWorkoutsSummary(userId),
     getWorkoutCalendarData(userId),
+    getTrainingCycle(userId),
   ])
 
   // Pure — no DB call
@@ -174,17 +176,17 @@ export default async function ProgressPage() {
     undefined
   )
 
-  const weeksInPhase = getWeeksInPhase(profile?.phase_started_at ?? null)
+  const weeksInPhase = profile?.phase_started_at ? trainingCycle.phaseWeek : null
 
   const mesocycle = buildMesocycleTimeline({
     phaseStartedAt:     profile?.phase_started_at   ?? null,
     experienceLevel:    profile?.experience_level   ?? null,
     trainingPhase:      profile?.training_phase     ?? null,
-    weeklyData:         snapshot.weeklyData.map(w => ({
-      week_start:    w.weekStart,
-      workout_count: w.sessionCount,
-    })),
     weeklyGoalSessions: profile?.weekly_goal_sessions ?? 3,
+    phaseWeek:           trainingCycle.phaseWeek,
+    phaseTrainingWeeks:  trainingCycle.phaseTrainingWeeks,
+    currentWeekStart:    trainingCycle.currentWeekStart,
+    currentWeekSessions: trainingCycle.currentWeekSessions,
   })
 
   // Volume chart derived from snapshot — oldest to newest, label-formatted

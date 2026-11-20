@@ -2,6 +2,7 @@
 
 import { requireAuth, signOutUser } from '@/lib/auth'
 import { updateProfile as updateProfileData } from '@/lib/data/profile'
+import { restartPayload } from '../account/restart-payload'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 import { getWorkoutHistoryPage } from '@/lib/data/workouts'
@@ -108,10 +109,10 @@ export async function updateTrainingProfileAction(updates: {
 }) {
   const { session } = await requireAuth()
 
-  // When phase changes, reset the mesocycle clock so deload timing
-  // starts fresh from today rather than carrying over from the previous phase.
+  // When phase changes, reset the mesocycle clock and the weekly cycle so
+  // deload timing and Strength/Hypertrophy/Volume weeks start fresh today.
   const payload = updates.training_phase
-    ? { ...updates, phase_started_at: new Date().toISOString() }
+    ? { ...updates, ...restartPayload('phase', new Date()) }
     : updates
 
 
