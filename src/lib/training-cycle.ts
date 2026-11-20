@@ -21,6 +21,11 @@ export interface CycleInput {
   now: Date
 }
 
+export interface TrainingWeek {
+  weekStart: string
+  sessions: number
+}
+
 export interface TrainingCycle {
   scheme: WUPScheme
   cycleWeek: 1 | 2 | 3
@@ -28,6 +33,9 @@ export interface TrainingCycle {
   isDeloadWeek: boolean
   missedWeeks: number
   offerRestart: boolean
+  phaseTrainingWeeks: TrainingWeek[]
+  currentWeekStart: string
+  currentWeekSessions: number
 }
 
 export function trainingWeekThreshold(weeklyGoal: number): number {
@@ -68,12 +76,22 @@ function completeWeeks(since: string | null, now: Date): number[] {
   return weeks
 }
 
+const toDateString = (week: number) => new Date(week).toISOString().slice(0, 10)
+
+export function listTrainingWeeks(
+  dates: string[], since: string | null, now: Date, weeklyGoal: number,
+): TrainingWeek[] {
+  const counts = sessionsByWeek(dates)
+  const threshold = trainingWeekThreshold(weeklyGoal)
+  return completeWeeks(since, now)
+    .filter(week => (counts.get(week) ?? 0) >= threshold)
+    .map(week => ({ weekStart: toDateString(week), sessions: counts.get(week) ?? 0 }))
+}
+
 export function countCompletedTrainingWeeks(
   dates: string[], since: string | null, now: Date, weeklyGoal: number,
 ): number {
-  const counts = sessionsByWeek(dates)
-  const threshold = trainingWeekThreshold(weeklyGoal)
-  return completeWeeks(since, now).filter(week => (counts.get(week) ?? 0) >= threshold).length
+  return listTrainingWeeks(dates, since, now, weeklyGoal).length
 }
 
 function recentMissedWeeks(dates: string[], since: string | null, now: Date, weeklyGoal: number): number[] {
@@ -98,10 +116,16 @@ export function buildTrainingCycle(input: CycleInput): TrainingCycle {
 
   const cycleWeeks = countCompletedTrainingWeeks(dates, input.cycleStartedAt, now, weeklyGoal)
   const cycleIndex = cycleWeeks % WUP_CYCLE.length
-  const phaseWeek = countCompletedTrainingWeeks(dates, input.phaseStartedAt, now, weeklyGoal) + 1
+  const phaseTrainingWeeks = listTrainingWeeks(dates, input.phaseStartedAt, now, weeklyGoal)
+  const phaseWeek = phaseTrainingWeeks.length + 1
 
-  const deloadBlock = DELOAD_THRESHOLDS[input.experienceLevel ?? 'intermediate'][input.trainingPhase ?? 'maingaining']
-  const isDeloadWeek = input.phaseStartedAt !== null && phaseWeek % deloadBlock === 0
+  // DELOAD_THRESHOLDS = training weeks before a deload is due, so the deload
+  // is the week after them (the same blocks the mesocycle timeline shows).
+  const weeksBeforeDeload = DELOAD_THRESHOLDS[input.experienceLevel ?? 'intermediate'][input.trainingPhase ?? 'maingaining']
+  const isDeloadWeek = input.phaseStartedAt !== null && phaseWeek % (weeksBeforeDeload + 1) === 0
+
+  const currentWeek = mondayOf(now)
+  const currentWeekSessions = sessionsByWeek(dates).get(currentWeek) ?? 0
 
   const missed = recentMissedWeeks(dates, input.phaseStartedAt, now, weeklyGoal)
   const breakStart = missed.length > 0 ? missed[missed.length - 1] : null
@@ -115,6 +139,9 @@ export function buildTrainingCycle(input: CycleInput): TrainingCycle {
     isDeloadWeek,
     missedWeeks: missed.length,
     offerRestart: missed.length >= 2 && !dismissedThisBreak,
+    phaseTrainingWeeks,
+    currentWeekStart: toDateString(currentWeek),
+    currentWeekSessions,
   }
 }
 

@@ -91,14 +91,26 @@ describe('phase week and deload', () => {
     expect(cycle.phaseWeek).toBe(3)
   })
 
-  it('marks the last week of each deload block', () => {
+  it('makes the week after N training weeks the deload week', () => {
     const block = DELOAD_THRESHOLDS.intermediate.maingaining
     const trainedWeeks = (n: number) => Array.from({ length: n }, (_, i) => sessions(i + 1, 2)).flat()
-    const deload = buildTrainingCycle(input({ completedWorkoutDates: trainedWeeks(block - 1), now: at(block, 2) }))
-    const before = buildTrainingCycle(input({ completedWorkoutDates: trainedWeeks(block - 2), now: at(block - 1, 2) }))
-    expect(deload.phaseWeek).toBe(block)
+    const deload = buildTrainingCycle(input({ completedWorkoutDates: trainedWeeks(block), now: at(block + 1, 2) }))
+    const before = buildTrainingCycle(input({ completedWorkoutDates: trainedWeeks(block - 1), now: at(block, 2) }))
+    expect(deload.phaseWeek).toBe(block + 1)
     expect(deload.isDeloadWeek).toBe(true)
     expect(before.isDeloadWeek).toBe(false)
+  })
+
+  it('lists the phase training weeks with their session counts', () => {
+    const cycle = buildTrainingCycle(input({
+      completedWorkoutDates: [...sessions(1, 2), ...sessions(2, 1), ...sessions(3, 3), ...sessions(4, 1)],
+    }))
+    expect(cycle.phaseTrainingWeeks).toEqual([
+      { weekStart: '2026-10-05', sessions: 2 },
+      { weekStart: '2026-10-19', sessions: 3 },
+    ])
+    expect(cycle.currentWeekStart).toBe('2026-10-26')
+    expect(cycle.currentWeekSessions).toBe(1)
   })
 })
 

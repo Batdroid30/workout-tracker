@@ -6,6 +6,7 @@ import { Plus } from 'lucide-react'
 import { useWorkoutStore } from '@/store/workout.store'
 import { WorkoutFocusSheet } from './WorkoutFocusSheet'
 import { buildWorkoutTemplate } from '@/lib/template-generator'
+import { useTrainingCycle } from '@/hooks/useTrainingCycle'
 import { getUserExerciseFrequency } from '@/app/(app)/workout/actions'
 import type { Exercise, TrainingPhase } from '@/types/database'
 
@@ -17,6 +18,7 @@ export function StartEmptyWorkout({ trainingPhase = null }: StartEmptyWorkoutPro
   const router            = useRouter()
   const startWorkout      = useWorkoutStore(s => s.startWorkout)
   const startFromTemplate = useWorkoutStore(s => s.startFromTemplate)
+  const { cycle }         = useTrainingCycle()
 
   const [sheetOpen,      setSheetOpen]      = useState(false)
   const [usageFrequency, setUsageFrequency] = useState<Record<string, number>>({})
@@ -33,10 +35,10 @@ export function StartEmptyWorkout({ trainingPhase = null }: StartEmptyWorkoutPro
     if (exercises.length === 0) {
       startWorkout()
     } else {
-      startFromTemplate(buildWorkoutTemplate(exercises, trainingPhase))
+      startFromTemplate(buildWorkoutTemplate(exercises, trainingPhase, cycle?.scheme ?? null))
     }
     router.push('/workout')
-  }, [trainingPhase, startWorkout, startFromTemplate, router])
+  }, [trainingPhase, startWorkout, startFromTemplate, router, cycle])
 
   return (
     <>

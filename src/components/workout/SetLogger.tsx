@@ -14,7 +14,10 @@ import { useLastWorkoutSets }   from '@/hooks/useLastWorkoutSets'
 import { useDialog }            from '@/providers/DialogProvider'
 import { getSupabaseClient }    from '@/lib/supabase/client'
 import { upsertExercisePreference } from '@/lib/data/exercise-preferences'
-import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
+import { useTrainingCycle } from '@/hooks/useTrainingCycle'
+
+// RPE pre-fill before the training cycle has loaded.
+const DEFAULT_RPE_TARGET = 8
 import { cn } from '@/lib/utils'
 import { formatVolume, setVolume, isAssisted, formatAddedWeight } from '@/lib/load'
 
@@ -117,7 +120,8 @@ export function SetLogger({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restSeconds, onRestTimerStart])
 
-  const dupRpeTarget  = getCurrentDUPScheme().rpeTarget
+  const { cycle }     = useTrainingCycle()
+  const dupRpeTarget  = cycle?.scheme.rpeTarget ?? DEFAULT_RPE_TARGET
   const workingWeight = exercise.sets.find(s => !s.is_warmup && s.weight_kg > 0)?.weight_kg ?? 0
 
   const userBodyweight = useWorkoutStore(s => s.userBodyweight) ?? 75

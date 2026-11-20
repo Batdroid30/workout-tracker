@@ -4,7 +4,7 @@ import useSWR from 'swr'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { suggestNextSet, type OverloadSuggestion } from '@/lib/algorithms'
 import { assistanceFor, workoutBodyweight } from '@/lib/load'
-import { getCurrentWUPScheme, isCurrentWeekDeload } from '@/lib/workout-intelligence'
+import { getTrainingCycleAction } from '@/app/(app)/account/training-actions'
 import type { TrainingGoal, ExperienceLevel, TrainingPhase } from '@/types/database'
 
 export interface LastWorkoutSetInfo {
@@ -102,12 +102,14 @@ async function fetchLastWorkoutSets(
   const latestWorkoutId = resolveWorkoutId(data[0])
   if (!latestWorkoutId) return []
 
-  const dupScheme    = getCurrentWUPScheme()
-  const isDeloadWeek = isCurrentWeekDeload(profile)
-
   const lastWorkoutDateStr = resolveWorkoutDate(data[0])
-  const lastWupScheme = getCurrentWUPScheme(new Date(lastWorkoutDateStr))
-  const isPhaseTransition = lastWupScheme.label !== dupScheme.label
+  const [currentCycle, lastCycle] = await Promise.all([
+    getTrainingCycleAction(),
+    getTrainingCycleAction({ at: new Date(lastWorkoutDateStr).toISOString() }),
+  ])
+  const dupScheme    = currentCycle.scheme
+  const isDeloadWeek = currentCycle.isDeloadWeek
+  const isPhaseTransition = lastCycle.scheme.label !== dupScheme.label
 
   // Assisted lifts progress by lowering assistance. The suggestion engine thinks
   // in load lifted, so convert assistance → load before and back after.

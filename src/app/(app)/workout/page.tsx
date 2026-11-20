@@ -15,7 +15,7 @@ import Link from 'next/link'
 import { useDialog } from '@/providers/DialogProvider'
 import { Button } from '@/components/ui'
 import { FALLBACK_BODYWEIGHT_KG } from '@/lib/load'
-import { getCurrentDUPScheme } from '@/lib/workout-intelligence'
+import { useTrainingCycle } from '@/hooks/useTrainingCycle'
 import { WorkoutFocusSheet } from '@/components/workout/WorkoutFocusSheet'
 import { SupersetWrapper } from '@/components/workout/SupersetWrapper'
 import { buildWorkoutTemplate } from '@/lib/template-generator'
@@ -108,6 +108,7 @@ export default function WorkoutPage() {
   const router = useRouter()
   const { activeWorkout, startWorkout, startFromTemplate, finishWorkout, discardWorkout, addExercise, updateTitle, completeAllSets, pairAsSuperset, unpairSuperset } = useWorkoutStore()
   const dialog = useDialog()
+  const { cycle } = useTrainingCycle()
 
   const handleDiscard = async () => {
     const confirmed = await dialog.confirm({
@@ -145,9 +146,9 @@ export default function WorkoutPage() {
     if (exercises.length === 0) {
       startWorkout()
     } else {
-      startFromTemplate(buildWorkoutTemplate(exercises, null))
+      startFromTemplate(buildWorkoutTemplate(exercises, null, cycle?.scheme ?? null))
     }
-  }, [startWorkout, startFromTemplate])
+  }, [startWorkout, startFromTemplate, cycle])
 
   // Exercise cache + usage frequency for "suggest next" chips and focus sheet
   const loadExerciseCache = useExerciseStore(s => s.load)
@@ -256,7 +257,7 @@ export default function WorkoutPage() {
     }
   }
 
-  const dupScheme = getCurrentDUPScheme()
+  const dupScheme = cycle?.scheme ?? null
 
   if (!activeWorkout) {
     return (
@@ -313,7 +314,8 @@ export default function WorkoutPage() {
           </Button>
         </div>
 
-        {/* DUP week scheme pill */}
+        {/* Training-week scheme pill (hidden until the cycle loads) */}
+        {dupScheme && (
         <div className="px-4 pb-2.5">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-pill bg-surface-raised border border-border">
             <span className="text-xs font-semibold text-primary">
@@ -329,6 +331,7 @@ export default function WorkoutPage() {
             </span>
           </div>
         </div>
+        )}
       </div>
 
       <div className="p-4 space-y-2">
