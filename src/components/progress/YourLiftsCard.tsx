@@ -56,7 +56,9 @@ export function YourLiftsCard({ rows, source, action }: YourLiftsCardProps) {
                     <span className="text-right">
                       <span className="t-value block">{formatKg(row.trend.current)}</span>
                       <span className={`mono block text-xs ${TONE[row.trend.direction]}`}>
-                        {ARROW[row.trend.direction]} {formatKg(Math.abs(row.trend.change))} kg
+                        {row.trend.change === null
+                          ? 'First week'
+                          : `${ARROW[row.trend.direction]} ${formatKg(Math.abs(row.trend.change))} kg`}
                       </span>
                     </span>
                     <span className={TONE[row.trend.direction]}><Sparkline points={row.trend.points} /></span>

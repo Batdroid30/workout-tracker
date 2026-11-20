@@ -21,6 +21,15 @@ describe('liftTrend', () => {
     expect(liftTrend(weeks(100, 98))?.direction).toBe('down')
   })
 
+  it('rounds each week to one decimal before comparing, like the lift page', () => {
+    // 85.04 → 85.0 and 86.16 → 86.2 on the lift page, so the change there reads 1.2.
+    expect(liftTrend(weeks(85.04, 86.16))).toMatchObject({ current: 86.2, change: 1.2 })
+  })
+
+  it('has no change to report after a single week', () => {
+    expect(liftTrend(weeks(85))).toEqual({ current: 85, change: null, direction: 'flat', points: [85] })
+  })
+
   it('has nothing to say without sets in the window', () => {
     expect(liftTrend(undefined)).toBeNull()
     expect(liftTrend(new Map())).toBeNull()

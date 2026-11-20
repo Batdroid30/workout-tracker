@@ -67,6 +67,12 @@ export interface ProgressSnapshot {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// Whole days, so the window starts on the same date the lift page's 12 weeks do.
+export function snapshotWindowStart(now: Date): Date {
+  const day = new Date(now.getTime() - SNAPSHOT_WEEKS * 7 * 86400_000).toISOString().slice(0, 10)
+  return new Date(`${day}T00:00:00Z`)
+}
+
 export function getMondayOf(date: Date): string {
   const d   = new Date(date)
   const day = d.getUTCDay()
@@ -105,7 +111,7 @@ function makeEmptySnapshot(): ProgressSnapshot {
  */
 export const getProgressSnapshot = cache(async (userId: string): Promise<ProgressSnapshot> => {
   const supabase = await getSupabaseServer()
-  const since    = new Date(Date.now() - SNAPSHOT_WEEKS * 7 * 86400_000)
+  const since    = snapshotWindowStart(new Date())
 
   const { data, error } = await supabase
     .from('sets')

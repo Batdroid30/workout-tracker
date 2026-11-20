@@ -36,12 +36,13 @@ export const getExerciseProgression = cache(async (userId: string, exerciseId: s
   const { data: workouts, error: workoutsError } = await supabase
     .from('workouts')
     .select(`
+      id,
       started_at,
       bodyweight_kg,
       workout_exercises!inner (
         exercise_id,
         exercise:exercises ( name ),
-        sets ( weight_kg, reps, is_warmup )
+        sets ( weight_kg, reps, is_warmup, set_number, completed_at )
       )
     `)
     .eq('user_id', userId)
@@ -61,7 +62,8 @@ export const getExerciseProgression = cache(async (userId: string, exerciseId: s
       const assisted = isAssisted(exerciseName)
       // @ts-ignore
       we.sets.forEach(s => {
-        if (!s.is_warmup && s.weight_kg && s.reps) {
+        // Only completed sets count, the same rule Progress uses, so both pages agree.
+        if (!s.is_warmup && s.completed_at && s.weight_kg && s.reps) {
           const wgt = Number(s.weight_kg), reps = Number(s.reps)
           // For assisted lifts "maxWeight" is the best (lowest) assistance of the day
           if (assisted ? (maxW === 0 || wgt < maxW) : wgt > maxW) maxW = wgt
@@ -79,8 +81,9 @@ export const getExerciseProgression = cache(async (userId: string, exerciseId: s
 
   const sessions: RecentSession[] = recentSessionsFrom(
     (workouts ?? []).map(workout => ({
-      date: new Date(workout.started_at).toISOString().split('T')[0],
-      sets: workout.workout_exercises.flatMap(entry => entry.sets ?? []),
+      id: workout.id,
+      startedAt: workout.started_at,
+      sets: workout.workout_exercises.flatMap(entry => entry.sets ?? []).filter(set => set.completed_at),
     })),
     RECENT_SESSION_COUNT,
   )

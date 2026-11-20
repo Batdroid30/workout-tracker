@@ -21,6 +21,14 @@ describe('LiftHeroCard', () => {
     expect(markup).toContain('aria-pressed="true"')
   })
 
+  it('says when a long-untrained lift was last done, charts its history, and does not call it a best', () => {
+    const old = [{ date: '2026-03-02', best1RM: 80 }, { date: '2026-03-09', best1RM: 82 }]
+    const markup = renderToStaticMarkup(<LiftHeroCard points={old} today="2026-11-21" />)
+    expect(markup).toContain('Last trained 9 Mar 2026')
+    expect(markup).not.toContain('Best ever')
+    expect(markup).toContain('data-chart')
+  })
+
   it('invites a first session when there is no data', () => {
     expect(renderToStaticMarkup(<LiftHeroCard points={[]} today="2026-11-21" />)).toContain('Log this lift to see its estimated max')
   })
@@ -29,7 +37,7 @@ describe('LiftHeroCard', () => {
 describe('RecentSessions', () => {
   it('lists each session’s sets', () => {
     const markup = renderToStaticMarkup(
-      <RecentSessions sessions={[{ date: '2026-11-18', sets: [{ weight: 80, reps: 8 }, { weight: 80, reps: 7 }] }]} />,
+      <RecentSessions sessions={[{ id: 'w1', date: '2026-11-18', sets: [{ weight: 80, reps: 8 }, { weight: 80, reps: 7 }] }]} />,
     )
     expect(markup).toContain('80×8 · 80×7')
   })

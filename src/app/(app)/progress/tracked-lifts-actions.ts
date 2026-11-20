@@ -10,8 +10,9 @@ type ActionResult = { success: true } | { success: false; error: string }
 
 // Saves the lifter's picks, in order. An empty list returns to "my most-trained lifts".
 export async function saveTrackedLiftsAction(exerciseIds: string[]): Promise<ActionResult> {
+  // Outside the try: an expired session must reach Next as a redirect to login, not a toast.
+  await requireAuth()
   try {
-    await requireAuth()
     const ids = TrackedLiftIdsSchema.parse(exerciseIds)
     const supabase = await getSupabaseServer()
     const { error } = await supabase.rpc('save_tracked_lifts', { p_exercise_ids: ids })
