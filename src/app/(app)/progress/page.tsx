@@ -13,6 +13,7 @@ import { getBodyweightHistory } from '@/lib/data/bodyweight'
 import { getWorkoutCalendarData } from '@/lib/data/insights'
 import { buildMesocycleTimeline } from '@/lib/phase-coach'
 import { getTrainingCycle } from '@/lib/data/training-cycle'
+import { getStrengthLifts } from '@/lib/data/strength-lifts'
 import { OverviewStatsRow } from '@/components/progress/OverviewStatsRow'
 import { CoachingSection } from '@/components/progress/CoachingSection'
 import { WorkoutCalendar } from '@/components/progress/WorkoutCalendar'
@@ -163,9 +164,10 @@ export default async function ProgressPage() {
   ])
 
   // Pure — no DB call
+  const { indexLifts } = await getStrengthLifts(userId)
   const strengthIndex = computeStrengthIndex(
     snapshot.exerciseWeeklyE1RM,
-    snapshot.keyLifts,
+    indexLifts,
     profile,
   )
 

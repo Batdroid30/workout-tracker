@@ -13,6 +13,7 @@ import {
 import { computeStrengthIndex, getVolumeLandmarksByMuscle, buildThisWeekMissions, type Mission } from '@/lib/data/phase-coach'
 import { getProgressSnapshot, type ProgressSnapshot, type StalenessEntry } from '@/lib/data/progress-snapshot'
 import { getTrainingCycle } from '@/lib/data/training-cycle'
+import { getStrengthLifts } from '@/lib/data/strength-lifts'
 import { assessFatigueLevel, type FatigueAssessment } from '@/lib/algorithms'
 import { STALL_VARIATION_ADVICE } from '@/lib/workout-intelligence'
 import { isPhaseTransitionDue } from '@/lib/phase-transition'
@@ -76,7 +77,7 @@ function pushPullBalance(snapshot: ProgressSnapshot) {
 }
 
 export const getCoachSignals = cache(async (userId: string): Promise<CoachSignals> => {
-  const [profile, snapshot, recentPRs, neglectedMuscles, bwHistory, recentReadiness, trainingCycle] = await Promise.all([
+  const [profile, snapshot, recentPRs, neglectedMuscles, bwHistory, recentReadiness, trainingCycle, strengthLifts] = await Promise.all([
     getProfile(userId),
     getProgressSnapshot(userId),
     getRecentPRs(userId, 60),
@@ -84,10 +85,11 @@ export const getCoachSignals = cache(async (userId: string): Promise<CoachSignal
     getBodyweightHistory(userId, 4),
     getRecentReadinessLogs(userId, 7),
     getTrainingCycle(userId),
+    getStrengthLifts(userId),
   ])
 
   const volumeLandmarks = await getVolumeLandmarksByMuscle(userId, profile, snapshot.currentWeekSetsByMuscle, snapshot.muscleFrequency)
-  const strengthIndex = computeStrengthIndex(snapshot.exerciseWeeklyE1RM, snapshot.keyLifts, profile)
+  const strengthIndex = computeStrengthIndex(snapshot.exerciseWeeklyE1RM, strengthLifts.indexLifts, profile)
   const stalledMovements = stalledMovementsFrom(snapshot.exerciseStaleness)
   const weeks = snapshot.weeklyData.map(week => ({
     week_start: week.weekStart,
