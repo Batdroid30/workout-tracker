@@ -1,6 +1,7 @@
 import { requireAuth } from '@/lib/auth'
 import { getConversations, getConversationMessages } from '@/lib/data/coach'
 import { CoachChatView } from '@/components/coach/CoachChatView'
+import { readCoachPrompt } from '@/lib/coach/read-coach-prompt'
 
 export const metadata = {
   title: 'AI Coach | Workout Tracker',
@@ -8,12 +9,12 @@ export const metadata = {
 }
 
 interface CoachPageProps {
-  searchParams: Promise<{ prompt?: string }>
+  searchParams: Promise<{ prompt?: string | string[] }>
 }
 
 export default async function CoachPage({ searchParams }: CoachPageProps) {
   const { userId } = await requireAuth()
-  const { prompt } = await searchParams
+  const prompt = readCoachPrompt((await searchParams).prompt)
 
   // Restore the latest conversation if one exists
   const conversations = await getConversations(userId)
@@ -28,14 +29,11 @@ export default async function CoachPage({ searchParams }: CoachPageProps) {
       ? await getConversationMessages(latestConv.id, 40)
       : []
 
-  // Decode the URL-encoded prompt (router already decodes, but guard against double-encoding)
-  const initialPrompt = prompt ? decodeURIComponent(prompt) : undefined
-
   return (
     <CoachChatView
       initialConversationId={initialConvId}
       initialMessages={initialMessages}
-      initialPrompt={initialPrompt}
+      initialPrompt={prompt}
     />
   )
 }
