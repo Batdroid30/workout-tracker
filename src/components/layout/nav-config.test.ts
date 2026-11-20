@@ -35,7 +35,7 @@ describe('getAccessory', () => {
     expect(getAccessory(false)).toEqual({ label: 'Start workout', href: '/routines' })
   })
 
-  it('offers to resume an active workout', () => {
-    expect(getAccessory(true)).toEqual({ label: 'Resume workout', href: '/workout' })
+  it('leaves resuming to the workout bar while a workout is running', () => {
+    expect(getAccessory(true)).toBeNull()
   })
 })

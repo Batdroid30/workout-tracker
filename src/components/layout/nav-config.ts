@@ -40,8 +40,7 @@ export function getActiveTab(pathname: string): TabId | null {
   return match?.tab ?? null
 }
 
+// While a workout runs, the workout bar offers Resume, so the tab bar doesn't.
 export function getAccessory(hasActiveWorkout: boolean) {
-  return hasActiveWorkout
-    ? { label: 'Resume workout', href: '/workout' } as const
-    : { label: 'Start workout', href: '/routines' } as const
+  return hasActiveWorkout ? null : { label: 'Start workout', href: '/routines' } as const
 }
