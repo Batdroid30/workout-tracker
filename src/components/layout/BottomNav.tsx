@@ -30,6 +30,15 @@ const CAPSULE =
 
 const MOTION = 'transition-all duration-200 ease-out motion-reduce:transition-none'
 
+// A tap on the collapsed bar reveals the tabs; it must not navigate away
+// from a sub-page (unsaved routine edits, a loaded history list).
+export function collapsedTabClick(onExpand: () => void) {
+  return (event: { preventDefault: () => void }) => {
+    event.preventDefault()
+    onExpand()
+  }
+}
+
 export function BottomNavBar({ activeTab, collapsed, accessory, onExpand }: BottomNavBarProps) {
   const activeIndex = NAV_TABS.findIndex(tab => tab.id === activeTab)
   const showAccessory = collapsed && accessory !== null
@@ -41,6 +50,7 @@ export function BottomNavBar({ activeTab, collapsed, accessory, onExpand }: Bott
     >
       <nav
         aria-label="Main"
+        onFocus={collapsed ? onExpand : undefined}
         className={cn(CAPSULE, MOTION, 'relative pointer-events-auto px-1.5', collapsed ? 'w-16' : 'w-full')}
       >
         {!collapsed && activeIndex >= 0 && (
@@ -63,7 +73,7 @@ export function BottomNavBar({ activeTab, collapsed, accessory, onExpand }: Bott
                 <Link
                   href={tab.href}
                   aria-current={isActive ? 'page' : undefined}
-                  onClick={collapsed ? onExpand : undefined}
+                  onClick={collapsed ? collapsedTabClick(onExpand) : undefined}
                   className={cn(
                     'flex min-h-11 w-full flex-col items-center justify-center gap-0.5 rounded-pill',
                     collapsed && 'h-[52px] w-[52px] bg-accent-soft',

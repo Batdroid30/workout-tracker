@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { nextCollapsed, type CollapseState } from './scroll-collapse'
+import { expandedAt, nextCollapsed, type CollapseState } from './scroll-collapse'
 
 export function useCollapseOnScroll(enabled: boolean): { collapsed: boolean; expand: () => void } {
   const [collapsed, setCollapsed] = useState(false)
@@ -10,7 +10,9 @@ export function useCollapseOnScroll(enabled: boolean): { collapsed: boolean; exp
   useEffect(() => {
     if (!enabled) return
 
-    stateRef.current = { collapsed: stateRef.current.collapsed, anchorY: window.scrollY }
+    // Re-enabling (e.g. leaving /workout) starts from an expanded bar at the
+    // real position; a stale collapsed state would otherwise survive.
+    stateRef.current = expandedAt(window.scrollY)
 
     let frame = 0
     const onScroll = () => {
@@ -24,6 +26,7 @@ export function useCollapseOnScroll(enabled: boolean): { collapsed: boolean; exp
     }
 
     window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
     return () => {
       window.removeEventListener('scroll', onScroll)
       if (frame) cancelAnimationFrame(frame)
@@ -31,7 +34,7 @@ export function useCollapseOnScroll(enabled: boolean): { collapsed: boolean; exp
   }, [enabled])
 
   const expand = useCallback(() => {
-    stateRef.current = { collapsed: false, anchorY: window.scrollY }
+    stateRef.current = expandedAt(window.scrollY)
     setCollapsed(false)
   }, [])
 

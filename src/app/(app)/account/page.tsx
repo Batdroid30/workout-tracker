@@ -15,7 +15,7 @@ export default async function AccountPage() {
   return (
     <div className="min-h-screen px-5 pt-4 pb-28">
       <div className="-ml-2 mb-2">
-        <BackButton />
+        <BackButton fallbackHref="/dashboard" />
       </div>
 
       <header className="flex items-center gap-4 mb-6">

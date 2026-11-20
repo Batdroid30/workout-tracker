@@ -9,6 +9,10 @@ export interface CollapseState {
   anchorY: number
 }
 
+export function expandedAt(y: number): CollapseState {
+  return { collapsed: false, anchorY: y }
+}
+
 export function nextCollapsed(state: CollapseState, y: number): CollapseState {
   if (y < COLLAPSE_MIN_Y) return { collapsed: false, anchorY: y }
 

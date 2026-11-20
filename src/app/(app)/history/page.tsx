@@ -11,7 +11,7 @@ export default async function HistoryPage() {
   return (
     <div className="min-h-screen px-5 pt-4 pb-28">
       <div className="-ml-2 mb-2">
-        <BackButton />
+        <BackButton fallbackHref="/progress" />
       </div>
       <h1 className="t-title-1 mb-5">History</h1>
       <WorkoutHistoryList workouts={workouts} initialHasMore={hasMore} onLoadMore={loadMoreWorkoutsAction} />

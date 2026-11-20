@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { nextCollapsed, type CollapseState } from './scroll-collapse'
+import { expandedAt, nextCollapsed, type CollapseState } from './scroll-collapse'
+
+describe('expandedAt', () => {
+  it('starts expanded at the current position, whatever the bar was before', () => {
+    expect(expandedAt(0)).toEqual({ collapsed: false, anchorY: 0 })
+    expect(expandedAt(420)).toEqual({ collapsed: false, anchorY: 420 })
+  })
+})
 
 const expanded = (anchorY: number): CollapseState => ({ collapsed: false, anchorY })
 const collapsed = (anchorY: number): CollapseState => ({ collapsed: true, anchorY })

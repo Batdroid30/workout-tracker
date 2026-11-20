@@ -1,8 +1,45 @@
 import { describe, it, expect } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { BottomNavBar } from './BottomNav'
+import { isValidElement, type ReactElement, type ReactNode } from 'react'
+import { BottomNavBar, collapsedTabClick } from './BottomNav'
 
 const noop = () => {}
+
+function findElement(node: ReactNode, type: string): ReactElement<Record<string, unknown>> | null {
+  if (!isValidElement<Record<string, unknown> & { children?: ReactNode }>(node)) {
+    if (Array.isArray(node)) {
+      for (const child of node) {
+        const found = findElement(child, type)
+        if (found) return found
+      }
+    }
+    return null
+  }
+  if (node.type === type) return node
+  return findElement(node.props.children, type)
+}
+
+describe('collapsedTabClick', () => {
+  it('expands the bar instead of navigating', () => {
+    let prevented = false
+    let expanded = false
+    collapsedTabClick(() => { expanded = true })({ preventDefault: () => { prevented = true } })
+    expect(prevented).toBe(true)
+    expect(expanded).toBe(true)
+  })
+})
+
+describe('BottomNavBar focus', () => {
+  it('expands a collapsed bar when keyboard focus enters it', () => {
+    let expanded = false
+    const tree = BottomNavBar({ activeTab: 'home', collapsed: true, accessory: null, onExpand: () => { expanded = true } })
+    const nav = findElement(tree, 'nav')
+    const onFocus = nav?.props.onFocus
+    expect(typeof onFocus).toBe('function')
+    if (typeof onFocus === 'function') onFocus()
+    expect(expanded).toBe(true)
+  })
+})
 
 function countMatches(markup: string, needle: string): number {
   return markup.split(needle).length - 1

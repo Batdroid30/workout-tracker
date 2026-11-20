@@ -97,7 +97,7 @@ export default function ImportPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-8">
+    <div className="min-h-screen max-w-2xl mx-auto p-4 pb-28 space-y-8">
       <div className="space-y-2">
         <h1 className="t-display-l">Import data</h1>
         <p className="t-caption">
