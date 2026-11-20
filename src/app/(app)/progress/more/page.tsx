@@ -1,6 +1,5 @@
 import { Suspense } from 'react'
 import { ProgressionLineChart } from '@/components/ui/ProgressionLineChart'
-import { Card, Chip } from '@/components/ui'
 import { PhaseCoachDetail } from '@/components/progress/PhaseCoachDetail'
 import { BodyweightSection } from '@/components/progress/BodyweightSection'
 import { requireAuth } from '@/lib/auth'
@@ -28,7 +27,6 @@ import { WeightChangeSummary } from '@/components/progress/WeightChangeSummary'
 import { BodyCompositionOverlayChart } from '@/components/progress/BodyCompositionOverlayChart'
 import type { OverlayPoint } from '@/components/progress/BodyCompositionOverlayChart'
 import type { StrengthIndexPoint } from '@/lib/data/phase-coach'
-import { redirect } from 'next/navigation'
 import { BackButton } from '@/components/ui/BackButton'
 
 import type { BodyweightPoint } from '@/lib/data/bodyweight'
@@ -143,20 +141,21 @@ async function StrengthPRLoader({ userId }: { userId: string }) {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function MoreStatsPage() {
-  const { userId, session } = await requireAuth()
+  const { userId } = await requireAuth()
 
   // Core queries — run in parallel. Snapshot replaces 6 independent sets scans.
   // calendarData fetches workouts table only (no joins) — very lightweight.
-  const [snapshot, profile, { totalVolume }, calendarData, trainingCycle] = await Promise.all([
+  const [snapshot, profile, { totalVolume }, calendarData, trainingCycle, strengthLifts] = await Promise.all([
     getProgressSnapshot(userId),
     getProfile(userId),
     getWorkoutsSummary(userId),
     getWorkoutCalendarData(userId),
     getTrainingCycle(userId),
+    getStrengthLifts(userId),
   ])
+  const { indexLifts, source: liftSource } = strengthLifts
 
   // Pure — no DB call
-  const { indexLifts } = await getStrengthLifts(userId)
   const strengthIndex = computeStrengthIndex(
     snapshot.exerciseWeeklyE1RM,
     indexLifts,
@@ -264,7 +263,8 @@ export default async function MoreStatsPage() {
           weeksInPhase={weeksInPhase}
           strengthIndex={strengthIndex}
           volumeLandmarks={volumeLandmarks}
-          keyLifts={snapshot.keyLifts}
+          keyLifts={indexLifts}
+          liftSource={liftSource}
           mesocycle={mesocycle}
         />
 
@@ -339,7 +339,7 @@ export default async function MoreStatsPage() {
         <AntagonistBalanceCard sets={antagonistSets} />
 
         {/* ── Bodyweight + composition (streamed) ──────────────────────── */}
-        <div className="space-y-3">
+        <div id="bodyweight" className="space-y-3 scroll-mt-5">
           <Suspense fallback={<BodyweightSkeleton />}>
             <BodyweightLoader
               userId={userId}
