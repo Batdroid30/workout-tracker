@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 
+vi.mock('@/hooks/useNow', () => ({ useNow: () => Date.now() }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('@/store/workout.store', () => ({ useWorkoutStore: () => vi.fn() }))
 vi.mock('@/providers/DialogProvider', () => ({ useDialog: () => ({ confirm: vi.fn() }) }))
@@ -13,7 +14,7 @@ vi.mock('@/hooks/useTrainingCycle', () => ({ useTrainingCycle: () => ({ cycle: n
 import { TodayCard } from './TodayCard'
 import type { SessionSuggestion } from '@/lib/data/splits'
 
-function splitDay(routineId: string | null): SessionSuggestion {
+function splitDay(routineId: string | null, lastSplitWorkout: Extract<SessionSuggestion, { kind: 'split' }>['lastSplitWorkout'] = null): SessionSuggestion {
   const item = { id: 'a', position: 0, routineId, routineTitle: routineId ? 'Push A' : null }
   return {
     kind: 'split',
@@ -23,6 +24,7 @@ function splitDay(routineId: string | null): SessionSuggestion {
     exerciseCount: 6,
     setCount: 18,
     skipToPosition: 1,
+    lastSplitWorkout,
   }
 }
 
@@ -40,6 +42,22 @@ describe('TodayCard', () => {
     expect(markup).toContain('Start workout')
     expect(markup).toContain('Not today')
     expect(limeCount(markup)).toBe(1)
+  })
+
+  it('holds the next day until tomorrow once the split day is done', () => {
+    const markup = render(splitDay('pull', { routineId: 'push', title: 'Push A', startedAt: new Date().toISOString(), durationSeconds: 3120 }))
+    expect(markup).toContain('Push A ✓')
+    expect(markup).toContain('Done for today · 52 min')
+    expect(markup).toContain('Up next tomorrow')
+    expect(markup).toContain('Train again')
+    expect(limeCount(markup)).toBe(0)
+  })
+
+  it('shows the normal card when the last split day was yesterday', () => {
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString()
+    const markup = render(splitDay('pull', { routineId: 'push', title: 'Push A', startedAt: yesterday, durationSeconds: 3120 }))
+    expect(markup).not.toContain('Done for today')
+    expect(markup).toContain('Start workout')
   })
 
   it('offers rest without a lime button on a rest day', () => {

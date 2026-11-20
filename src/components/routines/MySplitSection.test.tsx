@@ -32,6 +32,7 @@ function splitSuggestion(index: number, extra: Partial<{ welcomeBack: boolean; d
     exerciseCount: 6,
     setCount: 18,
     skipToPosition: (index + 1) % split.items.length,
+    lastSplitWorkout: null,
   }
 }
 
