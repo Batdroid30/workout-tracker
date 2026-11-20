@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useReducer, useState, useTransition, type Dispatch } from 'react'
-import { useRouter } from 'next/navigation'
 import { Plus, X } from 'lucide-react'
 import { BottomSheet, Button, IconButton, Input } from '@/components/ui'
 import { SortableExerciseList } from '@/components/workout/SortableExerciseList'
@@ -10,14 +9,7 @@ import { useToast } from '@/providers/ToastProvider'
 import { getUserExerciseFrequency } from '@/app/(app)/workout/actions'
 import { saveTrackedLiftsAction } from '@/app/(app)/progress/tracked-lifts-actions'
 import { MAX_TRACKED_LIFTS } from '@/app/(app)/progress/tracked-lifts-schemas'
-import { pickerReducer, type PickerAction } from '@/lib/tracked-lifts-picker'
-
-export interface PickerOption {
-  id: string
-  name: string
-  detail: string
-  hasData: boolean
-}
+import { pickerReducer, toPickerOptions, type PickerAction, type PickerOption } from '@/lib/tracked-lifts-picker'
 
 const SUGGESTION_COUNT = 8
 
@@ -110,7 +102,6 @@ interface TrackedLiftsSheetProps {
 
 // The Edit / Pick lifts control and its sheet.
 export function TrackedLiftsSheet({ initial, withData, label }: TrackedLiftsSheetProps) {
-  const router = useRouter()
   const toast = useToast()
   const { exercises, load } = useExerciseStore()
   const [isOpen, setIsOpen] = useState(false)
@@ -127,22 +118,13 @@ export function TrackedLiftsSheet({ initial, withData, label }: TrackedLiftsShee
       .catch((error: unknown) => console.error('Failed to load exercise frequency', error))
   }, [isOpen, load])
 
-  const options = useMemo(() => {
-    const hasData = new Set(withData)
-    const fromStore = exercises.map(exercise => ({
-      id: exercise.id,
-      name: exercise.name,
-      detail: `${exercise.muscle_group} · ${frequency[exercise.id] ?? 0} sessions`,
-      hasData: hasData.has(exercise.id),
-    }))
-    const known = new Set(fromStore.map(option => option.id))
-    const missing = initial
-      .filter(lift => !known.has(lift.id))
-      .map(lift => ({ id: lift.id, name: lift.name, detail: '', hasData: hasData.has(lift.id) }))
-    return [...missing, ...fromStore].sort((a, b) => (frequency[b.id] ?? 0) - (frequency[a.id] ?? 0))
-  }, [exercises, frequency, initial, withData])
+  const options = useMemo(
+    () => toPickerOptions({ exercises, frequency, initial, withData }),
+    [exercises, frequency, initial, withData],
+  )
 
-  const save = (ids: string[]) =>
+  // The save action revalidates the page, so the new list arrives with its response.
+  const save = (ids: string[], onSaved?: () => void) =>
     startSaving(async () => {
       const result = await saveTrackedLiftsAction(ids)
       if (!result.success) {
@@ -150,13 +132,20 @@ export function TrackedLiftsSheet({ initial, withData, label }: TrackedLiftsShee
         toast.error('Couldn’t save your lifts. Try again.')
         return
       }
+      onSaved?.()
       setIsOpen(false)
-      router.refresh()
     })
+
+  // Always open on what the list shows, not on edits that were never saved.
+  const open = () => {
+    dispatch({ type: 'seed', ids: initial.map(lift => lift.id) })
+    setQuery('')
+    setIsOpen(true)
+  }
 
   return (
     <>
-      <button type="button" onClick={() => setIsOpen(true)} className="focus-ring min-h-11 rounded px-2 text-sm font-medium text-secondary">
+      <button type="button" onClick={open} className="focus-ring min-h-11 rounded px-2 text-sm font-medium text-secondary">
         {label}
       </button>
       <BottomSheet isOpen={isOpen} onClose={() => setIsOpen(false)} title="Your lifts">
@@ -169,7 +158,7 @@ export function TrackedLiftsSheet({ initial, withData, label }: TrackedLiftsShee
           onQuery={setQuery}
           dispatch={dispatch}
           onSave={() => save(state.picked)}
-          onUseAuto={() => { dispatch({ type: 'reset' }); save([]) }}
+          onUseAuto={() => save([], () => dispatch({ type: 'reset' }))}
         />
       </BottomSheet>
     </>
