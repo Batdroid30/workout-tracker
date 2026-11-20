@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { migrateActiveWorkout, moveBlock as reorderBlocks, newClientId, newSession } from '@/lib/workout-session'
+import { firstOpenExerciseId, migrateActiveWorkout, moveBlock as reorderBlocks, newClientId, newSession } from '@/lib/workout-session'
 import type { ActiveWorkout, ActiveExercise, ActiveSet, Exercise } from '@/types/database'
 
 interface WorkoutStore {
@@ -273,13 +273,23 @@ export const useWorkoutStore = create<WorkoutStore>()(
         return { activeWorkout: { ...state.activeWorkout, exercises } }
       }),
 
-  removeExercise: (exerciseIndex) => set((state) => ({
-    activeWorkout: state.activeWorkout ? {
-      ...state.activeWorkout,
-      exercises: state.activeWorkout.exercises.filter((_, i) => i !== exerciseIndex),
-      has_routine_been_modified: state.activeWorkout.routine_id ? true : false
-    } : null
-  })),
+  removeExercise: (exerciseIndex) => set((state) => {
+    if (!state.activeWorkout) return state
+    const removed = state.activeWorkout.exercises[exerciseIndex]
+    const exercises = state.activeWorkout.exercises.filter((_, i) => i !== exerciseIndex)
+    // Removing the open exercise opens the next one with work left.
+    const openExerciseId = removed && state.activeWorkout.openExerciseId === removed.clientId
+      ? firstOpenExerciseId(exercises)
+      : state.activeWorkout.openExerciseId
+    return {
+      activeWorkout: {
+        ...state.activeWorkout,
+        exercises,
+        openExerciseId,
+        has_routine_been_modified: state.activeWorkout.routine_id ? true : false,
+      },
+    }
+  }),
 
   removeSet: (exerciseIndex, setIndex) => set((state) => {
     if (!state.activeWorkout) return state

@@ -131,3 +131,16 @@ describe('rest timer', () => {
     expect(useWorkoutStore.getState().activeWorkout?.rest).toBeNull()
   })
 })
+
+describe('removing the open exercise', () => {
+  it('opens the next exercise with work left', () => {
+    useWorkoutStore.getState().startWorkout('Push A')
+    const bench = { id: 'e1', name: 'Bench', muscle_group: 'chest', secondary_muscles: null, equipment: 'barbell', movement_pattern: 'push', is_custom: null, created_by: null, created_at: null, youtube_video_id: null }
+    useWorkoutStore.getState().addExercise(bench)
+    useWorkoutStore.getState().addExercise({ ...bench, id: 'e2', name: 'Row' })
+    const [first, second] = useWorkoutStore.getState().activeWorkout?.exercises ?? []
+    useWorkoutStore.getState().setOpenExercise(first.clientId)
+    useWorkoutStore.getState().removeExercise(0)
+    expect(useWorkoutStore.getState().activeWorkout?.openExerciseId).toBe(second.clientId)
+  })
+})
