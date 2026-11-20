@@ -13,7 +13,7 @@ export function HomeHeader({ greeting, firstName, dateLabel, avatarUrl, initial 
     <header className="flex items-center justify-between gap-4 pt-4">
       <div className="min-w-0">
         <p className="t-caption">{dateLabel}</p>
-        <h1 className="t-title-1 mt-0.5 truncate">{greeting}, {firstName}</h1>
+        <h1 className="t-title-1 mt-0.5 break-words">{greeting}, {firstName}</h1>
       </div>
       <Link
         href="/account"
