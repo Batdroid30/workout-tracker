@@ -201,14 +201,14 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
       </div>
 
       {isWeightedBodyweight && (
-        <p className="mono text-xs pb-1 pl-[96px] tabular-nums text-tertiary">
+        <p className="mono text-xs pb-1 pl-[104px] tabular-nums text-tertiary">
           BW {userBodyweight} + {getDisplayWeight(set.weight_kg)} = {Math.round(Math.max(set.weight_kg, userBodyweight) * 10) / 10} kg
           {bodyweightLogged === false && <span> · using 75 kg — log your bodyweight in Progress</span>}
         </p>
       )}
 
       {isAssisted && set.weight_kg >= userBodyweight && (
-        <p className="text-xs pb-1 pl-[96px] text-caution">
+        <p className="text-xs pb-1 pl-[104px] text-caution">
           Assistance is at or above your bodyweight ({userBodyweight} kg) — check the number.
         </p>
       )}

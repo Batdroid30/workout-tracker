@@ -21,7 +21,9 @@ import { SupersetWrapper } from '@/components/workout/SupersetWrapper'
 import { buildWorkoutTemplate } from '@/lib/template-generator'
 import { FailureTrainingTip } from '@/components/workout/FailureTrainingTip'
 import { canGoBack } from '@/components/ui/BackButton'
-import { firstOpenExerciseId, restLabelAfter, workoutProgress } from '@/lib/workout-session'
+import { exerciseBlocks, exerciseTally, firstOpenExerciseId, restLabelAfter, workoutProgress, type ExerciseBlock } from '@/lib/workout-session'
+import { SortableExerciseList } from '@/components/workout/SortableExerciseList'
+import { ExerciseTallyRow } from '@/components/workout/ExerciseTallyRow'
 import { weekLabel } from '@/lib/home'
 import type { Exercise, ActiveExercise } from '@/types/database'
 
@@ -37,73 +39,70 @@ interface RenderOptions {
   onUnpairSuperset: (i: number) => void
 }
 
-function renderExercises(exercises: ActiveExercise[], opts: RenderOptions) {
-  const nodes: React.ReactNode[] = []
-  const seen = new Set<number>()
-
-  // Pre-collect all group members so non-adjacent pairs don't produce duplicate keys
-  const groupMembers = new Map<string, number[]>()
-  exercises.forEach((ex, idx) => {
-    if (ex.superset_group) {
-      const arr = groupMembers.get(ex.superset_group) ?? []
-      arr.push(idx)
-      groupMembers.set(ex.superset_group, arr)
-    }
+function renderExerciseBlock(
+  exercises: ActiveExercise[],
+  block: ExerciseBlock,
+  handle: React.ReactNode,
+  isDragging: boolean,
+  opts: RenderOptions,
+) {
+  const members = block.clientIds.flatMap(clientId => {
+    const index = exercises.findIndex(entry => entry.clientId === clientId)
+    return index === -1 ? [] : [{ entry: exercises[index], index }]
   })
-
   const standaloneCandidates = exercises
-    .map((ex, idx) => ({ index: idx, name: ex.exercise.name }))
-    .filter((_, idx) => !exercises[idx].superset_group)
+    .map((entry, index) => ({ index, name: entry.exercise.name }))
+    .filter(candidate => !exercises[candidate.index].superset_group)
 
-  for (let i = 0; i < exercises.length; i++) {
-    if (seen.has(i)) continue
-
-    const ex = exercises[i]
-    const groupId = ex.superset_group
-
-    if (!groupId) {
-      const candidates = standaloneCandidates.filter(c => c.index !== i)
-      nodes.push(
-        <SetLogger
-          key={ex.clientId}
-          exerciseIndex={i}
-          exercise={ex}
-          onReplaceExercise={() => opts.onReplaceExercise(i)}
-          onOpenPlateCalc={opts.onOpenPlateCalc}
-          onRestTimerStart={opts.onRestTimerStart}
-          isCollapsed={opts.openExerciseId !== ex.clientId}
-          onExpand={() => opts.onExpand(ex.clientId)}
-          onSupersetWith={candidates.length > 0 ? (otherIdx) => opts.onPairAsSuperset(i, otherIdx) : undefined}
-          supersetCandidates={candidates}
-        />
-      )
-    } else {
-      const indices = groupMembers.get(groupId) ?? [i]
-      indices.forEach(idx => seen.add(idx))
-      const group = indices.map(idx => ({ ex: exercises[idx], idx }))
-      const exerciseNames = group.map(g => g.ex.exercise.name)
-
-      nodes.push(
-        <SupersetWrapper key={groupId} exerciseNames={exerciseNames}>
-          {group.map(({ ex: gex, idx }, pos) => (
-            <SetLogger
-              key={gex.clientId}
-              exerciseIndex={idx}
-              exercise={gex}
-              onReplaceExercise={() => opts.onReplaceExercise(idx)}
-              onOpenPlateCalc={opts.onOpenPlateCalc}
-              onRestTimerStart={pos === group.length - 1 ? opts.onRestTimerStart : () => {}}
-              isCollapsed={opts.openExerciseId !== gex.clientId}
-              onExpand={() => opts.onExpand(gex.clientId)}
-              onUnpairSuperset={() => opts.onUnpairSuperset(idx)}
-            />
-          ))}
-        </SupersetWrapper>
-      )
-    }
+  // While anything is being dragged, every block is one row.
+  if (isDragging && members.length > 1) {
+    const tallies = members.map(member => exerciseTally(member.entry))
+    const done = tallies.reduce((sum, tally) => sum + tally.done, 0)
+    const total = tallies.reduce((sum, tally) => sum + tally.total, 0)
+    return (
+      <div className="mb-2.5">
+        <ExerciseTallyRow name={block.label} muscle="Superset" tally={{ done, total, complete: tallies.every(tally => tally.complete) }} onOpen={() => {}} handle={handle} />
+      </div>
+    )
   }
 
-  return nodes
+  if (members.length === 1) {
+    const { entry, index } = members[0]
+    const candidates = standaloneCandidates.filter(candidate => candidate.index !== index)
+    return (
+      <SetLogger
+        exerciseIndex={index}
+        exercise={entry}
+        onReplaceExercise={() => opts.onReplaceExercise(index)}
+        onOpenPlateCalc={opts.onOpenPlateCalc}
+        onRestTimerStart={opts.onRestTimerStart}
+        isCollapsed={isDragging || opts.openExerciseId !== entry.clientId}
+        onExpand={() => opts.onExpand(entry.clientId)}
+        onSupersetWith={candidates.length > 0 ? otherIndex => opts.onPairAsSuperset(index, otherIndex) : undefined}
+        supersetCandidates={candidates}
+        dragHandle={handle}
+      />
+    )
+  }
+
+  return (
+    <SupersetWrapper exerciseNames={members.map(member => member.entry.exercise.name)} handle={handle}>
+      {members.map(({ entry, index }, position) => (
+        <SetLogger
+          key={entry.clientId}
+          exerciseIndex={index}
+          exercise={entry}
+          onReplaceExercise={() => opts.onReplaceExercise(index)}
+          onOpenPlateCalc={opts.onOpenPlateCalc}
+          // Rest starts after the superset's last exercise, as before.
+          onRestTimerStart={position === members.length - 1 ? opts.onRestTimerStart : () => {}}
+          isCollapsed={opts.openExerciseId !== entry.clientId}
+          onExpand={() => opts.onExpand(entry.clientId)}
+          onUnpairSuperset={() => opts.onUnpairSuperset(index)}
+        />
+      ))}
+    </SupersetWrapper>
+  )
 }
 
 const LOGGER_SCROLL_KEY = 'logger-scroll'
@@ -141,6 +140,7 @@ export default function WorkoutPage() {
   const extendRest = useWorkoutStore(state => state.extendRest)
   const clearRest = useWorkoutStore(state => state.clearRest)
   const setOpenExercise = useWorkoutStore(state => state.setOpenExercise)
+  const moveBlock = useWorkoutStore(state => state.moveBlock)
   const handleRestTimerStart = useCallback((seconds: number, exerciseIndex: number) => {
     const exercises = useWorkoutStore.getState().activeWorkout?.exercises ?? []
     startRest(seconds, restLabelAfter(exercises, exerciseIndex))
@@ -328,15 +328,19 @@ export default function WorkoutPage() {
             <p className="t-caption">Add an exercise to start tracking.</p>
           </div>
         ) : (
-          renderExercises(activeWorkout.exercises, {
-            openExerciseId: activeWorkout.openExerciseId ?? firstOpenExerciseId(activeWorkout.exercises),
-            onExpand: setOpenExercise,
-            onReplaceExercise: (i) => setAddingExerciseMode({ mode: 'replace', index: i }),
-            onOpenPlateCalc: handleOpenPlateCalc,
-            onRestTimerStart: handleRestTimerStart,
-            onPairAsSuperset: pairAsSuperset,
-            onUnpairSuperset: (i) => unpairSuperset(i),
-          })
+          <SortableExerciseList
+            blocks={exerciseBlocks(activeWorkout.exercises)}
+            onMove={moveBlock}
+            renderBlock={(block, handle, isDragging) => renderExerciseBlock(activeWorkout.exercises, block, handle, isDragging, {
+              openExerciseId: activeWorkout.openExerciseId ?? firstOpenExerciseId(activeWorkout.exercises),
+              onExpand: setOpenExercise,
+              onReplaceExercise: (i) => setAddingExerciseMode({ mode: 'replace', index: i }),
+              onOpenPlateCalc: handleOpenPlateCalc,
+              onRestTimerStart: handleRestTimerStart,
+              onPairAsSuperset: pairAsSuperset,
+              onUnpairSuperset: (i) => unpairSuperset(i),
+            })}
+          />
         )}
 
         {/* ── Suggest-next chips — blank workouts only ──────────────────── */}

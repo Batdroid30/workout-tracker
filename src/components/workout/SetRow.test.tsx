@@ -21,7 +21,7 @@ describe('SetRow', () => {
   it('puts last time in its own column next to the set', () => {
     const markup = render(set())
     expect(markup).toMatch(/data-col="last"[^>]*>26×9</)
-    expect(markup).toContain('grid-cols-[28px_52px_1fr_1fr_44px]')
+    expect(markup).toContain('grid-cols-[28px_60px_1fr_1fr_44px]')
   })
 
   it('keeps a full-size lime tick on a completed set', () => {
