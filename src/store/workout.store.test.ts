@@ -75,6 +75,8 @@ describe('Workout Store', () => {
         id: null,
         title: 'Workout',
         started_at: new Date(),
+        openExerciseId: null,
+        rest: null,
         exercises: []
       },
       userBodyweight: 75
@@ -96,5 +98,36 @@ describe('Workout Store', () => {
     expect(firstExerciseObj.sets).not.toBe(newExerciseObj.sets)
     // There should now be 2 sets (addExercise adds 1, addSet adds another)
     expect(newExerciseObj.sets.length).toBe(2)
+  })
+})
+
+describe('rest timer', () => {
+  beforeEach(() => {
+    useWorkoutStore.getState().startWorkout('Push A')
+  })
+
+  it('stores rest as an end time', () => {
+    const before = Date.now()
+    useWorkoutStore.getState().startRest(90, 'Lateral Raise')
+    const rest = useWorkoutStore.getState().activeWorkout?.rest
+    expect(rest?.totalSeconds).toBe(90)
+    expect(rest?.nextLabel).toBe('Lateral Raise')
+    expect(rest?.endsAt).toBeGreaterThanOrEqual(before + 90_000)
+  })
+
+  it('adds time from now when rest has already run out', () => {
+    useWorkoutStore.getState().startRest(90, null)
+    const expired = Date.now() - 5_000
+    useWorkoutStore.setState(state => ({
+      activeWorkout: state.activeWorkout && { ...state.activeWorkout, rest: { endsAt: expired, totalSeconds: 90, nextLabel: null } },
+    }))
+    useWorkoutStore.getState().extendRest(30)
+    expect(useWorkoutStore.getState().activeWorkout?.rest?.endsAt).toBeGreaterThanOrEqual(Date.now() + 29_000)
+  })
+
+  it('clears rest when skipped', () => {
+    useWorkoutStore.getState().startRest(90, null)
+    useWorkoutStore.getState().clearRest()
+    expect(useWorkoutStore.getState().activeWorkout?.rest).toBeNull()
   })
 })

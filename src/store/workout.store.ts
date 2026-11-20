@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { migrateActiveWorkout, moveBlock as reorderBlocks, newClientId, newSession } from '@/lib/workout-session'
 import type { ActiveWorkout, ActiveExercise, ActiveSet, Exercise } from '@/types/database'
 
 interface WorkoutStore {
@@ -15,8 +16,11 @@ interface WorkoutStore {
   copyWorkout: (pastWorkout: any) => void
   addExercise: (exercise: Exercise, restSeconds?: number) => void
   replaceExercise: (exerciseIndex: number, newExercise: Exercise) => void
-  moveExerciseUp: (exerciseIndex: number) => void
-  moveExerciseDown: (exerciseIndex: number) => void
+  moveBlock: (fromBlockId: string, toBlockId: string) => void
+  setOpenExercise: (clientId: string | null) => void
+  startRest: (seconds: number, nextLabel: string | null) => void
+  extendRest: (seconds: number) => void
+  clearRest: () => void
   addSet: (exerciseIndex: number) => void
   addWarmupSet: (exerciseIndex: number, weight?: number, reps?: number) => void
   updateSet: (exerciseIndex: number, setIndex: number, updates: Partial<ActiveSet>) => void
@@ -43,25 +47,15 @@ export const useWorkoutStore = create<WorkoutStore>()(
       bodyweightLogged: null,
 
       startWorkout: (title = 'Workout') => set({
-        activeWorkout: {
-          id: null,
-          title,
-          started_at: new Date(),
-          exercises: [],
-        }
+        activeWorkout: newSession({ id: null, title, started_at: new Date(), exercises: [] }),
       }),
 
       startFromTemplate: (exercises, title = 'Workout') => set({
-        activeWorkout: {
-          id: null,
-          title,
-          started_at: new Date(),
-          exercises,
-        }
+        activeWorkout: newSession({ id: null, title, started_at: new Date(), exercises }),
       }),
 
       startRoutine: (routine) => set({
-        activeWorkout: {
+        activeWorkout: newSession({
           id: null,
           title: routine.title,
           routine_id: routine.id,
@@ -85,6 +79,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
               })
             }
             return {
+              clientId: newClientId(),
               workout_exercise_id: null,
               exercise: re.exercise,
               order_index: idx,
@@ -93,15 +88,16 @@ export const useWorkoutStore = create<WorkoutStore>()(
               rep_sum_target:    re.rep_sum_target ?? null,
             }
           })
-        }
+        }),
       }),
 
       copyWorkout: (pastWorkout) => set({
-        activeWorkout: {
+        activeWorkout: newSession({
           id: null,
           title: pastWorkout.title || 'Workout',
           started_at: new Date(),
           exercises: pastWorkout.workout_exercises.map((we: any, idx: number) => ({
+            clientId: newClientId(),
             workout_exercise_id: null,
             exercise: we.exercise,
             order_index: idx,
@@ -116,7 +112,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
               saved: false,
             }))
           }))
-        }
+        }),
       }),
 
       addExercise: (exercise, restSeconds?) => set((state) => {
@@ -126,6 +122,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
         const isWeightedBw = exercise.equipment?.toLowerCase() === 'bodyweight' && !!exercise.name.toLowerCase().match(/weighted/i)
 
         const newExercise: ActiveExercise = {
+          clientId: newClientId(),
           workout_exercise_id: null,
           exercise,
           sets: [{
@@ -146,6 +143,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
           activeWorkout: {
             ...state.activeWorkout,
             exercises: [...state.activeWorkout.exercises, newExercise],
+            openExerciseId: newExercise.clientId,
             has_routine_been_modified: state.activeWorkout.routine_id ? true : false
           }
         }
@@ -168,41 +166,41 @@ export const useWorkoutStore = create<WorkoutStore>()(
         }
       }),
 
-      moveExerciseUp: (exerciseIndex) => set((state) => {
-        if (!state.activeWorkout || exerciseIndex === 0) return state
-        const exercises = [...state.activeWorkout.exercises]
-        const temp = exercises[exerciseIndex - 1]
-        exercises[exerciseIndex - 1] = exercises[exerciseIndex]
-        exercises[exerciseIndex] = temp
-        // update order_index
-        exercises[exerciseIndex - 1].order_index = exerciseIndex - 1
-        exercises[exerciseIndex].order_index = exerciseIndex
-        return { 
-          activeWorkout: { 
-            ...state.activeWorkout, 
+      moveBlock: (fromBlockId, toBlockId) => set((state) => {
+        if (!state.activeWorkout) return state
+        const exercises = reorderBlocks(state.activeWorkout.exercises, fromBlockId, toBlockId)
+        if (exercises === state.activeWorkout.exercises) return state
+        return {
+          activeWorkout: {
+            ...state.activeWorkout,
             exercises,
-            has_routine_been_modified: state.activeWorkout.routine_id ? true : false
-          } 
+            has_routine_been_modified: state.activeWorkout.routine_id ? true : false,
+          },
         }
       }),
 
-      moveExerciseDown: (exerciseIndex) => set((state) => {
-        if (!state.activeWorkout || exerciseIndex === state.activeWorkout.exercises.length - 1) return state
-        const exercises = [...state.activeWorkout.exercises]
-        const temp = exercises[exerciseIndex + 1]
-        exercises[exerciseIndex + 1] = exercises[exerciseIndex]
-        exercises[exerciseIndex] = temp
-        // update order_index
-        exercises[exerciseIndex].order_index = exerciseIndex
-        exercises[exerciseIndex + 1].order_index = exerciseIndex + 1
-        return { 
-          activeWorkout: { 
-            ...state.activeWorkout, 
-            exercises,
-            has_routine_been_modified: state.activeWorkout.routine_id ? true : false
-          } 
-        }
+      setOpenExercise: (clientId) => set((state) => (
+        state.activeWorkout ? { activeWorkout: { ...state.activeWorkout, openExerciseId: clientId } } : state
+      )),
+
+      // The rest timer is an end time, so it stays right while the phone
+      // sleeps or the lifter is on another screen.
+      startRest: (seconds, nextLabel) => set((state) => (
+        state.activeWorkout
+          ? { activeWorkout: { ...state.activeWorkout, rest: { endsAt: Date.now() + seconds * 1000, totalSeconds: seconds, nextLabel } } }
+          : state
+      )),
+
+      extendRest: (seconds) => set((state) => {
+        const rest = state.activeWorkout?.rest
+        if (!state.activeWorkout || !rest) return state
+        const endsAt = Math.max(rest.endsAt, Date.now()) + seconds * 1000
+        return { activeWorkout: { ...state.activeWorkout, rest: { ...rest, endsAt, totalSeconds: rest.totalSeconds + seconds } } }
       }),
+
+      clearRest: () => set((state) => (
+        state.activeWorkout ? { activeWorkout: { ...state.activeWorkout, rest: null } } : state
+      )),
 
       addSet: (exerciseIndex) => set((state) => {
         if (!state.activeWorkout) return state
@@ -359,6 +357,6 @@ export const useWorkoutStore = create<WorkoutStore>()(
   setUserBodyweight: (weight) => set({ userBodyweight: weight }),
   setBodyweightLogged: (logged) => set({ bodyweightLogged: logged }),
 }),
-    { name: 'active-workout' }     // localStorage key
+    { name: 'active-workout', version: 1, migrate: migrateActiveWorkout }     // localStorage key
   )
 )

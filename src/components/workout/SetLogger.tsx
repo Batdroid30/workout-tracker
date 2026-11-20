@@ -54,7 +54,7 @@ export function SetLogger({
   supersetCandidates,
   onUnpairSuperset,
 }: SetLoggerProps) {
-  const { updateSet, markSetDone, addSet, addWarmupSet, removeExercise, removeSet, insertSet, moveExerciseUp, moveExerciseDown, updateExerciseRestSeconds } = useWorkoutStore()
+  const { updateSet, markSetDone, addSet, addWarmupSet, removeExercise, removeSet, insertSet, updateExerciseRestSeconds } = useWorkoutStore()
 
   const isBodyweight = exercise.exercise.equipment?.toLowerCase() === 'bodyweight' &&
     !exercise.exercise.name.toLowerCase().includes('weighted')
@@ -233,8 +233,6 @@ export function SetLogger({
                 >
                   {[
                     { label: 'Replace exercise', action: () => { onReplaceExercise?.(); setMenuOpen(false) } },
-                    { label: 'Move up',          action: () => { moveExerciseUp(exerciseIndex); setMenuOpen(false) } },
-                    { label: 'Move down',        action: () => { moveExerciseDown(exerciseIndex); setMenuOpen(false) } },
                     ...(onSupersetWith && supersetCandidates && supersetCandidates.length > 0
                       ? [{ label: 'Superset with…', action: () => { setMenuOpen(false); setShowSupersetPicker(true) } }]
                       : []),
