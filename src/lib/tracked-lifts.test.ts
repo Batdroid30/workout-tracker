@@ -21,6 +21,10 @@ describe('liftTrend', () => {
     expect(liftTrend(weeks(100, 98))?.direction).toBe('down')
   })
 
+  it('has no change to report after a single week', () => {
+    expect(liftTrend(weeks(85))).toEqual({ current: 85, change: null, direction: 'flat', points: [85] })
+  })
+
   it('has nothing to say without sets in the window', () => {
     expect(liftTrend(undefined)).toBeNull()
     expect(liftTrend(new Map())).toBeNull()

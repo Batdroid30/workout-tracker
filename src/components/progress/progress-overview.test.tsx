@@ -20,6 +20,13 @@ describe('YourLiftsCard', () => {
     expect(renderToStaticMarkup(<YourLiftsCard rows={[{ exerciseId: 'e1', name: 'Bench', trend: up }]} source="auto" action={null} />)).toContain('>Estimated max<')
   })
 
+  it('says "first week" instead of a change for a lift logged in only one week', () => {
+    const single = { current: 80, change: null, direction: 'flat' as const, points: [80] }
+    const markup = renderToStaticMarkup(<YourLiftsCard rows={[{ exerciseId: 'e3', name: 'Squat', trend: single }]} source="picked" action={null} />)
+    expect(markup).toContain('First week')
+    expect(markup).not.toContain('0 kg')
+  })
+
   it('guides a new lifter instead of showing an empty list', () => {
     const markup = renderToStaticMarkup(<YourLiftsCard rows={[]} source="auto" action={<button type="button">Pick lifts</button>} />)
     expect(markup).toContain('Log a few workouts and your main lifts appear here')
