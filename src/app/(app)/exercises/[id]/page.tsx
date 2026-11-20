@@ -11,12 +11,15 @@ import { deriveExerciseInsights } from '@/lib/algorithms'
 import { TutorialVideo } from '@/components/exercises/TutorialVideo'
 import type { MuscleGroup, MovementPattern, ExperienceLevel } from '@/types/database'
 import { isAssisted } from '@/lib/load'
+import { bestRecentSet } from '@/lib/lift-range'
+import { LiftHeroCard } from '@/components/exercises/LiftHeroCard'
+import { RecentSessions } from '@/components/exercises/RecentSessions'
 
 export default async function ExerciseDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { userId, session } = await requireAuth()
 
-  const [exercise, { prs, progression }, profile] = await Promise.all([
+  const [exercise, { prs, progression, sessions }, profile] = await Promise.all([
     getExerciseById(id),
     getExerciseProgression(userId, id),
     getProfile(userId),
@@ -35,8 +38,8 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
   const best1RM    = prs.find(p => p.pr_type === 'best_1rm')?.value    ?? best1RMFromHistory
 
   const display = (v: number | null | undefined) => v != null ? Math.round(Number(v)) : '—'
+  const topSet = bestRecentSet(sessions)
 
-  const chartData1RM    = progression.map(p => ({ date: p.date, value: p.best1RM }))
   const chartDataWeight = progression.map(p => ({ date: p.date, value: p.maxWeight }))
   const chartDataVolume = progression.map(p => ({ date: p.date, value: Math.round(p.volume) }))
 
@@ -48,11 +51,11 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
   return (
     <div className="min-h-screen pb-24 text-primary">
 
-      {/* ── Top Nav ──────────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-30 px-4 py-3 flex items-center gap-3 bg-bg border-b border-border">
-        <BackButton />
-        <div className="flex-1 min-w-0">
-          <h1 className="text-sm font-semibold leading-tight truncate text-primary">
+      {/* ── Header ───────────────────────────────────────────────────── */}
+      <div className="px-4 pt-4">
+        <div className="-ml-2 mb-1"><BackButton fallbackHref="/progress" /></div>
+        <div className="min-w-0">
+          <h1 className="t-display-m break-words">
             {exercise.name}
           </h1>
           <div className="flex items-center gap-1 mt-0.5">
@@ -74,6 +77,18 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
       </div>
 
       <div className="p-4 space-y-6 mt-2 stagger-children">
+
+        {/* ── The answer first: estimated max, change, one chart ──────────── */}
+        <LiftHeroCard points={progression.map(point => ({ date: point.date, best1RM: point.best1RM }))} today={new Date().toISOString().slice(0, 10)} />
+
+        {/* ── Quick facts ──────────────────────────────────────────────── */}
+        <section className="grid grid-cols-3 gap-2" aria-label="Quick facts">
+          <QuickFact label={assisted ? 'Least assistance' : 'Heaviest'} value={bestWeight != null ? `${display(bestWeight)} kg` : '—'} />
+          <QuickFact label="Best recent set" value={topSet ? `${topSet.weight}×${topSet.reps}` : '—'} />
+          <QuickFact label="Sessions" value={String(progression.length)} />
+        </section>
+
+        <RecentSessions sessions={sessions} />
 
         {/* ── Tutorial video ───────────────────────────────────────────── */}
         {!exercise.is_custom && exercise.youtube_video_id && (
@@ -114,18 +129,6 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
             </div>
           </div>
         </section>
-
-        {/* ── e1RM Progression chart ────────────────────────────────────── */}
-        {chartData1RM.length > 1 && (
-          <section className="fade-up">
-            <h2 className="t-label mb-3">Est. 1RM progression</h2>
-            <div className="card p-4">
-              <div className="h-[180px] w-full">
-                <ProgressionLineChart data={chartData1RM} formatType="number" />
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* ── Max Weight Progression chart ─────────────────────────────── */}
         {chartDataWeight.length > 1 && (
@@ -186,6 +189,15 @@ export default async function ExerciseDetailsPage({ params }: { params: Promise<
           </section>
         )}
       </div>
+    </div>
+  )
+}
+
+function QuickFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-control bg-surface-raised p-3">
+      <p className="t-caption">{label}</p>
+      <p className="mono mt-0.5 text-base font-medium text-primary">{value}</p>
     </div>
   )
 }
