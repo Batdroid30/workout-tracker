@@ -21,7 +21,9 @@ import { SupersetWrapper } from '@/components/workout/SupersetWrapper'
 import { buildWorkoutTemplate } from '@/lib/template-generator'
 import { FailureTrainingTip } from '@/components/workout/FailureTrainingTip'
 import { canGoBack } from '@/components/ui/BackButton'
-import { exerciseBlocks, exerciseTally, firstOpenExerciseId, restLabelAfter, workoutProgress, type ExerciseBlock } from '@/lib/workout-session'
+import { exerciseBlocks, exerciseTally, finishSituation, firstOpenExerciseId, restLabelAfter, toFinishPayload, workoutProgress, type ExerciseBlock } from '@/lib/workout-session'
+import { FinishSheet } from '@/components/workout/FinishSheet'
+import { useToast } from '@/providers/ToastProvider'
 import { SortableExerciseList } from '@/components/workout/SortableExerciseList'
 import { ExerciseTallyRow } from '@/components/workout/ExerciseTallyRow'
 import { weekLabel } from '@/lib/home'
@@ -113,17 +115,19 @@ export default function WorkoutPage() {
   const dialog = useDialog()
   const { cycle } = useTrainingCycle()
 
+  const toast = useToast()
+
   const handleDiscard = async () => {
     const confirmed = await dialog.confirm({
-      title:       'Discard Workout',
-      description: 'Are you sure you want to discard this workout? All progress will be lost.',
+      title:       'Discard workout?',
+      description: 'Every set in it will be lost. This can’t be undone.',
       danger:       true,
       confirmText: 'Discard',
     })
-    if (confirmed) {
-      discardWorkout()
-      router.push('/dashboard')
-    }
+    if (!confirmed) return
+    setFinishOpen(false)
+    discardWorkout()
+    router.push('/dashboard')
   }
 
   const [addingExerciseMode, setAddingExerciseMode] = useState<{ mode: 'add' } | { mode: 'replace', index: number } | null>(null)
@@ -185,82 +189,34 @@ export default function WorkoutPage() {
   }, [activeWorkout?.started_at])
 
 
-  const handleFinish = async () => {
+  const [finishOpen, setFinishOpen] = useState(false)
+  const [updateRoutine, setUpdateRoutine] = useState(false)
+  const handleFinish = () => setFinishOpen(true)
+
+  const completeFinish = async ({ tickRest }: { tickRest: boolean }) => {
     if (!activeWorkout) return
-
-    if (activeWorkout.exercises.length === 0) {
-      const confirmedEmpty = await dialog.confirm({
-        title: 'Empty Workout', description: 'This workout is empty. Do you want to discard it?',
-        danger: true, confirmText: 'Discard',
-      })
-      if (!confirmedEmpty) return
-      discardWorkout()
-      router.push('/dashboard')
-      return
-    }
-
-    const hasUncheckedSetsWithData = activeWorkout.exercises.some(ex =>
-      ex.sets.some(s => !s.completed && (s.weight_kg > 0 || s.reps > 0))
-    )
-    let finalWorkout = activeWorkout
-
-    if (hasUncheckedSetsWithData) {
-      const completeThem = await dialog.confirm({
-        title: 'Unchecked Sets',
-        description: 'You have unchecked sets with data. Would you like to mark them as complete?',
-        confirmText: 'Mark Complete',
-      })
-      if (completeThem) {
-        completeAllSets()
-        finalWorkout = {
-          ...activeWorkout,
-          exercises: activeWorkout.exercises.map(ex => ({
-            ...ex,
-            sets: ex.sets.map(s => (s.weight_kg > 0 || s.reps > 0) ? { ...s, completed: true } : s),
-          })),
-        }
-      } else {
-        const finishAnyway = await dialog.confirm({
-          title: 'Finish Anyway?',
-          description: 'Unchecked sets will NOT be saved.',
-          confirmText: 'Finish', danger: true,
-        })
-        if (!finishAnyway) return
-      }
-    } else {
-      const finishIt = await dialog.confirm({
-        title: 'Finish Workout',
-        description: 'Great job! Finish this workout and save to your log?',
-        confirmText: 'Finish Workout',
-      })
-      if (!finishIt) return
-    }
-
+    setFinishOpen(false)
     setIsFinishing(true)
+    if (tickRest) completeAllSets()
+    // Read back from the store so ticked-on-finish sets are included.
+    const finalWorkout = useWorkoutStore.getState().activeWorkout ?? activeWorkout
     try {
-      if (finalWorkout.routine_id && finalWorkout.has_routine_been_modified) {
-        const syncRoutine = await dialog.confirm({
-          title: 'Update Routine?',
-          description: 'You modified the exercises. Update the saved routine template?',
-          confirmText: 'Update Routine',
-        })
-        if (syncRoutine) {
-          await updateRoutineExercisesAction(finalWorkout.routine_id, finalWorkout.exercises)
-        }
+      if (finalWorkout.routine_id && finalWorkout.has_routine_been_modified && updateRoutine) {
+        await updateRoutineExercisesAction(finalWorkout.routine_id, finalWorkout.exercises)
       }
-
       // Attach the bodyweight weighted/assisted sets were entered against, so
       // history doesn't shift when bodyweight changes later.
       const bodyweightKg = useWorkoutStore.getState().userBodyweight ?? FALLBACK_BODYWEIGHT_KG
-      const result = await finishWorkoutAction({ ...finalWorkout, bodyweight_kg: bodyweightKg })
+      const result = await finishWorkoutAction({ ...toFinishPayload(finalWorkout), bodyweight_kg: bodyweightKg })
       if (result.success) {
         finishWorkout()
         router.push('/dashboard')
       } else {
-        dialog.alert({ title: 'Error', description: 'Failed to save workout: ' + result.error })
+        toast.error(`Couldn't save the workout: ${result.error}`)
       }
-    } catch {
-      dialog.alert({ title: 'Error', description: 'An unexpected error occurred.' })
+    } catch (error: unknown) {
+      console.error('Failed to finish workout', error)
+      toast.error('Couldn’t save the workout. Check your connection and try again.')
     } finally {
       setIsFinishing(false)
     }
@@ -360,13 +316,6 @@ export default function WorkoutPage() {
           <Plus className="w-4 h-4" /> Add exercise
         </button>
 
-        {/* ── Discard ───────────────────────────────────────────────────── */}
-        <button
-          onClick={handleDiscard}
-          className="w-full min-h-11 mt-4 text-sm font-medium text-negative rounded-pill transition-colors"
-        >
-          Discard workout
-        </button>
       </div>
 
       <AddExerciseModal
@@ -394,6 +343,17 @@ export default function WorkoutPage() {
       />
 
       <RestBar rest={activeWorkout.rest} onExtend={extendRest} onSkip={clearRest} />
+
+      <FinishSheet
+        isOpen={finishOpen}
+        onClose={() => setFinishOpen(false)}
+        situation={finishSituation(activeWorkout)}
+        routineTitle={activeWorkout.routine_id && activeWorkout.has_routine_been_modified ? activeWorkout.title : null}
+        updateRoutine={updateRoutine}
+        onToggleRoutine={() => setUpdateRoutine(value => !value)}
+        onFinish={completeFinish}
+        onDiscard={handleDiscard}
+      />
     </div>
   )
 }

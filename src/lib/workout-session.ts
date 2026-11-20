@@ -99,6 +99,17 @@ export function restLabelAfter(exercises: ActiveExercise[], exerciseIndex: numbe
 
 // ─── Finishing ───────────────────────────────────────────────────────────────
 
+export type FinishSituation = { kind: 'empty' } | { kind: 'ready' } | { kind: 'unticked'; count: number }
+
+// A set "has data" once the lifter typed a weight or reps; only those count.
+export function finishSituation(workout: ActiveWorkout): FinishSituation {
+  if (workout.exercises.length === 0) return { kind: 'empty' }
+  const count = workout.exercises
+    .flatMap(entry => entry.sets)
+    .filter(set => !set.completed && (set.weight_kg > 0 || set.reps > 0)).length
+  return count > 0 ? { kind: 'unticked', count } : { kind: 'ready' }
+}
+
 export type FinishPayload = Omit<ActiveWorkout, 'openExerciseId' | 'rest' | 'exercises'> & {
   exercises: Omit<ActiveExercise, 'clientId'>[]
 }

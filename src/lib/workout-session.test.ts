@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   exerciseBlocks,
   exerciseTally,
+  finishSituation,
   firstOpenExerciseId,
   migrateActiveWorkout,
   moveBlock,
@@ -168,5 +169,24 @@ describe('restLabelAfter', () => {
 
   it('stays quiet when everything is done', () => {
     expect(restLabelAfter([exercise('Bench', { sets: [set({ completed: true })] })], 0)).toBeNull()
+  })
+})
+
+describe('finishSituation', () => {
+  const workout = (exercises: ActiveExercise[]): ActiveWorkout => ({
+    id: null, title: 'Push A', started_at: new Date(), openExerciseId: null, rest: null, exercises,
+  })
+
+  it('knows when nothing has been added', () => {
+    expect(finishSituation(workout([]))).toEqual({ kind: 'empty' })
+  })
+
+  it('is ready when every set with data is ticked', () => {
+    expect(finishSituation(workout([exercise('A', { sets: [set({ completed: true }), set({ weight_kg: 0, reps: 0 })] })]))).toEqual({ kind: 'ready' })
+  })
+
+  it('counts sets with data that are not ticked', () => {
+    const exercises = [exercise('A', { sets: [set({ completed: true }), set(), set()] })]
+    expect(finishSituation(workout(exercises))).toEqual({ kind: 'unticked', count: 2 })
   })
 })
