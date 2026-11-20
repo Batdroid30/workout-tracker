@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pickCoachNote, pickHighlight, readinessSummary, tonnes, weekLabel, type CoachSignalsInput } from './home'
+import { greetingFor, homeDateLabel, pickCoachNote, pickHighlight, readinessSummary, tonnes, weekLabel, type CoachSignalsInput } from './home'
 import type { RecentPR } from '@/lib/data/insights'
 
 const log = (sleep: number, soreness: number, energy: number) => ({ sleep_score: sleep, soreness_score: soreness, energy_score: energy })
@@ -109,5 +109,19 @@ describe('tonnes', () => {
   it('shows one decimal', () => {
     expect(tonnes(12_340)).toBe('12.3')
     expect(tonnes(0)).toBe('0.0')
+  })
+})
+
+describe('greetingFor', () => {
+  it.each([[4, 'Late night'], [5, 'Good morning'], [11, 'Good morning'], [12, 'Good afternoon'], [17, 'Good afternoon'], [18, 'Good evening']])(
+    'says the right thing at %i:00', (hour, greeting) => {
+      expect(greetingFor(hour)).toBe(greeting)
+    },
+  )
+})
+
+describe('homeDateLabel', () => {
+  it('reads like a diary date', () => {
+    expect(homeDateLabel(new Date(2026, 10, 20, 9))).toBe('Friday 20 Nov')
   })
 })

@@ -1,17 +1,11 @@
 import { requireAuth } from '@/lib/auth'
 import { getHomeData } from '@/lib/data/home'
+import { greetingFor, homeDateLabel } from '@/lib/home'
 import { HomeHeader } from '@/components/home/HomeHeader'
 import { TodayCard } from '@/components/home/TodayCard'
 import { ThisWeekStats } from '@/components/home/ThisWeekStats'
 import { CoachNoteCard } from '@/components/home/CoachNoteCard'
 import { LatestHighlight } from '@/components/home/LatestHighlight'
-
-function greetingFor(hour: number): string {
-  if (hour < 5) return 'Late night'
-  if (hour < 12) return 'Good morning'
-  if (hour < 18) return 'Good afternoon'
-  return 'Good evening'
-}
 
 export default async function DashboardPage() {
   const { userId, session } = await requireAuth()
@@ -26,7 +20,7 @@ export default async function DashboardPage() {
       <HomeHeader
         greeting={greetingFor(now.getHours())}
         firstName={firstName}
-        dateLabel={now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
+        dateLabel={homeDateLabel(now)}
         avatarUrl={profile?.avatar_url ?? null}
         initial={(email[0] ?? 'U').toUpperCase()}
       />

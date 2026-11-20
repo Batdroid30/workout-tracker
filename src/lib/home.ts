@@ -158,6 +158,17 @@ export function weekLabel(scheme: { label: string } | null, isDeloadWeek: boolea
   return capitalise(scheme.label.toLowerCase())
 }
 
+export function greetingFor(hour: number): string {
+  if (hour < 5) return 'Late night'
+  if (hour < 12) return 'Good morning'
+  if (hour < 18) return 'Good afternoon'
+  return 'Good evening'
+}
+
+export function homeDateLabel(date: Date): string {
+  return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })
+}
+
 export function tonnes(kg: number): string {
   return (kg / 1000).toFixed(1)
 }
