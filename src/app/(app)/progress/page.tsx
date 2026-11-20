@@ -13,6 +13,7 @@ import { bodyweightTrend, workoutsInMonth } from '@/lib/progress-overview'
 import { YourLiftsCard } from '@/components/progress/YourLiftsCard'
 import { ProgressTiles } from '@/components/progress/ProgressTiles'
 import { CoachingSection } from '@/components/progress/CoachingSection'
+import { TrackedLiftsSheet } from '@/components/progress/TrackedLiftsSheet'
 
 export const metadata = {
   title: 'Progress | Lifts',
@@ -54,7 +55,19 @@ export default async function ProgressPage() {
       </header>
 
       <div className="space-y-5">
-        <YourLiftsCard rows={rows} source={strengthLifts.source} action={null} />
+        <YourLiftsCard
+          rows={rows}
+          source={strengthLifts.source}
+          action={(
+            <TrackedLiftsSheet
+              // Re-mount when the list changes, so the picker opens pre-filled with what's shown.
+              key={strengthLifts.lifts.map(lift => lift.exerciseId).join(',')}
+              initial={strengthLifts.lifts.map(lift => ({ id: lift.exerciseId, name: lift.exerciseName }))}
+              withData={[...snapshot.exerciseWeeklyE1RM.keys()]}
+              label={rows.length === 0 ? 'Pick lifts' : 'Edit'}
+            />
+          )}
+        />
 
         <ProgressTiles
           strengthPctPerWeek={strengthIndex.pctPerWeek}
