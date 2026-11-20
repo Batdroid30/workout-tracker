@@ -61,6 +61,11 @@ export interface CoachNote {
   cta: string
 }
 
+// Missed weeks are weeks under half the goal, not necessarily time away.
+export function longBreakTitle(missedWeeks: number): string {
+  return `${missedWeeks} light weeks in a row`
+}
+
 function capitalise(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
@@ -71,7 +76,7 @@ type NoteRule = (input: CoachSignalsInput) => CoachNote | null
 const NOTE_RULES: NoteRule[] = [
   input => input.offerRestart ? {
     kind: 'long_break',
-    title: `${input.missedWeeks} light weeks in a row`,
+    title: longBreakTitle(input.missedWeeks),
     body: 'Restart your phase from week 1 so deloads and targets fit where you are now.',
     href: '/account',
     cta: 'Restart',

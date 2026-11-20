@@ -1,3 +1,4 @@
+import { PR_TYPE_LABELS, formatPRValue } from '@/lib/pr-format'
 import { Trophy } from 'lucide-react'
 import type { PRHistoryEntry } from '@/lib/data/insights'
 import type { PRType } from '@/types/database'
@@ -8,22 +9,10 @@ interface PRTimelineListProps {
   limit?: number
 }
 
-const PR_TYPE_LABELS: Record<PRType, string> = {
-  best_1rm:    'e1RM',
-  best_weight: 'Max weight',
-  best_volume: 'Best volume',
-}
-
 const PR_TYPE_UNIT: Record<PRType, string> = {
   best_1rm:    'kg',
   best_weight: 'kg',
   best_volume: 'kg',
-}
-
-function formatValue(prType: PRType, value: number): string {
-  if (prType === 'best_1rm' || prType === 'best_weight') return `${value.toFixed(1)} kg`
-  // best_volume is total volume — format with k suffix if large
-  return value >= 1000 ? `${(value / 1000).toFixed(1)}k kg` : `${Math.round(value)} kg`
 }
 
 export function PRTimelineList({ history, limit = 12 }: PRTimelineListProps) {
@@ -63,7 +52,7 @@ export function PRTimelineList({ history, limit = 12 }: PRTimelineListProps) {
             </div>
 
             <div className="mono text-sm font-semibold shrink-0 text-primary">
-              {formatValue(entry.prType, entry.value)}
+              {formatPRValue(entry.prType, entry.value)}
             </div>
           </div>
         )
