@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils'
 
 const ICON_BUTTON_VARIANTS = {
   ghost: 'text-secondary hover:text-primary',
+  primary: 'bg-accent text-on-accent',
   secondary: 'bg-surface-raised text-primary border border-border-strong',
 } as const
 

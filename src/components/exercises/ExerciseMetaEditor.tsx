@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Pencil } from 'lucide-react'
 import { BottomSheet } from '@/components/ui/BottomSheet'
-import { Button } from '@/components/ui'
+import { Button, ToggleChip } from '@/components/ui'
 import { useToast } from '@/providers/ToastProvider'
 import { updateExerciseAction } from '@/app/(app)/exercises/actions'
 import type { MuscleGroup, MovementPattern } from '@/types/database'
@@ -34,14 +34,6 @@ const MOVEMENT_PATTERNS: { value: MovementPattern; label: string }[] = [
   { value: 'carry',     label: 'Carry'     },
   { value: 'isolation', label: 'Isolation' },
 ]
-
-const CHIP_BASE = 'py-2.5 px-2 rounded-pill text-xs font-medium transition-all active:scale-95'
-
-function getChipClassName(isSelected: boolean): string {
-  return `${CHIP_BASE} ${
-    isSelected ? 'bg-primary text-bg' : 'bg-surface-raised text-secondary border border-border'
-  }`
-}
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -131,16 +123,17 @@ export function ExerciseMetaEditor({
             {MUSCLE_GROUPS.map(({ value, label }) => {
               const isSelected = muscleGroup === value
               return (
-                <button
+                <ToggleChip
                   key={value}
                   onClick={() => {
                     setMuscleGroup(value)
                     setSecondaryMuscles(prev => prev.filter(m => m !== value))
                   }}
-                  className={getChipClassName(isSelected)}
+                  selected={isSelected}
+                  className="px-2"
                 >
                   {label}
-                </button>
+                </ToggleChip>
               )
             })}
           </div>
@@ -158,13 +151,14 @@ export function ExerciseMetaEditor({
               .map(({ value, label }) => {
                 const isSelected = secondaryMuscles.includes(value)
                 return (
-                  <button
+                  <ToggleChip
                     key={value}
                     onClick={() => toggleSecondary(value)}
-                    className={getChipClassName(isSelected)}
+                    selected={isSelected}
+                    className="px-2"
                   >
                     {label}
-                  </button>
+                  </ToggleChip>
                 )
               })}
           </div>
@@ -177,13 +171,14 @@ export function ExerciseMetaEditor({
             {MOVEMENT_PATTERNS.map(({ value, label }) => {
               const isSelected = movementPattern === value
               return (
-                <button
+                <ToggleChip
                   key={value}
                   onClick={() => setMovementPattern(value)}
-                  className={getChipClassName(isSelected)}
+                  selected={isSelected}
+                  className="px-2"
                 >
                   {label}
-                </button>
+                </ToggleChip>
               )
             })}
           </div>

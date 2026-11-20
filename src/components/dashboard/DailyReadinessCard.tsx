@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { logReadinessAction } from '@/app/(app)/dashboard/actions'
-import { Button } from '@/components/ui'
+import { Button, ToggleChip } from '@/components/ui'
 import { useToast } from '@/providers/ToastProvider'
 import { Activity, Battery, Moon, Sparkles } from 'lucide-react'
 
@@ -97,19 +97,15 @@ function ScoreRow({
       </div>
       <div className="flex flex-1 gap-1">
         {SCORES.map((score) => (
-          <button
+          <ToggleChip
             key={score}
-            type="button"
-            aria-pressed={value === score}
+            size="sm"
+            selected={value === score}
             onClick={() => setValue(score)}
-            className={`flex-1 h-8 min-w-8 rounded-md font-medium text-sm transition-colors ${
-              value === score
-                ? 'bg-primary text-bg'
-                : 'bg-surface-raised text-secondary hover:text-primary'
-            }`}
+            className="flex-1 min-w-9 px-0"
           >
             {score}
-          </button>
+          </ToggleChip>
         ))}
       </div>
     </div>

@@ -12,7 +12,7 @@ import {
   refreshCacheAction,
   updateTrainingProfileAction,
 } from './actions'
-import { Button, Input, getButtonClassName } from '@/components/ui'
+import { Button, Input, ToggleChip, getButtonClassName } from '@/components/ui'
 import { useDialog } from '@/providers/DialogProvider'
 import { resizeImageToDataUrl } from '@/lib/image/resize-image'
 
@@ -78,7 +78,7 @@ function TileGroup<T extends string>({ label, options, selected, saving, onSelec
             onClick={() => onSelect(opt.value)}
             className={cn(
               'flex min-w-0 flex-col items-center gap-1 p-3 rounded-control transition-all text-center disabled:opacity-50 active:scale-95',
-              isSelected ? 'bg-primary text-bg' : 'bg-surface-raised border border-border',
+              isSelected ? 'bg-primary text-bg border border-primary' : 'bg-surface-raised border border-border',
             )}
           >
             <span className="text-lg">{opt.emoji}</span>
@@ -270,17 +270,9 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
             <label className="t-label block">Sex</label>
             <div className="grid grid-cols-2 gap-2">
               {(['male', 'female'] as const).map(s => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSex(s)}
-                  className={cn(
-                    'h-10 rounded-pill text-xs font-medium transition-colors',
-                    sex === s ? 'bg-primary text-bg' : 'bg-surface-raised text-secondary border border-border',
-                  )}
-                >
+                <ToggleChip key={s} size="sm" selected={sex === s} onClick={() => setSex(s)}>
                   {s === 'male' ? 'Male' : 'Female'}
-                </button>
+                </ToggleChip>
               ))}
             </div>
           </div>

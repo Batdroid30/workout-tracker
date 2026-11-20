@@ -5,7 +5,7 @@ import { Search, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Exercise } from '@/types/database'
 import { useExercises } from '@/hooks/useExercises'
-import { Button } from '@/components/ui'
+import { Button, ToggleChip } from '@/components/ui'
 
 const MUSCLE_GROUPS = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core']
 
@@ -115,18 +115,15 @@ export function AddExerciseModal({ isOpen, onClose, onConfirm }: AddExerciseModa
 
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 items-center no-scrollbar">
           {MUSCLE_GROUPS.map(mg => (
-            <button
+            <ToggleChip
               key={mg}
+              size="sm"
+              selected={activeTab === mg}
               onClick={() => setActiveTab(mg)}
-              className={cn(
-                'whitespace-nowrap min-h-9 px-3 rounded-pill t-caption font-medium transition-colors shrink-0',
-                activeTab === mg
-                  ? 'bg-primary text-bg'
-                  : 'bg-surface-raised border border-border text-tertiary',
-              )}
+              className="whitespace-nowrap shrink-0"
             >
               {mg}
-            </button>
+            </ToggleChip>
           ))}
         </div>
       </div>

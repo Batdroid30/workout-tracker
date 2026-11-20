@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, ArrowLeft, Trash2 } from 'lucide-react'
 import Link from 'next/link'
-import { Button } from '@/components/ui'
+import { Button, ToggleChip } from '@/components/ui'
 import { Input } from '@/components/ui/Input'
 import { AddExerciseModal } from '@/components/workout/AddExerciseModal'
 import { createRoutineAction, updateRoutineDetailsAction } from '@/app/(app)/routines/actions'
@@ -197,18 +197,14 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
                   </label>
                   <div className="grid grid-cols-2 gap-1.5">
                     {(['double', 'rep_sum'] as const).map(model => (
-                      <button
+                      <ToggleChip
                         key={model}
-                        type="button"
+                        size="sm"
+                        selected={ex.progression_model === model}
                         onClick={() => handleUpdateExercise(i, { progression_model: model })}
-                        className={`h-10 rounded-pill text-xs font-medium transition-colors ${
-                          ex.progression_model === model
-                            ? 'bg-primary text-bg'
-                            : 'bg-surface-raised text-secondary border border-border'
-                        }`}
                       >
                         {model === 'double' ? 'Double' : 'Rep bank'}
-                      </button>
+                      </ToggleChip>
                     ))}
                   </div>
                 </div>

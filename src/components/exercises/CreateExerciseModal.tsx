@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { BottomSheet } from '@/components/ui/BottomSheet'
-import { Button, Input } from '@/components/ui'
+import { Button, Input, ToggleChip } from '@/components/ui'
 import { useToast } from '@/providers/ToastProvider'
 import { createExerciseAction } from '@/app/(app)/exercises/actions'
 import type { MuscleGroup, MovementPattern } from '@/types/database'
@@ -40,16 +40,6 @@ const EQUIPMENT_OPTIONS = [
   'Barbell', 'Dumbbell', 'Cable', 'Machine',
   'Bodyweight', 'Kettlebell', 'Resistance band', 'Smith machine',
 ]
-
-// ── Chip helpers ──────────────────────────────────────────────────────────────
-
-const CHIP_BASE = 'py-2.5 px-2 rounded-pill text-xs font-medium transition-all active:scale-95'
-
-function getChipClassName(isSelected: boolean): string {
-  return `${CHIP_BASE} ${
-    isSelected ? 'bg-primary text-bg' : 'bg-surface-raised text-secondary border border-border'
-  }`
-}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -138,16 +128,17 @@ export function CreateExerciseModal({ isOpen, onClose }: CreateExerciseModalProp
         <p className="t-label mb-3">Primary muscle <span className="text-secondary">*</span></p>
         <div className="grid grid-cols-3 gap-2">
           {MUSCLE_GROUPS.map(({ value, label }) => (
-            <button
+            <ToggleChip
               key={value}
               onClick={() => {
                 setMuscleGroup(value)
                 setSecondaryMuscles(prev => prev.filter(m => m !== value))
               }}
-              className={getChipClassName(muscleGroup === value)}
+              selected={muscleGroup === value}
+              className="px-2"
             >
               {label}
-            </button>
+            </ToggleChip>
           ))}
         </div>
       </div>
@@ -162,13 +153,14 @@ export function CreateExerciseModal({ isOpen, onClose }: CreateExerciseModalProp
           {MUSCLE_GROUPS
             .filter(({ value }) => value !== muscleGroup)
             .map(({ value, label }) => (
-              <button
+              <ToggleChip
                 key={value}
                 onClick={() => toggleSecondary(value)}
-                className={getChipClassName(secondaryMuscles.includes(value))}
+                selected={secondaryMuscles.includes(value)}
+                className="px-2"
               >
                 {label}
-              </button>
+              </ToggleChip>
             ))}
         </div>
       </div>
@@ -178,13 +170,14 @@ export function CreateExerciseModal({ isOpen, onClose }: CreateExerciseModalProp
         <p className="t-label mb-3">Movement pattern <span className="text-secondary">*</span></p>
         <div className="grid grid-cols-3 gap-2">
           {MOVEMENT_PATTERNS.map(({ value, label }) => (
-            <button
+            <ToggleChip
               key={value}
               onClick={() => setMovementPattern(value)}
-              className={getChipClassName(movementPattern === value)}
+              selected={movementPattern === value}
+              className="px-2"
             >
               {label}
-            </button>
+            </ToggleChip>
           ))}
         </div>
       </div>
@@ -194,13 +187,14 @@ export function CreateExerciseModal({ isOpen, onClose }: CreateExerciseModalProp
         <p className="t-label mb-3">Equipment</p>
         <div className="grid grid-cols-2 gap-2">
           {EQUIPMENT_OPTIONS.map(eq => (
-            <button
+            <ToggleChip
               key={eq}
               onClick={() => toggleEquipment(eq)}
-              className={getChipClassName(equipment === eq)}
+              selected={equipment === eq}
+              className="px-2"
             >
               {eq}
-            </button>
+            </ToggleChip>
           ))}
         </div>
       </div>

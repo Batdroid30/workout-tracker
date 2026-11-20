@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { Search, ChevronRight, Plus } from 'lucide-react'
-import { Button, Input } from '@/components/ui'
+import { Button, Input, ToggleChip } from '@/components/ui'
 import Link from 'next/link'
 import { Exercise } from '@/types/database'
 import { CreateExerciseModal } from '@/components/exercises/CreateExerciseModal'
@@ -73,17 +73,15 @@ export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseList
 
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 items-center no-scrollbar">
           {MUSCLE_GROUPS.map((mg) => (
-            <button
+            <ToggleChip
               key={mg}
+              size="sm"
+              selected={activeTab === mg}
               onClick={() => setActiveTab(mg)}
-              className={`whitespace-nowrap h-10 px-3 rounded-pill text-xs font-medium transition-colors shrink-0 ${
-                activeTab === mg
-                  ? 'bg-primary text-bg'
-                  : 'bg-surface-raised border border-border text-secondary'
-              }`}
+              className="whitespace-nowrap shrink-0"
             >
               {mg}
-            </button>
+            </ToggleChip>
           ))}
         </div>
       </div>

@@ -3,9 +3,10 @@
 Shared building blocks for the Ink + Lime design system. Import from `@/components/ui`.
 
 - `Button` - pill button; variants `primary` (lime), `secondary`, `ghost`, `outline`, `destructive`
-- `IconButton` - 44x44 pill icon button; requires `aria-label`
+- `IconButton` - 44x44 pill icon button (ghost, secondary, primary); requires `aria-label`
 - `Card` - surface container with the standard radius and border
 - `Chip` - small status or filter label; tones map to semantic colours
+- `ToggleChip` - selectable pill for filters and options; `aria-pressed`, inverted fill when selected
 - `SectionHeader` - section title with optional trailing action
 - `Input` - 16px text field with lime focus border
 - `NumberStepper` - numeric field with - / + tap targets

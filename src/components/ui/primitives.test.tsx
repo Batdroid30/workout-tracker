@@ -4,6 +4,7 @@ import { Button, getButtonClassName } from './Button'
 import { IconButton } from './IconButton'
 import { Card } from './Card'
 import { Chip } from './Chip'
+import { ToggleChip } from './ToggleChip'
 import { SectionHeader } from './SectionHeader'
 
 describe('ui primitives', () => {
@@ -30,6 +31,24 @@ describe('ui primitives', () => {
     expect(classes).toContain('min-h-12')
     expect(classes).toContain('w-full')
     expect(getButtonClassName({ fullWidth: false })).not.toContain('w-full')
+  })
+
+  it('renders ToggleChip with pressed state and a border in both states', () => {
+    const selected = renderToStaticMarkup(<ToggleChip selected>Chest</ToggleChip>)
+    expect(selected).toContain('aria-pressed="true"')
+    expect(selected).toContain('bg-primary')
+    expect(selected).toContain('border-primary')
+    expect(selected).toContain('min-h-11')
+
+    const unselected = renderToStaticMarkup(<ToggleChip selected={false} size="sm">Back</ToggleChip>)
+    expect(unselected).toContain('aria-pressed="false"')
+    expect(unselected).toContain('bg-surface-raised')
+    expect(unselected).toContain('border-border')
+    expect(unselected).toContain('min-h-9')
+  })
+
+  it('renders IconButton primary variant in lime', () => {
+    expect(renderToStaticMarkup(<IconButton aria-label="Send" variant="primary"><svg /></IconButton>)).toContain('bg-accent')
   })
 
   it('renders IconButton, Chip, Card and SectionHeader', () => {

@@ -68,10 +68,11 @@ export function CoachInput({
         </IconButton>
       ) : (
         <IconButton
+          variant="primary"
           type="submit"
           aria-label="Send message"
           disabled={!text.trim() || disabled}
-          className="shrink-0 bg-accent text-on-accent"
+          className="shrink-0"
         >
           <ArrowUp className="h-4 w-4" />
         </IconButton>
