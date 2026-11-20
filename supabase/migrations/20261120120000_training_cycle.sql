@@ -21,3 +21,8 @@ alter table public.profiles
 update public.profiles
   set cycle_started_at = coalesce(phase_started_at, now())
   where cycle_started_at is null;
+
+-- Profiles created later start their cycle on creation, so it advances for
+-- lifters who never pick a training phase.
+alter table public.profiles
+  alter column cycle_started_at set default now();
