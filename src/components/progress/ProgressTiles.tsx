@@ -25,6 +25,8 @@ export function ProgressTiles({ strengthPctPerWeek, indexLiftCount, prsThisMonth
             <p className={`t-value mt-1 ${strengthPctPerWeek > 0 ? 'text-positive' : strengthPctPerWeek < 0 ? 'text-caution' : ''}`}>{signed(strengthPctPerWeek)}%</p>
             <p className="t-caption">a week, your lifts</p>
           </>
+        ) : indexLiftCount >= MIN_INDEX_LIFTS ? (
+          <p className="t-body-sm mt-1">Your trend appears after a couple more weeks of training</p>
         ) : (
           <p className="t-body-sm mt-1">Pick 3 or more lifts you train to see your overall trend</p>
         )}

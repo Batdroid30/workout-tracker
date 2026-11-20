@@ -17,6 +17,7 @@ describe('YourLiftsCard', () => {
   it('says when a lift has no recent sets', () => {
     const markup = renderToStaticMarkup(<YourLiftsCard rows={[{ exerciseId: 'e2', name: 'Deadlift', trend: null }]} source="picked" action={null} />)
     expect(markup).toContain('No sets in 12 weeks')
+    expect(renderToStaticMarkup(<YourLiftsCard rows={[{ exerciseId: 'e1', name: 'Bench', trend: up }]} source="auto" action={null} />)).toContain('>Estimated max<')
   })
 
   it('guides a new lifter instead of showing an empty list', () => {
@@ -36,6 +37,12 @@ describe('ProgressTiles', () => {
     const markup = renderToStaticMarkup(<ProgressTiles strengthPctPerWeek={null} indexLiftCount={2} prsThisMonth={0} workoutsThisMonth={0} streakWeeks={0} bodyweight={null} />)
     expect(markup).toContain('Pick 3 or more lifts you train to see your overall trend')
     expect(markup).not.toMatch(/NaN|undefined/)
+  })
+
+  it('explains a missing trend when there are enough lifts but too few weeks', () => {
+    const markup = renderToStaticMarkup(<ProgressTiles strengthPctPerWeek={null} indexLiftCount={5} prsThisMonth={5} workoutsThisMonth={4} streakWeeks={2} bodyweight={null} />)
+    expect(markup).not.toContain('Pick 3 or more lifts')
+    expect(markup).toContain('Your trend appears after a couple more weeks of training')
   })
 
   it('shows the weekly strength trend and the month at a glance', () => {

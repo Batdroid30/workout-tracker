@@ -49,7 +49,7 @@ export function YourLiftsCard({ rows, source, action }: YourLiftsCardProps) {
               <Link href={`/exercises/${row.exerciseId}`} className="focus-ring flex min-h-14 items-center gap-3 px-4 py-2">
                 <span className="min-w-0 flex-1">
                   <span className="t-body block truncate">{row.name}</span>
-                  <span className="t-caption block">{row.trend ? 'Estimated max · 12 weeks' : 'No sets in 12 weeks'}</span>
+                  <span className="t-caption block">{row.trend ? 'Estimated max' : 'No sets in 12 weeks'}</span>
                 </span>
                 {row.trend && (
                   <>
