@@ -25,10 +25,32 @@ describe('design guard lint rule', { timeout: 30000 }, () => {
     expect(messages.every((message) => message.severity === 1)).toBe(true)
   })
 
-  it('exempts the ui primitives folder', async () => {
-    const messages = await designMessages(BAD_COMPONENT, 'src/components/ui/Ok.tsx')
+  it('exempts the ui primitive files but lints other files in ui/', async () => {
+    expect(await designMessages(BAD_COMPONENT, 'src/components/ui/Button.tsx')).toHaveLength(0)
+    expect((await designMessages(BAD_COMPONENT, 'src/components/ui/BodyMap/Chart.tsx')).length).toBeGreaterThan(0)
+  })
 
-    expect(messages).toHaveLength(0)
+  it('lints plain .ts files but not test files', async () => {
+    const code = "export const COLOUR = '#f59e0b'"
+
+    expect(await designMessages(code, 'src/lib/data/badges.ts')).toHaveLength(1)
+    expect(await designMessages(code, 'src/lib/data/badges.test.ts')).toHaveLength(0)
+  })
+
+  it('warns on Tailwind palette colours but allows black overlays', async () => {
+    const palette = await designMessages('export const A = () => <div className="text-red-400 bg-white" />', 'src/components/x/A.tsx')
+    expect(palette.some((message) => message.message.includes('palette colour'))).toBe(true)
+
+    const overlay = await designMessages('export const B = () => <div className="bg-black/60" />', 'src/components/x/B.tsx')
+    expect(overlay).toHaveLength(0)
+  })
+
+  it('warns on legacy tokens but not on current ones', async () => {
+    const legacy = await designMessages("export const c = 'var(--accent)'", 'src/components/x/c.ts')
+    expect(legacy.map((message) => message.message).some((text) => text.includes('legacy token'))).toBe(true)
+
+    const current = await designMessages("export const c = 'var(--text-primary)'", 'src/components/x/c.ts')
+    expect(current).toHaveLength(0)
   })
 
   it('warns once on an rgba string literal', async () => {

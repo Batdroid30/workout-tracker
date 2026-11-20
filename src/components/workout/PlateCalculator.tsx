@@ -7,11 +7,13 @@ const BAR_KG  = 20
 const PLATES  = [25, 20, 15, 10, 5, 2.5, 1.25] // kg, heaviest first
 
 // Plate colours loosely match standard bumper/iron plate conventions
+/* eslint-disable no-restricted-syntax -- real-world plate colours (IWF-style) are not UI tokens */
 const PLATE_COLOURS: Record<number, string> = {
   25:   'bg-red-500/20    border-red-500/40    text-red-400',
   20:   'bg-blue-500/20   border-blue-500/40   text-blue-400',
   15:   'bg-yellow-500/20 border-yellow-500/40 text-yellow-400',
 }
+/* eslint-enable no-restricted-syntax */
 
 interface PlateSet {
   plate: number

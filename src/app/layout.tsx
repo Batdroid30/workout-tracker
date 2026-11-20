@@ -40,6 +40,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
+  // eslint-disable-next-line no-restricted-syntax -- Next metadata needs a literal colour, tokens are CSS-only
   themeColor:   "#0b0d10",
   width:        "device-width",
   initialScale: 1,
