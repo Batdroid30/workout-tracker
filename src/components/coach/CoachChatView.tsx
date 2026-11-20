@@ -58,7 +58,7 @@ export function CoachChatView({
     <div
       className="flex flex-col max-w-2xl mx-auto"
       style={{
-        height: 'calc(100dvh - max(6.75rem, calc(5rem + env(safe-area-inset-bottom, 0px))))',
+        height: 'calc(100dvh - max(7rem, calc(5.75rem + env(safe-area-inset-bottom, 0px))))',
       }}
     >
       {/* Top Header Bar */}

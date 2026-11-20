@@ -235,7 +235,7 @@ export default async function ProgressPage() {
     : null
 
   return (
-    <div className="min-h-screen pb-24 p-5">
+    <div className="min-h-screen p-5 pb-28">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="pt-4 mb-7">

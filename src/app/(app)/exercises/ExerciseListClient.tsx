@@ -86,7 +86,7 @@ export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseList
         </div>
       </div>
 
-      <div className="flex-1 p-4 pb-24 overflow-y-auto">
+      <div className="flex-1 p-4 pb-28 overflow-y-auto">
         <div className="space-y-2">
           {filteredExercises.length === 0 ? (
             <p className="t-caption text-center mt-8">No exercises found.</p>
