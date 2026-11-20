@@ -299,6 +299,10 @@ export interface SavedSetForPR {
   set_number: number
 }
 
+export function isDeletedRoutineError(error: { code?: string; message: string }): boolean {
+  return error.code === '23503' && error.message.includes('routine_id')
+}
+
 export async function saveActiveWorkout(userId: string, workout: ActiveWorkout) {
   const supabase = await getSupabaseServer()
 
@@ -309,22 +313,27 @@ export async function saveActiveWorkout(userId: string, workout: ActiveWorkout) 
     ? workout.started_at.toISOString()
     : new Date(workout.started_at).toISOString()
 
-  const { data: workoutData, error: workoutErr } = await supabase
-    .from('workouts')
-    .insert({
-      user_id: userId,
-      title: workout.title,
-      started_at: startedAtIso,
-      completed_at: new Date().toISOString(),
-      bodyweight_kg: workout.bodyweight_kg ?? null,
-      duration_seconds: Math.floor(
-        (Date.now() - new Date(startedAtIso).getTime()) / 1000,
-      ),
-    })
-    .select()
-    .single()
+  const workoutRow = {
+    user_id: userId,
+    title: workout.title,
+    started_at: startedAtIso,
+    completed_at: new Date().toISOString(),
+    bodyweight_kg: workout.bodyweight_kg ?? null,
+    routine_id: workout.routine_id ?? null,
+    duration_seconds: Math.floor(
+      (Date.now() - new Date(startedAtIso).getTime()) / 1000,
+    ),
+  }
+  const insertWorkout = (row: typeof workoutRow) =>
+    supabase.from('workouts').insert(row).select().single()
 
-  if (workoutErr) throw new DatabaseError('Failed to create workout record', workoutErr)
+  let { data: workoutData, error: workoutErr } = await insertWorkout(workoutRow)
+  // The routine was deleted mid-session: keep the workout, drop the link.
+  if (workoutErr && isDeletedRoutineError(workoutErr)) {
+    ;({ data: workoutData, error: workoutErr } = await insertWorkout({ ...workoutRow, routine_id: null }))
+  }
+
+  if (workoutErr || !workoutData) throw new DatabaseError('Failed to create workout record', workoutErr)
 
   const savedSets: SavedSetForPR[] = []
 

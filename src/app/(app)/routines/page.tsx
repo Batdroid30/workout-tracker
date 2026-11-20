@@ -7,6 +7,8 @@ import { Plus, Zap } from 'lucide-react'
 import { getButtonClassName } from '@/components/ui'
 import Link from 'next/link'
 import { StartEmptyWorkout } from '@/components/workout/StartEmptyWorkout'
+import { MySplitSection } from '@/components/routines/MySplitSection'
+import { getSplits, getSessionSuggestion } from '@/lib/data/splits'
 
 export const metadata = {
   title: 'Workout | Lifts',
@@ -16,9 +18,11 @@ export const metadata = {
 export default async function RoutinesPage() {
   const {  session } = await requireAuth()
 
-  const [routines, profile] = await Promise.all([
+  const [routines, profile, splits, suggestion] = await Promise.all([
     getRoutines(session.user.id),
     getProfile(session.user.id),
+    getSplits(session.user.id),
+    getSessionSuggestion(session.user.id),
   ])
 
   return (
@@ -37,8 +41,10 @@ export default async function RoutinesPage() {
         <StartEmptyWorkout trainingPhase={profile?.training_phase ?? null} />
       </div>
 
+      <MySplitSection splits={splits} suggestion={suggestion} routines={routines} />
+
       {/* ── Routines section ───────────────────────────────────── */}
-      <div>
+      <div id="routines" className="scroll-mt-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="t-display-s">Routines</h2>
           <Link

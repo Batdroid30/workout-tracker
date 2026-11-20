@@ -176,10 +176,16 @@ Loading placeholder: `surface-raised`, `radius-field`, `motion-safe:animate-puls
 - **BottomNav** (`src/components/layout/BottomNav.tsx`, tabs in `nav-config.ts`): a floating, iOS-style tinted capsule — 64px tall, 14px from the sides and 18px above the safe area, `surface-raised` at 92% with a 20px backdrop blur, `border-strong` hairline and `shadow-overlay`. Four tabs: **Home** `/dashboard`, **Train** `/routines`, **Progress** `/progress`, **Coach** `/coach`; 20px icons over 12px labels. The active tab is lime on a sliding `accent-soft` pill; others `text-tertiary`. Account pages highlight Home; history, exercises and finished-workout detail highlight Progress.
   - **Scroll:** past 80px from the top, scrolling down 24px collapses the bar to the active tab's icon and slides in a lime "Start workout" button (→ `/routines`), or "Resume workout" (→ `/workout`) while a session is active. Scrolling up 24px or returning to the top expands it. No animation under reduced motion.
   - Hidden on the live workout screen (`/workout`). Page roots reserve `pb-28` so the last item clears it.
+- **My split** (`src/components/routines/MySplitSection.tsx`, editor `SplitEditor.tsx`): the lifter's rotation of routines and rest days, on Train between "Start empty session" and Routines.
+  - **Look:** the days sit in a scrolling row of pills; the next day is inverted neutral (`bg-primary text-bg`, `aria-current="step"`), never lime. Under it, an "Up next" card: routine name in `t-title-2`, "N exercises · M sets", a lime **Start** and a ghost **Not today**. A rest day shows "Rest day" with a secondary **Train anyway** — no lime on a rest day.
+  - **How the next day is picked** (`src/lib/split-rotation.ts`): the day after the last workout that came from a split routine. Each calendar day that passes after that workout uses up a following rest day. Workouts from routines outside the split don't move it; doing a different routine from the split jumps to that day. **Not today → Skip to next** and **Start from here** (in the editor) set a pointer that wins until a newer split workout is logged. After 7+ days away the card adds "Welcome back — it's been N days." and keeps your place.
+  - **No split:** a card invites "Set up your split" and, when a muscle hasn't been trained for 10+ days, shows the suggested routine (or focus) with its reason (`src/lib/split-fallback.ts`).
+  - **Editor** (`/routines/split/new`, `/routines/split/<id>`): name, ordered days with move up/down/remove icon buttons (labelled per day), **Add routine** (sheet) and **Add rest day**, an "Active split" ToggleChip, lime **Save**, destructive **Delete split**. Up to 14 days, at least one routine. Only one split is active at a time; another becomes active with "Make active" on Train.
 
 ### Where things live
 - Account and settings: the profile picture on Home → `/account` (import at `/account/import`, "Clear all data" under Danger zone).
 - Workout history `/history` and exercises `/exercises`, both reached from the top of Progress.
+- Your split: Train → My split → Edit (`/routines/split/<id>`).
 - Old `/profile` links redirect (`?tab=history` → `/history`, `?tab=exercises` → `/exercises`, everything else → `/account`).
 
 ---

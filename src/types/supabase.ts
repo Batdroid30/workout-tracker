@@ -521,6 +521,72 @@ export type Database = {
           },
         ]
       }
+      training_split_items: {
+        Row: {
+          id: string
+          position: number
+          routine_id: string | null
+          split_id: string
+        }
+        Insert: {
+          id?: string
+          position: number
+          routine_id?: string | null
+          split_id: string
+        }
+        Update: {
+          id?: string
+          position?: number
+          routine_id?: string | null
+          split_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_split_items_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_split_items_split_id_fkey"
+            columns: ["split_id"]
+            isOneToOne: false
+            referencedRelation: "training_splits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_splits: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          skip_set_at: string | null
+          skip_to_position: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          skip_set_at?: string | null
+          skip_to_position?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          skip_set_at?: string | null
+          skip_to_position?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       workouts: {
         Row: {
           bodyweight_kg: number | null
@@ -529,6 +595,7 @@ export type Database = {
           duration_seconds: number | null
           id: string
           notes: string | null
+          routine_id: string | null
           started_at: string
           title: string | null
           user_id: string
@@ -540,6 +607,7 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           notes?: string | null
+          routine_id?: string | null
           started_at: string
           title?: string | null
           user_id: string
@@ -551,11 +619,20 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           notes?: string | null
+          routine_id?: string | null
           started_at?: string
           title?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workouts_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
