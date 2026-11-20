@@ -1,4 +1,5 @@
 import { BottomNav } from '@/components/layout/BottomNav'
+import { WorkoutBar } from '@/components/layout/WorkoutBar'
 import { PullToRefresh } from '@/components/layout/PullToRefresh'
 import { PageTransition } from '@/components/layout/PageTransition'
 import { requireAuth } from '@/lib/auth'
@@ -15,6 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main className="flex-1">
         <PageTransition>{children}</PageTransition>
       </main>
+      <WorkoutBar />
       <BottomNav />
     </PullToRefresh>
   )

@@ -14,6 +14,31 @@ export interface SplitWithItems {
   items: (SplitItem & { routineTitle: string | null })[]
 }
 
+export interface LastSplitWorkout {
+  routineId: string
+  title: string
+  startedAt: string
+  durationSeconds: number | null
+}
+
+interface RecentSplitWorkoutRow {
+  routine_id: string | null
+  title: string | null
+  started_at: string
+  duration_seconds: number | null
+}
+
+export function toLastSplitWorkout(rowsNewestFirst: RecentSplitWorkoutRow[]): LastSplitWorkout | null {
+  const newest = rowsNewestFirst.find(row => row.routine_id)
+  if (!newest?.routine_id) return null
+  return {
+    routineId: newest.routine_id,
+    title: newest.title ?? 'Workout',
+    startedAt: newest.started_at,
+    durationSeconds: newest.duration_seconds,
+  }
+}
+
 export type SessionSuggestion =
   | {
       kind: 'split'
@@ -24,6 +49,8 @@ export type SessionSuggestion =
       setCount: number
       // Saved position of the day after next, for "Skip to next".
       skipToPosition: number
+      // Newest finished workout from the split, so Today can say it's done.
+      lastSplitWorkout: LastSplitWorkout | null
     }
   | FallbackSuggestion
 
@@ -79,12 +106,12 @@ function routineExerciseFacts(exercise: unknown): { sets: number; muscleGroup: s
 }
 
 // One workout per day in the split is enough to place a repeated routine.
-async function getRecentSplitWorkouts(userId: string, routineIds: string[], limit: number): Promise<SplitWorkout[]> {
+async function getRecentSplitWorkouts(userId: string, routineIds: string[], limit: number): Promise<RecentSplitWorkoutRow[]> {
   if (routineIds.length === 0) return []
   const supabase = await getSupabaseServer()
   const { data, error } = await supabase
     .from('workouts')
-    .select('routine_id, started_at')
+    .select('routine_id, title, started_at, duration_seconds')
     .eq('user_id', userId)
     .not('completed_at', 'is', null)
     .in('routine_id', routineIds)
@@ -92,7 +119,11 @@ async function getRecentSplitWorkouts(userId: string, routineIds: string[], limi
     .limit(limit)
 
   if (error) throw new DatabaseError(`Failed to fetch split workouts: ${error.message}`, error)
-  return (data ?? []).flatMap(row => (row.routine_id ? [{ routineId: row.routine_id, startedAt: row.started_at }] : []))
+  return data ?? []
+}
+
+function toSplitWorkouts(rows: RecentSplitWorkoutRow[]): SplitWorkout[] {
+  return rows.flatMap(row => (row.routine_id ? [{ routineId: row.routine_id, startedAt: row.started_at }] : []))
 }
 
 export const getSessionSuggestion = cache(async (userId: string): Promise<SessionSuggestion | null> => {
@@ -101,9 +132,10 @@ export const getSessionSuggestion = cache(async (userId: string): Promise<Sessio
 
   if (active) {
     const routineIds = [...new Set(active.items.flatMap(item => (item.routineId ? [item.routineId] : [])))]
+    const recent = await getRecentSplitWorkouts(userId, routineIds, active.items.length)
     const next = getNextSplitItem({
       items: active.items,
-      recentSplitWorkouts: await getRecentSplitWorkouts(userId, routineIds, active.items.length),
+      recentSplitWorkouts: toSplitWorkouts(recent),
       skip: active.skip,
       now: new Date(),
     })
@@ -118,6 +150,7 @@ export const getSessionSuggestion = cache(async (userId: string): Promise<Sessio
         exerciseCount: exercises.length,
         setCount: exercises.reduce<number>((sum, exercise) => sum + routineExerciseFacts(exercise).sets, 0),
         skipToPosition: active.items[(next.index + 1) % active.items.length].position,
+        lastSplitWorkout: toLastSplitWorkout(recent),
       }
     }
   }

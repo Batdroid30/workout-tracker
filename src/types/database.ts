@@ -146,6 +146,7 @@ export interface ActiveSet {
 }
 
 export interface ActiveExercise {
+  clientId: string              // stable id on the phone; never sent to the server
   workout_exercise_id: string | null
   exercise: Exercise
   sets: ActiveSet[]
@@ -164,6 +165,8 @@ export interface ActiveWorkout {
   routine_id?: string
   has_routine_been_modified?: boolean
   bodyweight_kg?: number | null  // bodyweight this session's weighted/assisted sets were logged against
+  openExerciseId: string | null   // the exercise card left open
+  rest: { endsAt: number; totalSeconds: number; nextLabel: string | null } | null
 }
 
 export interface Routine {

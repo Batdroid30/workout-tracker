@@ -3,7 +3,8 @@ import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
 import { calculate1RM } from '@/lib/algorithms'
 import { setVolume, workoutBodyweight } from '@/lib/load'
-import type { ActiveWorkout, PRType } from '@/types/database'
+import type { PRType } from '@/types/database'
+import type { FinishPayload } from '@/lib/workout-session'
 import type { WorkoutItem } from '@/types/workout-history'
 import { splitPage, type HistoryCursor } from './history-page'
 
@@ -303,7 +304,7 @@ export function isDeletedRoutineError(error: { code?: string; message: string })
   return error.code === '23503' && error.message.includes('routine_id')
 }
 
-export async function saveActiveWorkout(userId: string, workout: ActiveWorkout) {
+export async function saveActiveWorkout(userId: string, workout: FinishPayload) {
   const supabase = await getSupabaseServer()
 
   // workout.started_at is a Date in the active-workout store; the DB column

@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('@/store/workout.store', () => ({ useWorkoutStore: () => vi.fn() }))
+vi.mock('@/providers/DialogProvider', () => ({ useDialog: () => ({ confirm: vi.fn() }) }))
 vi.mock('@/providers/ToastProvider', () => ({ useToast: () => ({ error: vi.fn() }) }))
 vi.mock('@/app/(app)/routines/split-actions', () => ({
   setActiveSplitAction: vi.fn(),
@@ -31,6 +32,7 @@ function splitSuggestion(index: number, extra: Partial<{ welcomeBack: boolean; d
     exerciseCount: 6,
     setCount: 18,
     skipToPosition: (index + 1) % split.items.length,
+    lastSplitWorkout: null,
   }
 }
 

@@ -4,13 +4,16 @@ import { Chip } from '@/components/ui'
 interface SupersetWrapperProps {
   children: ReactNode
   exerciseNames: string[]
+  /** Drag handle for the whole superset. */
+  handle?: ReactNode
 }
 
-export function SupersetWrapper({ children, exerciseNames }: SupersetWrapperProps) {
+export function SupersetWrapper({ children, exerciseNames, handle = null }: SupersetWrapperProps) {
   return (
     <div className="relative mb-4">
       {/* Badge + exercise names */}
-      <div className="flex items-center gap-2 mb-1.5 pl-3 flex-wrap">
+      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+        {handle}
         <Chip>Superset</Chip>
         <span className="text-xs text-tertiary truncate min-w-0">
           {exerciseNames.join(' · ')}

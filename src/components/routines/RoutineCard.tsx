@@ -8,6 +8,7 @@ import { deleteRoutineAction } from '@/app/(app)/routines/actions'
 import { useDialog } from '@/providers/DialogProvider'
 import { useToast } from '@/providers/ToastProvider'
 import { Button } from '@/components/ui'
+import { useStartWorkout } from '@/hooks/useStartWorkout'
 
 interface RoutineCardProps {
   routine: any
@@ -22,10 +23,12 @@ export function RoutineCard({ routine }: RoutineCardProps) {
   const dialog = useDialog()
   const toast  = useToast()
 
-  const handleStartRoutine = () => {
+  const { start, sheet } = useStartWorkout()
+
+  const handleStartRoutine = () => start(() => {
     startRoutine(routine)
     router.push('/workout')
-  }
+  }, routine.title)
 
   const handleDelete = async () => {
     setMenuOpen(false)
@@ -64,6 +67,7 @@ export function RoutineCard({ routine }: RoutineCardProps) {
 
   return (
     <div className="card p-4 relative">
+      {sheet}
       {/* Header row */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">

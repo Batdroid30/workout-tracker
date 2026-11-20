@@ -3,15 +3,15 @@ import React, { useState, useCallback, useEffect } from 'react'
 import { useWorkoutStore } from '@/store/workout.store'
 import { SetLogger } from '@/components/workout/SetLogger'
 import { PlateCalculator } from '@/components/workout/PlateCalculator'
-import { RestTimer } from '@/components/workout/RestTimer'
-import { Plus, Dumbbell, ChevronLeft } from 'lucide-react'
+import { RestBar } from '@/components/workout/RestBar'
+import { LoggerHeader } from '@/components/workout/LoggerHeader'
+import { Plus, Dumbbell } from 'lucide-react'
 import { AddExerciseModal } from '@/components/workout/AddExerciseModal'
 import { SuggestNextChip } from '@/components/workout/SuggestNextChip'
 import { useExerciseStore } from '@/store/exercise.store'
 import { finishWorkoutAction, getUserExerciseFrequency, getUserLatestBodyweight } from './actions'
 import { updateRoutineExercisesAction } from '@/app/(app)/routines/actions'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useDialog } from '@/providers/DialogProvider'
 import { Button } from '@/components/ui'
 import { FALLBACK_BODYWEIGHT_KG } from '@/lib/load'
@@ -20,89 +20,94 @@ import { WorkoutFocusSheet } from '@/components/workout/WorkoutFocusSheet'
 import { SupersetWrapper } from '@/components/workout/SupersetWrapper'
 import { buildWorkoutTemplate } from '@/lib/template-generator'
 import { FailureTrainingTip } from '@/components/workout/FailureTrainingTip'
+import { canGoBack } from '@/components/ui/BackButton'
+import { exerciseBlocks, exerciseTally, finishSituation, firstOpenExerciseId, restLabelAfter, toFinishPayload, workoutProgress, type ExerciseBlock } from '@/lib/workout-session'
+import { FinishSheet } from '@/components/workout/FinishSheet'
+import { useToast } from '@/providers/ToastProvider'
+import { SortableExerciseList } from '@/components/workout/SortableExerciseList'
+import { ExerciseTallyRow } from '@/components/workout/ExerciseTallyRow'
+import { weekLabel } from '@/lib/home'
 import type { Exercise, ActiveExercise } from '@/types/database'
 
 // ── Superset grouping ─────────────────────────────────────────────────────────
 
 interface RenderOptions {
-  isRoutineWorkout: boolean
-  expandedIndex: number | null
-  onExpand: (i: number) => void
+  openExerciseId: string | null
+  onExpand: (clientId: string) => void
   onReplaceExercise: (i: number) => void
   onOpenPlateCalc: (weight: number) => void
-  onRestTimerStart: (seconds: number) => void
+  onRestTimerStart: (seconds: number, exerciseIndex: number) => void
   onPairAsSuperset: (a: number, b: number) => void
   onUnpairSuperset: (i: number) => void
 }
 
-function renderExercises(exercises: ActiveExercise[], opts: RenderOptions) {
-  const nodes: React.ReactNode[] = []
-  const seen = new Set<number>()
-
-  // Pre-collect all group members so non-adjacent pairs don't produce duplicate keys
-  const groupMembers = new Map<string, number[]>()
-  exercises.forEach((ex, idx) => {
-    if (ex.superset_group) {
-      const arr = groupMembers.get(ex.superset_group) ?? []
-      arr.push(idx)
-      groupMembers.set(ex.superset_group, arr)
-    }
+function renderExerciseBlock(
+  exercises: ActiveExercise[],
+  block: ExerciseBlock,
+  handle: React.ReactNode,
+  isDragging: boolean,
+  opts: RenderOptions,
+) {
+  const members = block.clientIds.flatMap(clientId => {
+    const index = exercises.findIndex(entry => entry.clientId === clientId)
+    return index === -1 ? [] : [{ entry: exercises[index], index }]
   })
-
   const standaloneCandidates = exercises
-    .map((ex, idx) => ({ index: idx, name: ex.exercise.name }))
-    .filter((_, idx) => !exercises[idx].superset_group)
+    .map((entry, index) => ({ index, name: entry.exercise.name }))
+    .filter(candidate => !exercises[candidate.index].superset_group)
 
-  for (let i = 0; i < exercises.length; i++) {
-    if (seen.has(i)) continue
-
-    const ex = exercises[i]
-    const groupId = ex.superset_group
-
-    if (!groupId) {
-      const candidates = standaloneCandidates.filter(c => c.index !== i)
-      nodes.push(
-        <SetLogger
-          key={i}
-          exerciseIndex={i}
-          exercise={ex}
-          onReplaceExercise={() => opts.onReplaceExercise(i)}
-          onOpenPlateCalc={opts.onOpenPlateCalc}
-          onRestTimerStart={opts.onRestTimerStart}
-          isCollapsed={opts.isRoutineWorkout && opts.expandedIndex !== i}
-          onExpand={() => opts.onExpand(i)}
-          onSupersetWith={candidates.length > 0 ? (otherIdx) => opts.onPairAsSuperset(i, otherIdx) : undefined}
-          supersetCandidates={candidates}
-        />
-      )
-    } else {
-      const indices = groupMembers.get(groupId) ?? [i]
-      indices.forEach(idx => seen.add(idx))
-      const group = indices.map(idx => ({ ex: exercises[idx], idx }))
-      const exerciseNames = group.map(g => g.ex.exercise.name)
-
-      nodes.push(
-        <SupersetWrapper key={groupId} exerciseNames={exerciseNames}>
-          {group.map(({ ex: gex, idx }, pos) => (
-            <SetLogger
-              key={idx}
-              exerciseIndex={idx}
-              exercise={gex}
-              onReplaceExercise={() => opts.onReplaceExercise(idx)}
-              onOpenPlateCalc={opts.onOpenPlateCalc}
-              onRestTimerStart={pos === group.length - 1 ? opts.onRestTimerStart : () => {}}
-              isCollapsed={opts.isRoutineWorkout && opts.expandedIndex !== idx}
-              onExpand={() => opts.onExpand(idx)}
-              onUnpairSuperset={() => opts.onUnpairSuperset(idx)}
-            />
-          ))}
-        </SupersetWrapper>
-      )
-    }
+  // While anything is being dragged, every block is one row.
+  if (isDragging && members.length > 1) {
+    const tallies = members.map(member => exerciseTally(member.entry))
+    const done = tallies.reduce((sum, tally) => sum + tally.done, 0)
+    const total = tallies.reduce((sum, tally) => sum + tally.total, 0)
+    return (
+      <div className="mb-2.5">
+        <ExerciseTallyRow name={block.label} muscle="Superset" tally={{ done, total, complete: tallies.every(tally => tally.complete) }} onOpen={() => {}} handle={handle} />
+      </div>
+    )
   }
 
-  return nodes
+  if (members.length === 1) {
+    const { entry, index } = members[0]
+    const candidates = standaloneCandidates.filter(candidate => candidate.index !== index)
+    return (
+      <SetLogger
+        exerciseIndex={index}
+        exercise={entry}
+        onReplaceExercise={() => opts.onReplaceExercise(index)}
+        onOpenPlateCalc={opts.onOpenPlateCalc}
+        onRestTimerStart={opts.onRestTimerStart}
+        isCollapsed={isDragging || opts.openExerciseId !== entry.clientId}
+        onExpand={() => opts.onExpand(entry.clientId)}
+        onSupersetWith={candidates.length > 0 ? otherIndex => opts.onPairAsSuperset(index, otherIndex) : undefined}
+        supersetCandidates={candidates}
+        dragHandle={handle}
+      />
+    )
+  }
+
+  return (
+    <SupersetWrapper exerciseNames={members.map(member => member.entry.exercise.name)} handle={handle}>
+      {members.map(({ entry, index }, position) => (
+        <SetLogger
+          key={entry.clientId}
+          exerciseIndex={index}
+          exercise={entry}
+          onReplaceExercise={() => opts.onReplaceExercise(index)}
+          onOpenPlateCalc={opts.onOpenPlateCalc}
+          // Rest starts after the superset's last exercise, as before.
+          onRestTimerStart={position === members.length - 1 ? opts.onRestTimerStart : () => {}}
+          isCollapsed={opts.openExerciseId !== entry.clientId}
+          onExpand={() => opts.onExpand(entry.clientId)}
+          onUnpairSuperset={() => opts.onUnpairSuperset(index)}
+        />
+      ))}
+    </SupersetWrapper>
+  )
 }
+
+const LOGGER_SCROLL_KEY = 'logger-scroll'
 
 export default function WorkoutPage() {
   const router = useRouter()
@@ -110,17 +115,19 @@ export default function WorkoutPage() {
   const dialog = useDialog()
   const { cycle } = useTrainingCycle()
 
+  const toast = useToast()
+
   const handleDiscard = async () => {
     const confirmed = await dialog.confirm({
-      title:       'Discard Workout',
-      description: 'Are you sure you want to discard this workout? All progress will be lost.',
+      title:       'Discard workout?',
+      description: 'Every set in it will be lost. This can’t be undone.',
       danger:       true,
       confirmText: 'Discard',
     })
-    if (confirmed) {
-      discardWorkout()
-      router.push('/dashboard')
-    }
+    if (!confirmed) return
+    setFinishOpen(false)
+    discardWorkout()
+    router.push('/dashboard')
   }
 
   const [addingExerciseMode, setAddingExerciseMode] = useState<{ mode: 'add' } | { mode: 'replace', index: number } | null>(null)
@@ -131,11 +138,28 @@ export default function WorkoutPage() {
   const [plateCalc, setPlateCalc] = useState<{ isOpen: boolean; weight: number }>({ isOpen: false, weight: 100 })
   const handleOpenPlateCalc = useCallback((weight: number) => setPlateCalc({ isOpen: true, weight }), [])
 
-  const [restTimer, setRestTimer] = useState<{ isVisible: boolean; seconds: number; key: number }>({
-    isVisible: false, seconds: 90, key: 0,
-  })
-  const handleRestTimerStart = useCallback((seconds: number) => {
-    setRestTimer(prev => ({ isVisible: true, seconds, key: prev.key + 1 }))
+  // Rest lives in the saved workout as an end time, so it survives leaving
+  // the logger and the phone going to sleep.
+  const startRest = useWorkoutStore(state => state.startRest)
+  const extendRest = useWorkoutStore(state => state.extendRest)
+  const clearRest = useWorkoutStore(state => state.clearRest)
+  const setOpenExercise = useWorkoutStore(state => state.setOpenExercise)
+  const moveBlock = useWorkoutStore(state => state.moveBlock)
+  const handleRestTimerStart = useCallback((seconds: number, exerciseIndex: number) => {
+    const exercises = useWorkoutStore.getState().activeWorkout?.exercises ?? []
+    startRest(seconds, restLabelAfter(exercises, exerciseIndex))
+  }, [startRest])
+
+  const minimize = useCallback(() => {
+    if (canGoBack(window.history.length)) router.back()
+    else router.push('/dashboard')
+  }, [router])
+
+  // Coming back from the workout bar lands where the lifter left off.
+  useEffect(() => {
+    const saved = Number(sessionStorage.getItem(LOGGER_SCROLL_KEY))
+    if (saved > 0) window.scrollTo(0, saved)
+    return () => sessionStorage.setItem(LOGGER_SCROLL_KEY, String(window.scrollY))
   }, [])
 
   // Focus sheet — shown on the "no active workout" landing screen
@@ -164,94 +188,35 @@ export default function WorkoutPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkout?.started_at])
 
-  // Accordion for routine workouts — one exercise expanded at a time
-  const isRoutineWorkout = !!activeWorkout?.routine_id
-  const [expandedIndex,  setExpandedIndex] = useState<number | null>(null)
 
-  useEffect(() => {
-    if (!isRoutineWorkout || expandedIndex !== null || !activeWorkout) return
-    const firstIncomplete = activeWorkout.exercises.findIndex(ex =>
-      ex.sets.some(s => !s.completed)
-    )
-    setExpandedIndex(firstIncomplete >= 0 ? firstIncomplete : 0)
-  }, [isRoutineWorkout, activeWorkout, expandedIndex])
+  const [finishOpen, setFinishOpen] = useState(false)
+  const [updateRoutine, setUpdateRoutine] = useState(false)
+  const handleFinish = () => setFinishOpen(true)
 
-  const handleFinish = async () => {
+  const completeFinish = async ({ tickRest }: { tickRest: boolean }) => {
     if (!activeWorkout) return
-
-    if (activeWorkout.exercises.length === 0) {
-      const confirmedEmpty = await dialog.confirm({
-        title: 'Empty Workout', description: 'This workout is empty. Do you want to discard it?',
-        danger: true, confirmText: 'Discard',
-      })
-      if (!confirmedEmpty) return
-      discardWorkout()
-      router.push('/dashboard')
-      return
-    }
-
-    const hasUncheckedSetsWithData = activeWorkout.exercises.some(ex =>
-      ex.sets.some(s => !s.completed && (s.weight_kg > 0 || s.reps > 0))
-    )
-    let finalWorkout = activeWorkout
-
-    if (hasUncheckedSetsWithData) {
-      const completeThem = await dialog.confirm({
-        title: 'Unchecked Sets',
-        description: 'You have unchecked sets with data. Would you like to mark them as complete?',
-        confirmText: 'Mark Complete',
-      })
-      if (completeThem) {
-        completeAllSets()
-        finalWorkout = {
-          ...activeWorkout,
-          exercises: activeWorkout.exercises.map(ex => ({
-            ...ex,
-            sets: ex.sets.map(s => (s.weight_kg > 0 || s.reps > 0) ? { ...s, completed: true } : s),
-          })),
-        }
-      } else {
-        const finishAnyway = await dialog.confirm({
-          title: 'Finish Anyway?',
-          description: 'Unchecked sets will NOT be saved.',
-          confirmText: 'Finish', danger: true,
-        })
-        if (!finishAnyway) return
-      }
-    } else {
-      const finishIt = await dialog.confirm({
-        title: 'Finish Workout',
-        description: 'Great job! Finish this workout and save to your log?',
-        confirmText: 'Finish Workout',
-      })
-      if (!finishIt) return
-    }
-
+    setFinishOpen(false)
     setIsFinishing(true)
+    if (tickRest) completeAllSets()
+    // Read back from the store so ticked-on-finish sets are included.
+    const finalWorkout = useWorkoutStore.getState().activeWorkout ?? activeWorkout
     try {
-      if (finalWorkout.routine_id && finalWorkout.has_routine_been_modified) {
-        const syncRoutine = await dialog.confirm({
-          title: 'Update Routine?',
-          description: 'You modified the exercises. Update the saved routine template?',
-          confirmText: 'Update Routine',
-        })
-        if (syncRoutine) {
-          await updateRoutineExercisesAction(finalWorkout.routine_id, finalWorkout.exercises)
-        }
+      if (finalWorkout.routine_id && finalWorkout.has_routine_been_modified && updateRoutine) {
+        await updateRoutineExercisesAction(finalWorkout.routine_id, finalWorkout.exercises)
       }
-
       // Attach the bodyweight weighted/assisted sets were entered against, so
       // history doesn't shift when bodyweight changes later.
       const bodyweightKg = useWorkoutStore.getState().userBodyweight ?? FALLBACK_BODYWEIGHT_KG
-      const result = await finishWorkoutAction({ ...finalWorkout, bodyweight_kg: bodyweightKg })
+      const result = await finishWorkoutAction({ ...toFinishPayload(finalWorkout), bodyweight_kg: bodyweightKg })
       if (result.success) {
         finishWorkout()
         router.push('/dashboard')
       } else {
-        dialog.alert({ title: 'Error', description: 'Failed to save workout: ' + result.error })
+        toast.error(`Couldn't save the workout: ${result.error}`)
       }
-    } catch {
-      dialog.alert({ title: 'Error', description: 'An unexpected error occurred.' })
+    } catch (error: unknown) {
+      console.error('Failed to finish workout', error)
+      toast.error('Couldn’t save the workout. Check your connection and try again.')
     } finally {
       setIsFinishing(false)
     }
@@ -291,48 +256,16 @@ export default function WorkoutPage() {
   return (
     <div className="pb-32 min-h-screen">
 
-      {/* ── Sticky header ─────────────────────────────────────────────────── */}
-      <div
-        className="sticky top-0 z-30 flex flex-col bg-bg border-b border-border"
-      >
-        {/* Title row */}
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-1 mr-3">
-            <Link href="/dashboard" className="p-2 -ml-1 rounded-control text-tertiary hover:text-primary hover:bg-surface-raised transition-colors">
-              <ChevronLeft className="w-5 h-5" />
-            </Link>
-            <input
-              type="text"
-              value={activeWorkout.title}
-              onChange={e => updateTitle(e.target.value)}
-              placeholder="Session title"
-              className="bg-transparent border-none text-base font-semibold text-primary focus:ring-0 p-0 w-full placeholder:text-tertiary outline-none"
-            />
-          </div>
-          <Button onClick={handleFinish} loading={isFinishing} size="sm" fullWidth={false}>
-            {isFinishing ? 'Saving…' : 'Finish'}
-          </Button>
-        </div>
-
-        {/* Training-week scheme pill (hidden until the cycle loads) */}
-        {dupScheme && (
-        <div className="px-4 pb-2.5">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-pill bg-surface-raised border border-border">
-            <span className="text-xs font-semibold text-primary">
-              {dupScheme.label}
-            </span>
-            <span className="w-px h-3 bg-border-strong" />
-            <span className="text-xs text-secondary tabular-nums">
-              {dupScheme.repRange.min}–{dupScheme.repRange.max} reps
-            </span>
-            <span className="w-px h-3 bg-border-strong" />
-            <span className="text-xs text-tertiary">
-              RPE {dupScheme.rpeTarget}
-            </span>
-          </div>
-        </div>
-        )}
-      </div>
+      <LoggerHeader
+        title={activeWorkout.title}
+        onTitleChange={updateTitle}
+        startedAt={activeWorkout.started_at}
+        progress={workoutProgress(activeWorkout)}
+        weekChip={dupScheme ? `${weekLabel(dupScheme, false)} · ${dupScheme.repRange.min}–${dupScheme.repRange.max} reps · RPE ${dupScheme.rpeTarget}` : null}
+        onMinimize={minimize}
+        onFinish={handleFinish}
+        isFinishing={isFinishing}
+      />
 
       <div className="p-4 space-y-2">
 
@@ -351,20 +284,23 @@ export default function WorkoutPage() {
             <p className="t-caption">Add an exercise to start tracking.</p>
           </div>
         ) : (
-          renderExercises(activeWorkout.exercises, {
-            isRoutineWorkout,
-            expandedIndex,
-            onExpand: setExpandedIndex,
-            onReplaceExercise: (i) => setAddingExerciseMode({ mode: 'replace', index: i }),
-            onOpenPlateCalc: handleOpenPlateCalc,
-            onRestTimerStart: handleRestTimerStart,
-            onPairAsSuperset: pairAsSuperset,
-            onUnpairSuperset: (i) => unpairSuperset(i),
-          })
+          <SortableExerciseList
+            blocks={exerciseBlocks(activeWorkout.exercises)}
+            onMove={moveBlock}
+            renderBlock={(block, handle, isDragging) => renderExerciseBlock(activeWorkout.exercises, block, handle, isDragging, {
+              openExerciseId: activeWorkout.openExerciseId ?? firstOpenExerciseId(activeWorkout.exercises),
+              onExpand: setOpenExercise,
+              onReplaceExercise: (i) => setAddingExerciseMode({ mode: 'replace', index: i }),
+              onOpenPlateCalc: handleOpenPlateCalc,
+              onRestTimerStart: handleRestTimerStart,
+              onPairAsSuperset: pairAsSuperset,
+              onUnpairSuperset: (i) => unpairSuperset(i),
+            })}
+          />
         )}
 
         {/* ── Suggest-next chips — blank workouts only ──────────────────── */}
-        {!isRoutineWorkout && activeWorkout.exercises.length > 0 && (
+        {!activeWorkout.routine_id && activeWorkout.exercises.length > 0 && (
           <SuggestNextChip
             workoutExercises={activeWorkout.exercises}
             usageFrequency={usageFrequency}
@@ -380,13 +316,6 @@ export default function WorkoutPage() {
           <Plus className="w-4 h-4" /> Add exercise
         </button>
 
-        {/* ── Discard ───────────────────────────────────────────────────── */}
-        <button
-          onClick={handleDiscard}
-          className="w-full min-h-11 mt-4 text-sm font-medium text-negative rounded-pill transition-colors"
-        >
-          Discard workout
-        </button>
       </div>
 
       <AddExerciseModal
@@ -403,7 +332,7 @@ export default function WorkoutPage() {
       />
 
       {/*
-        PlateCalculator and RestTimer live here — NOT inside SetLogger cards.
+        PlateCalculator and RestBar live here — NOT inside SetLogger cards.
         backdrop-filter creates a new CSS containing block which breaks
         fixed-position children. Rendering here ensures viewport-level positioning.
       */}
@@ -413,14 +342,18 @@ export default function WorkoutPage() {
         initialWeight={plateCalc.weight}
       />
 
-      {restTimer.isVisible && (
-        <RestTimer
-          key={restTimer.key}
-          seconds={restTimer.seconds}
-          onSkip={() => setRestTimer(p => ({ ...p, isVisible: false }))}
-          onComplete={() => setRestTimer(p => ({ ...p, isVisible: false }))}
-        />
-      )}
+      <RestBar rest={activeWorkout.rest} onExtend={extendRest} onSkip={clearRest} />
+
+      <FinishSheet
+        isOpen={finishOpen}
+        onClose={() => setFinishOpen(false)}
+        situation={finishSituation(activeWorkout)}
+        routineTitle={activeWorkout.routine_id && activeWorkout.has_routine_been_modified ? activeWorkout.title : null}
+        updateRoutine={updateRoutine}
+        onToggleRoutine={() => setUpdateRoutine(value => !value)}
+        onFinish={completeFinish}
+        onDiscard={handleDiscard}
+      />
     </div>
   )
 }

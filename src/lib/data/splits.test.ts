@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('@/lib/supabase/server', () => ({ getSupabaseServer: vi.fn() }))
 
-import { toSplitWithItems } from './splits'
+import { toLastSplitWorkout, toSplitWithItems } from './splits'
 
 describe('toSplitWithItems', () => {
   it('orders items, names routines and marks rest days', () => {
@@ -33,5 +33,18 @@ describe('toSplitWithItems', () => {
     expect(toSplitWithItems({ ...base, skip_to_position: 2, skip_set_at: '2026-11-03T09:00:00Z' }).skip)
       .toEqual({ position: 2, setAt: '2026-11-03T09:00:00Z' })
     expect(toSplitWithItems({ ...base, skip_to_position: 2, skip_set_at: null }).skip).toBeNull()
+  })
+})
+
+describe('toLastSplitWorkout', () => {
+  it('has nothing before the first split workout', () => {
+    expect(toLastSplitWorkout([])).toBeNull()
+  })
+
+  it('takes the newest split workout', () => {
+    expect(toLastSplitWorkout([
+      { routine_id: 'push', title: 'Push A', started_at: '2026-11-20T10:00:00Z', duration_seconds: 3120 },
+      { routine_id: 'pull', title: 'Pull A', started_at: '2026-11-18T10:00:00Z', duration_seconds: 2900 },
+    ])).toEqual({ routineId: 'push', title: 'Push A', startedAt: '2026-11-20T10:00:00Z', durationSeconds: 3120 })
   })
 })

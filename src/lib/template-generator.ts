@@ -1,4 +1,5 @@
 import type { ActiveExercise, ActiveSet, Exercise, TrainingPhase } from '@/types/database'
+import { newClientId } from '@/lib/workout-session'
 import type { WUPScheme } from '@/lib/workout-intelligence'
 
 // Rep target before the training cycle has loaded (mid-range, safe default).
@@ -44,6 +45,7 @@ export function buildWorkoutTemplate(
       workout_exercise_id: null,
       exercise,
       sets,
+      clientId: newClientId(),
       order_index: idx,
     }
   })
