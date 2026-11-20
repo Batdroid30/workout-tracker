@@ -94,15 +94,47 @@ export function countCompletedTrainingWeeks(
   return listTrainingWeeks(dates, since, now, weeklyGoal).length
 }
 
-function recentMissedWeeks(dates: string[], since: string | null, now: Date, weeklyGoal: number): number[] {
+function recentMissedWeeks(
+  dates: string[], since: string | null, now: Date, weeklyGoal: number, lightDeloadWeeks: Set<number> = new Set(),
+): number[] {
   const counts = sessionsByWeek(dates)
   const threshold = trainingWeekThreshold(weeklyGoal)
   const missed: number[] = []
   for (const week of completeWeeks(since, now).reverse()) {
-    if ((counts.get(week) ?? 0) >= threshold) break
+    if ((counts.get(week) ?? 0) >= threshold || lightDeloadWeeks.has(week)) break
     missed.push(week)
   }
   return missed
+}
+
+// Phase training weeks, where the deload week (the one after each block)
+// counts with a single workout — lifters often train lightly that week.
+function phaseWeeks(
+  dates: string[], since: string | null, now: Date, weeklyGoal: number, weeksBeforeDeload: number,
+): { weeks: TrainingWeek[]; lightDeloadWeeks: Set<number> } {
+  const counts = sessionsByWeek(dates)
+  const threshold = trainingWeekThreshold(weeklyGoal)
+  const weeks: TrainingWeek[] = []
+  const lightDeloadWeeks = new Set<number>()
+  for (const week of completeWeeks(since, now)) {
+    const sessions = counts.get(week) ?? 0
+    const isDeloadSlot = (weeks.length + 1) % (weeksBeforeDeload + 1) === 0
+    if (sessions >= threshold || (isDeloadSlot && sessions >= 1)) {
+      weeks.push({ weekStart: toDateString(week), sessions })
+      if (isDeloadSlot && sessions < threshold) lightDeloadWeeks.add(week)
+    }
+  }
+  return { weeks, lightDeloadWeeks }
+}
+
+function countCycleWeeks(
+  dates: string[], since: string | null, now: Date, weeklyGoal: number, lightDeloadWeeks: Set<number>,
+): number {
+  const counts = sessionsByWeek(dates)
+  const threshold = trainingWeekThreshold(weeklyGoal)
+  return completeWeeks(since, now)
+    .filter(week => (counts.get(week) ?? 0) >= threshold || lightDeloadWeeks.has(week))
+    .length
 }
 
 export function countRecentMissedWeeks(
@@ -114,20 +146,22 @@ export function countRecentMissedWeeks(
 export function buildTrainingCycle(input: CycleInput): TrainingCycle {
   const { completedWorkoutDates: dates, weeklyGoal, now } = input
 
-  const cycleWeeks = countCompletedTrainingWeeks(dates, input.cycleStartedAt, now, weeklyGoal)
-  const cycleIndex = cycleWeeks % WUP_CYCLE.length
-  const phaseTrainingWeeks = listTrainingWeeks(dates, input.phaseStartedAt, now, weeklyGoal)
-  const phaseWeek = phaseTrainingWeeks.length + 1
-
   // DELOAD_THRESHOLDS = training weeks before a deload is due, so the deload
   // is the week after them (the same blocks the mesocycle timeline shows).
   const weeksBeforeDeload = DELOAD_THRESHOLDS[input.experienceLevel ?? 'intermediate'][input.trainingPhase ?? 'maingaining']
+  const { weeks: phaseTrainingWeeks, lightDeloadWeeks } =
+    phaseWeeks(dates, input.phaseStartedAt, now, weeklyGoal, weeksBeforeDeload)
+  const phaseWeek = phaseTrainingWeeks.length + 1
+
+  const cycleWeeks = countCycleWeeks(dates, input.cycleStartedAt, now, weeklyGoal, lightDeloadWeeks)
+  const cycleIndex = cycleWeeks % WUP_CYCLE.length
+
   const isDeloadWeek = input.phaseStartedAt !== null && phaseWeek % (weeksBeforeDeload + 1) === 0
 
   const currentWeek = mondayOf(now)
   const currentWeekSessions = sessionsByWeek(dates).get(currentWeek) ?? 0
 
-  const missed = recentMissedWeeks(dates, input.phaseStartedAt, now, weeklyGoal)
+  const missed = recentMissedWeeks(dates, input.phaseStartedAt, now, weeklyGoal, lightDeloadWeeks)
   const breakStart = missed.length > 0 ? missed[missed.length - 1] : null
   const dismissedThisBreak = breakStart !== null && input.breakPromptDismissedAt !== null
     && new Date(input.breakPromptDismissedAt).getTime() >= breakStart
