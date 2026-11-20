@@ -6,6 +6,10 @@ import type { KeyLift } from '@/lib/data/phase-coach'
 // A change of a kilo or less either way reads as holding steady.
 const FLAT_KG = 1
 
+function roundToTenth(value: number): number {
+  return Math.round(value * 10) / 10
+}
+
 export type TrendDirection = 'up' | 'flat' | 'down'
 
 export interface LiftTrend {
@@ -21,10 +25,11 @@ export interface LiftTrend {
 // assistance for assisted lifts), so higher always means stronger.
 export function liftTrend(weekly: Map<string, number> | undefined): LiftTrend | null {
   if (!weekly || weekly.size === 0) return null
-  const points = [...weekly.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, value]) => value)
+  // Rounded per week, as the lift page shows them, so both pages report the same change.
+  const points = [...weekly.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, value]) => roundToTenth(value))
   const current = points[points.length - 1]
   if (points.length < 2) return { current, change: null, direction: 'flat', points }
-  const change = Math.round((current - points[0]) * 10) / 10
+  const change = roundToTenth(current - points[0])
   const direction: TrendDirection = change > FLAT_KG ? 'up' : change < -FLAT_KG ? 'down' : 'flat'
   return { current, change, direction, points }
 }
