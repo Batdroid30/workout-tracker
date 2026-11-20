@@ -72,6 +72,13 @@ describe('toHighlightWorkout', () => {
     })).toEqual({ id: 'w1', title: 'Push A', startedAt: '2026-11-18T10:00:00Z', durationSeconds: 3600, volumeKg: 1000 })
   })
 
+  it('leaves warm-up sets out, like the weekly volume', () => {
+    expect(toHighlightWorkout({
+      id: 'w3', title: 'Legs', started_at: '2026-11-18T10:00:00Z', duration_seconds: 3600, bodyweight_kg: 80,
+      workout_exercises: [{ exercise: { name: 'Squat' }, sets: [{ weight_kg: 60, reps: 10, is_warmup: true }, { weight_kg: 140, reps: 5, is_warmup: false }] }],
+    }).volumeKg).toBe(700)
+  })
+
   it('names an untitled workout', () => {
     expect(toHighlightWorkout({
       id: 'w2', title: null, started_at: '2026-11-18T10:00:00Z', duration_seconds: null, bodyweight_kg: null, workout_exercises: [],

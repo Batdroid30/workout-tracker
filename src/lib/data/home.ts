@@ -68,13 +68,14 @@ interface RecentWorkoutRow {
   started_at: string
   duration_seconds: number | null
   bodyweight_kg: number | string | null
-  workout_exercises: { exercise: { name: string } | null; sets: { weight_kg: number | null; reps: number | null }[] | null }[]
+  workout_exercises: { exercise: { name: string } | null; sets: { weight_kg: number | null; reps: number | null; is_warmup?: boolean | null }[] | null }[]
 }
 
+// Working sets only, matching the weekly volume on the same screen.
 export function toHighlightWorkout(row: RecentWorkoutRow): HighlightWorkout {
   const bodyweight = workoutBodyweight(row.bodyweight_kg)
   const volumeKg = row.workout_exercises.reduce((total, entry) =>
-    total + (entry.sets ?? []).reduce((sum, set) =>
+    total + (entry.sets ?? []).filter(set => !set.is_warmup).reduce((sum, set) =>
       sum + setVolume(set.weight_kg ?? 0, set.reps ?? 0, entry.exercise?.name ?? '', bodyweight), 0), 0)
   return {
     id: row.id,
