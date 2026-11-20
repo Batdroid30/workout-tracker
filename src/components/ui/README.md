@@ -1,6 +1,7 @@
 # UI primitives
 
 Shared building blocks for the Ink + Lime design system. Import from `@/components/ui`.
+The full handbook (colours, type, writing, component rules) is in [`docs/design-system.md`](../../../docs/design-system.md).
 
 - `Button` - pill button; variants `primary` (lime), `secondary`, `ghost`, `outline`, `destructive`
 - `IconButton` - 44x44 pill icon button (ghost, secondary, primary); requires `aria-label`
