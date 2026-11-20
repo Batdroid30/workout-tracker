@@ -26,12 +26,32 @@ export interface LiftHeadline {
   change12w: number | null
 }
 
+// Monday of the date's week (UTC), the same week Progress uses.
+function weekOf(date: string): string {
+  const day = new Date(`${date}T00:00:00Z`)
+  const back = (day.getUTCDay() + 6) % 7
+  return new Date(day.getTime() - back * DAY_MS).toISOString().slice(0, 10)
+}
+
+function weeklyBests(points: { date: string; best1RM: number }[]): number[] {
+  const byWeek = new Map<string, number>()
+  for (const point of points) {
+    const week = weekOf(point.date)
+    byWeek.set(week, Math.max(byWeek.get(week) ?? 0, point.best1RM))
+  }
+  return [...byWeek.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, value]) => value)
+}
+
+// Week-by-week, like the Progress overview: so both pages show the same numbers.
 export function liftHeadline(points: { date: string; best1RM: number }[], now: Date): LiftHeadline {
   if (points.length === 0) return { current: null, best: null, isBest: false, change12w: null }
-  const current = points[points.length - 1].best1RM
-  const best = Math.max(...points.map(point => point.best1RM))
-  const window = points.filter(point => point.date >= cutoff(HEADLINE_WEEKS_DAYS, now))
-  const change12w = window.length >= 2 ? Math.round((current - window[0].best1RM) * 10) / 10 : null
+  const weeks = weeklyBests(points)
+  const current = weeks[weeks.length - 1]
+  const best = Math.max(...weeks)
+  const windowWeeks = weeklyBests(points.filter(point => point.date >= cutoff(HEADLINE_WEEKS_DAYS, now)))
+  const change12w = windowWeeks.length >= 2
+    ? Math.round((windowWeeks[windowWeeks.length - 1] - windowWeeks[0]) * 10) / 10
+    : null
   return { current, best, isBest: current >= best, change12w }
 }
 

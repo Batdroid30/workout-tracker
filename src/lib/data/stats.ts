@@ -73,7 +73,7 @@ export const getExerciseProgression = cache(async (userId: string, exerciseId: s
       })
     })
     if (maxW > 0 || best1 > 0) {
-      progressionData.push({ date: dateStr, maxWeight: maxW, best1RM: Math.round(best1), volume: vol })
+      progressionData.push({ date: dateStr, maxWeight: maxW, best1RM: Math.round(best1 * 10) / 10, volume: vol })
     }
   })
 

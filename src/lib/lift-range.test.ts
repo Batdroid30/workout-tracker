@@ -24,6 +24,16 @@ describe('liftHeadline', () => {
     expect(liftHeadline(points, now)).toEqual({ current: 92, best: 92, isBest: true, change12w: 4 })
   })
 
+  it('measures the change week to week, like Progress does', () => {
+    // Two sessions in the first week: the week's best (89) is the starting point.
+    const sessions = [
+      { date: '2026-10-26', best1RM: 88 },
+      { date: '2026-10-28', best1RM: 89 },
+      { date: '2026-11-18', best1RM: 92.4 },
+    ]
+    expect(liftHeadline(sessions, now)).toMatchObject({ current: 92.4, change12w: 3.4 })
+  })
+
   it('has no 12-week change without an older point in the window', () => {
     expect(liftHeadline([{ date: '2026-11-18', best1RM: 92 }], now).change12w).toBeNull()
   })
