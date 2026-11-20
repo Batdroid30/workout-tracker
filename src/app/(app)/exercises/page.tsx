@@ -1,14 +1,17 @@
 import { requireAuth } from '@/lib/auth'
-import { redirect } from 'next/navigation'
 import { getExercises } from '@/lib/data/exercises'
+import { BackButton } from '@/components/ui/BackButton'
 import { ExerciseListClient } from './ExerciseListClient'
 
 export default async function ExercisesPage() {
-  const {  session } = await requireAuth()
+  await requireAuth()
   const exercises = await getExercises()
 
   return (
     <div className="flex flex-col h-full bg-bg text-primary">
+      <div className="px-2 pt-3">
+        <BackButton />
+      </div>
       <ExerciseListClient initialExercises={exercises} />
     </div>
   )
