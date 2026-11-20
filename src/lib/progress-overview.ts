@@ -3,8 +3,13 @@
 const DAY_MS = 86_400_000
 const DAYS_PER_WEEK = 7
 
+// "This month" is the calendar month in UTC, the timezone workout dates are stored in.
+export function monthStart(now: Date): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+}
+
 export function workoutsInMonth(entries: { date: string; count: number }[], now: Date): number {
-  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const month = monthStart(now).toISOString().slice(0, 7)
   return entries.filter(entry => entry.date.startsWith(month)).reduce((sum, entry) => sum + entry.count, 0)
 }
 

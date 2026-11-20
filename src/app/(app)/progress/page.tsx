@@ -7,10 +7,10 @@ import { getProgressSnapshot } from '@/lib/data/progress-snapshot'
 import { getStrengthLifts } from '@/lib/data/strength-lifts'
 import { computeStrengthIndex } from '@/lib/data/phase-coach'
 import { getWorkoutCalendarData } from '@/lib/data/insights'
-import { countRecentPRs } from '@/lib/data/recent-pr-count'
+import { countPRsSince } from '@/lib/data/recent-pr-count'
 import { getBodyweightHistory } from '@/lib/data/bodyweight'
 import { liftTrend } from '@/lib/tracked-lifts'
-import { bodyweightTrend, workoutsInMonth } from '@/lib/progress-overview'
+import { bodyweightTrend, monthStart, workoutsInMonth } from '@/lib/progress-overview'
 import { YourLiftsCard } from '@/components/progress/YourLiftsCard'
 import { ProgressTiles } from '@/components/progress/ProgressTiles'
 import { CoachingSection } from '@/components/progress/CoachingSection'
@@ -21,7 +21,6 @@ export const metadata = {
   description: 'Are you getting stronger?',
 }
 
-const PR_WINDOW_DAYS = 30
 const BODYWEIGHT_WEEKS = 4
 
 const LINKS = [
@@ -36,7 +35,7 @@ export default async function ProgressPage() {
     getProfile(userId),
     getProgressSnapshot(userId),
     getStrengthLifts(userId),
-    countRecentPRs(userId, PR_WINDOW_DAYS),
+    countPRsSince(userId, monthStart(new Date())),
     getWorkoutCalendarData(userId),
     getBodyweightHistory(userId, BODYWEIGHT_WEEKS),
   ])
