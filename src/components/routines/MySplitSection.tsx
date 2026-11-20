@@ -121,7 +121,7 @@ function ActiveSplit({ split, suggestion, routines }: {
           ) : (
             <Button onClick={start} leadingIcon={<Play className="w-4 h-4 fill-current" aria-hidden="true" />}>Start</Button>
           )}
-          <Button variant="ghost" fullWidth={false} disabled={isPending} onClick={() => setSheetOpen(true)}>
+          <Button variant="ghost" fullWidth={false} className="shrink-0 whitespace-nowrap" disabled={isPending} onClick={() => setSheetOpen(true)}>
             Not today
           </Button>
         </div>

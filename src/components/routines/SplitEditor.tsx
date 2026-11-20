@@ -135,12 +135,19 @@ export function SplitEditor({ split, routines }: SplitEditorProps) {
               return (
                 <li key={item.key} className={`flex min-h-14 items-center gap-1 pl-4 pr-1 ${index > 0 ? 'border-t border-border' : ''}`}>
                   <span className="t-caption tabular-nums w-5 shrink-0">{index + 1}</span>
-                  <span className={`min-w-0 flex-1 truncate ${item.routineId === null ? 't-body text-secondary' : 't-body'}`}>{title}</span>
-                  {canStartFromHere && (
-                    <Button variant="ghost" size="sm" fullWidth={false} disabled={isPending} onClick={() => startFrom(index)}>
-                      Start from here
-                    </Button>
-                  )}
+                  <div className="min-w-0 flex-1 py-2">
+                    <p className={`truncate ${item.routineId === null ? 't-body text-secondary' : 't-body'}`}>{title}</p>
+                    {canStartFromHere && (
+                      <button
+                        type="button"
+                        className="focus-ring -ml-1 rounded px-1 text-sm text-secondary hover:text-primary disabled:opacity-40"
+                        disabled={isPending}
+                        onClick={() => startFrom(index)}
+                      >
+                        Start from here
+                      </button>
+                    )}
+                  </div>
                   <IconButton aria-label={`Move ${title} up`} disabled={index === 0} onClick={() => setItems(moveItem(items, index, index - 1))}>
                     <ChevronUp className="w-5 h-5" aria-hidden="true" />
                   </IconButton>
