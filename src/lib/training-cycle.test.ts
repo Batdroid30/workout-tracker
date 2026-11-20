@@ -185,3 +185,34 @@ describe('cycleSignals', () => {
     expect(cycleSignals(current, null).isPhaseTransition).toBe(false)
   })
 })
+
+describe('light deload weeks', () => {
+  const block = DELOAD_THRESHOLDS.intermediate.maingaining
+  const trainedWeeks = Array.from({ length: block }, (_, i) => sessions(i + 1, 2)).flat()
+  const lightDeload = sessions(block + 1, 1)
+  const afterDeload = input({ completedWorkoutDates: [...trainedWeeks, ...lightDeload], now: at(block + 2, 2) })
+
+  it('counts a deload week with a single workout', () => {
+    const cycle = buildTrainingCycle(afterDeload)
+    expect(cycle.phaseWeek).toBe(block + 2)
+    expect(cycle.phaseTrainingWeeks).toHaveLength(block + 1)
+  })
+
+  it('moves the weekly cycle on through a light deload week too', () => {
+    expect(buildTrainingCycle(afterDeload).cycleWeek).toBe((((block + 1) % 3) + 1))
+  })
+
+  it('does not treat a light deload week as a missed week', () => {
+    expect(buildTrainingCycle(afterDeload).missedWeeks).toBe(0)
+  })
+
+  it('still needs half the goal in a normal week', () => {
+    const cycle = buildTrainingCycle(input({ completedWorkoutDates: sessions(1, 1), now: at(2, 2) }))
+    expect(cycle.phaseWeek).toBe(1)
+  })
+
+  it('does not count an empty deload week', () => {
+    const cycle = buildTrainingCycle(input({ completedWorkoutDates: trainedWeeks, now: at(block + 2, 2) }))
+    expect(cycle.phaseWeek).toBe(block + 1)
+  })
+})
