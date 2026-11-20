@@ -4,7 +4,7 @@
 import type { PRType } from '@/types/database'
 import type { RecentPR } from '@/lib/data/insights'
 
-const HIGHLIGHT_PR_DAYS = 7
+export const HIGHLIGHT_PR_DAYS = 7
 
 // ─── Readiness ───────────────────────────────────────────────────────────────
 
