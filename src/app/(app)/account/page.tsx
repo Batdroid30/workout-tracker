@@ -6,6 +6,7 @@ import { ClearDataButton } from '@/components/profile/ClearDataButton'
 import { ProfileForm } from '../profile/ProfileForm'
 import { getTrainingCycle } from '@/lib/data/training-cycle'
 import { TrainingCycleSection } from '@/components/account/TrainingCycleSection'
+import { LongBreakCard } from '@/components/dashboard/LongBreakCard'
 
 export default async function AccountPage() {
   const { userId, session } = await requireAuth()
@@ -35,6 +36,12 @@ export default async function AccountPage() {
       </header>
 
       <ProfileForm profile={profile} userEmail={session.user.email || ''} />
+
+      {trainingCycle.offerRestart && (
+        <div className="mt-8">
+          <LongBreakCard missedWeeks={trainingCycle.missedWeeks} />
+        </div>
+      )}
 
       <TrainingCycleSection cycle={trainingCycle} hasPhase={Boolean(profile?.phase_started_at)} />
 

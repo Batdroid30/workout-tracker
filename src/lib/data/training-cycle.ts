@@ -1,8 +1,12 @@
 import { cache } from 'react'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
-import { buildTrainingCycle, type TrainingCycle } from '@/lib/training-cycle'
+import { buildTrainingCycle, resolveCycleAnchor, type TrainingCycle } from '@/lib/training-cycle'
 import type { ExperienceLevel, TrainingPhase } from '@/types/database'
+
+// Newest workouts first, capped: a very long phase drops its oldest weeks
+// rather than its newest (PostgREST caps responses at ~1000 rows anyway).
+const MAX_WORKOUT_ROWS = 1000
 
 const EXPERIENCE_LEVELS: readonly ExperienceLevel[] = ['beginner', 'intermediate', 'advanced']
 const TRAINING_PHASES: readonly TrainingPhase[] = ['bulking', 'cutting', 'maingaining']
@@ -26,6 +30,23 @@ function earliest(...dates: (string | null)[]): string | null {
   return present.reduce((a, b) => (new Date(a) < new Date(b) ? a : b))
 }
 
+type ServerClient = Awaited<ReturnType<typeof getSupabaseServer>>
+
+// Only for lifters with no cycle or phase start (e.g. no profile row yet).
+async function getFirstWorkoutAt(supabase: ServerClient, userId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('workouts')
+    .select('started_at')
+    .eq('user_id', userId)
+    .not('completed_at', 'is', null)
+    .order('started_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw new DatabaseError(`Failed to fetch first workout: ${error.message}`, error)
+  return data?.started_at ?? null
+}
+
 export const getTrainingCycle = cache(async (userId: string, at?: string): Promise<TrainingCycle> => {
   const supabase = await getSupabaseServer()
 
@@ -37,8 +58,11 @@ export const getTrainingCycle = cache(async (userId: string, at?: string): Promi
 
   if (profileError) throw new DatabaseError(`Failed to fetch training cycle profile: ${profileError.message}`, profileError)
 
-  const cycleStartedAt = profile?.cycle_started_at ?? null
   const phaseStartedAt = profile?.phase_started_at ?? null
+  let cycleStartedAt = profile?.cycle_started_at ?? null
+  if (!cycleStartedAt && !phaseStartedAt) {
+    cycleStartedAt = resolveCycleAnchor(null, null, await getFirstWorkoutAt(supabase, userId))
+  }
   const since = earliest(cycleStartedAt, phaseStartedAt)
 
   let completedWorkoutDates: string[] = []
@@ -49,7 +73,8 @@ export const getTrainingCycle = cache(async (userId: string, at?: string): Promi
       .eq('user_id', userId)
       .not('completed_at', 'is', null)
       .gte('started_at', since)
-      .order('started_at', { ascending: true })
+      .order('started_at', { ascending: false })
+      .limit(MAX_WORKOUT_ROWS)
 
     if (error) throw new DatabaseError(`Failed to fetch workouts for training cycle: ${error.message}`, error)
     completedWorkoutDates = toWorkoutDates(workouts ?? [])

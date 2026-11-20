@@ -173,6 +173,7 @@ export default async function DashboardPage() {
     experience_level: profile.experience_level,
     training_phase:   profile.training_phase,
     phase_started_at: profile.phase_started_at,
+    phase_week:       trainingCycle.phaseWeek,
   } : null, recentReadiness)
   
   const isDeloadWeek = fatigue.shouldSuggest || trainingCycle.isDeloadWeek

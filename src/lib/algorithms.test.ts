@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { DELOAD_THRESHOLDS } from '@/lib/workout-intelligence'
 import {
   calculateEpley1RM,
   calculateWeightFrom1RM,
@@ -319,5 +320,32 @@ describe('assessFatigueLevel', () => {
     expect(result.score).toBe(1)
     expect(result.signals.length).toBeGreaterThan(0)
     expect(result.signals[0]).toContain('weeks of continuous training')
+  })
+
+  describe('mesocycle length (training weeks)', () => {
+    const steady = [3, 2, 1, 0].map(ago => mkWeek(getMondayOfWeeksAgo(ago), 9000, 3))
+    const longAgo = new Date(Date.now() - 20 * 7 * 86_400_000).toISOString()
+    const profileAt = (phaseWeek: number | null) => ({
+      experience_level: 'intermediate' as const,
+      training_phase:   'maingaining' as const,
+      phase_started_at: longAgo,
+      phase_week:       phaseWeek,
+    })
+    const mesocycleSignal = (signals: string[]) => signals.find(s => s.includes('deload'))
+
+    it('ignores calendar time off and counts only training weeks', () => {
+      const result = assessFatigueLevel(steady, 10, profileAt(2))
+      expect(mesocycleSignal(result.signals)).toBeUndefined()
+    })
+
+    it('says a deload is due after the block of training weeks', () => {
+      const result = assessFatigueLevel(steady, 10, profileAt(DELOAD_THRESHOLDS.intermediate.maingaining + 1))
+      expect(mesocycleSignal(result.signals)).toContain('a deload week is due')
+    })
+
+    it('skips the signal when no training-week position is known', () => {
+      const result = assessFatigueLevel(steady, 10, profileAt(null))
+      expect(mesocycleSignal(result.signals)).toBeUndefined()
+    })
   })
 })

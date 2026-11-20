@@ -150,3 +150,30 @@ function cycleWeekNumber(index: number): 1 | 2 | 3 {
   if (index === 2) return 3
   return 1
 }
+
+// Where the weekly cycle counts from: its own start, else the phase start,
+// else the lifter's first completed workout — so it always advances.
+export function resolveCycleAnchor(
+  cycleStartedAt: string | null,
+  phaseStartedAt: string | null,
+  firstWorkoutAt: string | null,
+): string | null {
+  return cycleStartedAt ?? phaseStartedAt ?? firstWorkoutAt
+}
+
+export interface CycleSignals {
+  scheme: WUPScheme | null
+  isDeloadWeek: boolean
+  isPhaseTransition: boolean
+}
+
+// What set suggestions need from the cycle. A missing cycle only removes the
+// cycle-dependent hints; the rest of the suggestion still works.
+export function cycleSignals(current: TrainingCycle | null, lastWorkoutScheme: WUPScheme | null): CycleSignals {
+  if (!current) return { scheme: null, isDeloadWeek: false, isPhaseTransition: false }
+  return {
+    scheme: current.scheme,
+    isDeloadWeek: current.isDeloadWeek,
+    isPhaseTransition: lastWorkoutScheme !== null && lastWorkoutScheme.label !== current.scheme.label,
+  }
+}

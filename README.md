@@ -15,7 +15,7 @@ This project follows strict SOLID principles. Every decision — from the reposi
 
 ### ✅ Shipped
 - **Zero-friction logging** — Zustand-backed active workout store, persisted to localStorage. Survives page refreshes and app kills mid-session.
-- **DUP (Daily Undulating Periodization)** — Automatic 3-week cycling between Strength / Hypertrophy / Volume weeks. Rep ranges, RPE targets, and weight suggestions all update coherently with the current week. No user configuration required.
+- **DUP (Daily Undulating Periodization)** — 3-week cycling between Strength / Hypertrophy / Volume weeks that advances only after a training week (at least half the weekly goal), so time off pauses it. Rep ranges, RPE targets, and weight suggestions all update coherently with the current week. Cycle and phase can be restarted from Account → Training.
 - **Progressive overload suggestions** — Per-set suggestions driven by last session's weight/reps/RPE. RPE input pre-fills with the DUP week's target so it's always logged even if the user doesn't touch it.
 - **Superset support** — Pair any two exercises via the ⋮ menu. Grouped under a `SupersetWrapper` with a visual accent rail. Rest timer fires only after the last exercise in the pair. Persisted to DB with a shared `superset_group` UUID.
 - **Focus sheet on session start** — "What are you targeting?" sheet on blank workout start. Selects exercises by muscle group and auto-generates a template with phase-appropriate sets and reps.
@@ -53,8 +53,8 @@ The in-progress workout lives entirely in Zustand, persisted to localStorage und
 | `unpairSuperset(i)` | clears `superset_group` from the whole group |
 | `finishWorkout` | clears store (called after server save succeeds) |
 
-### 2.3 DUP scheme (`src/lib/workout-intelligence.ts`)
-`getCurrentDUPScheme()` returns `{ label, repRange, rpeTarget }` based on `(weeksSinceEpoch % 3)`. Every surface that shows rep targets or RPE — the workout header pill, `suggestNextSet`, the focus sheet template generator, phase-coach missions — calls this function so they always agree.
+### 2.3 Training cycle (`src/lib/training-cycle.ts`)
+`getTrainingCycle(userId)` (server, `src/lib/data/training-cycle.ts`) and `useTrainingCycle()` (client) return the current scheme (`WUP_CYCLE[completedTrainingWeeks % 3]`), phase week, deload flag and long-break prompt, counted in training weeks from `profiles.cycle_started_at` / `phase_started_at`. Every surface that shows rep targets, RPE, phase week or deload — the workout header pill, `suggestNextSet`, the template generator, phase-coach missions, the mesocycle timeline, the coach — reads this so they always agree.
 
 ### 2.4 Algorithm layer (`src/lib/algorithms.ts`)
 Pure functions. No DB, no async. Fully unit-tested in `algorithms.test.ts`.
@@ -127,7 +127,7 @@ AUTH_SECRET=...                  # NextAuth session signing
 ## 5. Gotchas
 
 1. **Zustand hydration** — The active workout store rehydrates from localStorage after the first render. Components that branch on `activeWorkout` are already client components; no extra `mounted` flag needed since the persist middleware handles it.
-2. **DUP scheme must be consistent** — If you add a new surface that displays rep targets, call `getCurrentDUPScheme()` rather than hardcoding. The week label, suggestion text, and template reps must always match.
+2. **DUP scheme must be consistent** — If you add a new surface that displays rep targets, read the scheme from `getTrainingCycle` / `useTrainingCycle` rather than hardcoding. The week label, suggestion text, and template reps must always match.
 3. **Superset group UUID** — Assigned on the client with `crypto.randomUUID()` and written to `workout_exercises.superset_group` on save. The column is `uuid DEFAULT NULL` — standalone exercises store `NULL`.
 4. **`rpe_target` in suggestions** — `suggestNextSet` now returns `rpe_target` in every code path. `SetRow` uses this to pre-fill the RPE input on mount and commit it to the store, so RPE is always logged even if the user doesn't touch the field.
 

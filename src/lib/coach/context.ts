@@ -64,7 +64,12 @@ export async function buildUserTrainingContext(userId: string): Promise<string> 
 
   // Compute fatigue assessment
   const daysSinceLastPR = recentPRs.length > 0 ? recentPRs[0].daysAgo : null
-  const fatigue = assessFatigueLevel(weeklySummaries, daysSinceLastPR, profile, readinessLogs)
+  const fatigue = assessFatigueLevel(
+    weeklySummaries,
+    daysSinceLastPR,
+    profile ? { ...profile, phase_week: trainingCycle?.phaseWeek ?? null } : null,
+    readinessLogs,
+  )
   const wupScheme = trainingCycle?.scheme ?? WUP_CYCLE[0]
   const weeksInPhase = profile?.phase_started_at && trainingCycle ? trainingCycle.phaseWeek : null
 

@@ -5,7 +5,28 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import { suggestNextSet, type OverloadSuggestion } from '@/lib/algorithms'
 import { assistanceFor, workoutBodyweight } from '@/lib/load'
 import { getTrainingCycleAction } from '@/app/(app)/account/training-actions'
+import { useTrainingCycle } from '@/hooks/useTrainingCycle'
+import { cycleSignals, type TrainingCycle } from '@/lib/training-cycle'
+import type { WUPScheme } from '@/lib/workout-intelligence'
 import type { TrainingGoal, ExperienceLevel, TrainingPhase } from '@/types/database'
+
+// Week type at the last workout, looked up once per day (not per exercise).
+// A failed lookup only drops the "new week type" hint, never the suggestion.
+const schemeAtCache = new Map<string, Promise<WUPScheme | null>>()
+
+function getSchemeAt(at: Date): Promise<WUPScheme | null> {
+  const day = at.toISOString().slice(0, 10)
+  const cached = schemeAtCache.get(day)
+  if (cached) return cached
+  const lookup = getTrainingCycleAction({ at: at.toISOString() })
+    .then(cycle => cycle.scheme)
+    .catch(() => {
+      schemeAtCache.delete(day)
+      return null
+    })
+  schemeAtCache.set(day, lookup)
+  return lookup
+}
 
 export interface LastWorkoutSetInfo {
   weight_kg: number
@@ -30,17 +51,16 @@ interface UserProfile {
   training_goal:    TrainingGoal    | null
   experience_level: ExperienceLevel | null
   training_phase:   TrainingPhase   | null
-  phase_started_at: string          | null
 }
 
 async function fetchProfile(): Promise<UserProfile> {
   const supabase = getSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { training_goal: null, experience_level: null, training_phase: null, phase_started_at: null }
+  if (!user) return { training_goal: null, experience_level: null, training_phase: null }
 
   const { data } = await supabase
     .from('profiles')
-    .select('training_goal, experience_level, training_phase, phase_started_at')
+    .select('training_goal, experience_level, training_phase')
     .eq('id', user.id)
     .single()
 
@@ -48,13 +68,13 @@ async function fetchProfile(): Promise<UserProfile> {
     training_goal:    (data?.training_goal    as TrainingGoal    | null) ?? null,
     experience_level: (data?.experience_level as ExperienceLevel | null) ?? null,
     training_phase:   (data?.training_phase   as TrainingPhase   | null) ?? null,
-    phase_started_at: data?.phase_started_at ?? null,
   }
 }
 
 async function fetchLastWorkoutSets(
   { exerciseId, exerciseType, progressionModel, repSumTarget, isAssisted }: FetchParams,
   profile: UserProfile,
+  cycle: TrainingCycle | null,
 ): Promise<LastWorkoutSetInfo[]> {
   const supabase = getSupabaseClient()
 
@@ -103,13 +123,8 @@ async function fetchLastWorkoutSets(
   if (!latestWorkoutId) return []
 
   const lastWorkoutDateStr = resolveWorkoutDate(data[0])
-  const [currentCycle, lastCycle] = await Promise.all([
-    getTrainingCycleAction(),
-    getTrainingCycleAction({ at: new Date(lastWorkoutDateStr).toISOString() }),
-  ])
-  const dupScheme    = currentCycle.scheme
-  const isDeloadWeek = currentCycle.isDeloadWeek
-  const isPhaseTransition = lastCycle.scheme.label !== dupScheme.label
+  const lastScheme = await getSchemeAt(new Date(lastWorkoutDateStr))
+  const { scheme: dupScheme, isDeloadWeek, isPhaseTransition } = cycleSignals(cycle, lastScheme)
 
   // Assisted lifts progress by lowering assistance. The suggestion engine thinks
   // in load lifted, so convert assistance → load before and back after.
@@ -157,8 +172,8 @@ async function fetchLastWorkoutSets(
         exerciseType,
         trainingGoal:    profile.training_goal,
         experienceLevel: profile.experience_level,
-        dupRepRange:     dupScheme.repRange,
-        dupRpeTarget:    dupScheme.rpeTarget,
+        dupRepRange:     dupScheme?.repRange ?? null,
+        dupRpeTarget:    dupScheme?.rpeTarget ?? null,
         isDeloadWeek,
         progressionModel,
         repSumTarget,
@@ -196,16 +211,20 @@ export function useLastWorkoutSets(
 
   // Normalise the model key — null and 'double' both fetch identical data,
   // so they must share a cache entry to prevent duplicate network requests.
+  const { cycle, isLoading: cycleLoading } = useTrainingCycle()
+  const cycleKey = cycle ? `${cycle.scheme.label}-${cycle.isDeloadWeek ? 'deload' : 'train'}` : 'no-cycle'
+
   const modelKey = progressionModel === 'rep_sum' ? 'rep_sum' : 'double'
   const { data, isLoading } = useSWR(
     // Wait for profile to load before fetching sets, so suggestions are always
     // calibrated to the user's goal and experience level.
-    exerciseId && profile
-      ? `last-workout-sets-${exerciseId}-${exerciseType}-${modelKey}-${repSumTarget ?? 0}-${isAssisted ? 'assisted' : 'load'}`
+    exerciseId && profile && !cycleLoading
+      ? `last-workout-sets-${exerciseId}-${exerciseType}-${modelKey}-${repSumTarget ?? 0}-${isAssisted ? 'assisted' : 'load'}-${cycleKey}`
       : null,
     () => fetchLastWorkoutSets(
       { exerciseId, exerciseType, progressionModel, repSumTarget, isAssisted },
       profile!,
+      cycle,
     ),
     { revalidateOnFocus: false },
   )

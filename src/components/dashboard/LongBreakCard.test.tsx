@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 
+vi.mock('@/providers/ToastProvider', () => ({ useToast: () => ({ error: vi.fn() }) }))
 vi.mock('@/app/(app)/account/training-actions', () => ({
   restartPhaseAction: vi.fn(),
   dismissBreakPromptAction: vi.fn(),

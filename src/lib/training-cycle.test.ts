@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { DELOAD_THRESHOLDS } from '@/lib/workout-intelligence'
+import { WUP_CYCLE } from '@/lib/workout-intelligence'
 import {
+  cycleSignals,
+  resolveCycleAnchor,
   buildTrainingCycle,
   countCompletedTrainingWeeks,
   countRecentMissedWeeks,
@@ -148,5 +151,37 @@ describe('new user without anchors', () => {
       cycleWeek: 1, phaseWeek: 1, missedWeeks: 0, offerRestart: false, isDeloadWeek: false,
     })
     expect(cycle.scheme.label).toBe('Strength Week')
+  })
+})
+
+describe('resolveCycleAnchor', () => {
+  it('prefers the cycle start, then the phase start, then the first workout', () => {
+    expect(resolveCycleAnchor('2026-10-05T00:00:00Z', '2026-09-01T00:00:00Z', '2026-08-01T00:00:00Z')).toBe('2026-10-05T00:00:00Z')
+    expect(resolveCycleAnchor(null, '2026-09-01T00:00:00Z', '2026-08-01T00:00:00Z')).toBe('2026-09-01T00:00:00Z')
+    expect(resolveCycleAnchor(null, null, '2026-08-01T00:00:00Z')).toBe('2026-08-01T00:00:00Z')
+    expect(resolveCycleAnchor(null, null, null)).toBeNull()
+  })
+
+  it('lets a lifter with no anchors still advance once a first workout anchors the cycle', () => {
+    const cycle = buildTrainingCycle(input({
+      cycleStartedAt: resolveCycleAnchor(null, null, iso(1)),
+      phaseStartedAt: null,
+      completedWorkoutDates: [...sessions(1, 2), ...sessions(2, 2)],
+    }))
+    expect(cycle.scheme.label).toBe('Volume Week')
+  })
+})
+
+describe('cycleSignals', () => {
+  const current = buildTrainingCycle(input({ completedWorkoutDates: sessions(1, 2) }))
+
+  it('flags a phase transition when the last workout was in a different week type', () => {
+    expect(cycleSignals(current, WUP_CYCLE[0]).isPhaseTransition).toBe(true)
+    expect(cycleSignals(current, current.scheme).isPhaseTransition).toBe(false)
+  })
+
+  it('degrades to no scheme and no flags when the cycle is unavailable', () => {
+    expect(cycleSignals(null, null)).toEqual({ scheme: null, isDeloadWeek: false, isPhaseTransition: false })
+    expect(cycleSignals(current, null).isPhaseTransition).toBe(false)
   })
 })

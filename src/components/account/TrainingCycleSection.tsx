@@ -3,6 +3,8 @@
 import { useTransition } from 'react'
 import { Button, SectionHeader } from '@/components/ui'
 import { useDialog } from '@/providers/DialogProvider'
+import { useToast } from '@/providers/ToastProvider'
+import { runAction } from '@/lib/run-action'
 import { restartCycleAction, restartPhaseAction } from '@/app/(app)/account/training-actions'
 import type { TrainingCycle } from '@/lib/training-cycle'
 
@@ -13,6 +15,7 @@ interface TrainingCycleSectionProps {
 
 export function TrainingCycleSection({ cycle, hasPhase }: TrainingCycleSectionProps) {
   const dialog = useDialog()
+  const toast = useToast()
   const [isPending, startTransition] = useTransition()
 
   const restartCycle = async () => {
@@ -21,7 +24,7 @@ export function TrainingCycleSection({ cycle, hasPhase }: TrainingCycleSectionPr
       description: 'Your next training week starts as Strength week.',
       confirmText: 'Restart cycle',
     })
-    if (confirmed) startTransition(async () => { await restartCycleAction() })
+    if (confirmed) startTransition(async () => { await runAction(restartCycleAction, toast.error) })
   }
 
   const restartPhase = async () => {
@@ -30,7 +33,7 @@ export function TrainingCycleSection({ cycle, hasPhase }: TrainingCycleSectionPr
       description: "You'll be back to week 1, and your cycle restarts at Strength week.",
       confirmText: 'Restart phase',
     })
-    if (confirmed) startTransition(async () => { await restartPhaseAction() })
+    if (confirmed) startTransition(async () => { await runAction(restartPhaseAction, toast.error) })
   }
 
   return (
