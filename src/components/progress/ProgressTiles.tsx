@@ -50,7 +50,7 @@ export function ProgressTiles({ strengthPctPerWeek, indexLiftCount, prsThisMonth
         {bodyweight ? (
           <>
             <p className="t-value mt-1">{bodyweight.latest} kg</p>
-            <p className="t-caption">{bodyweight.perWeek === null ? 'Log again to see a trend' : `${signed(bodyweight.perWeek)} kg a week`}</p>
+            <p className="t-caption">{bodyweight.perWeek === null ? 'Trend after a week of weigh-ins' : `${signed(bodyweight.perWeek)} kg a week`}</p>
           </>
         ) : (
           <>

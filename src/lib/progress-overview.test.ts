@@ -18,6 +18,12 @@ describe('bodyweightTrend', () => {
     expect(bodyweightTrend([{ date: '2026-11-20', weight_kg: 78.4 }])).toEqual({ latest: 78.4, perWeek: null })
   })
 
+  it('waits for a week between weigh-ins before giving a weekly rate', () => {
+    // A 0.6 kg swing over two days would read as 2.1 kg a week.
+    expect(bodyweightTrend([{ date: '2026-11-18', weight_kg: 78.4 }, { date: '2026-11-20', weight_kg: 79 }]))
+      .toEqual({ latest: 79, perWeek: null })
+  })
+
   it('has nothing without weigh-ins', () => {
     expect(bodyweightTrend([])).toBeNull()
   })
