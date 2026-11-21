@@ -5,7 +5,6 @@ import { Button } from '@/components/ui'
 
 export default function ErrorBoundary({
   error,
-  reset,
 }: {
   error: Error & { digest?: string }
   reset: () => void
@@ -21,7 +20,9 @@ export default function ErrorBoundary({
       <p className="text-secondary font-mono text-sm mb-8 max-w-md text-center">
         {error.message || 'An unexpected error occurred while loading this page.'}
       </p>
-      <Button onClick={() => reset()} fullWidth={false}>
+      {/* A full reload, not reset(): reset() only re-renders on the client, so a failed
+          server render or a stale app version would show this screen again. */}
+      <Button onClick={() => window.location.reload()} fullWidth={false}>
         Try again
       </Button>
     </div>
