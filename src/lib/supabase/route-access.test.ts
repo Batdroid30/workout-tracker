@@ -6,6 +6,7 @@ describe('routeAccess', () => {
     // Someone who forgot their password is, by definition, signed out.
     expect(routeAccess('/forgot-password')).toBe('public')
     expect(routeAccess('/reset-password')).toBe('public')
+    expect(routeAccess('/auth/confirm')).toBe('public')
   })
 
   it('treats sign-in and sign-up as auth pages, which skip ahead once signed in', () => {

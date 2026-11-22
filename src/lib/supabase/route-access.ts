@@ -5,7 +5,7 @@ const AUTH_ROUTES = ['/login', '/signup']
 
 // Open to everyone. The reset pages serve people who can't sign in, and the
 // manifest and icons are fetched by the browser without a session.
-const PUBLIC_ROUTES = ['/forgot-password', '/reset-password', '/manifest.json', '/icons/']
+const PUBLIC_ROUTES = ['/forgot-password', '/reset-password', '/auth/confirm', '/manifest.json', '/icons/']
 
 function matches(pathname: string, route: string): boolean {
   if (route.endsWith('/')) return pathname.startsWith(route)
