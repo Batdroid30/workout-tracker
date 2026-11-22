@@ -6,6 +6,7 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import { Button, Input } from '@/components/ui'
 import Link from 'next/link'
 import { checkResetLink } from './check-reset-link'
+import { setNewPassword } from './set-new-password'
 
 type PageState = 'loading' | 'ready' | 'success' | 'error'
 
@@ -52,15 +53,14 @@ export default function ResetPasswordPage() {
     }
 
     const supabase = getSupabaseClient()
-    const { error: updateError } = await supabase.auth.updateUser({ password })
+    const updateError = await setNewPassword(supabase.auth, password)
 
     if (updateError) {
-      setError(updateError.message)
+      setError(updateError)
       setIsSubmitting(false)
       return
     }
 
-    await supabase.auth.signOut()
     setPageState('success')
     setTimeout(() => router.push('/login?message=Password+updated'), 2000)
   }
@@ -87,7 +87,7 @@ export default function ResetPasswordPage() {
           <p className="t-caption mt-1">Redirecting you to sign in…</p>
         </div>
         <div className="p-3 bg-positive-soft text-positive text-xs font-medium rounded-control">
-          Your password has been changed. You can now sign in with your new password.
+          Your password has been changed and you’ve been signed out on all your devices. Sign in with your new password.
         </div>
       </div>
     )
@@ -101,7 +101,7 @@ export default function ResetPasswordPage() {
           <p className="t-caption mt-1">It may have expired or already been used.</p>
         </div>
         <div className="p-3 bg-negative-soft text-negative text-xs font-medium rounded-control">
-          Reset links work once, for an hour, in the browser you requested them from. On iPhone, request the link in Safari, not the home-screen app.
+          Reset links work once and expire after an hour. Request a new one below.
         </div>
         <p className="text-center text-xs mt-4 text-tertiary">
           <Link href="/forgot-password" className="font-semibold text-primary hover:underline">
