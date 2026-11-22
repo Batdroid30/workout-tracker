@@ -40,7 +40,7 @@ export default async function ForgotPasswordPage({ searchParams }: Props) {
 
       {error && (
         <div className="p-3 bg-negative-soft text-negative text-xs font-medium rounded-control">
-          {decodeURIComponent(error)}
+          {error}
         </div>
       )}
 
