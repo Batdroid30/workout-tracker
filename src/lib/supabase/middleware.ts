@@ -32,15 +32,19 @@ export async function updateSession(request: NextRequest) {
   // https://supabase.com/docs/guides/auth/server-side/nextjs
   const { data: { user } } = await supabase.auth.getUser()
 
+  // A redirect is a new response, so it must carry the session cookies Supabase
+  // just wrote. Without them a dead session is never cleared and every request
+  // retries it (Supabase's Next.js guide calls this out).
+  const redirectTo = (path: string) => {
+    const redirect = NextResponse.redirect(new URL(path, request.url))
+    supabaseResponse.cookies.getAll().forEach(cookie => redirect.cookies.set(cookie))
+    return redirect
+  }
+
   const access = routeAccess(request.nextUrl.pathname)
 
-  if (access === 'auth' && user) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-
-  if (access === 'app' && !user) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
+  if (access === 'auth' && user) return redirectTo('/dashboard')
+  if (access === 'app' && !user) return redirectTo('/login')
 
   return supabaseResponse
 }
