@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { routeAccess } from './route-access'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -31,21 +32,13 @@ export async function updateSession(request: NextRequest) {
   // https://supabase.com/docs/guides/auth/server-side/nextjs
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/signup')
-  
-  if (isAuthRoute && user) {
+  const access = routeAccess(request.nextUrl.pathname)
+
+  if (access === 'auth' && user) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Protect all routes under /(app)
-  // Or generally anything that is not an auth route or public assets
-  const isAppRoute = !isAuthRoute && 
-    !request.nextUrl.pathname.startsWith('/_next') &&
-    !request.nextUrl.pathname.startsWith('/api/') &&
-    !request.nextUrl.pathname.startsWith('/favicon.ico') &&
-    request.nextUrl.pathname !== '/'
-    
-  if (isAppRoute && !user) {
+  if (access === 'app' && !user) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 

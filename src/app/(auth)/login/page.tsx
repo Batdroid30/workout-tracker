@@ -21,7 +21,7 @@ export default async function LoginPage({ searchParams }: Props) {
 
       {message && (
         <div className="p-3 bg-positive-soft text-positive text-xs font-medium rounded-control">
-          {decodeURIComponent(message)}
+          {message}
         </div>
       )}
 
