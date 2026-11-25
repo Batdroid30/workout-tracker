@@ -1,4 +1,5 @@
 import { createStreamSender } from '@/lib/coach/stream-sender'
+import { toolCallsToRun } from '@/lib/coach/tool-gate'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { getSupabaseServer } from '@/lib/supabase/server'
@@ -199,41 +200,40 @@ export async function POST(req: Request) {
 
           const finalMessage = await claudeStream.finalMessage()
 
-          // Check if Claude requested any tool calls
-          for (const block of finalMessage.content) {
-            if (block.type === 'tool_use') {
-              const toolResult: ToolExecutionResult = await executeCoachTool(
-                block.name,
-                block.input as Record<string, unknown>,
-                user.id
-              )
+          // Run the tools Claude asked for, but only while the lifter is still here
+          // (see toolCallsToRun).
+          for (const block of toolCallsToRun(finalMessage.content, sender.isOpen)) {
+            const toolResult: ToolExecutionResult = await executeCoachTool(
+              block.name,
+              block.input as Record<string, unknown>,
+              user.id
+            )
 
-              toolInvocations.push({
-                name: block.name,
-                input: block.input as Record<string, unknown>,
-                result: toolResult,
-              })
+            toolInvocations.push({
+              name: block.name,
+              input: block.input as Record<string, unknown>,
+              result: toolResult,
+            })
 
-              if (toolResult.proposed_routine) {
-                proposedRoutine = toolResult.proposed_routine
-                savedRoutineId = toolResult.saved_routine_id
-
-                sender.send(
-                  sseEvent({
-                    type: 'routine_proposed',
-                    routine: toolResult.proposed_routine,
-                  })
-                )
-              }
+            if (toolResult.proposed_routine) {
+              proposedRoutine = toolResult.proposed_routine
+              savedRoutineId = toolResult.saved_routine_id
 
               sender.send(
                 sseEvent({
-                  type: 'tool_result',
-                  tool: block.name,
-                  result: toolResult,
+                  type: 'routine_proposed',
+                  routine: toolResult.proposed_routine,
                 })
               )
             }
+
+            sender.send(
+              sseEvent({
+                type: 'tool_result',
+                tool: block.name,
+                result: toolResult,
+              })
+            )
           }
 
           // Save assistant message with metadata
