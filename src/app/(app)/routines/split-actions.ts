@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth'
 import { revalidateAll } from '@/lib/cache'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
+import { activateSplit, deleteSplit, insertSplit, insertSplitItems } from '@/lib/data/splits'
 import { PositionSchema, SplitIdSchema, SplitInputSchema, splitRenamePayload, type SplitInput } from './split-schemas'
 
 type ActionResult = { success: true; id?: string } | { success: false; error: string }
@@ -39,19 +40,10 @@ export async function saveSplitAction(splitId: string | null, input: SplitInput)
       const { error: clearError } = await supabase.from('training_split_items').delete().eq('split_id', id)
       if (clearError) throw new DatabaseError(`Failed to update split days: ${clearError.message}`, clearError)
     } else {
-      const { data, error } = await supabase
-        .from('training_splits')
-        .insert({ user_id: userId, name: parsed.name })
-        .select('id')
-        .single()
-      if (error) throw new DatabaseError(`Failed to create split: ${error.message}`, error)
-      id = data.id
+      id = await insertSplit(userId, parsed.name)
     }
 
-    const { error: itemsError } = await supabase
-      .from('training_split_items')
-      .insert(parsed.items.map((item, position) => ({ split_id: id, position, routine_id: item.routineId })))
-    if (itemsError) throw new DatabaseError(`Failed to save split days: ${itemsError.message}`, itemsError)
+    await insertSplitItems(id, parsed.items)
 
     revalidateAll()
     return { success: true, id }
@@ -64,9 +56,7 @@ export async function deleteSplitAction(splitId: string): Promise<ActionResult> 
   try {
     const { userId } = await requireAuth()
     SplitIdSchema.parse(splitId)
-    const supabase = await getSupabaseServer()
-    const { error } = await supabase.from('training_splits').delete().eq('id', splitId).eq('user_id', userId)
-    if (error) throw new DatabaseError(`Failed to delete split: ${error.message}`, error)
+    await deleteSplit(splitId, userId)
     revalidateAll()
     return { success: true }
   } catch (error: unknown) {
@@ -74,17 +64,12 @@ export async function deleteSplitAction(splitId: string): Promise<ActionResult> 
   }
 }
 
-// Deactivate first: a unique index allows only one active split per user.
 export async function setActiveSplitAction(splitId: string): Promise<ActionResult> {
   try {
     const { userId } = await requireAuth()
     SplitIdSchema.parse(splitId)
     await assertOwnSplit(userId, splitId)
-    const supabase = await getSupabaseServer()
-    const { error: offError } = await supabase.from('training_splits').update({ is_active: false }).eq('user_id', userId).neq('id', splitId)
-    if (offError) throw new DatabaseError(`Failed to switch splits: ${offError.message}`, offError)
-    const { error: onError } = await supabase.from('training_splits').update({ is_active: true }).eq('id', splitId).eq('user_id', userId)
-    if (onError) throw new DatabaseError(`Failed to switch splits: ${onError.message}`, onError)
+    await activateSplit(splitId, userId)
     revalidateAll()
     return { success: true }
   } catch (error: unknown) {
