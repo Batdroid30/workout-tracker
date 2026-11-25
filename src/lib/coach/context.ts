@@ -76,6 +76,7 @@ export async function buildUserTrainingContext(userId: string): Promise<string> 
   return [
     formatProfileSection(profile, weeksInPhase),
     formatPeriodizationSection(wupScheme),
+    trainingCycle ? formatCycleSection(trainingCycle, fatigue) : '',
     formatWeeklyVolumeSection(weeklySets, pushPull, streak),
     formatRecoverySection(fatigue, readinessLogs),
     formatProgressAndStallsSection(recentPRs, stalledMovements, neglectedMuscles),
@@ -107,6 +108,23 @@ function formatProfileSection(profile: Profile | null, weeksInPhase: number | nu
 - Level: ${level} | Goal: ${goal} | Style: ${style}
 - Phase: ${phase} ${phaseDuration}
 ${stats ? `- Bio: ${stats}` : ''}`
+}
+
+// The logger deloads automatically in a deload week, so the coach needs to know
+// whether this is one before it advises on volume or progression.
+export function formatCycleSection(
+  cycle: { isDeloadWeek: boolean; phaseWeek: number },
+  fatigue: { shouldSuggest: boolean; score: number } | null,
+): string {
+  const lines = [
+    '### TRAINING CYCLE',
+    `- Deload week: ${cycle.isDeloadWeek ? 'yes' : 'no'}`,
+    `- Phase week: ${cycle.phaseWeek}`,
+  ]
+  if (fatigue) {
+    lines.push(`- Fatigue: ${fatigue.shouldSuggest ? 'deload suggested' : 'no deload needed'} (score ${fatigue.score}/6)`)
+  }
+  return lines.join('\n')
 }
 
 function formatPeriodizationSection(wupScheme: WUPScheme): string {
@@ -213,6 +231,8 @@ export async function buildCompactContext(userId: string): Promise<string> {
   const lines: string[] = [
     formatProfileSection(profile, weeksInPhase),
   ]
+
+  if (trainingCycle) lines.push(formatCycleSection(trainingCycle, null))
 
   if (stalledMovements.length > 0) {
     const stalls = stalledMovements.slice(0, 2).map(s =>

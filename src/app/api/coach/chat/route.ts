@@ -6,7 +6,8 @@ import { getSupabaseServer } from '@/lib/supabase/server'
 import { checkCoachRateLimit } from '@/lib/coach/rate-limiter'
 import { buildUserTrainingContext, buildCompactContext, isComplexQuery } from '@/lib/coach/context'
 import { getCachedContext, setCachedContext } from '@/lib/coach/context-cache'
-import { buildFullSystemPrompt } from '@/lib/coach/system-prompt'
+import { buildSystemBlocks } from '@/lib/coach/system-prompt'
+import { toClaudeHistory } from '@/lib/coach/history'
 import { COACH_TOOLS } from '@/lib/coach/tools'
 import { createCoachToolExecutor } from '@/lib/coach/tool-executor'
 import { runCoachTurn, type CoachTurnDeps, type ToolOutcome } from '@/lib/coach/coach-turn'
@@ -43,13 +44,13 @@ type TokenUsage = { input: number; output: number }
 function createModelCaller(
   anthropic: Anthropic,
   complexQuery: boolean,
-  systemPrompt: string,
+  systemBlocks: ReturnType<typeof buildSystemBlocks>,
   usage: TokenUsage,
 ): CoachTurnDeps['createMessage'] {
   return messages => {
     const stream = anthropic.beta.messages.stream({
       ...modelSettings(complexQuery),
-      system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+      system: systemBlocks,
       tools: COACH_TOOLS,
       messages,
     })
@@ -199,13 +200,10 @@ export async function POST(req: Request) {
                 }),
           ])
 
-          const systemPrompt = buildFullSystemPrompt(dynamicContext)
+          const systemBlocks = buildSystemBlocks(dynamicContext)
 
           // Format previous messages for Claude API (cap at 6 to control token spend)
-          const messagesForClaude: BetaMessageParam[] = pastMessages.slice(-6).map(m => ({
-            role: m.role === 'assistant' ? 'assistant' : 'user',
-            content: m.content,
-          }))
+          const messagesForClaude: BetaMessageParam[] = toClaudeHistory(pastMessages.slice(-6))
 
           // Ensure current user message is at the end
           if (
@@ -222,7 +220,7 @@ export async function POST(req: Request) {
           // only recorded while the lifter is connected (see runCoachTurn).
           const { text, proposals, incomplete } = await runCoachTurn(
             {
-              createMessage: createModelCaller(anthropic, complexQuery, systemPrompt, usage),
+              createMessage: createModelCaller(anthropic, complexQuery, systemBlocks, usage),
               executeTool: loggingExecutor(createCoachToolExecutor(user.id), toolInvocations),
               send: event => sender.send(sseEvent(event)),
               isOpen: () => sender.isOpen,

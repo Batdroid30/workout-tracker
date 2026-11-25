@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { isComplexQuery } from './context'
+import { isComplexQuery, formatCycleSection } from './context'
 import { getCachedContext, setCachedContext } from './context-cache'
 
 describe('Coach Query Classification (Model Routing)', () => {
@@ -36,5 +36,26 @@ describe('Coach Context Cache', () => {
 
   it('returns null for nonexistent users', () => {
     expect(getCachedContext('unknown-user')).toBeNull()
+  })
+})
+
+describe('formatCycleSection', () => {
+  it('states a deload week plainly, with the phase week and fatigue verdict', () => {
+    const section = formatCycleSection({ isDeloadWeek: true, phaseWeek: 5 }, { shouldSuggest: true, score: 4 })
+
+    expect(section).toContain('Deload week: yes')
+    expect(section).toContain('Phase week: 5')
+    expect(section).toContain('Fatigue: deload suggested')
+  })
+
+  it('says no outside a deload week', () => {
+    const section = formatCycleSection({ isDeloadWeek: false, phaseWeek: 2 }, { shouldSuggest: false, score: 0 })
+
+    expect(section).toContain('Deload week: no')
+    expect(section).toContain('Fatigue: no deload needed')
+  })
+
+  it('omits the fatigue line when there is no verdict', () => {
+    expect(formatCycleSection({ isDeloadWeek: false, phaseWeek: 2 }, null)).not.toContain('Fatigue')
   })
 })
