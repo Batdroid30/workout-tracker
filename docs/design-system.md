@@ -218,6 +218,12 @@ Loading placeholder: `surface-raised`, `radius-field`, `motion-safe:animate-puls
   - **Recent chats:** the last 3 with a short date (`chatWhen`) and **See all** (the history sheet). Untitled chats read "New chat".
   - **Chat:** a top bar with ‹ back to notes, the chat's title and ＋ new chat. The lifter's messages sit in a `surface-raised` bubble; the coach's are plain text. Saved routines keep their card with "Saved" and a link to Routines. The box reads "Ask your coach…". A reply is saved even if the lifter leaves mid-answer (`createStreamSender`).
   - **Deep links:** `/coach?prompt=…` (stalled lifts, workout insight) skip the notes and start a fresh chat with that question.
+  - **Confirm cards** (`src/components/coach/CoachProposalCard.tsx`, `CoachProposalBody.tsx`, `CoachProposals.tsx`): the coach looks up the lifter's library and routines (`find_exercises`, `get_routines`) and proposes changes as cards. It never changes anything itself; nothing moves until the lifter confirms.
+    - **Five kinds:** swap ("Swap in {Routine}", old name struck through, "→ new name · sets × reps", one-line reason); reorder (Now and After lists, moved names bold, reason); new exercise ("New exercise" or "New exercise · add to {Routine}", muscles · equipment, added as the lifter's own); new routine; new split (days including rest, existing routines reused, new exercises listed as "+ New: …").
+    - **Buttons:** **Not now** (secondary) and **Confirm** (primary, lime). Both are disabled until the reply is saved; Confirm shows a spinner while its request runs.
+    - **Confirm** is applied by the app (`applyCoachProposalAction`), once. A multi-step change rolls back on failure; a confirmed split becomes active.
+    - **Outcomes:** "✓ Done · View {X} ›" (no link after a reload); "{Routine} changed since; ask again." when the routine moved on; a failure shows a plain message and re-enables the buttons; **Not now** → "Not applied".
+  - **Models:** Haiku 5.5 for quick questions, Sonnet 5.5 for routine work. The coach knows when it's a deload week.
   - No badges or sales copy ("PRO", "precision"…).
 - **Workout detail** (`/workout/[id]`; numbers in `src/lib/workout-summary.ts`): a past workout, summary first.
   - **Top bar:** ‹ to history, **Perform again**, and ⋯ (`WorkoutActionsMenu`: Edit details, Delete workout).
@@ -254,4 +260,4 @@ All are at zero. A real exception takes an inline `eslint-disable-next-line` wit
 
 ## What's next
 
-The redesign is complete: every screen uses this system, the legacy aliases and `.glass` are gone, and the design rule is an error. Next: coach powers (step 6b), where the coach can look up the exercise library and propose swaps and reorders in the lifter's routines, with a confirm before anything changes.
+The redesign is complete: every screen uses this system, the legacy aliases and `.glass` are gone, and the design rule is an error. Coach powers (step 6b) are done: the coach looks up the exercise library and routines and proposes swaps, reorders, new exercises, routines and splits as confirm cards, and nothing changes until the lifter confirms. Nothing is queued after it yet.
