@@ -19,11 +19,11 @@ export default async function ForgotPasswordPage({ searchParams }: Props) {
           <h2 className="t-display-s">Check your email</h2>
           <p className="t-caption mt-1">Reset link sent if the account exists.</p>
         </div>
-        <div className="p-3 bg-positive-soft text-positive text-xs font-medium rounded-control">
+        <div className="p-3 bg-positive-soft text-positive text-sm rounded-control">
           If <strong>{params?.email}</strong> has an account, you&apos;ll receive a password reset link shortly. Check your spam folder if it doesn&apos;t arrive.
         </div>
-        <p className="text-center text-xs mt-4 text-tertiary">
-          <Link href="/login" className="font-semibold text-primary hover:underline">
+        <p className="t-body-sm mt-4 text-center">
+          <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-primary hover:underline">
             Back to sign in
           </Link>
         </p>
@@ -39,23 +39,23 @@ export default async function ForgotPasswordPage({ searchParams }: Props) {
       </div>
 
       {error && (
-        <div className="p-3 bg-negative-soft text-negative text-xs font-medium rounded-control">
+        <div className="p-3 bg-negative-soft text-negative text-sm rounded-control">
           {error}
         </div>
       )}
 
       <div className="space-y-1.5">
-        <label className="t-label block">Email</label>
-        <Input type="email" name="email" placeholder="you@example.com" required />
+        <label htmlFor="email" className="t-label block">Email</label>
+        <Input id="email" type="email" name="email" autoComplete="email" placeholder="you@example.com" required />
       </div>
 
       <SubmitButton type="submit" className="mt-6 w-full" pendingText="Sending...">
         Send reset link
       </SubmitButton>
 
-      <p className="text-center text-xs mt-4 text-tertiary">
+      <p className="t-body-sm mt-4 text-center">
         Remembered it?{' '}
-        <Link href="/login" className="font-semibold text-primary hover:underline">
+        <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-primary hover:underline">
           Back to sign in
         </Link>
       </p>

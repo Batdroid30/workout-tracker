@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
           <h2 className="t-display-s">Password updated</h2>
           <p className="t-caption mt-1">Redirecting you to sign in…</p>
         </div>
-        <div className="p-3 bg-positive-soft text-positive text-xs font-medium rounded-control">
+        <div className="p-3 bg-positive-soft text-positive text-sm rounded-control">
           Your password has been changed and you’ve been signed out on all your devices. Sign in with your new password.
         </div>
       </div>
@@ -100,11 +100,11 @@ export default function ResetPasswordPage() {
           <h2 className="t-display-s">This link didn’t work</h2>
           <p className="t-caption mt-1">It may have expired or already been used.</p>
         </div>
-        <div className="p-3 bg-negative-soft text-negative text-xs font-medium rounded-control">
+        <div className="p-3 bg-negative-soft text-negative text-sm rounded-control">
           Reset links work once and expire after an hour. Request a new one below.
         </div>
-        <p className="text-center text-xs mt-4 text-tertiary">
-          <Link href="/forgot-password" className="font-semibold text-primary hover:underline">
+        <p className="t-body-sm mt-4 text-center">
+          <Link href="/forgot-password" className="inline-flex min-h-11 items-center font-semibold text-primary hover:underline">
             Request a new link
           </Link>
         </p>
@@ -120,18 +120,18 @@ export default function ResetPasswordPage() {
       </div>
 
       {error && (
-        <div className="p-3 bg-negative-soft text-negative text-xs font-medium rounded-control">
+        <div className="p-3 bg-negative-soft text-negative text-sm rounded-control">
           {error}
         </div>
       )}
 
       <div className="space-y-1.5">
-        <label className="t-label block">New password</label>
-        <Input type="password" name="password" placeholder="Min. 6 characters" required minLength={6} />
+        <label htmlFor="password" className="t-label block">New password</label>
+        <Input id="password" type="password" name="password" autoComplete="new-password" placeholder="Min. 6 characters" required minLength={6} />
       </div>
       <div className="space-y-1.5">
-        <label className="t-label block">Confirm password</label>
-        <Input type="password" name="confirmPassword" placeholder="Repeat your password" required minLength={6} />
+        <label htmlFor="confirmPassword" className="t-label block">Confirm password</label>
+        <Input id="confirmPassword" type="password" name="confirmPassword" autoComplete="new-password" placeholder="Repeat your password" required minLength={6} />
       </div>
 
       <Button type="submit" loading={isSubmitting} className="mt-6">
