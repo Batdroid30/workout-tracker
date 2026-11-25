@@ -7,10 +7,9 @@ import { getRecentPRs, type RecentPR } from '@/lib/data/insights'
 import { getProgressSnapshot } from '@/lib/data/progress-snapshot'
 import { getVolumeLandmarksByMuscle, type MuscleVolumeLandmarkPoint } from '@/lib/data/phase-coach'
 import { getSessionSuggestion, type SessionSuggestion } from '@/lib/data/splits'
-import { getCoachSignals } from '@/lib/data/coach-signals'
+import { COACH_PR_WINDOW_DAYS, getCoachSignals } from '@/lib/data/coach-signals'
 import { setVolume, workoutBodyweight } from '@/lib/load'
 import {
-  HIGHLIGHT_PR_DAYS,
   pickCoachNote,
   pickHighlight,
   readinessSummary,
@@ -104,7 +103,9 @@ export const getHomeData = cache(async (userId: string): Promise<HomeData> => {
     getCoachSignals(userId),
     getProgressSnapshot(userId),
     getTodayReadiness(userId),
-    getRecentPRs(userId, HIGHLIGHT_PR_DAYS),
+    // Same window as the coach signals, so this shares their cached query;
+    // pickHighlight keeps only the last week's PRs.
+    getRecentPRs(userId, COACH_PR_WINDOW_DAYS),
     getLastCompletedWorkout(userId),
   ])
 
