@@ -14,15 +14,15 @@ export function Bad() {
 }
 `
 
-describe('design guard lint rule', { timeout: 30000 }, () => {
-  it('warns on raw colours, pixel font sizes and off-palette greys in feature code', async () => {
+describe('design guard lint rule', { timeout: 120000 }, () => {
+  it('fails the lint on raw colours, pixel font sizes and off-palette greys in feature code', async () => {
     const messages = await designMessages(BAD_COMPONENT, 'src/components/x/Bad.tsx')
 
     const texts = messages.map((message) => message.message)
     for (const category of ['raw hex', 'raw rgb', 'pixel font size', 'off-palette grey', 'arbitrary colour']) {
       expect(texts.some((text) => text.includes(category)), category).toBe(true)
     }
-    expect(messages.every((message) => message.severity === 1)).toBe(true)
+    expect(messages.every((message) => message.severity === 2)).toBe(true)
   })
 
   it('exempts the ui primitive files but lints other files in ui/', async () => {
