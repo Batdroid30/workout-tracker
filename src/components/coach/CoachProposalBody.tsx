@@ -43,8 +43,8 @@ function OrderColumn({ heading, names, bold }: { heading: string; names: string[
     <div>
       <p className="t-label uppercase tracking-wide text-tertiary">{heading}</p>
       <ol className="t-caption mt-1 list-decimal space-y-1 pl-4">
-        {names.map(name => (
-          <li key={name}>
+        {names.map((name, index) => (
+          <li key={`${name}-${index}`}>
             <span className={bold.has(name) ? 'font-semibold text-primary' : undefined}>{name}</span>
           </li>
         ))}

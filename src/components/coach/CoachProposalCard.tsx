@@ -6,6 +6,7 @@ import type { CoachProposal } from '@/lib/coach/proposals'
 export type ProposalCardState =
   | 'idle'
   | 'working'
+  | 'unsaved'
   | { stale: string }
   | { failed: string }
   | { done: string }
@@ -52,15 +53,16 @@ function DoneLine({ proposal, href }: { proposal: CoachProposal; href: string })
 
 interface ActionsProps {
   isWorking: boolean
+  isDisabled: boolean
   onConfirm(): void
   onDismiss(): void
 }
 
-function Actions({ isWorking, onConfirm, onDismiss }: ActionsProps) {
+function Actions({ isWorking, isDisabled, onConfirm, onDismiss }: ActionsProps) {
   return (
     <div className="mt-3.5 flex gap-2.5">
-      <Button variant="secondary" disabled={isWorking} onClick={onDismiss}>Not now</Button>
-      <Button variant="primary" disabled={isWorking} loading={isWorking} onClick={onConfirm}>Confirm</Button>
+      <Button variant="secondary" disabled={isDisabled} onClick={onDismiss}>Not now</Button>
+      <Button variant="primary" disabled={isDisabled} loading={isWorking} onClick={onConfirm}>Confirm</Button>
     </div>
   )
 }
@@ -79,7 +81,7 @@ export function CoachProposalCard({ proposal, state, onConfirm, onDismiss }: Coa
       {proposal.status === 'dismissed' && <p className="t-body-sm mt-3 text-tertiary">Not applied</p>}
       {problem && <p className="t-caption mt-3 text-caution" role="alert">{problem}</p>}
       {proposal.status === 'pending' && !isDone && (
-        <Actions isWorking={state === 'working'} onConfirm={onConfirm} onDismiss={onDismiss} />
+        <Actions isWorking={state === 'working'} isDisabled={state === 'working' || state === 'unsaved'} onConfirm={onConfirm} onDismiss={onDismiss} />
       )}
     </Card>
   )

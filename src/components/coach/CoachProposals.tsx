@@ -87,6 +87,6 @@ function resolveState(
 ): ProposalCardState {
   if (local && typeof local === 'object' && 'done' in local) return local
   if (proposal.status === 'applied') return { done: '' }
-  if (!isMessageSaved) return 'working'
+  if (!isMessageSaved) return 'unsaved'
   return local ?? 'idle'
 }

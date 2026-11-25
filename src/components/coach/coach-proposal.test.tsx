@@ -97,18 +97,27 @@ describe('CoachProposalCard', () => {
     expect(markup).not.toContain('Confirm')
   })
 
+  it('disables both buttons with no spinner for an unsaved message', () => {
+    const markup = render(swap, 'unsaved')
+    expect(markup.match(/disabled=""/g)?.length).toBe(2)
+    expect(markup).not.toContain('aria-busy')
+  })
+
   it('disables both buttons while the request is in flight', () => {
     const markup = render(swap, 'working')
     expect(markup.match(/disabled=""/g)?.length).toBe(2)
+    expect(markup).toContain('aria-busy')
   })
 })
 
 describe('CoachProposals', () => {
-  it('disables the buttons until the message has its real id', () => {
+  it('disables the buttons, without a spinner, until the message has its real id', () => {
     const markup = renderToStaticMarkup(
       <CoachProposals messageId="temp-asst-1" proposals={[swap]} onStatusChange={noop} />,
     )
     expect(markup.match(/disabled=""/g)?.length).toBe(2)
+    expect(markup).not.toContain('aria-busy')
+    expect(markup).not.toContain('animate-spin')
   })
 
   it('enables the buttons once the message is saved', () => {
