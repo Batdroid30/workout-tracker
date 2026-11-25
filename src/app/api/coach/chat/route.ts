@@ -1,14 +1,16 @@
 import { createStreamSender } from '@/lib/coach/stream-sender'
-import { toolCallsToRun } from '@/lib/coach/tool-gate'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
+import type { BetaMessageParam } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { checkCoachRateLimit } from '@/lib/coach/rate-limiter'
 import { buildUserTrainingContext, buildCompactContext, isComplexQuery } from '@/lib/coach/context'
 import { getCachedContext, setCachedContext } from '@/lib/coach/context-cache'
 import { buildFullSystemPrompt } from '@/lib/coach/system-prompt'
 import { COACH_TOOLS } from '@/lib/coach/tools'
-import { executeCoachTool, type ToolExecutionResult } from '@/lib/coach/tool-executor'
+import { createCoachToolExecutor } from '@/lib/coach/tool-executor'
+import { runCoachTurn, type CoachTurnDeps, type ToolOutcome } from '@/lib/coach/coach-turn'
+import { modelSettings, textDeltas } from '@/lib/coach/model-settings'
 import {
   createConversation,
   getConversationById,
@@ -16,19 +18,68 @@ import {
   saveCoachMessage,
   recordCoachUsage,
 } from '@/lib/data/coach'
-import type { CoachStreamEvent, ProposedRoutine } from '@/types/coach'
-
-/**
- * Haiku is ~8× cheaper than Sonnet and handles quick Q&A perfectly.
- * Sonnet is reserved for complex tasks: routine creation, programming, periodisation.
- */
-const HAIKU_MODEL = 'claude-haiku-4-5-20251001'
-const SONNET_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
+import type { CoachMessageMetadata, CoachStreamEvent } from '@/types/coach'
 
 const ChatRequestSchema = z.object({
   conversationId: z.string().uuid().optional(),
   message: z.string().min(1).max(3000),
 })
+
+const ToolInputRecordSchema = z.record(z.string(), z.unknown())
+
+const EMPTY_REPLY_WITH_PROPOSALS = 'Here is what I propose.'
+const EMPTY_REPLY = 'I could not finish that answer. Ask again.'
+
+type ToolInvocation = NonNullable<CoachMessageMetadata['tool_invocations']>[number]
+type TokenUsage = { input: number; output: number }
+
+// Each model call is one round of the tool loop; usage adds up across rounds.
+function createModelCaller(
+  anthropic: Anthropic,
+  complexQuery: boolean,
+  systemPrompt: string,
+  usage: TokenUsage,
+): CoachTurnDeps['createMessage'] {
+  return messages => {
+    const stream = anthropic.beta.messages.stream({
+      ...modelSettings(complexQuery),
+      system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+      tools: COACH_TOOLS,
+      messages,
+    })
+    return {
+      [Symbol.asyncIterator]: () => textDeltas(stream),
+      final: async () => {
+        const message = await stream.finalMessage()
+        usage.input += message.usage.input_tokens
+        usage.output += message.usage.output_tokens
+        return message
+      },
+    }
+  }
+}
+
+// Keeps a compact record of each tool call for the saved message; read tool
+// results are left out because they can be long and are re-fetched on demand.
+function loggingExecutor(
+  execute: CoachTurnDeps['executeTool'],
+  log: ToolInvocation[],
+): CoachTurnDeps['executeTool'] {
+  return async (name, input): Promise<ToolOutcome> => {
+    const outcome = await execute(name, input)
+    const parsedInput = ToolInputRecordSchema.safeParse(input)
+    log.push({
+      name,
+      input: parsedInput.success ? parsedInput.data : {},
+      result: {
+        is_error: outcome.isError ?? false,
+        proposal_id: outcome.proposal?.id,
+        error: outcome.isError ? outcome.forModel : undefined,
+      },
+    })
+    return outcome
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -122,11 +173,7 @@ export async function POST(req: Request) {
         try {
           const anthropic = new Anthropic({ apiKey })
 
-          // Route to cheaper Haiku for simple Q&A, Sonnet only for complex tasks.
-          // Haiku is ~8× cheaper and handles quick questions perfectly.
           const complexQuery = isComplexQuery(message)
-          const modelName = complexQuery ? SONNET_MODEL : HAIKU_MODEL
-          const maxTokens = complexQuery ? 1200 : 600
 
           // Use cached training context if fresh (avoids 10+ DB queries per message).
           // Complex queries always get fresh full context (routines section needed).
@@ -149,10 +196,7 @@ export async function POST(req: Request) {
           const systemPrompt = buildFullSystemPrompt(dynamicContext)
 
           // Format previous messages for Claude API (cap at 6 to control token spend)
-          const messagesForClaude: Array<{
-            role: 'user' | 'assistant'
-            content: string
-          }> = pastMessages.slice(-6).map(m => ({
+          const messagesForClaude: BetaMessageParam[] = pastMessages.slice(-6).map(m => ({
             role: m.role === 'assistant' ? 'assistant' : 'user',
             content: m.content,
           }))
@@ -165,97 +209,36 @@ export async function POST(req: Request) {
             messagesForClaude.push({ role: 'user', content: message })
           }
 
-          let fullContent = ''
-          let proposedRoutine: ProposedRoutine | undefined
-          let savedRoutineId: string | undefined
-          const toolInvocations: Array<{ name: string; input: Record<string, unknown>; result?: unknown }> = []
+          const usage: TokenUsage = { input: 0, output: 0 }
+          const toolInvocations: ToolInvocation[] = []
 
-          // Stream from Claude with prompt caching on the system prompt
-          // (cache_control: ephemeral gives 90% discount on repeated system tokens)
-          const claudeStream = anthropic.messages.stream({
-            model: modelName,
-            max_tokens: maxTokens,
-            system: [
-              {
-                type: 'text',
-                text: systemPrompt,
-                cache_control: { type: 'ephemeral' },
-              },
-            ],
-            messages: messagesForClaude,
-            tools: COACH_TOOLS,
-          })
+          // Lookups and proposals run in a loop with the model; proposals are
+          // only recorded while the lifter is connected (see runCoachTurn).
+          const { text, proposals } = await runCoachTurn(
+            {
+              createMessage: createModelCaller(anthropic, complexQuery, systemPrompt, usage),
+              executeTool: loggingExecutor(createCoachToolExecutor(user.id), toolInvocations),
+              send: event => sender.send(sseEvent(event)),
+              isOpen: () => sender.isOpen,
+            },
+            messagesForClaude,
+          )
 
-          for await (const chunk of claudeStream) {
-            if (
-              chunk.type === 'content_block_delta' &&
-              chunk.delta.type === 'text_delta'
-            ) {
-              fullContent += chunk.delta.text
-              sender.send(
-                sseEvent({ type: 'text_delta', text: chunk.delta.text })
-              )
-            }
-          }
-
-          const finalMessage = await claudeStream.finalMessage()
-
-          // Run the tools Claude asked for, but only while the lifter is still here
-          // (see toolCallsToRun).
-          for (const block of toolCallsToRun(finalMessage.content, sender.isOpen)) {
-            const toolResult: ToolExecutionResult = await executeCoachTool(
-              block.name,
-              block.input as Record<string, unknown>,
-              user.id
-            )
-
-            toolInvocations.push({
-              name: block.name,
-              input: block.input as Record<string, unknown>,
-              result: toolResult,
-            })
-
-            if (toolResult.proposed_routine) {
-              proposedRoutine = toolResult.proposed_routine
-              savedRoutineId = toolResult.saved_routine_id
-
-              sender.send(
-                sseEvent({
-                  type: 'routine_proposed',
-                  routine: toolResult.proposed_routine,
-                })
-              )
-            }
-
-            sender.send(
-              sseEvent({
-                type: 'tool_result',
-                tool: block.name,
-                result: toolResult,
-              })
-            )
-          }
-
-          // Save assistant message with metadata
+          // Saved once at the end, so a lifter who left still finds the reply.
           const savedMessage = await saveCoachMessage({
             conversationId: convId,
             role: 'assistant',
-            content: fullContent || 'Routine created and added to your training plan.',
+            content: text || (proposals.length > 0 ? EMPTY_REPLY_WITH_PROPOSALS : EMPTY_REPLY),
             metadata: {
-              proposed_routine: proposedRoutine,
-              saved_routine_id: savedRoutineId,
+              proposals: proposals.length > 0 ? proposals : undefined,
               tool_invocations: toolInvocations.length > 0 ? toolInvocations : undefined,
-              tokens_in: finalMessage.usage.input_tokens,
-              tokens_out: finalMessage.usage.output_tokens,
+              tokens_in: usage.input,
+              tokens_out: usage.output,
             },
           })
 
           // Track usage asynchronously
-          recordCoachUsage(
-            user.id,
-            finalMessage.usage.input_tokens,
-            finalMessage.usage.output_tokens
-          ).catch(() => {})
+          recordCoachUsage(user.id, usage.input, usage.output).catch(() => {})
 
           sender.send(
             sseEvent({

@@ -122,7 +122,7 @@ const RoutineRowsSchema = z.array(z.object({
   })),
 }))
 
-async function loadRoutinesForCoach(userId: string): Promise<RoutineWithExercises[]> {
+export async function loadRoutinesForCoach(userId: string): Promise<RoutineWithExercises[]> {
   const rows = RoutineRowsSchema.parse(await getRoutines(userId))
   return rows.map(row => ({
     id: row.id,
