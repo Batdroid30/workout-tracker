@@ -40,6 +40,14 @@ export interface CoachTurnResult {
   text: string
   proposals: CoachProposal[]
   rounds: number
+  // A model call after the first failed; text and proposals are what earlier
+  // rounds produced.
+  incomplete: boolean
+}
+
+interface TurnState {
+  text: string
+  proposals: CoachProposal[]
 }
 
 // Write proposals become cards the lifter must see to confirm; lookups only
@@ -83,49 +91,73 @@ async function runTool(
   return toolResult(toolUse.id, outcome.forModel, outcome.isError ?? false)
 }
 
-// Streams one round's text to the lifter. A later round's text starts a new
-// paragraph so it doesn't run on from the last round's sentence.
-async function streamRound(deps: CoachTurnDeps, reply: ModelReply, textSoFar: string): Promise<string> {
-  let text = textSoFar
+// Streams one round's text to the lifter, adding it to the turn as it comes so
+// a call that fails midway keeps what was already shown. A later round's text
+// starts a new paragraph so it doesn't run on from the last round's sentence.
+async function streamRound(deps: CoachTurnDeps, reply: ModelReply, state: TurnState): Promise<void> {
   let isFirstDelta = true
   for await (const delta of reply) {
-    const chunk = isFirstDelta && text ? `${ROUND_SEPARATOR}${delta}` : delta
+    const chunk = isFirstDelta && state.text ? `${ROUND_SEPARATOR}${delta}` : delta
     isFirstDelta = false
-    text += chunk
+    state.text += chunk
     deps.send({ type: 'text_delta', text: chunk })
   }
-  return text
 }
 
-function appendRefusal(deps: CoachTurnDeps, textSoFar: string): string {
-  const chunk = textSoFar ? `${ROUND_SEPARATOR}${REFUSAL_TEXT}` : REFUSAL_TEXT
+async function callModel(deps: CoachTurnDeps, conversation: BetaMessageParam[], state: TurnState) {
+  const reply = deps.createMessage(conversation)
+  await streamRound(deps, reply, state)
+  return reply.final()
+}
+
+function appendRefusal(deps: CoachTurnDeps, state: TurnState): void {
+  const chunk = state.text ? `${ROUND_SEPARATOR}${REFUSAL_TEXT}` : REFUSAL_TEXT
   deps.send({ type: 'text_delta', text: chunk })
-  return textSoFar + chunk
+  state.text += chunk
+}
+
+// Sequential on purpose: proposals must be recorded in the order the model
+// made them, and the isOpen check must see the latest state.
+async function runTools(deps: CoachTurnDeps, toolUses: BetaToolUseBlock[], state: TurnState) {
+  const results: BetaToolResultBlockParam[] = []
+  for (const toolUse of toolUses) results.push(await runTool(deps, toolUse, state.proposals))
+  return results
 }
 
 export async function runCoachTurn(deps: CoachTurnDeps, messages: BetaMessageParam[]): Promise<CoachTurnResult> {
   const conversation = [...messages]
-  const proposals: CoachProposal[] = []
-  let text = ''
+  const state: TurnState = { text: '', proposals: [] }
+  const finish = (rounds: number, incomplete = false): CoachTurnResult => ({ ...state, rounds, incomplete })
 
   for (let round = 1; round <= MAX_TOOL_ROUNDS; round++) {
-    const reply = deps.createMessage(conversation)
-    text = await streamRound(deps, reply, text)
-    const message = await reply.final()
-
-    if (message.stop_reason === 'refusal') return { text: appendRefusal(deps, text), proposals, rounds: round }
-    const toolUses = toolUsesIn(message.content)
-    if (message.stop_reason !== 'tool_use' || toolUses.length === 0 || round === MAX_TOOL_ROUNDS) {
-      return { text, proposals, rounds: round }
+    let message: Awaited<ReturnType<typeof callModel>>
+    try {
+      message = await callModel(deps, conversation, state)
+    } catch (error: unknown) {
+      // With nothing shown yet, the route reports the error. Later, the
+      // lifter has seen text and proposal cards, so keep them and save.
+      if (round === 1) throw error
+      console.error(`Coach model call failed in round ${round}:`, error)
+      return finish(round, true)
     }
 
-    // Sequential on purpose: proposals must be recorded in the order the
-    // model made them, and the isOpen check must see the latest state.
-    const results: BetaToolResultBlockParam[] = []
-    for (const toolUse of toolUses) results.push(await runTool(deps, toolUse, proposals))
+    if (message.stop_reason === 'refusal') {
+      appendRefusal(deps, state)
+      return finish(round)
+    }
+    const toolUses = toolUsesIn(message.content)
+    if (message.stop_reason !== 'tool_use' || toolUses.length === 0) return finish(round)
 
+    // Last round: the text may already describe its proposal cards, so they
+    // are still recorded. Lookups are skipped; no later round would read them.
+    if (round === MAX_TOOL_ROUNDS) {
+      await runTools(deps, toolUses.filter(toolUse => isProposeTool(toolUse.name)), state)
+      return finish(round)
+    }
+
+    const results = await runTools(deps, toolUses, state)
     conversation.push({ role: 'assistant', content: message.content }, { role: 'user', content: results })
   }
 
-  return { text, proposals, rounds: MAX_TOOL_ROUNDS }
+  return finish(MAX_TOOL_ROUNDS)
 }

@@ -84,7 +84,7 @@ describe('runCoachTurn', () => {
 
     const result = await runCoachTurn(deps, userAsks)
 
-    expect(result).toEqual({ text: 'Train hard.', proposals: [], rounds: 1 })
+    expect(result).toEqual({ text: 'Train hard.', proposals: [], rounds: 1, incomplete: false })
     expect(deps.events).toEqual([{ type: 'text_delta', text: 'Train hard.' }])
   })
 
@@ -181,6 +181,56 @@ describe('runCoachTurn', () => {
     expect(createMessage).toHaveBeenCalledTimes(MAX_TOOL_ROUNDS)
     expect(result.rounds).toBe(MAX_TOOL_ROUNDS)
     expect(result.text).toBe(Array(MAX_TOOL_ROUNDS).fill('Looking.').join('\n\n'))
+    // The last round's lookup is skipped: no later round would read it.
+    expect(deps.executeTool).toHaveBeenCalledTimes(MAX_TOOL_ROUNDS - 1)
+  })
+
+  it('still records a proposal made in the last round, without another model call', async () => {
+    const lookup = { text: 'Looking.', tools: [{ id: 'tu_n', name: 'find_exercises', input: {} }] }
+    const { createMessage } = scriptedModel([
+      ...Array(MAX_TOOL_ROUNDS - 1).fill(lookup),
+      { text: 'Here is the swap.', tools: [{ id: 'tu_last', name: 'propose_swap', input: {} }] },
+    ])
+    const executeTool = vi.fn(async (name: string): Promise<ToolOutcome> =>
+      name === 'propose_swap' ? { forModel: 'shown', proposal: swapProposal } : { forModel: '[]' })
+    const deps = makeDeps(createMessage, { executeTool })
+
+    const result = await runCoachTurn(deps, userAsks)
+
+    expect(createMessage).toHaveBeenCalledTimes(MAX_TOOL_ROUNDS)
+    expect(executeTool).toHaveBeenLastCalledWith('propose_swap', {})
+    expect(result.proposals).toEqual([swapProposal])
+    expect(deps.events).toContainEqual({ type: 'proposal', proposal: swapProposal })
+  })
+
+  it('keeps earlier rounds\' text and proposals when a later model call fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { createMessage: scripted } = scriptedModel([
+      { text: 'Proposed.', tools: [{ id: 'tu_1', name: 'propose_swap', input: {} }] },
+    ])
+    const createMessage = vi.fn((messages: BetaMessageParam[]): ModelReply => {
+      if (createMessage.mock.calls.length === 1) return scripted(messages)
+      return {
+        async *[Symbol.asyncIterator]() { throw new Error('529 overloaded') },
+        final: async () => { throw new Error('529 overloaded') },
+      }
+    })
+    const deps = makeDeps(createMessage, {
+      executeTool: vi.fn(async () => ({ forModel: 'shown', proposal: swapProposal })),
+    })
+
+    const result = await runCoachTurn(deps, userAsks)
+
+    expect(result).toEqual({ text: 'Proposed.', proposals: [swapProposal], rounds: 2, incomplete: true })
+  })
+
+  it('fails the turn when the first model call fails', async () => {
+    const createMessage = vi.fn((): ModelReply => ({
+      async *[Symbol.asyncIterator]() { throw new Error('400 bad schema') },
+      final: async () => { throw new Error('400 bad schema') },
+    }))
+
+    await expect(runCoachTurn(makeDeps(createMessage), userAsks)).rejects.toThrow('400 bad schema')
   })
 
   it('records no proposal once the lifter has left, but still runs lookups and keeps the text', async () => {

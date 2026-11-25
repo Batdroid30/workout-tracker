@@ -29,6 +29,12 @@ const ToolInputRecordSchema = z.record(z.string(), z.unknown())
 
 const EMPTY_REPLY_WITH_PROPOSALS = 'Here is what I propose.'
 const EMPTY_REPLY = 'I could not finish that answer. Ask again.'
+const INCOMPLETE_NOTE = "(I lost my connection partway through — ask me again if anything's missing.)"
+
+function replyToSave(text: string, hasProposals: boolean, incomplete: boolean): string {
+  const reply = text || (hasProposals ? EMPTY_REPLY_WITH_PROPOSALS : EMPTY_REPLY)
+  return incomplete ? `${reply}\n\n${INCOMPLETE_NOTE}` : reply
+}
 
 type ToolInvocation = NonNullable<CoachMessageMetadata['tool_invocations']>[number]
 type TokenUsage = { input: number; output: number }
@@ -214,7 +220,7 @@ export async function POST(req: Request) {
 
           // Lookups and proposals run in a loop with the model; proposals are
           // only recorded while the lifter is connected (see runCoachTurn).
-          const { text, proposals } = await runCoachTurn(
+          const { text, proposals, incomplete } = await runCoachTurn(
             {
               createMessage: createModelCaller(anthropic, complexQuery, systemPrompt, usage),
               executeTool: loggingExecutor(createCoachToolExecutor(user.id), toolInvocations),
@@ -224,11 +230,14 @@ export async function POST(req: Request) {
             messagesForClaude,
           )
 
+          const reply = replyToSave(text, proposals.length > 0, incomplete)
+          if (incomplete) sender.send(sseEvent({ type: 'text_delta', text: reply.slice(text.length) }))
+
           // Saved once at the end, so a lifter who left still finds the reply.
           const savedMessage = await saveCoachMessage({
             conversationId: convId,
             role: 'assistant',
-            content: text || (proposals.length > 0 ? EMPTY_REPLY_WITH_PROPOSALS : EMPTY_REPLY),
+            content: reply,
             metadata: {
               proposals: proposals.length > 0 ? proposals : undefined,
               tool_invocations: toolInvocations.length > 0 ? toolInvocations : undefined,
