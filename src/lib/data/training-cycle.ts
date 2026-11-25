@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
+import { getProfile } from '@/lib/data/profile'
 import { buildTrainingCycle, resolveCycleAnchor, type TrainingCycle } from '@/lib/training-cycle'
 import type { ExperienceLevel, TrainingPhase } from '@/types/database'
 
@@ -48,15 +49,9 @@ async function getFirstWorkoutAt(supabase: ServerClient, userId: string): Promis
 }
 
 export const getTrainingCycle = cache(async (userId: string, at?: string): Promise<TrainingCycle> => {
-  const supabase = await getSupabaseServer()
-
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('weekly_goal_sessions, cycle_started_at, phase_started_at, break_prompt_dismissed_at, experience_level, training_phase')
-    .eq('id', userId)
-    .maybeSingle()
-
-  if (profileError) throw new DatabaseError(`Failed to fetch training cycle profile: ${profileError.message}`, profileError)
+  // Every page that shows the cycle already loads the profile, so reuse
+  // the cached row instead of querying profiles a second time.
+  const [supabase, profile] = await Promise.all([getSupabaseServer(), getProfile(userId)])
 
   const phaseStartedAt = profile?.phase_started_at ?? null
   let cycleStartedAt = profile?.cycle_started_at ?? null
