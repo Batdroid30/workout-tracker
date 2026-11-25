@@ -59,6 +59,8 @@ export interface CoachNote {
   body: string
   href: string
   cta: string
+  /** What "Ask about this" sends to the coach, in the lifter's voice. */
+  prompt: string
 }
 
 // Missed weeks are weeks under half the goal, not necessarily time away.
@@ -68,6 +70,10 @@ export function longBreakTitle(missedWeeks: number): string {
 
 function capitalise(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+function signedPercent(value: number): string {
+  return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`
 }
 
 type NoteRule = (input: CoachSignalsInput) => CoachNote | null
@@ -80,6 +86,7 @@ const NOTE_RULES: NoteRule[] = [
     body: 'Restart your phase from week 1 so deloads and targets fit where you are now.',
     href: '/account',
     cta: 'Restart',
+    prompt: `I've had ${input.missedWeeks} light weeks in a row. How should I get back into training?`,
   } : null,
   input => input.shouldDeload ? {
     kind: 'deload',
@@ -87,6 +94,7 @@ const NOTE_RULES: NoteRule[] = [
     body: input.deloadReason ?? 'Your recent training points to a deload.',
     href: '/progress#coaching',
     cta: 'Why',
+    prompt: 'You think I need a deload. Why, and how should I run it this week?',
   } : null,
   input => input.phaseTransitionDue ? {
     kind: 'phase_transition',
@@ -94,6 +102,7 @@ const NOTE_RULES: NoteRule[] = [
     body: 'You have finished this block. Pick what comes next.',
     href: '/account',
     cta: 'Change phase',
+    prompt: "I've finished my training phase. What should my next block be?",
   } : null,
   input => input.dissociation.hasDissociation ? {
     kind: 'dissociation',
@@ -101,6 +110,7 @@ const NOTE_RULES: NoteRule[] = [
     body: input.dissociation.message ?? 'Bodyweight is rising faster than your lifts.',
     href: '/progress#coaching',
     cta: 'Details',
+    prompt: 'My bodyweight is going up faster than my strength. What should I change?',
   } : null,
   input => input.stalledLift ? {
     kind: 'stalled_lift',
@@ -108,6 +118,7 @@ const NOTE_RULES: NoteRule[] = [
     body: 'No real progress for three weeks. A variation can restart it.',
     href: '/exercises',
     cta: 'See options',
+    prompt: `My ${input.stalledLift.exerciseName} has stalled (about ${signedPercent(input.stalledLift.pctPerWeek)} a week). What should I change?`,
   } : null,
   input => input.neglectedMuscle ? {
     kind: 'neglected_muscle',
@@ -115,15 +126,18 @@ const NOTE_RULES: NoteRule[] = [
     body: 'Fit it into your next session.',
     href: '/routines',
     cta: 'Pick a routine',
+    prompt: `I haven't trained ${input.neglectedMuscle.muscleGroup} for ${input.neglectedMuscle.daysSinceLastTrained} days. How should I fit it into this week?`,
   } : null,
 ]
 
+// Every note that applies, most important first. Coach lists them all.
+export function pickCoachNotes(input: CoachSignalsInput): CoachNote[] {
+  return NOTE_RULES.map(rule => rule(input)).filter((note): note is CoachNote => note !== null)
+}
+
+// Home shows only the first, so it always matches the top of Coach's list.
 export function pickCoachNote(input: CoachSignalsInput): CoachNote | null {
-  for (const rule of NOTE_RULES) {
-    const note = rule(input)
-    if (note) return note
-  }
-  return null
+  return pickCoachNotes(input)[0] ?? null
 }
 
 // ─── Latest highlight ────────────────────────────────────────────────────────

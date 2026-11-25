@@ -33,7 +33,7 @@ describe('ThisWeekStats', () => {
 describe('CoachNoteCard', () => {
   it('shows one note with a link to its detail', () => {
     const markup = renderToStaticMarkup(
-      <CoachNoteCard note={{ kind: 'stalled_lift', title: 'Bench press has stalled', body: 'Try a variation.', href: '/exercises', cta: 'See options' }} missedWeeks={0} />,
+      <CoachNoteCard note={{ kind: 'stalled_lift', title: 'Bench press has stalled', body: 'Try a variation.', href: '/exercises', cta: 'See options', prompt: 'Why has my bench stalled?' }} missedWeeks={0} />,
     )
     expect(markup).toContain('Bench press has stalled')
     expect(markup).toContain('href="/exercises"')
@@ -41,7 +41,7 @@ describe('CoachNoteCard', () => {
 
   it('offers restart and keep going for a long break', () => {
     const markup = renderToStaticMarkup(
-      <CoachNoteCard note={{ kind: 'long_break', title: '3 light weeks in a row', body: '', href: '/account', cta: 'Restart' }} missedWeeks={3} />,
+      <CoachNoteCard note={{ kind: 'long_break', title: '3 light weeks in a row', body: '', href: '/account', cta: 'Restart', prompt: 'How do I restart?' }} missedWeeks={3} />,
     )
     expect(markup).toContain('3 light weeks in a row')
     expect(markup).toContain('Keep going')

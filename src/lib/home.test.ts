@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { greetingFor, homeDateLabel, pickCoachNote, pickHighlight, readinessSummary, tonnes, weekLabel, type CoachSignalsInput } from './home'
+import { greetingFor, homeDateLabel, pickCoachNote, pickCoachNotes, pickHighlight, readinessSummary, tonnes, weekLabel, type CoachSignalsInput } from './home'
 import type { RecentPR } from '@/lib/data/insights'
 
 const log = (sleep: number, soreness: number, energy: number) => ({ sleep_score: sleep, soreness_score: soreness, energy_score: energy })
@@ -102,6 +102,39 @@ describe('weekLabel', () => {
 
   it('has no label without a cycle', () => {
     expect(weekLabel(null, false)).toBeNull()
+  })
+})
+
+describe('pickCoachNotes', () => {
+  it('lists every note that applies, most important first', () => {
+    const input = { ...quiet, stalledLift: loud.stalledLift, neglectedMuscle: loud.neglectedMuscle }
+    expect(pickCoachNotes(input).map(note => note.kind)).toEqual(['stalled_lift', 'neglected_muscle'])
+  })
+
+  it('has nothing to list when nothing needs saying', () => {
+    expect(pickCoachNotes(quiet)).toEqual([])
+  })
+
+  it('always agrees with the one note Home shows', () => {
+    const three = { ...quiet, shouldDeload: true, stalledLift: loud.stalledLift, neglectedMuscle: loud.neglectedMuscle }
+    expect(pickCoachNote(three)).toEqual(pickCoachNotes(three)[0])
+    expect(pickCoachNote(quiet)).toBeNull()
+  })
+
+  it('gives every note something to ask the coach', () => {
+    for (const note of pickCoachNotes(loud)) expect(note.prompt.trim().length).toBeGreaterThan(0)
+    expect(pickCoachNotes(loud)).toHaveLength(6)
+  })
+
+  it('asks about a stalled lift by its exact name', () => {
+    const odd = { ...quiet, stalledLift: { exerciseName: 'Cable Fly 50% & Hold', pctPerWeek: -0.25 } }
+    const prompt = pickCoachNotes(odd)[0].prompt
+    expect(prompt).toContain('Cable Fly 50% & Hold')
+    expect(prompt).toContain('-0.3%')
+  })
+
+  it('asks about a neglected muscle by name', () => {
+    expect(pickCoachNotes({ ...quiet, neglectedMuscle: loud.neglectedMuscle })[0].prompt).toContain('back')
   })
 })
 
