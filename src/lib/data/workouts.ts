@@ -144,20 +144,21 @@ function setVolumeFromRow(set: any): number {
 export const getWorkoutsSummary = cache(async (userId: string) => {
   const supabase = await getSupabaseServer()
 
-  const { count, error: countErr } = await supabase
-    .from('workouts')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
+  const [{ count, error: countErr }, { data: setsData, error: setsErr }] = await Promise.all([
+    supabase
+      .from('workouts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId),
+    supabase
+      .from('sets')
+      .select('weight_kg, reps, workout_exercises!inner(exercise:exercises(name), workouts!inner(user_id, bodyweight_kg))')
+      .eq('workout_exercises.workouts.user_id', userId),
+  ])
 
   if (countErr) {
     console.error('Failed to count workouts:', countErr.message)
     throw new DatabaseError('Failed to count workouts', countErr)
   }
-
-  const { data: setsData, error: setsErr } = await supabase
-    .from('sets')
-    .select('weight_kg, reps, workout_exercises!inner(exercise:exercises(name), workouts!inner(user_id, bodyweight_kg))')
-    .eq('workout_exercises.workouts.user_id', userId)
 
   let totalVolume = 0
   if (setsData && !setsErr) {
