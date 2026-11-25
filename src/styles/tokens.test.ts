@@ -15,7 +15,7 @@ function extractTokens(block: string): Record<string, string> {
 }
 
 const tokens = extractTokens(rootBlocks[0])
-const legacy = extractTokens(rootBlocks[1])
+const globalsCss = readFileSync(join(__dirname, '..', 'app', 'globals.css'), 'utf8')
 
 const REQUIRED_TOKENS = [
   '--bg', '--surface', '--surface-raised', '--border', '--border-strong',
@@ -39,13 +39,18 @@ describe('tokens.css', () => {
     expect(tokens[name]).toBeDefined()
   })
 
-  it('keeps legacy aliases in a second :root block', () => {
-    expect(legacy['--accent']).toBe('var(--text-primary)')
-    expect(legacy['--accent-on']).toBe('var(--bg)')
-    expect(legacy['--text-hi']).toBe('var(--text-primary)')
-    for (const name of ['--text-mid', '--text-low', '--ink', '--teal', '--rose', '--glass-fill']) {
-      expect(legacy[name]).toBeDefined()
+  it('has no legacy aliases left', () => {
+    // Step 6 finished the move to semantic tokens, so the old names are gone.
+    expect(rootBlocks).toHaveLength(1)
+    for (const name of ['--text-hi', '--text-mid', '--teal', '--rose', '--glass-fill', '--accent-on', '--spectrum-100', '--zone-1']) {
+      expect(css).not.toContain(`${name}:`)
     }
+  })
+
+  it('has no legacy utilities in globals.css', () => {
+    expect(globalsCss).not.toMatch(/.glass/)
+    expect(globalsCss).not.toContain('--color-text-hi')
+    expect(globalsCss).not.toContain('--color-spectrum')
   })
 
   const pairs: [fg: string, bg: string, min: number][] = [

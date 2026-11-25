@@ -34,49 +34,6 @@
   --color-positive-soft: var(--positive-soft);
   --color-caution-soft:  var(--caution-soft);
   --color-negative-soft: var(--negative-soft);
-
-  /* Legacy colour names, kept until the component sweep finishes */
-  --color-bg-0: var(--bg-0);
-  --color-bg-1: var(--bg-1);
-  --color-bg-2: var(--bg-2);
-
-  --color-text-hi:    var(--text-hi);
-  --color-text-mid:   var(--text-mid);
-  --color-text-low:   var(--text-low);
-  --color-text-lo:    var(--text-lo);
-  --color-text-faint: var(--text-faint);
-
-  --color-accent-on:   var(--accent-on);
-  --color-accent-line: var(--accent-line);
-
-  --color-teal:      var(--teal);
-  --color-rose:      var(--rose);
-  --color-blue:      var(--blue);
-  --color-blue-soft: var(--blue-soft);
-
-  --color-spectrum-100:  var(--spectrum-100);
-  --color-spectrum-200:  var(--spectrum-200);
-  --color-spectrum-300:  var(--spectrum-300);
-  --color-spectrum-400:  var(--spectrum-400);
-  --color-spectrum-500:  var(--spectrum-500);
-  --color-spectrum-600:  var(--spectrum-600);
-  --color-spectrum-700:  var(--spectrum-700);
-  --color-spectrum-800:  var(--spectrum-800);
-  --color-spectrum-900:  var(--spectrum-900);
-  --color-spectrum-1000: var(--spectrum-1000);
-
-  --color-zone-1: var(--zone-1);
-  --color-zone-2: var(--zone-2);
-  --color-zone-3: var(--zone-3);
-  --color-zone-4: var(--zone-4);
-  --color-zone-5: var(--zone-5);
-
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-chart-6: var(--chart-6);
 }
 
 /* Radius utilities. Not in @theme: a theme variable named like its token would reference itself. */
@@ -126,18 +83,12 @@ html, body {
 @layer components {
 
 /* ─── Card ───────────────────────────────────────────────────────────────────
-   Flat and solid. `.glass` is the legacy name for the same card.
+   Flat and solid.
    ─────────────────────────────────────────────────────────────────────────── */
-.glass,
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-}
-
-.glass-strong {
-  background: var(--surface-raised);
-  border-color: var(--border-strong);
 }
 
 /* ─── Type utilities ─────────────────────────────────────────────────────── */
