@@ -240,4 +240,63 @@ describe('propose_split', () => {
     const day = { kind: 'new_routine', title: 'Legs', exercises: [{ new_exercise: { ...NEW_EXERCISE, name: 'Bench Press' }, target_sets: 3, target_reps: 8 }] }
     expect(expectError(buildProposal('propose_split', { name: 'PPL', days: [day] }, WORLD))).toContain('Bench Press')
   })
+
+  it('rejects the same new exercise in two days', () => {
+    const day = (title: string) => ({
+      kind: 'new_routine', title,
+      exercises: [{ new_exercise: NEW_EXERCISE, target_sets: 3, target_reps: 8 }],
+    })
+    const error = expectError(buildProposal('propose_split', { name: 'PPL', days: [day('A'), day('B')] }, WORLD))
+    expect(error).toContain('Jefferson Curl')
+    expect(error).toContain('once')
+  })
+
+  it('rejects a repeated exercise_id within one day', () => {
+    const day = {
+      kind: 'new_routine', title: 'Legs',
+      exercises: [
+        { exercise_id: 'bench', target_sets: 3, target_reps: 8 },
+        { exercise_id: 'bench', target_sets: 3, target_reps: 8 },
+      ],
+    }
+    expect(expectError(buildProposal('propose_split', { name: 'PPL', days: [day] }, WORLD))).toContain('Bench Press')
+  })
+})
+
+describe('duplicates inside one routine proposal', () => {
+  it('rejects two new exercises with the same normalised name', () => {
+    const input = {
+      title: 'Pull',
+      exercises: [
+        { new_exercise: NEW_EXERCISE, target_sets: 3, target_reps: 8 },
+        { new_exercise: { ...NEW_EXERCISE, name: 'jefferson-curl' }, target_sets: 3, target_reps: 8 },
+      ],
+    }
+    expect(expectError(buildProposal('propose_routine', input, WORLD))).toContain('Jefferson Curl')
+  })
+
+  it('rejects the same exercise_id listed twice', () => {
+    const input = {
+      title: 'Pull',
+      exercises: [
+        { exercise_id: 'bench', target_sets: 3, target_reps: 8 },
+        { exercise_id: 'bench', target_sets: 2, target_reps: 10 },
+      ],
+    }
+    expect(expectError(buildProposal('propose_routine', input, WORLD))).toContain('Bench Press')
+  })
+})
+
+describe('propose_swap replacement checks', () => {
+  const swap = { routine_id: 'push', position: 2, exercise_id: 'pushdown', reason: 'x' }
+
+  it('rejects swapping an exercise for itself', () => {
+    expect(expectError(buildProposal('propose_swap', { ...swap, new_exercise_id: 'pushdown' }, WORLD))).toContain('itself')
+  })
+
+  it('rejects a replacement already elsewhere in the routine', () => {
+    const error = expectError(buildProposal('propose_swap', { ...swap, new_exercise_id: 'bench' }, WORLD))
+    expect(error).toContain('Bench Press')
+    expect(error).toContain('already')
+  })
 })

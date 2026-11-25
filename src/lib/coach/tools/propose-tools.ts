@@ -148,6 +148,36 @@ function resolveEntry(entry: ExerciseEntryInput, world: ProposeWorld) {
   return { name: entry.new_exercise.name, new_exercise: entry.new_exercise, target_sets: entry.target_sets, target_reps: entry.target_reps }
 }
 
+// Apply creates each new exercise once and a routine row per entry, so repeats
+// would fail or duplicate rows.
+function resolveEntries(entries: ExerciseEntryInput[], world: ProposeWorld) {
+  const resolved = entries.map(entry => resolveEntry(entry, world))
+  const seenIds = new Set<string>()
+  for (const entry of resolved) {
+    const exerciseId = entry.exercise_id
+    if (exerciseId === undefined) continue
+    if (seenIds.has(exerciseId)) {
+      throw new ProposalInputError(`"${entry.name}" is listed twice in the same routine. List each exercise once.`)
+    }
+    seenIds.add(exerciseId)
+  }
+  assertNewNamesUnique(resolved.flatMap(entry => 'new_exercise' in entry ? [entry.name] : []))
+  return resolved
+}
+
+function assertNewNamesUnique(names: string[]): void {
+  const seen: { id: string; name: string }[] = []
+  for (const name of names) {
+    const repeat = findDuplicateExercise(name, seen)
+    if (repeat) {
+      throw new ProposalInputError(
+        `"${repeat.name}" is proposed as a new exercise twice. Propose it once: create it with propose_new_exercise first, or use it in only one place.`,
+      )
+    }
+    seen.push({ id: name, name })
+  }
+}
+
 // ── Builders ─────────────────────────────────────────────────────────────────
 
 type ProposalBody<K extends CoachProposal['kind']> = Omit<Extract<CoachProposal, { kind: K }>, 'id' | 'status'>
@@ -167,6 +197,14 @@ function buildSwap(input: z.infer<typeof SwapInputSchema>, world: ProposeWorld):
     )
   }
   const replacement = findUsableExercise(world, input.new_exercise_id)
+  if (replacement.id === oldRow.exercise_id) {
+    throw new ProposalInputError(`"${replacement.name}" can't be swapped for itself. Pick a different new_exercise_id.`)
+  }
+  if (rows.some(row => row.exercise_id === replacement.id)) {
+    throw new ProposalInputError(
+      `"${replacement.name}" is already in "${routine.title}", so swapping it in would duplicate it. Pick an exercise not in the routine.`,
+    )
+  }
   return {
     kind: 'swap',
     label: `Swap in ${routine.title}`,
@@ -236,7 +274,7 @@ function buildRoutine(input: z.infer<typeof RoutineInputSchema>, world: ProposeW
     label: 'New routine',
     title: input.title,
     notes: input.notes ?? null,
-    exercises: input.exercises.map(entry => resolveEntry(entry, world)),
+    exercises: resolveEntries(input.exercises, world),
   }
 }
 
@@ -249,7 +287,7 @@ function buildSplitDay(day: z.infer<typeof SplitDayInputSchema>, world: ProposeW
   return {
     kind: 'new_routine' as const,
     title: day.title,
-    exercises: day.exercises.map(entry => resolveEntry(entry, world)),
+    exercises: resolveEntries(day.exercises, world),
   }
 }
 
@@ -261,7 +299,11 @@ function buildSplit(input: z.infer<typeof SplitInputSchema>, world: ProposeWorld
   if (input.days.length > MAX_SPLIT_ITEMS) {
     throw new ProposalInputError(`A split can have at most ${MAX_SPLIT_ITEMS} days; this one has ${input.days.length}.`)
   }
-  return { kind: 'split', label: 'New split', name: input.name, days: input.days.map(day => buildSplitDay(day, world)) }
+  const days = input.days.map(day => buildSplitDay(day, world))
+  assertNewNamesUnique(days.flatMap(day => day.kind === 'new_routine'
+    ? day.exercises.flatMap(entry => 'new_exercise' in entry ? [entry.name] : [])
+    : []))
+  return { kind: 'split', label: 'New split', name: input.name, days }
 }
 
 // ── Entry point ──────────────────────────────────────────────────────────────
