@@ -35,7 +35,8 @@ export function DeleteHistoricalExerciseButton({ workoutExerciseId, workoutId }:
     <button 
       onClick={handleDelete}
       disabled={isPending}
-      className="p-2.5 text-tertiary hover:text-negative hover:bg-negative-soft rounded-lg transition-colors disabled:opacity-50"
+      aria-label="Remove exercise from this workout"
+      className="focus-ring inline-flex size-11 shrink-0 items-center justify-center rounded-pill text-tertiary transition-colors hover:text-negative disabled:opacity-50"
     >
       {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
     </button>

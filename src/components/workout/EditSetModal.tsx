@@ -45,7 +45,7 @@ export function EditSetModal({ setId, initialWeight, initialReps, addedOnTopOfKg
       </div>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center px-4 bg-black/60 animate-in fade-in duration-200">
           <div className="bg-surface-raised border border-border p-6 rounded-card shadow-[var(--shadow-overlay)] w-full max-w-sm animate-in zoom-in-95 duration-200">
             <h3 className="t-title-2 mb-6">Edit set</h3>
             

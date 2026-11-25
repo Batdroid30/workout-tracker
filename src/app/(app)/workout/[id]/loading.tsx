@@ -1,89 +1,49 @@
 import { Skeleton } from '@/components/ui/Skeleton'
+import { Card } from '@/components/ui'
 
+// Same shape as the loaded page: top bar, summary, four numbers, muscle map, exercises.
 export default function WorkoutHistoryDetailLoading() {
   return (
-    <div className="min-h-screen pb-24">
-
-      {/* Sticky header: back button + title + action buttons */}
-      <div
-        className="sticky top-0 z-30 px-4 py-3 flex items-center justify-between bg-bg border-b border-border"
-      >
-        <div className="flex items-center gap-3">
-          <Skeleton className="w-9 h-9 rounded-[var(--radius-inner)] shrink-0" />
-          <Skeleton className="h-4 w-40" />
-        </div>
-        <div className="flex items-center gap-2">
-          <Skeleton className="w-9 h-9 rounded-[var(--radius-inner)]" />
-          <Skeleton className="w-9 h-9 rounded-[var(--radius-inner)]" />
+    <div className="mx-auto min-h-screen max-w-[600px] pb-28">
+      <div className="flex items-center justify-between px-2 py-1">
+        <Skeleton className="size-11 rounded-pill" />
+        <div className="flex items-center gap-1">
+          <Skeleton className="h-9 w-32 rounded-control" />
+          <Skeleton className="size-11 rounded-pill" />
         </div>
       </div>
 
-      <div className="p-4 space-y-5 mt-1">
-
-        {/* Meta card: title + date */}
-        <div className="glass p-4">
-          <Skeleton className="h-6 w-48 mb-2 rounded" />
-          <Skeleton className="h-3 w-52 rounded" />
+      <div className="space-y-4 px-4">
+        <div>
+          <Skeleton className="h-3 w-32 rounded-control" />
+          <Skeleton className="mt-2 h-8 w-48 rounded-control" />
         </div>
 
-        {/* Stat tiles: Duration + Volume */}
-        <div className="grid grid-cols-2 gap-3">
-          {[1, 2].map(i => (
-            <div key={i} className="glass p-4 flex items-center gap-3">
-              <Skeleton className="w-9 h-9 rounded-[var(--radius-inner)] shrink-0" />
-              <div>
-                <Skeleton className="h-3 w-16 mb-1.5 rounded" />
-                <Skeleton className="h-6 w-12 rounded" />
-              </div>
+        <Card padding="none" className="grid grid-cols-4">
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} className={i > 0 ? 'border-l border-border px-3 py-3' : 'px-3 py-3'}>
+              <Skeleton className="h-3 w-10 rounded-control" />
+              <Skeleton className="mt-1.5 h-5 w-12 rounded-control" />
             </div>
           ))}
-        </div>
+        </Card>
 
-        {/* Exercise log */}
-        <div className="space-y-4">
-          <Skeleton className="h-3 w-28 rounded" />
+        <Skeleton className="h-56 w-full rounded-card" />
 
-          {[3, 2].map((sets, blockIdx) => (
-            <div key={blockIdx} className="glass overflow-hidden">
-
-              {/* Exercise header: name + muscle group + delete */}
-              <div
-                className="px-4 py-3 flex items-center justify-between bg-surface border-b border-border"
-              >
-                <div>
-                  <Skeleton className="h-4 w-40 mb-1.5 rounded" />
-                  <Skeleton className="h-3 w-20 rounded" />
-                </div>
-                <Skeleton className="w-8 h-8 rounded-[var(--radius-inner)]" />
-              </div>
-
-              {/* Column headers: Set | kg | Reps | PR */}
-              <div
-                className="flex py-2 px-4 border-b border-border"
-              >
-                <div className="w-10"><Skeleton className="h-2 w-6 rounded" /></div>
-                <div className="flex-1 flex justify-center"><Skeleton className="h-2 w-5 rounded" /></div>
-                <div className="flex-1 flex justify-center"><Skeleton className="h-2 w-8 rounded" /></div>
-                <div className="w-10" />
-              </div>
-
-              {/* Set rows */}
-              {[...Array(sets)].map((_, i) => (
-                <div
-                  key={i}
-                  className="flex items-center py-3 px-4 border-b border-border"
-                >
-                  <div className="w-10"><Skeleton className="w-6 h-6 rounded-lg" /></div>
-                  <div className="flex-1 flex justify-center"><Skeleton className="h-4 w-10 rounded" /></div>
-                  <div className="flex-1 flex justify-center"><Skeleton className="h-4 w-8 rounded" /></div>
-                  <div className="w-10" />
-                </div>
-              ))}
-
+        {[3, 2].map((sets, blockIdx) => (
+          <Card key={blockIdx} padding="none">
+            <div className="px-4 py-3">
+              <Skeleton className="h-4 w-40 rounded-control" />
+              <Skeleton className="mt-1.5 h-3 w-20 rounded-control" />
             </div>
-          ))}
-        </div>
-
+            {[...Array(sets)].map((_, i) => (
+              <div key={i} className="flex min-h-11 items-center gap-4 border-t border-border px-4">
+                <Skeleton className="h-3 w-3 rounded-control" />
+                <Skeleton className="h-4 w-20 rounded-control" />
+              </div>
+            ))}
+          </Card>
+        ))}
       </div>
     </div>
   )

@@ -12,11 +12,19 @@ interface EditWorkoutMetaModalProps {
   initialTitle: string | null
   initialDuration: number | null
   initialNotes: string | null
-  children: React.ReactNode
+  /** The tappable area that opens the dialog. Leave out when `open` controls it. */
+  children?: React.ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export function EditWorkoutMetaModal({ workoutId, initialTitle, initialDuration, initialNotes, children }: EditWorkoutMetaModalProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function EditWorkoutMetaModal({ workoutId, initialTitle, initialDuration, initialNotes, children, open, onOpenChange }: EditWorkoutMetaModalProps) {
+  const [ownOpen, setOwnOpen] = useState(false)
+  const isOpen = open ?? ownOpen
+  const setIsOpen = (next: boolean) => {
+    if (onOpenChange) onOpenChange(next)
+    else setOwnOpen(next)
+  }
   const [title, setTitle] = useState(initialTitle || '')
   const [duration, setDuration] = useState(initialDuration ? Math.floor(initialDuration / 60) : 0) // stored in minutes
   const [notes, setNotes] = useState(initialNotes || '')
@@ -39,16 +47,18 @@ export function EditWorkoutMetaModal({ workoutId, initialTitle, initialDuration,
 
   return (
     <>
-      <div onClick={() => setIsOpen(true)} className="cursor-pointer group relative block w-full">
-        {children}
-        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-surface-raised rounded-md">
-          <Edit2 className="w-3 h-3 text-secondary" />
+      {children && (
+        <div onClick={() => setIsOpen(true)} className="cursor-pointer group relative block w-full">
+          {children}
+          <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-surface-raised rounded-control">
+            <Edit2 className="w-3 h-3 text-secondary" />
+          </div>
         </div>
-      </div>
+      )}
 
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center px-4 bg-black/60 animate-in fade-in duration-200">
           <div className="bg-surface-raised border border-border p-6 rounded-card shadow-[var(--shadow-overlay)] w-full max-w-sm animate-in zoom-in-95 duration-200">
             <h3 className="t-title-2 mb-6">Edit workout</h3>
             
