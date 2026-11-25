@@ -24,8 +24,8 @@ interface CoachChatViewProps {
   recentChats?: RecentChat[]
 }
 
-function chatTitle(messages: CoachMessage[]): string {
-  const first = messages.find(message => message.role === 'user')?.content.trim()
+function chatTitle(messages: CoachMessage[], pendingPrompt?: string): string {
+  const first = (messages.find(message => message.role === 'user')?.content ?? pendingPrompt)?.trim()
   if (!first) return 'New chat'
   return first.length > CHAT_TITLE_LENGTH ? `${first.slice(0, CHAT_TITLE_LENGTH)}…` : first
 }
@@ -34,7 +34,7 @@ export function CoachChatView({
   initialConversationId,
   initialMessages = [],
   initialPrompt,
-  notes = [],
+  notes,
   recentChats = [],
 }: CoachChatViewProps) {
   const router = useRouter()
@@ -70,14 +70,17 @@ export function CoachChatView({
     }
   }, [initialPrompt, sendMessage])
 
-  // The notes are only loaded on plain /coach. From a past conversation or a
-  // deep link, going back means loading that page.
+  // The notes are only loaded on plain /coach. Anywhere else (a past chat, a
+  // deep link) going back loads that page; resetting first would flash an empty
+  // notes screen while it loads.
+  const notesLoaded = notes !== undefined
   const backToNotes = () => {
-    resetChat()
-    if (window.location.pathname !== '/coach' || window.location.search) router.push('/coach')
+    if (notesLoaded) resetChat()
+    else router.push('/coach')
   }
 
-  const isChatting = messages.length > 0
+  // A deep link is a chat from the first render: its question is sent right after.
+  const isChatting = messages.length > 0 || Boolean(initialPrompt) || !notesLoaded
 
   return (
     <div
@@ -86,13 +89,13 @@ export function CoachChatView({
         height: 'calc(100dvh - max(7rem, calc(5.75rem + env(safe-area-inset-bottom, 0px))))',
       }}
     >
-      {isChatting && <CoachChatTopBar title={chatTitle(messages)} onBack={backToNotes} onNewChat={backToNotes} />}
+      {isChatting && <CoachChatTopBar title={chatTitle(messages, initialPrompt)} onBack={backToNotes} onNewChat={backToNotes} />}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {isChatting ? (
           messages.map(msg => <CoachMessageBubble key={msg.id} message={msg} />)
         ) : (
-          <CoachHome notes={notes} recentChats={recentChats} onAsk={sendMessage} onOpenHistory={() => setHistoryOpen(true)} />
+          <CoachHome notes={notes ?? []} recentChats={recentChats} onAsk={sendMessage} onOpenHistory={() => setHistoryOpen(true)} />
         )}
 
         {error && (
