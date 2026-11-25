@@ -4,7 +4,9 @@ import { MOVEMENT_PATTERN_VALUES, MUSCLE_GROUP_VALUES } from '@/lib/exercise-val
 // These schemas mirror the Zod input schemas in tools/read-tools.ts and
 // tools/propose-tools.ts, which stay the source of truth: strict mode rejects
 // numeric and length limits, so those limits are enforced there and only
-// described here.
+// described here. Only the small tools are strict: the API refuses strict
+// tools whose combined grammar is too large, and the nested proposal schemas
+// (routines, splits, new exercises) are well past that. Zod checks them all.
 
 const muscleGroup = { type: 'string', enum: [...MUSCLE_GROUP_VALUES] }
 const movementPattern = { type: 'string', enum: [...MOVEMENT_PATTERN_VALUES] }
@@ -116,7 +118,6 @@ const PROPOSE_REORDER: BetaTool = {
 const PROPOSE_NEW_EXERCISE: BetaTool = {
   name: 'propose_new_exercise',
   description: 'Propose adding an exercise that is not in the library, optionally appended to one routine. Refused if the library already has it.',
-  strict: true,
   input_schema: {
     type: 'object',
     properties: {
@@ -137,7 +138,6 @@ const PROPOSE_NEW_EXERCISE: BetaTool = {
 const PROPOSE_ROUTINE: BetaTool = {
   name: 'propose_routine',
   description: 'Propose a new routine. Nothing is saved until the lifter confirms.',
-  strict: true,
   input_schema: {
     type: 'object',
     properties: {
@@ -153,7 +153,6 @@ const PROPOSE_ROUTINE: BetaTool = {
 const PROPOSE_SPLIT: BetaTool = {
   name: 'propose_split',
   description: 'Propose a training split (a repeating cycle of days). Reuse existing routines by id where they fit. It becomes the active split when the lifter confirms.',
-  strict: true,
   input_schema: {
     type: 'object',
     properties: {

@@ -35,10 +35,16 @@ describe('COACH_TOOLS', () => {
     ])
   })
 
-  it('makes every tool strict with a schema strict mode accepts', () => {
+  it('gives every tool a schema strict mode accepts', () => {
     for (const tool of COACH_TOOLS) {
-      expect(tool.strict).toBe(true)
       expect(schemaProblems(tool.input_schema, tool.name)).toEqual([])
     }
+  })
+
+  // The API refuses a request whose strict tools compile to too large a
+  // grammar. The nested proposal schemas are checked by Zod instead.
+  it('keeps only the small tools strict', () => {
+    const strictTools = COACH_TOOLS.filter(tool => tool.strict).map(tool => tool.name)
+    expect(strictTools).toEqual(['find_exercises', 'get_routines', 'propose_swap', 'propose_reorder'])
   })
 })
