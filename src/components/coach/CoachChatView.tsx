@@ -47,6 +47,7 @@ export function CoachChatView({
     stopStreaming,
     resetChat,
     loadConversation,
+    setProposalStatus,
   } = useCoachChat({
     initialConversationId,
     initialMessages,
@@ -93,7 +94,7 @@ export function CoachChatView({
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {isChatting ? (
-          messages.map(msg => <CoachMessageBubble key={msg.id} message={msg} />)
+          messages.map(msg => <CoachMessageBubble key={msg.id} message={msg} onProposalStatusChange={setProposalStatus} />)
         ) : (
           <CoachHome notes={notes ?? []} recentChats={recentChats} onAsk={sendMessage} onOpenHistory={() => setHistoryOpen(true)} />
         )}

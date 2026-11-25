@@ -4,18 +4,11 @@ import { z } from 'zod'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/auth'
 import { revalidateAll } from '@/lib/cache'
+import { insertCustomExercise } from '@/lib/data/exercises'
+import { MUSCLE_GROUP_VALUES, MOVEMENT_PATTERN_VALUES } from '@/lib/exercise-values'
 import type { MuscleGroup, MovementPattern } from '@/types/database'
 
 // ── Shared validation data ────────────────────────────────────────────────────
-
-const MUSCLE_GROUP_VALUES = [
-  'chest', 'back', 'lats', 'shoulders', 'traps',
-  'biceps', 'triceps', 'forearms',
-  'quads', 'hamstrings', 'glutes', 'calves',
-  'core',
-] as const
-
-const MOVEMENT_PATTERN_VALUES = ['push', 'pull', 'hinge', 'squat', 'carry', 'isolation'] as const
 
 const CreateExerciseSchema = z.object({
   name:              z.string().min(1).max(100),
@@ -79,23 +72,14 @@ export async function createExerciseAction(
 
   if (existing) return { error: 'An exercise with this name already exists.' }
 
-  const { data, error } = await supabase
-    .from('exercises')
-    .insert({
-      name:              trimmedName,
-      muscle_group,
-      secondary_muscles: secondary_muscles.length > 0 ? secondary_muscles : null,
-      movement_pattern,
-      equipment:         equipment || null,
-      is_custom:         true,
-      created_by:        session.user.id,
+  try {
+    const { id } = await insertCustomExercise(session.user.id, {
+      name: trimmedName, muscle_group, secondary_muscles, movement_pattern, equipment,
     })
-    .select('id')
-    .single()
-
-  if (error) return { error: 'Failed to create exercise. Please try again.' }
-
-  revalidateAll()
-
-  return { id: data.id }
+    revalidateAll()
+    return { id }
+  } catch (error: unknown) {
+    console.error('Failed to create exercise:', error)
+    return { error: 'Failed to create exercise. Please try again.' }
+  }
 }

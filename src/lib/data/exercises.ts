@@ -1,5 +1,6 @@
 import { cache } from 'react'
 import { getSupabaseServer } from '@/lib/supabase/server'
+import { DatabaseError } from '@/lib/errors'
 import type { Exercise } from '@/types/database'
 
 export const getExercises = cache(async (): Promise<Exercise[]> => {
@@ -57,4 +58,49 @@ export async function getRecentSetsForExercise(exerciseId: string) {
     return []
   }
   return data
+}
+
+// ── Write functions (never cached) ───────────────────────────────────────────
+
+export interface CustomExerciseInput {
+  name: string
+  muscle_group: string
+  secondary_muscles: string[]
+  movement_pattern: string
+  equipment: string | null
+}
+
+// The single insert for lifter-made exercises, shared by the exercise modal
+// and the coach's Confirm so both create them the same way.
+export async function insertCustomExercise(userId: string, input: CustomExerciseInput): Promise<{ id: string }> {
+  const supabase = await getSupabaseServer()
+  const { data, error } = await supabase
+    .from('exercises')
+    .insert({
+      name:              input.name.trim(),
+      muscle_group:      input.muscle_group,
+      secondary_muscles: input.secondary_muscles.length > 0 ? input.secondary_muscles : null,
+      movement_pattern:  input.movement_pattern,
+      equipment:         input.equipment || null,
+      is_custom:         true,
+      created_by:        userId,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw new DatabaseError(`Failed to create exercise: ${error.message}`, error)
+  return { id: data.id }
+}
+
+// Owner-scoped so it can only ever remove the caller's own custom exercises.
+export async function deleteCustomExercise(exerciseId: string, userId: string): Promise<void> {
+  const supabase = await getSupabaseServer()
+  const { error } = await supabase
+    .from('exercises')
+    .delete()
+    .eq('id', exerciseId)
+    .eq('created_by', userId)
+    .eq('is_custom', true)
+
+  if (error) throw new DatabaseError(`Failed to delete exercise: ${error.message}`, error)
 }

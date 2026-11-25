@@ -1,6 +1,8 @@
 import { cache } from 'react'
+import { z } from 'zod'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
+import { CoachProposalSchema, type CoachProposal } from '@/lib/coach/proposals'
 import type { CoachConversation, CoachMessage, CoachMessageMetadata, CoachRole } from '@/types/coach'
 
 export interface SaveMessageParams {
@@ -180,6 +182,85 @@ export async function saveCoachMessage(
   touchConversation(params.conversationId).catch(() => {})
 
   return data as CoachMessage
+}
+
+// ── Proposals ─────────────────────────────────────────────────────────────────
+
+const MessageRowSchema = z.object({
+  conversation_id: z.string(),
+  metadata: z.record(z.string(), z.unknown()).nullable(),
+})
+
+const StoredProposalsSchema = z.array(z.unknown()).catch([])
+const ProposalIdSchema = z.object({ id: z.string() })
+
+// Messages carry no user_id; ownership is the conversation's. Null when the
+// message is missing or belongs to someone else's conversation.
+async function getOwnedMessageMetadata(
+  messageId: string,
+  userId: string,
+): Promise<Record<string, unknown> | null> {
+  const supabase = await getSupabaseServer()
+
+  const { data, error } = await (supabase.from('coach_messages' as any) as any)
+    .select('conversation_id, metadata')
+    .eq('id', messageId)
+    .maybeSingle()
+
+  if (error) {
+    throw new DatabaseError(`Failed to fetch coach message: ${error.message}`, error)
+  }
+  if (!data) return null
+
+  const message = MessageRowSchema.parse(data)
+  const conversation = await getConversationById(message.conversation_id, userId)
+  if (!conversation) return null
+  return message.metadata ?? {}
+}
+
+function hasProposalId(stored: unknown, proposalId: string): boolean {
+  const parsed = ProposalIdSchema.safeParse(stored)
+  return parsed.success && parsed.data.id === proposalId
+}
+
+export async function getMessageProposal(
+  messageId: string,
+  userId: string,
+  proposalId: string,
+): Promise<CoachProposal | null> {
+  const metadata = await getOwnedMessageMetadata(messageId, userId)
+  if (!metadata) return null
+
+  const stored = StoredProposalsSchema.parse(metadata.proposals)
+    .find(proposal => hasProposalId(proposal, proposalId))
+  if (stored === undefined) return null
+  return CoachProposalSchema.parse(stored)
+}
+
+// Replaces only the proposal with this id; every other proposal and metadata
+// field is written back exactly as stored.
+export async function updateMessageProposal(
+  messageId: string,
+  userId: string,
+  proposal: CoachProposal,
+): Promise<void> {
+  const metadata = await getOwnedMessageMetadata(messageId, userId)
+  if (!metadata) throw new DatabaseError('Coach message not found')
+
+  const stored = StoredProposalsSchema.parse(metadata.proposals)
+  if (!stored.some(candidate => hasProposalId(candidate, proposal.id))) {
+    throw new DatabaseError(`Proposal ${proposal.id} not found on coach message`)
+  }
+  const proposals = stored.map(candidate => hasProposalId(candidate, proposal.id) ? proposal : candidate)
+
+  const supabase = await getSupabaseServer()
+  const { error } = await (supabase.from('coach_messages' as any) as any)
+    .update({ metadata: { ...metadata, proposals } })
+    .eq('id', messageId)
+
+  if (error) {
+    throw new DatabaseError(`Failed to update coach proposal: ${error.message}`, error)
+  }
 }
 
 export async function recordCoachUsage(

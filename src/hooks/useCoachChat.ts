@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import type { CoachMessage, CoachStreamEvent, ProposedRoutine } from '@/types/coach'
+import type { CoachMessage, ProposedRoutine } from '@/types/coach'
+import type { CoachProposal } from '@/lib/coach/proposals'
+import { createSseLineReader } from '@/lib/coach/sse-parser'
 
 interface UseCoachChatOptions {
   initialConversationId?: string
@@ -74,6 +76,7 @@ export function useCoachChat({
         if (!reader) throw new Error('Response body is not readable')
 
         const decoder = new TextDecoder()
+        const lineReader = createSseLineReader()
         let accumulatedText = ''
         let currentProposedRoutine: ProposedRoutine | undefined
         let activeConvId = conversationId
@@ -83,62 +86,64 @@ export function useCoachChat({
           if (done) break
 
           const chunk = decoder.decode(value, { stream: true })
-          const lines = chunk.split('\n')
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const rawData = line.slice(6).trim()
-              if (!rawData) continue
-
-              try {
-                const event: CoachStreamEvent = JSON.parse(rawData)
-
-                if (event.type === 'text_delta') {
-                  accumulatedText += event.text
-                  setMessages(prev =>
-                    prev.map(m =>
-                      m.id === tempAssistantMsgId
-                        ? { ...m, content: accumulatedText }
-                        : m
-                    )
-                  )
-                } else if (event.type === 'routine_proposed') {
-                  currentProposedRoutine = event.routine
-                  setMessages(prev =>
-                    prev.map(m =>
-                      m.id === tempAssistantMsgId
-                        ? {
-                            ...m,
-                            metadata: {
-                              ...m.metadata,
-                              proposed_routine: currentProposedRoutine,
-                            },
-                          }
-                        : m
-                    )
-                  )
-                } else if (event.type === 'message_complete') {
-                  activeConvId = event.conversation_id
-                  setConversationId(event.conversation_id)
-                  setMessages(prev =>
-                    prev.map(m =>
-                      m.id === tempAssistantMsgId
-                        ? {
-                            ...m,
-                            id: event.message_id,
-                            conversation_id: event.conversation_id,
-                          }
-                        : m.id === tempUserMsgId
-                        ? { ...m, conversation_id: event.conversation_id }
-                        : m
-                    )
-                  )
-                } else if (event.type === 'error') {
-                  setError(event.message)
-                }
-              } catch (parseErr) {
-                console.warn('Failed to parse SSE event:', parseErr)
-              }
+          for (const event of lineReader.push(chunk)) {
+            if (event.type === 'text_delta') {
+              accumulatedText += event.text
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === tempAssistantMsgId
+                    ? { ...m, content: accumulatedText }
+                    : m
+                )
+              )
+            } else if (event.type === 'routine_proposed') {
+              currentProposedRoutine = event.routine
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === tempAssistantMsgId
+                    ? {
+                        ...m,
+                        metadata: {
+                          ...m.metadata,
+                          proposed_routine: currentProposedRoutine,
+                        },
+                      }
+                    : m
+                )
+              )
+            } else if (event.type === 'proposal') {
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === tempAssistantMsgId
+                    ? {
+                        ...m,
+                        metadata: {
+                          ...m.metadata,
+                          proposals: [...(m.metadata?.proposals ?? []), event.proposal],
+                        },
+                      }
+                    : m
+                )
+              )
+            } else if (event.type === 'message_complete') {
+              activeConvId = event.conversation_id
+              setConversationId(event.conversation_id)
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === tempAssistantMsgId
+                    ? {
+                        ...m,
+                        id: event.message_id,
+                        conversation_id: event.conversation_id,
+                      }
+                    : m.id === tempUserMsgId
+                    ? { ...m, conversation_id: event.conversation_id }
+                    : m
+                )
+              )
+            } else if (event.type === 'error') {
+              setError(event.message)
             }
           }
         }
@@ -163,6 +168,25 @@ export function useCoachChat({
       }
     },
     [conversationId, isStreaming]
+  )
+
+  const setProposalStatus = useCallback(
+    (messageId: string, proposalId: string, status: CoachProposal['status']) => {
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === messageId && m.metadata?.proposals
+            ? {
+                ...m,
+                metadata: {
+                  ...m.metadata,
+                  proposals: m.metadata.proposals.map(p => (p.id === proposalId ? { ...p, status } : p)),
+                },
+              }
+            : m
+        )
+      )
+    },
+    []
   )
 
   const stopStreaming = useCallback(() => {
@@ -205,5 +229,6 @@ export function useCoachChat({
     stopStreaming,
     resetChat,
     loadConversation,
+    setProposalStatus,
   }
 }
