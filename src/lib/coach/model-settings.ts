@@ -12,13 +12,11 @@ export function modelSettings(isComplexQuery: boolean): ModelSettings {
   if (!isComplexQuery) {
     return { model: HAIKU_MODEL, max_tokens: 4000, output_config: { effort: 'low' } }
   }
-  return {
-    model: process.env.ANTHROPIC_MODEL || DEFAULT_SONNET_MODEL,
-    max_tokens: 16000,
-    output_config: { effort: 'medium' },
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
-  }
+  const model = process.env.ANTHROPIC_MODEL || DEFAULT_SONNET_MODEL
+  const base = { model, max_tokens: 16000, output_config: { effort: 'medium' } } as const
+  // An older model set via ANTHROPIC_MODEL may reject the fallback beta with a 400.
+  if (model !== DEFAULT_SONNET_MODEL) return base
+  return { ...base, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' }
 }
 
 export async function* textDeltas(events: AsyncIterable<BetaRawMessageStreamEvent>): AsyncGenerator<string> {

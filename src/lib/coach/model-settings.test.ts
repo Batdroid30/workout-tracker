@@ -29,6 +29,15 @@ describe('modelSettings', () => {
     })
   })
 
+  it('drops the fallback and its beta when ANTHROPIC_MODEL names an older model', () => {
+    process.env.ANTHROPIC_MODEL = 'claude-sonnet-4-6'
+    expect(modelSettings(true)).toEqual({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 16000,
+      output_config: { effort: 'medium' },
+    })
+  })
+
   it('lets ANTHROPIC_MODEL override the Sonnet model', () => {
     process.env.ANTHROPIC_MODEL = 'claude-sonnet-5'
     expect(modelSettings(true).model).toBe('claude-sonnet-5')
