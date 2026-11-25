@@ -57,7 +57,7 @@ export function CoachInput({
         value={text}
         onChange={e => setText(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Ask coach anything (exercises, volume, routines)..."
+        placeholder="Ask your coach…"
         disabled={disabled}
         className="max-h-36 min-h-[40px] flex-1 resize-none bg-transparent px-3 py-2 text-base text-primary placeholder:text-tertiary focus:outline-none disabled:opacity-50"
       />

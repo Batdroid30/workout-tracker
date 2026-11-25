@@ -1,9 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { History, MessageSquare, Trash2, Sparkles } from 'lucide-react'
+import { History, MessageSquare, Trash2, Plus } from 'lucide-react'
 import { BottomSheet } from '@/components/ui/BottomSheet'
-import { Skeleton } from '@/components/ui'
+import { Button, IconButton, Skeleton } from '@/components/ui'
 import type { CoachConversation } from '@/types/coach'
 
 interface CoachHistoryDrawerProps {
@@ -93,14 +93,10 @@ export function CoachHistoryDrawer({
       icon={<History className="h-4 w-4 text-secondary" />}
     >
       {/* New Chat shortcut */}
-      <button
-        type="button"
-        onClick={() => { onNewChat(); onClose() }}
-        className="flex w-full items-center gap-3 focus-ring rounded-pill border border-border-strong bg-surface-raised px-4 py-3 text-sm text-primary transition-colors active:scale-[0.98] mb-4"
-      >
-        <Sparkles className="h-4 w-4 shrink-0" />
-        <span className="font-medium">New conversation</span>
-      </button>
+      <Button variant="secondary" className="mb-4" onClick={() => { onNewChat(); onClose() }}>
+        <Plus className="h-4 w-4" aria-hidden="true" />
+        New chat
+      </Button>
 
       {isLoading ? (
         <div className="space-y-2">
@@ -111,47 +107,36 @@ export function CoachHistoryDrawer({
       ) : conversations.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
           <MessageSquare className="h-8 w-8 text-tertiary" />
-          <p className="text-sm text-secondary">No past conversations yet</p>
-          <p className="text-xs text-tertiary">Your chats with Coach will appear here</p>
+          <p className="t-body-sm">No past chats yet</p>
         </div>
       ) : (
         <ul className="space-y-2">
           {conversations.map(conv => {
             const isActive = conv.id === currentConversationId
             return (
-              <li key={conv.id}>
+              <li
+                key={conv.id}
+                className={`flex items-center gap-1 rounded-control border pr-1 ${isActive ? 'border-border-strong bg-surface-raised' : 'border-border bg-surface'}`}
+              >
                 <button
                   type="button"
                   onClick={() => handleSelect(conv.id)}
-                  className={`group flex w-full items-center gap-3 rounded-control border px-4 py-3 text-left transition-colors active:scale-[0.98] ${
-                    isActive ? 'border-border-strong bg-surface-raised' : 'border-border bg-surface'
-                  }`}
+                  className="focus-ring flex min-h-14 min-w-0 flex-1 items-center gap-3 px-4 py-2 text-left"
                 >
-                  <MessageSquare
-                    className={`h-4 w-4 shrink-0 ${isActive ? 'text-primary' : 'text-tertiary'}`}
-                  />
-
-                  <div className="min-w-0 flex-1">
-                    <p
-                      className={`truncate text-sm font-medium ${isActive ? 'text-primary' : 'text-secondary'}`}
-                    >
-                      {conv.title || 'Untitled chat'}
-                    </p>
-                    <p className="text-xs text-tertiary">
-                      {formatRelativeTime(conv.updated_at)}
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    aria-label="Delete conversation"
-                    onClick={e => handleDelete(e, conv.id)}
-                    disabled={deletingId === conv.id}
-                    className="shrink-0 rounded-pill p-1.5 text-tertiary opacity-0 transition-opacity hover:text-negative group-hover:opacity-100 disabled:animate-pulse"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  <MessageSquare className={`h-4 w-4 shrink-0 ${isActive ? 'text-primary' : 'text-tertiary'}`} aria-hidden="true" />
+                  <span className="min-w-0 flex-1">
+                    <span className="t-body block truncate">{conv.title || 'New chat'}</span>
+                    <span className="t-caption block">{formatRelativeTime(conv.updated_at)}</span>
+                  </span>
                 </button>
+                <IconButton
+                  aria-label="Delete chat"
+                  onClick={e => handleDelete(e, conv.id)}
+                  disabled={deletingId === conv.id}
+                  className="shrink-0 hover:text-negative"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </IconButton>
               </li>
             )
           })}
