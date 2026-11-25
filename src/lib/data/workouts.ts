@@ -144,28 +144,14 @@ function setVolumeFromRow(set: any): number {
 export const getWorkoutsSummary = cache(async (userId: string) => {
   const supabase = await getSupabaseServer()
 
-  const [{ count, error: countErr }, { data: setsData, error: setsErr }] = await Promise.all([
-    supabase
-      .from('workouts')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId),
-    supabase
-      .from('sets')
-      .select('weight_kg, reps, workout_exercises!inner(exercise:exercises(name), workouts!inner(user_id, bodyweight_kg))')
-      .eq('workout_exercises.workouts.user_id', userId),
-  ])
+  // Summed in SQL: downloading every set grew with history and was cut off
+  // at PostgREST's 1000-row limit. Uses the same volume rule as setVolume().
+  const { data, error } = await supabase.rpc('get_workout_totals', { p_user_id: userId }).single()
 
-  if (countErr) {
-    console.error('Failed to count workouts:', countErr.message)
-    throw new DatabaseError('Failed to count workouts', countErr)
-  }
+  if (error) throw new DatabaseError('Failed to fetch workout totals', error)
 
-  let totalVolume = 0
-  if (setsData && !setsErr) {
-    totalVolume = setsData.reduce((acc, set: any) => acc + setVolumeFromRow(set), 0)
-  }
-
-  return { totalWorkouts: count || 0, totalVolume }
+  // numeric arrives from PostgREST as a string
+  return { totalWorkouts: Number(data.total_workouts), totalVolume: Number(data.total_volume) }
 })
 
 export const getVolumeHistory = cache(async (
