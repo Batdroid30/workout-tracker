@@ -108,7 +108,17 @@ export async function createRoutine(userId: string, input: CreateRoutineInput) {
       .from('routine_exercises')
       .insert(routineExercises as any)
 
-    if (exercisesErr) throw new DatabaseError('Failed to add routine exercises', exercisesErr)
+    if (exercisesErr) {
+      // The caller never learns this routine's id on failure, so remove it here
+      // rather than leave an empty routine behind.
+      const { error: cleanupErr } = await supabase
+        .from('routines')
+        .delete()
+        .eq('id', routineData.id)
+        .eq('user_id', userId)
+      if (cleanupErr) console.error('Failed to remove routine after its exercises failed to save:', cleanupErr.message)
+      throw new DatabaseError('Failed to add routine exercises', exercisesErr)
+    }
   }
 
   return routineData
