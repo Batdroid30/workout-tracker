@@ -1,12 +1,15 @@
 import { CoachRoutineCard } from './CoachRoutineCard'
+import { CoachProposals, type ProposalStatus } from './CoachProposals'
 import type { CoachMessage } from '@/types/coach'
 
 interface CoachMessageBubbleProps {
   message: CoachMessage
+  onProposalStatusChange?: (messageId: string, proposalId: string, status: ProposalStatus) => void
 }
 
-export function CoachMessageBubble({ message }: CoachMessageBubbleProps) {
+export function CoachMessageBubble({ message, onProposalStatusChange }: CoachMessageBubbleProps) {
   const isUser = message.role === 'user'
+  const proposals = message.metadata?.proposals ?? []
 
   return (
     <div className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -27,6 +30,14 @@ export function CoachMessageBubble({ message }: CoachMessageBubbleProps) {
           <CoachRoutineCard
             routine={message.metadata.proposed_routine}
             savedRoutineId={message.metadata.saved_routine_id}
+          />
+        )}
+
+        {proposals.length > 0 && (
+          <CoachProposals
+            messageId={message.id}
+            proposals={proposals}
+            onStatusChange={(proposalId, status) => onProposalStatusChange?.(message.id, proposalId, status)}
           />
         )}
       </div>

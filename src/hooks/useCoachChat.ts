@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react'
 import type { CoachMessage, CoachStreamEvent, ProposedRoutine } from '@/types/coach'
+import type { CoachProposal } from '@/lib/coach/proposals'
 
 interface UseCoachChatOptions {
   initialConversationId?: string
@@ -117,6 +118,20 @@ export function useCoachChat({
                         : m
                     )
                   )
+                } else if (event.type === 'proposal') {
+                  setMessages(prev =>
+                    prev.map(m =>
+                      m.id === tempAssistantMsgId
+                        ? {
+                            ...m,
+                            metadata: {
+                              ...m.metadata,
+                              proposals: [...(m.metadata?.proposals ?? []), event.proposal],
+                            },
+                          }
+                        : m
+                    )
+                  )
                 } else if (event.type === 'message_complete') {
                   activeConvId = event.conversation_id
                   setConversationId(event.conversation_id)
@@ -165,6 +180,25 @@ export function useCoachChat({
     [conversationId, isStreaming]
   )
 
+  const setProposalStatus = useCallback(
+    (messageId: string, proposalId: string, status: CoachProposal['status']) => {
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === messageId && m.metadata?.proposals
+            ? {
+                ...m,
+                metadata: {
+                  ...m.metadata,
+                  proposals: m.metadata.proposals.map(p => (p.id === proposalId ? { ...p, status } : p)),
+                },
+              }
+            : m
+        )
+      )
+    },
+    []
+  )
+
   const stopStreaming = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -205,5 +239,6 @@ export function useCoachChat({
     stopStreaming,
     resetChat,
     loadConversation,
+    setProposalStatus,
   }
 }
