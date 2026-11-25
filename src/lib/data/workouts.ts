@@ -10,15 +10,6 @@ import { splitPage, type HistoryCursor } from './history-page'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function fetchPRSetMap(supabase: any, uid: string): Promise<Map<string, PRType[]>> {
-  const { data } = await supabase
-    .from('personal_records')
-    .select('set_id, pr_type')
-    .eq('user_id', uid)
-    .not('set_id', 'is', null)
-  return groupPRTypesBySet(data ?? [])
-}
-
 function groupPRTypesBySet(rows: { set_id: string; pr_type: PRType }[]): Map<string, PRType[]> {
   const map = new Map<string, PRType[]>()
   rows.forEach(pr => {
@@ -48,31 +39,27 @@ function attachPRTypes<T extends { workout_exercises: any[] }>(
 // React cache() deduplicates calls within a single request.
 // No persistent server-side cache — every page load gets fresh data.
 
-export const getRecentWorkouts = cache(async (userId: string) => {
+// Home's "Latest" card falls back to this when there is no recent PR.
+export const getLastCompletedWorkout = cache(async (userId: string) => {
   const supabase = await getSupabaseServer()
 
-  const [{ data, error }, prSetMap] = await Promise.all([
-    supabase
-      .from('workouts')
-      .select(`
-        *,
-        workout_exercises (
-          exercise:exercises ( name, muscle_group, secondary_muscles ),
-          sets ( id, weight_kg, reps, is_warmup )
-        )
-      `)
-      .eq('user_id', userId)
-      .order('started_at', { ascending: false })
-      .limit(5),
-    fetchPRSetMap(supabase, userId),
-  ])
+  const { data, error } = await supabase
+    .from('workouts')
+    .select(`
+      id, title, started_at, duration_seconds, bodyweight_kg,
+      workout_exercises (
+        exercise:exercises ( name ),
+        sets ( weight_kg, reps, is_warmup )
+      )
+    `)
+    .eq('user_id', userId)
+    .not('completed_at', 'is', null)
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
-  if (error) {
-    console.error('Failed to fetch recent workouts:', error.message)
-    throw new DatabaseError('Failed to fetch recent workouts', error)
-  }
-
-  return attachPRTypes(data, prSetMap)
+  if (error) throw new DatabaseError('Failed to fetch last completed workout', error)
+  return data
 })
 
 const HISTORY_PAGE_SIZE = 20
