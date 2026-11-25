@@ -105,7 +105,7 @@ export function describeRoutines(
 
 // Other users' custom exercises can appear in the library query; the coach
 // must never offer them, since the lifter cannot use them in a routine.
-function isUsableBy(exercise: Exercise, userId: string): boolean {
+export function isUsableBy(exercise: Exercise, userId: string): boolean {
   return !exercise.is_custom || exercise.created_by === userId
 }
 
