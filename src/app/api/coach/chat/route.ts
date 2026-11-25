@@ -1,3 +1,5 @@
+import { createStreamSender } from '@/lib/coach/stream-sender'
+import { toolCallsToRun } from '@/lib/coach/tool-gate'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { getSupabaseServer } from '@/lib/supabase/server'
@@ -90,6 +92,7 @@ export async function POST(req: Request) {
 
     const stream = new ReadableStream({
       async start(controller) {
+        const sender = createStreamSender(controller)
         if (!apiKey) {
           // Graceful stub mode when API key is not yet set
           const stubText =
@@ -97,7 +100,7 @@ export async function POST(req: Request) {
             `Your training data, routines, and workout analytics have been wired up successfully. ` +
             `To enable live AI responses and custom routine generation, please add your \`ANTHROPIC_API_KEY\` to your \`.env.local\` file.`
 
-          controller.enqueue(sseEvent({ type: 'text_delta', text: stubText }))
+          sender.send(sseEvent({ type: 'text_delta', text: stubText }))
 
           const saved = await saveCoachMessage({
             conversationId: convId,
@@ -105,14 +108,14 @@ export async function POST(req: Request) {
             content: stubText,
           })
 
-          controller.enqueue(
+          sender.send(
             sseEvent({
               type: 'message_complete',
               message_id: saved.id,
               conversation_id: convId,
             })
           )
-          controller.close()
+          sender.close()
           return
         }
 
@@ -189,7 +192,7 @@ export async function POST(req: Request) {
               chunk.delta.type === 'text_delta'
             ) {
               fullContent += chunk.delta.text
-              controller.enqueue(
+              sender.send(
                 sseEvent({ type: 'text_delta', text: chunk.delta.text })
               )
             }
@@ -197,41 +200,40 @@ export async function POST(req: Request) {
 
           const finalMessage = await claudeStream.finalMessage()
 
-          // Check if Claude requested any tool calls
-          for (const block of finalMessage.content) {
-            if (block.type === 'tool_use') {
-              const toolResult: ToolExecutionResult = await executeCoachTool(
-                block.name,
-                block.input as Record<string, unknown>,
-                user.id
-              )
+          // Run the tools Claude asked for, but only while the lifter is still here
+          // (see toolCallsToRun).
+          for (const block of toolCallsToRun(finalMessage.content, sender.isOpen)) {
+            const toolResult: ToolExecutionResult = await executeCoachTool(
+              block.name,
+              block.input as Record<string, unknown>,
+              user.id
+            )
 
-              toolInvocations.push({
-                name: block.name,
-                input: block.input as Record<string, unknown>,
-                result: toolResult,
-              })
+            toolInvocations.push({
+              name: block.name,
+              input: block.input as Record<string, unknown>,
+              result: toolResult,
+            })
 
-              if (toolResult.proposed_routine) {
-                proposedRoutine = toolResult.proposed_routine
-                savedRoutineId = toolResult.saved_routine_id
+            if (toolResult.proposed_routine) {
+              proposedRoutine = toolResult.proposed_routine
+              savedRoutineId = toolResult.saved_routine_id
 
-                controller.enqueue(
-                  sseEvent({
-                    type: 'routine_proposed',
-                    routine: toolResult.proposed_routine,
-                  })
-                )
-              }
-
-              controller.enqueue(
+              sender.send(
                 sseEvent({
-                  type: 'tool_result',
-                  tool: block.name,
-                  result: toolResult,
+                  type: 'routine_proposed',
+                  routine: toolResult.proposed_routine,
                 })
               )
             }
+
+            sender.send(
+              sseEvent({
+                type: 'tool_result',
+                tool: block.name,
+                result: toolResult,
+              })
+            )
           }
 
           // Save assistant message with metadata
@@ -255,7 +257,7 @@ export async function POST(req: Request) {
             finalMessage.usage.output_tokens
           ).catch(() => {})
 
-          controller.enqueue(
+          sender.send(
             sseEvent({
               type: 'message_complete',
               message_id: savedMessage.id,
@@ -264,14 +266,14 @@ export async function POST(req: Request) {
           )
         } catch (streamError) {
           console.error('Claude streaming error:', streamError)
-          controller.enqueue(
+          sender.send(
             sseEvent({
               type: 'error',
               message: 'Failed to generate coach response. Please try again.',
             })
           )
         } finally {
-          controller.close()
+          sender.close()
         }
       },
     })

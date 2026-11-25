@@ -1,12 +1,17 @@
 import { requireAuth } from '@/lib/auth'
-import { getConversations, getConversationMessages } from '@/lib/data/coach'
+import { getConversations } from '@/lib/data/coach'
+import { getCoachSignals } from '@/lib/data/coach-signals'
 import { CoachChatView } from '@/components/coach/CoachChatView'
 import { readCoachPrompt } from '@/lib/coach/read-coach-prompt'
+import { chatWhen } from '@/lib/coach/chat-when'
+import { pickCoachNotes } from '@/lib/home'
 
 export const metadata = {
-  title: 'AI Coach | Workout Tracker',
-  description: 'Evidence-based AI strength & conditioning coach',
+  title: 'Coach | Lifts',
+  description: 'What your coach noticed this week, and a chat to ask about it.',
 }
+
+const RECENT_CHAT_COUNT = 3
 
 interface CoachPageProps {
   searchParams: Promise<{ prompt?: string | string[] }>
@@ -16,24 +21,17 @@ export default async function CoachPage({ searchParams }: CoachPageProps) {
   const { userId } = await requireAuth()
   const prompt = readCoachPrompt((await searchParams).prompt)
 
-  // Restore the latest conversation if one exists
-  const conversations = await getConversations(userId)
-  const latestConv = conversations.length > 0 ? conversations[0] : null
+  // A deep link starts a fresh chat with its question, straight away.
+  if (prompt) return <CoachChatView initialPrompt={prompt} />
 
-  // If a deep-link prompt is provided, always start a fresh conversation
-  // so the pre-filled message isn't appended to an existing unrelated chat.
-  const initialConvId = prompt ? undefined : latestConv?.id
+  // Otherwise Coach opens on what it noticed this week, then recent chats.
+  const [signals, conversations] = await Promise.all([getCoachSignals(userId), getConversations(userId)])
+  const now = new Date()
+  const recentChats = conversations.slice(0, RECENT_CHAT_COUNT).map(conversation => ({
+    id: conversation.id,
+    title: conversation.title,
+    when: chatWhen(conversation.updated_at, now),
+  }))
 
-  const initialMessages =
-    !prompt && latestConv
-      ? await getConversationMessages(latestConv.id, 40)
-      : []
-
-  return (
-    <CoachChatView
-      initialConversationId={initialConvId}
-      initialMessages={initialMessages}
-      initialPrompt={prompt}
-    />
-  )
+  return <CoachChatView notes={pickCoachNotes(signals.input)} recentChats={recentChats} />
 }

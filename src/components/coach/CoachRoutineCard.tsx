@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Dumbbell, CheckCircle2, ArrowRight } from 'lucide-react'
-import { Chip } from '@/components/ui'
+import { Card, Chip } from '@/components/ui'
 import type { ProposedRoutine } from '@/types/coach'
 
 interface CoachRoutineCardProps {
@@ -10,7 +10,7 @@ interface CoachRoutineCardProps {
 
 export function CoachRoutineCard({ routine, savedRoutineId }: CoachRoutineCardProps) {
   return (
-    <div className="mt-3 card p-4">
+    <Card className="mt-3">
       <div className="flex items-center justify-between border-b border-border pb-3">
         <div className="flex min-w-0 items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-control bg-surface-raised text-secondary">
@@ -60,6 +60,6 @@ export function CoachRoutineCard({ routine, savedRoutineId }: CoachRoutineCardPr
           View in Routines <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
-    </div>
+    </Card>
   )
 }

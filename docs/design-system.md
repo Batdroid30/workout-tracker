@@ -213,6 +213,17 @@ Loading placeholder: `surface-raised`, `radius-field`, `motion-safe:animate-puls
   - **How the next day is picked** (`src/lib/split-rotation.ts`): the day after the last workout that came from a split routine. Each calendar day that passes after that workout uses up a following rest day. Workouts from routines outside the split don't move it; doing a different routine from the split jumps to that day. **Not today → Skip to next** and **Start from here** (in the editor) set a pointer that wins until a newer split workout is logged. After 7+ days away the card adds "Welcome back — it's been N days." and keeps your place.
   - **No split:** a card invites "Set up your split" and, when a muscle hasn't been trained for 10+ days, shows the suggested routine (or focus) with its reason (`src/lib/split-fallback.ts`).
   - **Editor** (`/routines/split/new`, `/routines/split/<id>`): name, ordered days with move up/down/remove icon buttons (labelled per day), **Add routine** (sheet) and **Add rest day**, an "Active split" ToggleChip, lime **Save**, destructive **Delete split**. Up to 14 days, at least one routine. Only one split is active at a time; another becomes active with "Make active" on Train.
+- **Coach** (`/coach`; notes in `src/lib/home.ts`, screen in `src/components/coach/`): notes first, then the chat.
+  - **Opening:** caption "Coach" over "This week" in `t-display`, and a 44px Past chats button. **What I noticed** lists every coach note that applies (`pickCoachNotes`), in Home's order, so Home's one note is always Coach's first. Each note shows its kind as a label (caution for light weeks, deload and stalled lift), title, body, **Ask about this ›** (starts a chat with the note's `prompt`) and its usual action link. Nothing applies → "Nothing needs attention this week."
+  - **Recent chats:** the last 3 with a short date (`chatWhen`) and **See all** (the history sheet). Untitled chats read "New chat".
+  - **Chat:** a top bar with ‹ back to notes, the chat's title and ＋ new chat. The lifter's messages sit in a `surface-raised` bubble; the coach's are plain text. Saved routines keep their card with "Saved" and a link to Routines. The box reads "Ask your coach…". A reply is saved even if the lifter leaves mid-answer (`createStreamSender`).
+  - **Deep links:** `/coach?prompt=…` (stalled lifts, workout insight) skip the notes and start a fresh chat with that question.
+  - No badges or sales copy ("PRO", "precision"…).
+- **Workout detail** (`/workout/[id]`; numbers in `src/lib/workout-summary.ts`): a past workout, summary first.
+  - **Top bar:** ‹ to history, **Perform again**, and ⋯ (`WorkoutActionsMenu`: Edit details, Delete workout).
+  - **Summary:** date and time, title in `t-display`, notes; tap to edit. Then one card with Time · Volume · Sets · PRs in mono, PRs in lime only when above 0. Then **Muscles trained**, the front/back map with sets per muscle.
+  - **Log:** one card per exercise (name → lift page, muscle, a 44px remove button), then one row per set: number, or **W** in caution for warm-ups, `weight × reps` in mono, and a lime trophy on PR sets. Tap a set to edit it.
+  - **Coach's read** last, with Ask Coach.
 
 ### Where things live
 - Account and settings: the profile picture on Home → `/account` (import at `/account/import`, "Clear all data" under Danger zone).
@@ -231,11 +242,11 @@ Loading placeholder: `surface-raised`, `radius-field`, `motion-safe:animate-puls
 
 ## Guard rails
 
-`npx eslint src` warns (`Design:` messages) on, outside the primitive files:
+`npx eslint src` fails with `Design:` errors on, outside the primitive files:
 - raw hex or `rgb()/rgba()` colours,
 - Tailwind arbitrary colours (`bg-[#…]`) and pixel font sizes (`text-[11px]`),
 - Tailwind palette colours (`text-white`, `bg-red-500`…) and off-palette greys (`zinc-*`, `gray-*`…),
-- legacy token references (`var(--accent)`, `var(--text-hi)`, `var(--glass-…)`…).
+- legacy token references (`var(--accent)`, `var(--text-hi)`, `var(--glass-…)`…). The aliases themselves are deleted, so these no longer resolve to anything.
 
 All are at zero. A real exception takes an inline `eslint-disable-next-line` with the reason (e.g. real-world plate colours in PlateCalculator). `src/styles/tokens.test.ts` checks the contrast pairs above.
 
@@ -243,4 +254,4 @@ All are at zero. A real exception takes an inline `eslint-disable-next-line` wit
 
 ## What's next
 
-Steps 1 (visual foundation) and 2 (navigation) are done. Coming: redesigned Home, workout logger, Progress (with history and exercises) and Coach. Legacy token aliases are deleted in the last step.
+The redesign is complete: every screen uses this system, the legacy aliases and `.glass` are gone, and the design rule is an error. Next: coach powers (step 6b), where the coach can look up the exercise library and propose swaps and reorders in the lifter's routines, with a confirm before anything changes.

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { Search, ChevronRight, Plus } from 'lucide-react'
-import { Button, Input, ToggleChip } from '@/components/ui'
+import { Button, Card, Input, ToggleChip } from '@/components/ui'
 import Link from 'next/link'
 import { Exercise } from '@/types/database'
 import { CreateExerciseModal } from '@/components/exercises/CreateExerciseModal'
@@ -64,7 +64,7 @@ export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseList
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tertiary" />
           <Input
-            placeholder="Search exercises..."
+            placeholder="Search exercises"
             className="pl-9 pr-4"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -87,33 +87,31 @@ export function ExerciseListClient({ initialExercises, hideTitle }: ExerciseList
       </div>
 
       <div className="flex-1 p-4 pb-28 overflow-y-auto">
-        <div className="space-y-2">
-          {filteredExercises.length === 0 ? (
-            <p className="t-caption text-center mt-8">No exercises found.</p>
-          ) : (
-            filteredExercises.map((ex) => (
-              <Link href={`/exercises/${ex.id}`} key={ex.id}>
-                <div
-                  className="card flex items-center justify-between px-4 py-3.5 rounded-control transition-all active:scale-[0.98] mb-2 hover:opacity-90"
-                >
-                  <div className="min-w-0">
-                    <p className="font-semibold tracking-tight text-sm text-primary">
-                      {ex.name}
-                    </p>
-                    <p className="t-caption mt-0.5 capitalize truncate">
-                      {ex.muscle_group}
-                      {ex.secondary_muscles && ex.secondary_muscles.length > 0
-                        ? ` · ${ex.secondary_muscles.slice(0, 2).join(', ')}`
-                        : ''}
-                      {ex.equipment ? ` · ${ex.equipment}` : ''}
-                    </p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 shrink-0 ml-2 text-tertiary" />
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
+        {filteredExercises.length === 0 ? (
+          <p className="t-body-sm mt-8 text-center">No exercises match. Try another search or muscle.</p>
+        ) : (
+          <Card padding="none">
+            <ul>
+              {filteredExercises.map((ex, index) => (
+                <li key={ex.id} className={index > 0 ? 'border-t border-border' : undefined}>
+                  <Link href={`/exercises/${ex.id}`} className="focus-ring flex min-h-14 items-center justify-between gap-2 px-4 py-2">
+                    <span className="min-w-0">
+                      <span className="t-body block truncate">{ex.name}</span>
+                      <span className="t-caption block truncate capitalize">
+                        {ex.muscle_group}
+                        {ex.secondary_muscles && ex.secondary_muscles.length > 0
+                          ? ` · ${ex.secondary_muscles.slice(0, 2).join(', ')}`
+                          : ''}
+                        {ex.equipment ? ` · ${ex.equipment}` : ''}
+                      </span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-tertiary" aria-hidden="true" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
       </div>
 
       <CreateExerciseModal

@@ -46,7 +46,7 @@ export default async function AccountPage() {
       <TrainingCycleSection cycle={trainingCycle} hasPhase={Boolean(profile?.phase_started_at)} />
 
       <section className="mt-10 pt-6 border-t border-border">
-        <h2 className="t-label mb-3">Danger zone</h2>
+        <h2 className="t-title-3 mb-2">Danger zone</h2>
         <ClearDataButton />
       </section>
     </div>

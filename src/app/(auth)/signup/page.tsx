@@ -19,29 +19,29 @@ export default async function SignupPage({ searchParams }: Props) {
       </div>
 
       {error && (
-        <div className="p-3 bg-negative-soft text-negative text-xs font-medium rounded-control">
+        <div className="p-3 bg-negative-soft text-negative text-sm rounded-control">
           {error}
         </div>
       )}
 
       <div className="space-y-1.5">
-        <label className="t-label block">Email</label>
-        <Input type="email" name="email" placeholder="you@example.com" required />
+        <label htmlFor="email" className="t-label block">Email</label>
+        <Input id="email" type="email" name="email" autoComplete="email" placeholder="you@example.com" required />
       </div>
       <div className="space-y-1.5">
-        <label className="t-label block">Password</label>
-        <Input type="password" name="password" placeholder="Create a password" required />
+        <label htmlFor="password" className="t-label block">Password</label>
+        <Input id="password" type="password" name="password" autoComplete="new-password" placeholder="Create a password" required />
       </div>
       <div className="space-y-1.5">
-        <label className="t-label block">Confirm password</label>
-        <Input type="password" name="confirmPassword" placeholder="Confirm password" required />
+        <label htmlFor="confirmPassword" className="t-label block">Confirm password</label>
+        <Input id="confirmPassword" type="password" name="confirmPassword" autoComplete="new-password" placeholder="Confirm password" required />
       </div>
 
       <SubmitButton type="submit" className="mt-6 w-full" pendingText="Creating account...">Create account</SubmitButton>
 
-      <p className="text-center text-xs mt-4 text-tertiary">
+      <p className="t-body-sm mt-4 text-center">
         Already have an account?{' '}
-        <Link href="/login" className="font-semibold text-primary hover:underline">
+        <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-primary hover:underline">
           Sign in
         </Link>
       </p>

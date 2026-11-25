@@ -274,7 +274,7 @@ export default function WorkoutPage() {
 
         {/* ── Empty exercise state ──────────────────────────────────────── */}
         {activeWorkout.exercises.length === 0 ? (
-          <div className="glass border-dashed text-center py-16 mt-4">
+          <div className="card border-dashed text-center py-16 mt-4">
             <div
               className="w-14 h-14 rounded-control flex items-center justify-center mx-auto mb-4 bg-surface-raised border border-border"
             >

@@ -60,7 +60,7 @@ const eslintConfig = defineConfig([
     files: ["src/**/*.ts", "src/**/*.tsx"],
     ignores: ["**/*.test.ts", "**/*.test.tsx", ...DESIGN_PRIMITIVE_FILES],
     rules: {
-      "no-restricted-syntax": ["warn", ...designGuardSelectors],
+      "no-restricted-syntax": ["error", ...designGuardSelectors],
     },
   },
   // Override default ignores of eslint-config-next.

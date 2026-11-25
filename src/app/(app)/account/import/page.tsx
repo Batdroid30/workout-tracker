@@ -141,7 +141,7 @@ export default function ImportPage() {
                   <button
                     type="button"
                     onClick={() => setFile(null)}
-                    className="text-xs font-medium text-tertiary transition-colors hover:text-primary min-h-10 px-2"
+                    className="focus-ring min-h-11 px-2 text-sm font-medium text-secondary transition-colors hover:text-primary"
                   >
                     Remove
                   </button>

@@ -198,7 +198,7 @@ export function ProfileForm({ profile, userEmail }: ProfileFormProps) {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             aria-label="Change avatar"
-            className="absolute -bottom-1 -right-1 p-1.5 rounded-pill bg-primary text-bg hover:opacity-90 active:scale-95 transition-all"
+            className="focus-ring absolute -bottom-3 -right-3 flex size-11 items-center justify-center before:absolute before:size-7 before:rounded-pill before:bg-primary [&>svg]:relative [&>svg]:text-bg hover:opacity-90 active:scale-95 transition-all"
           >
             <Camera className="w-3.5 h-3.5" />
           </button>

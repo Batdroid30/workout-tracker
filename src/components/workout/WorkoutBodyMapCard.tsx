@@ -55,8 +55,8 @@ export function WorkoutBodyMapCard({ exercises }: WorkoutBodyMapCardProps) {
       : 'Tap a muscle for details.'
 
   return (
-    <div className="glass p-4 flex flex-col items-center">
-      <p className="t-label self-start mb-2">Muscles worked</p>
+    <div className="card p-4 flex flex-col items-center">
+      <p className="t-title-3 self-start mb-2">Muscles trained</p>
       <BodyMap
         fills={fills}
         opacities={opacities}

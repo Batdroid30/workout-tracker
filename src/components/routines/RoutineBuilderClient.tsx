@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, ArrowLeft, Trash2 } from 'lucide-react'
 import Link from 'next/link'
-import { Button, ToggleChip } from '@/components/ui'
+import { Button, IconButton, ToggleChip } from '@/components/ui'
 import { Input } from '@/components/ui/Input'
 import { AddExerciseModal } from '@/components/workout/AddExerciseModal'
 import { createRoutineAction, updateRoutineDetailsAction } from '@/app/(app)/routines/actions'
@@ -110,13 +110,14 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
         {/* Back */}
         <Link
           href="/routines"
-          className="p-2.5 rounded-control transition-colors text-secondary hover:bg-surface-raised shrink-0"
+          aria-label="Back to routines"
+          className="focus-ring inline-flex size-11 shrink-0 items-center justify-center rounded-pill text-secondary hover:text-primary"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </Link>
 
         {/* Title — takes remaining space, truncates on narrow screens */}
-        <h1 className="flex-1 min-w-0 text-sm font-semibold text-primary truncate">
+        <h1 className="t-title-3 flex-1 min-w-0 truncate">
           {initialRoutine ? 'Edit routine' : 'Build routine'}
         </h1>
 
@@ -166,7 +167,7 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
 
         {/* ── Exercises List ───────────────────────────────────────────────── */}
         <div className="space-y-3">
-          <h3 className="t-label">Exercises</h3>
+          <h2 className="t-title-3">Exercises</h2>
 
           {exercises.map((ex, i) => (
             <div
@@ -180,13 +181,13 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
                   </h4>
                   <p className="t-label mt-0.5 capitalize">{ex.exercise.muscle_group}</p>
                 </div>
-                <button
+                <IconButton
                   onClick={() => handleRemoveExercise(i)}
-                  className="p-2.5 rounded-control transition-colors text-tertiary hover:bg-negative-soft hover:text-negative"
+                  className="shrink-0 hover:text-negative"
                   aria-label={`Remove ${ex.exercise.name}`}
                 >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </IconButton>
               </div>
 
               <div className="p-4 space-y-3">
@@ -248,12 +249,9 @@ export function RoutineBuilderClient({ userId, initialRoutine }: RoutineBuilderP
             </div>
           ))}
 
-          <button
-            onClick={() => setIsAddingExercise(true)}
-            className="w-full h-12 flex items-center justify-center gap-2 rounded-pill border border-dashed border-border-strong text-sm font-medium text-primary transition-colors hover:bg-surface-raised"
-          >
-            <Plus className="w-4 h-4" /> Add exercise
-          </button>
+          <Button variant="secondary" onClick={() => setIsAddingExercise(true)} leadingIcon={<Plus className="h-4 w-4" aria-hidden="true" />}>
+            Add exercise
+          </Button>
         </div>
       </div>
 

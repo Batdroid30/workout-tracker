@@ -1,27 +1,43 @@
 'use client'
 
 import { useRef, useEffect, useState } from 'react'
-import { Plus, Sparkles, AlertCircle, History } from 'lucide-react'
-import { Chip } from '@/components/ui'
+import { useRouter } from 'next/navigation'
+import { AlertCircle } from 'lucide-react'
 import { useCoachChat } from '@/hooks/useCoachChat'
 import { CoachMessageBubble } from './CoachMessageBubble'
-import { CoachEmptyState } from './CoachEmptyState'
 import { CoachInput } from './CoachInput'
 import { CoachHistoryDrawer } from './CoachHistoryDrawer'
+import { CoachHome, type RecentChat } from './CoachHome'
+import { CoachChatTopBar } from './CoachChatTopBar'
 import type { CoachMessage } from '@/types/coach'
+import type { CoachNote } from '@/lib/home'
+
+const CHAT_TITLE_LENGTH = 40
 
 interface CoachChatViewProps {
   initialConversationId?: string
   initialMessages?: CoachMessage[]
   /** Pre-filled prompt sent automatically on mount (from deep-links). */
   initialPrompt?: string
+  /** What the coach noticed this week; loaded only on the plain /coach page. */
+  notes?: CoachNote[]
+  recentChats?: RecentChat[]
+}
+
+function chatTitle(messages: CoachMessage[], pendingPrompt?: string): string {
+  const first = (messages.find(message => message.role === 'user')?.content ?? pendingPrompt)?.trim()
+  if (!first) return 'New chat'
+  return first.length > CHAT_TITLE_LENGTH ? `${first.slice(0, CHAT_TITLE_LENGTH)}…` : first
 }
 
 export function CoachChatView({
   initialConversationId,
   initialMessages = [],
   initialPrompt,
+  notes,
+  recentChats = [],
 }: CoachChatViewProps) {
+  const router = useRouter()
   const {
     conversationId,
     messages,
@@ -54,6 +70,18 @@ export function CoachChatView({
     }
   }, [initialPrompt, sendMessage])
 
+  // The notes are only loaded on plain /coach. Anywhere else (a past chat, a
+  // deep link) going back loads that page; resetting first would flash an empty
+  // notes screen while it loads.
+  const notesLoaded = notes !== undefined
+  const backToNotes = () => {
+    if (notesLoaded) resetChat()
+    else router.push('/coach')
+  }
+
+  // A deep link is a chat from the first render: its question is sent right after.
+  const isChatting = messages.length > 0 || Boolean(initialPrompt) || !notesLoaded
+
   return (
     <div
       className="flex flex-col max-w-2xl mx-auto"
@@ -61,60 +89,18 @@ export function CoachChatView({
         height: 'calc(100dvh - max(7rem, calc(5.75rem + env(safe-area-inset-bottom, 0px))))',
       }}
     >
-      {/* Top Header Bar */}
-      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3 shrink-0 bg-bg sticky top-0 z-10">
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-surface-raised text-secondary">
-            <Sparkles className="h-4 w-4" />
-            <span className="absolute bottom-0.5 right-0.5 h-2 w-2 rounded-full bg-positive ring-2 ring-bg" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-sm font-bold text-primary flex items-center gap-1.5">
-              AI Coach
-              <Chip>PRO</Chip>
-            </h1>
-            <p className="truncate text-xs text-tertiary">Live science &amp; routine engine</p>
-          </div>
-        </div>
+      {isChatting && <CoachChatTopBar title={chatTitle(messages, initialPrompt)} onBack={backToNotes} onNewChat={backToNotes} />}
 
-        <div className="flex shrink-0 items-center gap-2">
-          {/* History drawer toggle */}
-          <button
-            type="button"
-            onClick={() => setHistoryOpen(true)}
-            className="focus-ring flex min-h-10 items-center gap-1.5 rounded-pill border border-border-strong bg-surface-raised px-3 text-xs font-medium text-primary transition-colors active:scale-95"
-            aria-label="Open chat history"
-          >
-            <History className="h-3.5 w-3.5" />
-            <span>History</span>
-          </button>
-
-          {/* New chat */}
-          <button
-            type="button"
-            onClick={resetChat}
-            className="focus-ring flex min-h-10 items-center gap-1.5 rounded-pill border border-border-strong bg-surface-raised px-3 text-xs font-medium text-primary transition-colors active:scale-95"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>New</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Messages Scroll Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 ? (
-          <CoachEmptyState onSelectPrompt={sendMessage} />
+        {isChatting ? (
+          messages.map(msg => <CoachMessageBubble key={msg.id} message={msg} />)
         ) : (
-          messages.map(msg => (
-            <CoachMessageBubble key={msg.id} message={msg} />
-          ))
+          <CoachHome notes={notes ?? []} recentChats={recentChats} onAsk={sendMessage} onOpenHistory={() => setHistoryOpen(true)} />
         )}
 
-        {/* Error notification */}
         {error && (
-          <div className="flex items-center gap-2 rounded-control bg-negative-soft p-3 text-xs text-negative">
-            <AlertCircle className="h-4 w-4 shrink-0" />
+          <div className="flex items-center gap-2 rounded-control bg-negative-soft p-3 text-sm text-negative">
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{error}</span>
           </div>
         )}
@@ -122,7 +108,6 @@ export function CoachChatView({
         <div ref={messagesEndRef} className="h-4" />
       </div>
 
-      {/* Input Area */}
       <div className="p-3 shrink-0 bg-bg">
         <CoachInput
           onSend={sendMessage}
@@ -131,13 +116,12 @@ export function CoachChatView({
         />
       </div>
 
-      {/* Conversation History Drawer */}
       <CoachHistoryDrawer
         isOpen={historyOpen}
         onClose={() => setHistoryOpen(false)}
         currentConversationId={conversationId}
         onSelectConversation={loadConversation}
-        onNewChat={resetChat}
+        onNewChat={backToNotes}
       />
     </div>
   )

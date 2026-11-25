@@ -6,21 +6,44 @@ import { updateWorkoutMetaAction } from '@/app/(app)/workout/[id]/actions'
 import { Button, Input } from '@/components/ui'
 import { useDialog } from '@/providers/DialogProvider'
 import { Edit2 } from 'lucide-react'
+import { editableMeta } from './editable-meta'
 
 interface EditWorkoutMetaModalProps {
   workoutId: string
   initialTitle: string | null
   initialDuration: number | null
   initialNotes: string | null
-  children: React.ReactNode
+  /** The tappable area that opens the dialog. Leave out when `open` controls it. */
+  children?: React.ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export function EditWorkoutMetaModal({ workoutId, initialTitle, initialDuration, initialNotes, children }: EditWorkoutMetaModalProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [title, setTitle] = useState(initialTitle || '')
-  const [duration, setDuration] = useState(initialDuration ? Math.floor(initialDuration / 60) : 0) // stored in minutes
-  const [notes, setNotes] = useState(initialNotes || '')
-  
+export function EditWorkoutMetaModal({ workoutId, initialTitle, initialDuration, initialNotes, children, open, onOpenChange }: EditWorkoutMetaModalProps) {
+  const [ownOpen, setOwnOpen] = useState(false)
+  const isOpen = open ?? ownOpen
+  const setIsOpen = (next: boolean) => {
+    if (onOpenChange) onOpenChange(next)
+    else setOwnOpen(next)
+  }
+  const initial = editableMeta(initialTitle, initialDuration, initialNotes)
+  const [title, setTitle] = useState(initial.title)
+  const [duration, setDuration] = useState(initial.minutes)
+  const [notes, setNotes] = useState(initial.notes)
+
+  // Two entry points (tapping the summary, and ⋯ → Edit details) each hold a
+  // copy of the form. Refill it every time it opens, so neither can save back
+  // values the other has already changed.
+  const [wasOpen, setWasOpen] = useState(isOpen)
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen)
+    if (isOpen) {
+      setTitle(initial.title)
+      setDuration(initial.minutes)
+      setNotes(initial.notes)
+    }
+  }
+
   const [isPending, startTransition] = useTransition()
   const dialog = useDialog()
   const router = useRouter()
@@ -39,16 +62,18 @@ export function EditWorkoutMetaModal({ workoutId, initialTitle, initialDuration,
 
   return (
     <>
-      <div onClick={() => setIsOpen(true)} className="cursor-pointer group relative block w-full">
-        {children}
-        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-surface-raised rounded-md">
-          <Edit2 className="w-3 h-3 text-secondary" />
+      {children && (
+        <div onClick={() => setIsOpen(true)} className="cursor-pointer group relative block w-full">
+          {children}
+          <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-surface-raised rounded-control">
+            <Edit2 className="w-3 h-3 text-secondary" />
+          </div>
         </div>
-      </div>
+      )}
 
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center px-4 bg-black/60 animate-in fade-in duration-200">
           <div className="bg-surface-raised border border-border p-6 rounded-card shadow-[var(--shadow-overlay)] w-full max-w-sm animate-in zoom-in-95 duration-200">
             <h3 className="t-title-2 mb-6">Edit workout</h3>
             
