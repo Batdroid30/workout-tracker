@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
-import { Trash2, AlertTriangle, Loader2 } from 'lucide-react'
+import { Trash2, AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui'
 import { clearAllWorkoutDataAction } from '@/app/(app)/profile/actions'
 import { useDialog } from '@/providers/DialogProvider'
 
@@ -41,17 +42,15 @@ export function ClearDataButton() {
   }
 
   return (
-    <button
+    <Button
+      variant="ghost"
+      fullWidth={false}
       onClick={handleClear}
-      disabled={isLoading}
-      className="flex items-center gap-2 text-xs font-medium text-tertiary transition-colors min-h-10 hover:text-negative disabled:opacity-40"
+      loading={isLoading}
+      leadingIcon={<Trash2 className="h-4 w-4" aria-hidden="true" />}
+      className="text-negative hover:text-negative"
     >
-      {isLoading ? (
-        <Loader2 className="w-3 h-3 animate-spin" />
-      ) : (
-        <Trash2 className="w-3 h-3" />
-      )}
-      <span>Clear all data</span>
-    </button>
+      Clear all data
+    </Button>
   )
 }
