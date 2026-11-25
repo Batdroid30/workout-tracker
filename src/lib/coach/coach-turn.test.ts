@@ -138,6 +138,55 @@ describe('runCoachTurn', () => {
     expect(deps.events).toContainEqual({ type: 'proposal', proposal: swapProposal })
   })
 
+  it('shows one card when the model repeats the same proposal, in any key order', async () => {
+    const { createMessage, requests } = scriptedModel([
+      { tools: [{ id: 'tu_1', name: 'propose_swap', input: { routine_id: 'r1', position: 1 } }] },
+      { tools: [{ id: 'tu_2', name: 'propose_swap', input: { position: 1, routine_id: 'r1' } }] },
+      { text: 'Tap Confirm if you agree.' },
+    ])
+    const executeTool = vi.fn(async () => ({ forModel: 'Proposal shown to the lifter.', proposal: swapProposal }))
+    const deps = makeDeps(createMessage, { executeTool })
+
+    const result = await runCoachTurn(deps, userAsks)
+
+    expect(executeTool).toHaveBeenCalledTimes(1)
+    expect(result.proposals).toEqual([swapProposal])
+    expect(deps.events.filter(event => event.type === 'proposal')).toHaveLength(1)
+    const repeatResult = toolResultsIn(requests[2])[0]
+    expect(repeatResult.is_error).toBeUndefined()
+    expect(repeatResult.content).toMatch(/already showing/)
+  })
+
+  it('still shows a card for a different proposal of the same kind', async () => {
+    const { createMessage } = scriptedModel([
+      { tools: [
+        { id: 'tu_1', name: 'propose_swap', input: { routine_id: 'r1', position: 1 } },
+        { id: 'tu_2', name: 'propose_swap', input: { routine_id: 'r1', position: 2 } },
+      ] },
+      { text: 'Two options.' },
+    ])
+    const executeTool = vi.fn(async () => ({ forModel: 'Proposal shown to the lifter.', proposal: swapProposal }))
+
+    await runCoachTurn(makeDeps(createMessage, { executeTool }), userAsks)
+
+    expect(executeTool).toHaveBeenCalledTimes(2)
+  })
+
+  it('lets the model retry a proposal that was refused', async () => {
+    const { createMessage } = scriptedModel([
+      { tools: [{ id: 'tu_1', name: 'propose_swap', input: { routine_id: 'r1' } }] },
+      { tools: [{ id: 'tu_2', name: 'propose_swap', input: { routine_id: 'r1' } }] },
+      { text: 'Done.' },
+    ])
+    const executeTool = vi.fn()
+      .mockResolvedValueOnce({ forModel: 'Routine changed; read it again.', isError: true })
+      .mockResolvedValueOnce({ forModel: 'Proposal shown to the lifter.', proposal: swapProposal })
+
+    const result = await runCoachTurn(makeDeps(createMessage, { executeTool }), userAsks)
+
+    expect(result.proposals).toEqual([swapProposal])
+  })
+
   it('returns tool failures to the model as error results', async () => {
     const { createMessage, requests } = scriptedModel([
       { tools: [{ id: 'tu_1', name: 'propose_swap', input: {} }] },

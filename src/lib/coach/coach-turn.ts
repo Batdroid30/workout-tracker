@@ -17,6 +17,7 @@ const ROUND_SEPARATOR = '\n\n'
 const REFUSAL_TEXT = "I can't help with that one. Ask me something about your training."
 const LIFTER_LEFT_RESULT = 'Not proposed: the lifter has left the chat, so nothing was shown to them. Do not say a change was proposed.'
 const TOOL_FAILED_RESULT = 'The tool failed to run. Tell the lifter you could not complete this step.'
+const REPEATED_PROPOSAL_RESULT = 'This exact proposal is already showing as a card. Do not propose it again or mention a duplicate.'
 
 // The model's streamed text, then its full reply once the stream ends.
 export interface ModelReply extends AsyncIterable<string> {
@@ -48,12 +49,27 @@ export interface CoachTurnResult {
 interface TurnState {
   text: string
   proposals: CoachProposal[]
+  // Inputs of proposals already shown this turn, so a repeated call adds no
+  // second card. Refused proposals are not recorded and may be retried.
+  shownProposalKeys: Set<string>
 }
 
 // Write proposals become cards the lifter must see to confirm; lookups only
 // inform the model, so they may run after the lifter has gone.
 function isProposeTool(name: string): boolean {
   return name.startsWith('propose_')
+}
+
+// Key order varies between calls, so keys are sorted before comparing.
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return '[' + value.map(canonicalJson).join(',') + ']'
+  if (typeof value !== 'object' || value === null) return JSON.stringify(value)
+  const entries = Object.entries(value).sort(([a], [b]) => a.localeCompare(b))
+  return '{' + entries.map(([key, item]) => JSON.stringify(key) + ':' + canonicalJson(item)).join(',') + '}'
+}
+
+function proposalKey(toolUse: BetaToolUseBlock): string {
+  return toolUse.name + canonicalJson(toolUse.input)
 }
 
 function toolUsesIn(content: BetaContentBlock[]): BetaToolUseBlock[] {
@@ -78,14 +94,18 @@ async function safelyExecute(deps: CoachTurnDeps, toolUse: BetaToolUseBlock): Pr
 async function runTool(
   deps: CoachTurnDeps,
   toolUse: BetaToolUseBlock,
-  proposals: CoachProposal[],
+  state: TurnState,
 ): Promise<BetaToolResultBlockParam> {
   if (isProposeTool(toolUse.name) && !deps.isOpen()) {
     return toolResult(toolUse.id, LIFTER_LEFT_RESULT, true)
   }
+  if (state.shownProposalKeys.has(proposalKey(toolUse))) {
+    return toolResult(toolUse.id, REPEATED_PROPOSAL_RESULT, false)
+  }
   const outcome = await safelyExecute(deps, toolUse)
   if (outcome.proposal) {
-    proposals.push(outcome.proposal)
+    state.shownProposalKeys.add(proposalKey(toolUse))
+    state.proposals.push(outcome.proposal)
     deps.send({ type: 'proposal', proposal: outcome.proposal })
   }
   return toolResult(toolUse.id, outcome.forModel, outcome.isError ?? false)
@@ -120,14 +140,19 @@ function appendRefusal(deps: CoachTurnDeps, state: TurnState): void {
 // made them, and the isOpen check must see the latest state.
 async function runTools(deps: CoachTurnDeps, toolUses: BetaToolUseBlock[], state: TurnState) {
   const results: BetaToolResultBlockParam[] = []
-  for (const toolUse of toolUses) results.push(await runTool(deps, toolUse, state.proposals))
+  for (const toolUse of toolUses) results.push(await runTool(deps, toolUse, state))
   return results
 }
 
 export async function runCoachTurn(deps: CoachTurnDeps, messages: BetaMessageParam[]): Promise<CoachTurnResult> {
   const conversation = [...messages]
-  const state: TurnState = { text: '', proposals: [] }
-  const finish = (rounds: number, incomplete = false): CoachTurnResult => ({ ...state, rounds, incomplete })
+  const state: TurnState = { text: '', proposals: [], shownProposalKeys: new Set() }
+  const finish = (rounds: number, incomplete = false): CoachTurnResult => ({
+    text: state.text,
+    proposals: state.proposals,
+    rounds,
+    incomplete,
+  })
 
   for (let round = 1; round <= MAX_TOOL_ROUNDS; round++) {
     let message: Awaited<ReturnType<typeof callModel>>
