@@ -1,8 +1,15 @@
-import { describe, it, expect } from 'vitest'
-import { searchExercises, describeRoutines } from './read-tools'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { searchExercises, describeRoutines, runReadTool } from './read-tools'
+import { getExercises } from '@/lib/data/exercises'
+import { getRoutines } from '@/lib/data/routines'
+import { getSplits } from '@/lib/data/splits'
 import type { Exercise } from '@/types/database'
 import type { RoutineWithExercises } from '@/lib/coach/proposals'
 import type { SplitWithItems } from '@/lib/data/splits'
+
+vi.mock('@/lib/data/exercises', () => ({ getExercises: vi.fn() }))
+vi.mock('@/lib/data/routines', () => ({ getRoutines: vi.fn() }))
+vi.mock('@/lib/data/splits', () => ({ getSplits: vi.fn() }))
 
 function makeExercise(overrides: Partial<Exercise> & { name: string }): Exercise {
   return {
@@ -100,5 +107,41 @@ describe('describeRoutines', () => {
       ],
     }
     expect(describeRoutines(routines, split).active_split).toEqual({ name: 'PPL', days: ['Push', 'Rest'] })
+  })
+})
+
+describe('runReadTool', () => {
+  const USER_ID = 'user-1'
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('excludes other users custom exercises and keeps the callers own', async () => {
+    vi.mocked(getExercises).mockResolvedValue([
+      makeExercise({ id: 'builtin', name: 'Squat Builtin', is_custom: false }),
+      makeExercise({ id: 'mine', name: 'Squat Mine', is_custom: true, created_by: USER_ID }),
+      makeExercise({ id: 'theirs', name: 'Squat Theirs', is_custom: true, created_by: 'user-2' }),
+    ])
+
+    const result = JSON.parse(await runReadTool('find_exercises', { query: 'squat' }, USER_ID))
+
+    expect(result.exercises.map((e: { id: string }) => e.id).sort()).toEqual(['builtin', 'mine'])
+  })
+
+  it('returns an error object for invalid find_exercises input', async () => {
+    const result = JSON.parse(await runReadTool('find_exercises', { query: 42 }, USER_ID))
+
+    expect(result).toHaveProperty('error')
+  })
+
+  it('returns an error object instead of throwing when a data function fails', async () => {
+    vi.mocked(getRoutines).mockRejectedValue(new Error('db down'))
+    vi.mocked(getSplits).mockResolvedValue([])
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    const result = JSON.parse(await runReadTool('get_routines', {}, USER_ID))
+
+    expect(result).toHaveProperty('error')
   })
 })
