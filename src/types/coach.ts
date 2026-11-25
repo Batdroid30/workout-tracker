@@ -1,3 +1,5 @@
+import type { CoachProposal } from '@/lib/coach/proposals'
+
 export type CoachRole = 'user' | 'assistant' | 'system'
 
 export interface CoachConversation {
@@ -25,6 +27,7 @@ export interface ProposedRoutine {
 export interface CoachMessageMetadata {
   proposed_routine?: ProposedRoutine
   saved_routine_id?: string
+  proposals?: CoachProposal[]
   tokens_in?: number
   tokens_out?: number
   tool_invocations?: Array<{
@@ -48,5 +51,6 @@ export type CoachStreamEvent =
   | { type: 'tool_call'; tool: string; input: Record<string, unknown> }
   | { type: 'tool_result'; tool: string; result: unknown }
   | { type: 'routine_proposed'; routine: ProposedRoutine }
+  | { type: 'proposal'; proposal: CoachProposal }
   | { type: 'message_complete'; message_id: string; conversation_id: string }
   | { type: 'error'; message: string }

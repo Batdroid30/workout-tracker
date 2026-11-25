@@ -4,18 +4,10 @@ import { z } from 'zod'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/auth'
 import { revalidateAll } from '@/lib/cache'
+import { MUSCLE_GROUP_VALUES, MOVEMENT_PATTERN_VALUES } from '@/lib/exercise-values'
 import type { MuscleGroup, MovementPattern } from '@/types/database'
 
 // ── Shared validation data ────────────────────────────────────────────────────
-
-const MUSCLE_GROUP_VALUES = [
-  'chest', 'back', 'lats', 'shoulders', 'traps',
-  'biceps', 'triceps', 'forearms',
-  'quads', 'hamstrings', 'glutes', 'calves',
-  'core',
-] as const
-
-const MOVEMENT_PATTERN_VALUES = ['push', 'pull', 'hinge', 'squat', 'carry', 'isolation'] as const
 
 const CreateExerciseSchema = z.object({
   name:              z.string().min(1).max(100),
