@@ -6,6 +6,7 @@ import { updateWorkoutMetaAction } from '@/app/(app)/workout/[id]/actions'
 import { Button, Input } from '@/components/ui'
 import { useDialog } from '@/providers/DialogProvider'
 import { Edit2 } from 'lucide-react'
+import { editableMeta } from './editable-meta'
 
 interface EditWorkoutMetaModalProps {
   workoutId: string
@@ -25,10 +26,24 @@ export function EditWorkoutMetaModal({ workoutId, initialTitle, initialDuration,
     if (onOpenChange) onOpenChange(next)
     else setOwnOpen(next)
   }
-  const [title, setTitle] = useState(initialTitle || '')
-  const [duration, setDuration] = useState(initialDuration ? Math.floor(initialDuration / 60) : 0) // stored in minutes
-  const [notes, setNotes] = useState(initialNotes || '')
-  
+  const initial = editableMeta(initialTitle, initialDuration, initialNotes)
+  const [title, setTitle] = useState(initial.title)
+  const [duration, setDuration] = useState(initial.minutes)
+  const [notes, setNotes] = useState(initial.notes)
+
+  // Two entry points (tapping the summary, and ⋯ → Edit details) each hold a
+  // copy of the form. Refill it every time it opens, so neither can save back
+  // values the other has already changed.
+  const [wasOpen, setWasOpen] = useState(isOpen)
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen)
+    if (isOpen) {
+      setTitle(initial.title)
+      setDuration(initial.minutes)
+      setNotes(initial.notes)
+    }
+  }
+
   const [isPending, startTransition] = useTransition()
   const dialog = useDialog()
   const router = useRouter()
