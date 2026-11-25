@@ -9,7 +9,7 @@ import { useToast } from '@/providers/ToastProvider'
 import type { PRType } from '@/types/database'
 import type { WorkoutItem } from '@/types/workout-history'
 import { setVolume, workoutBodyweight } from '@/lib/load'
-import { Chip } from '@/components/ui'
+import { Button, Card, Chip, IconButton } from '@/components/ui'
 import { BodyMapDefs } from '@/components/ui/BodyMap'
 import { toSessionExercises } from '@/lib/body-map'
 import { nextCursor, type HistoryCursor } from '@/lib/data/history-page'
@@ -100,53 +100,41 @@ function WorkoutHistoryCard({ workout }: { workout: WorkoutItem }) {
   if (deleted) return null
 
   return (
-    <Link href={`/workout/${workout.id}`} className="block">
-      <div className="glass hover:border-border-strong p-4 active:scale-[0.98] transition-all cursor-pointer">
-        <div className="flex justify-between items-start mb-2">
-          <div>
-            <h3 className="text-sm font-medium text-primary">{workout.title || 'Workout'}</h3>
-            <p className="mono text-xs text-tertiary mt-0.5">
-              {formatWorkoutDate(workout.started_at)}
+    <Card padding="none" className="relative">
+      <Link href={`/workout/${workout.id}`} className="focus-ring block rounded-card p-4 pr-14">
+        <p className="t-body font-semibold">{workout.title || 'Workout'}</p>
+        <p className="t-caption mt-0.5">
+          {formatWorkoutDate(workout.started_at)}
+          {workout.duration_seconds ? <span className="mono"> · {Math.floor(workout.duration_seconds / 60)}m</span> : null}
+        </p>
+
+        <div className="mt-3 flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="mono text-lg">
+              {workoutVolume >= 1000 ? `${(workoutVolume / 1000).toFixed(1)} t` : `${Math.round(workoutVolume)} kg`}
             </p>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {PR_DISPLAY_ORDER.filter(t => workout.prTypes?.includes(t)).map(t => (
-              <Chip key={t} tone="accent">{PR_BADGE_LABELS[t]}</Chip>
-            ))}
-            {workout.duration_seconds && (
-              <div className="bg-surface-raised text-secondary px-2 py-1 rounded-lg mono text-xs border border-border">
-                {Math.floor(workout.duration_seconds / 60)}m
+            {workout.prTypes?.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {PR_DISPLAY_ORDER.filter(t => workout.prTypes.includes(t)).map(t => (
+                  <Chip key={t} tone="accent">{PR_BADGE_LABELS[t]}</Chip>
+                ))}
               </div>
             )}
-            <button
-              onClick={handleDelete}
-              disabled={isPending}
-              className="-mr-1 p-2 rounded-lg hover:bg-negative-soft text-tertiary hover:text-negative transition-colors disabled:opacity-50"
-              aria-label="Delete workout"
-            >
-              {isPending
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : <Trash2 className="w-4 h-4" />
-              }
-            </button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <span className="mono text-lg font-medium text-primary tracking-tight">
-              {workoutVolume >= 1000 ? `${(workoutVolume / 1000).toFixed(1)}k` : workoutVolume}
-              <span className="text-xs text-tertiary ml-0.5">kg</span>
-            </span>
-
-            <div className="mt-2 pt-2 border-t border-border text-xs text-tertiary truncate">
-              {exerciseNames}
-            </div>
+            <p className="t-caption mt-2 truncate border-t border-border pt-2">{exerciseNames}</p>
           </div>
           <SessionBodyMap exercises={toSessionExercises(workout.workout_exercises)} />
         </div>
-      </div>
-    </Link>
+      </Link>
+
+      <IconButton
+        aria-label="Delete workout"
+        onClick={handleDelete}
+        disabled={isPending}
+        className="absolute right-1 top-1 hover:text-negative"
+      >
+        {isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Trash2 className="h-4 w-4" aria-hidden="true" />}
+      </IconButton>
+    </Card>
   )
 }
 
@@ -187,9 +175,9 @@ export function WorkoutHistoryList({ workouts: initialWorkouts, initialHasMore =
 
   if (workouts.length === 0) {
     return (
-      <div className="glass border border-dashed border-border p-8 text-center">
-        <p className="t-caption">No workouts yet. Start your first session!</p>
-      </div>
+      <Card className="border-dashed p-8 text-center">
+        <p className="t-body-sm">No workouts yet. Your finished workouts appear here.</p>
+      </Card>
     )
   }
 
@@ -200,13 +188,9 @@ export function WorkoutHistoryList({ workouts: initialWorkouts, initialHasMore =
         <WorkoutHistoryCard key={workout.id} workout={workout} />
       ))}
       {hasMore && (
-        <button
-          onClick={handleLoadMore}
-          disabled={isLoadingMore}
-          className="w-full min-h-[44px] card text-sm font-medium text-secondary hover:border-border-strong transition-colors disabled:opacity-50"
-        >
+        <Button variant="secondary" onClick={handleLoadMore} disabled={isLoadingMore}>
           {isLoadingMore ? 'Loading…' : 'Load more'}
-        </button>
+        </Button>
       )}
     </div>
   )
