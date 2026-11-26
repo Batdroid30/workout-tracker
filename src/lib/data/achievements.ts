@@ -1,6 +1,8 @@
 import { cache } from 'react'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
+import { getWorkoutsSummary } from '@/lib/data/workouts'
+import { getWorkoutStartDates } from '@/lib/data/insights'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -57,25 +59,22 @@ function getMondayOf(date: Date): string {
 
 // ── Cached read function ──────────────────────────────────────────────────────
 
-export const getBadges = cache(async (
-  userId: string,
-  totalVolume: number,
-  totalWorkouts: number,
-): Promise<Badge[]> => {
+// Reads the totals and start dates itself (both cached per request) so the
+// caller can run it alongside them instead of waiting for them first.
+export const getBadges = cache(async (userId: string): Promise<Badge[]> => {
   const supabase = await getSupabaseServer()
 
-  const [prResult, workoutResult] = await Promise.all([
+  const [prResult, { totalVolume, totalWorkouts }, startDates] = await Promise.all([
     supabase.from('personal_records').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-    supabase.from('workouts').select('started_at').eq('user_id', userId),
+    getWorkoutsSummary(userId),
+    getWorkoutStartDates(userId),
   ])
 
-  if (prResult.error)      throw new DatabaseError('Failed to count PRs for badges', prResult.error)
-  if (workoutResult.error) throw new DatabaseError('Failed to fetch workouts for badges', workoutResult.error)
+  if (prResult.error) throw new DatabaseError('Failed to count PRs for badges', prResult.error)
 
-  const prCount      = prResult.count ?? 0
-  const workoutDates = workoutResult.data ?? []
+  const prCount = prResult.count ?? 0
 
-  const weekSet = new Set(workoutDates.map(w => getMondayOf(new Date(w.started_at))))
+  const weekSet = new Set(startDates.map(startedAt => getMondayOf(new Date(startedAt))))
   const weeks   = Array.from(weekSet).sort()
 
   let longestStreak = 0, runningStreak = 0

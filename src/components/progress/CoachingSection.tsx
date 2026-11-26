@@ -19,7 +19,7 @@ const DEFAULT_WEEKLY_GOAL = 3
 // The coaching detail that used to fill Home: why a note was raised, this
 // week's missions, and streaks and badges. Home links here with #coaching.
 export async function CoachingSection({ userId }: { userId: string }) {
-  const [signals, profile, { totalVolume, totalWorkouts }, snapshot, streak, recentPRs, latestBodyweight] = await Promise.all([
+  const [signals, profile, { totalVolume }, snapshot, streak, recentPRs, latestBodyweight, badges] = await Promise.all([
     getCoachSignals(userId),
     getProfile(userId),
     getWorkoutsSummary(userId),
@@ -27,8 +27,8 @@ export async function CoachingSection({ userId }: { userId: string }) {
     getTrainingStreak(userId),
     getRecentPRs(userId, PR_WINDOW_DAYS),
     getLatestBodyweight(userId),
+    getBadges(userId),
   ])
-  const badges = await getBadges(userId, totalVolume, totalWorkouts)
 
   const weeklySummary = deriveWeeklySummary(snapshot.weeklyData.map(week => ({
     week_start: week.weekStart,
