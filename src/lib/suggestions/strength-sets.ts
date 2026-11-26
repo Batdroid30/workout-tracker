@@ -52,6 +52,18 @@ function heldTopSet(topSet: LoggedSet, e1rm: number | null, ctx: PlanContext): T
   return { weightKg, reps, rule: 'top-set-hold' }
 }
 
+/**
+ * A back-off rounded onto the weight the reference used at that position
+ * never asks for fewer reps than were done there (capped at the range max).
+ */
+function keepReferenceRepsAtSameWeight(sets: SetSuggestion[], reference: PastSession, ctx: PlanContext): SetSuggestion[] {
+  return sets.map((set, index) => {
+    const referenceSet = reference.sets[index]
+    if (set.role !== 'backoff' || !referenceSet || referenceSet.weightKg !== set.weightKg) return set
+    return { ...set, reps: Math.max(set.reps, Math.min(referenceSet.reps, ctx.repRange.max)) }
+  })
+}
+
 /** Compound lifts in Strength weeks. History is newest first. */
 export function planStrengthSets(
   history: PastSession[], reference: PastSession, ctx: PlanContext,
@@ -66,5 +78,5 @@ export function planStrengthSets(
     weightKg: chosen.weightKg, reps: chosen.reps, repsMax: null,
     rpeTarget: effectiveRpe(ctx), role: 'top', optional: false,
   }
-  return { sets: withBackoffs(top, ctx), rule: chosen.rule }
+  return { sets: keepReferenceRepsAtSameWeight(withBackoffs(top, ctx), reference, ctx), rule: chosen.rule }
 }

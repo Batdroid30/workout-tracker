@@ -77,6 +77,13 @@ describe('planStrengthSets', () => {
     expect(plan.rule).toBe('top-set-hold')
   })
 
+  it('back-offs at the reference weight keep the reference reps', () => {
+    const reference = strengthSession('2026-11-19T10:00:00Z', [makeSet(25, 5), makeSet(25, 5), makeSet(25, 5)])
+    const plan = planStrengthSets([reference], reference, makeContext({ experience: 'beginner' }))
+    expect(weightsAndReps(plan.sets)).toEqual(['30x3', '25x5', '25x5'])
+    expect(plan.rule).toBe('top-set-up')
+  })
+
   it('one planned set is the top set only', () => {
     const plan = planStrengthSets([TOP_AT_MAX], TOP_AT_MAX, makeContext({ plannedSets: 1 }))
     expect(plan.sets).toHaveLength(1)
