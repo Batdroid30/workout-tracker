@@ -171,6 +171,15 @@ const ActiveWorkoutSchema = z.object({
   bodyweight_kg: z.number().nullable().optional(),
 })
 
+// The server action receives this over the wire, so it is checked like any
+// other external input. Fields only the phone tracks (clientId) are dropped.
+export function parseFinishPayload(input: unknown): FinishPayload | null {
+  const workout = ActiveWorkoutSchema.safeParse(input)
+  if (!workout.success || Number.isNaN(workout.data.started_at.getTime())) return null
+  const exercises = workout.data.exercises.map(({ clientId: _id, ...entry }) => entry)
+  return { ...workout.data, exercises }
+}
+
 const PersistedSchema = z.object({
   activeWorkout: z.unknown(),
   userBodyweight: z.number().nullable().catch(null),

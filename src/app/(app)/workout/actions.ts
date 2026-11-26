@@ -7,6 +7,7 @@ import { evaluateAndSavePRs, evaluateAndSaveAllPRs } from '@/lib/data/stats'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 import { DatabaseError } from '@/lib/errors'
+import { parseFinishPayload } from '@/lib/workout-session'
 
 // The week type is derived from when the workout started, not when it was
 // saved. A failed lookup must not block the save: the workout is the user's
@@ -21,22 +22,25 @@ async function resolveWorkoutWeek(userId: string, startedAtIso: string): Promise
   }
 }
 
-export async function finishWorkoutAction(activeWorkout: any) {
+export async function finishWorkoutAction(input: unknown) {
   const { userId, session } = await requireAuth()
+
+  const activeWorkout = parseFinishPayload(input)
+  if (!activeWorkout) return { success: false, error: 'Invalid workout data' }
 
   let workoutId: string
   let savedSets: Awaited<ReturnType<typeof saveActiveWorkout>>['savedSets']
   let startedAt: string
 
   try {
-    const week = await resolveWorkoutWeek(userId, new Date(activeWorkout.started_at).toISOString())
+    const week = await resolveWorkoutWeek(userId, activeWorkout.started_at.toISOString())
     const result = await saveActiveWorkout(userId, activeWorkout, week)
     workoutId = result.workout.id
     savedSets = result.savedSets
     startedAt = result.workout.started_at
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to save workout:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to save workout' }
   }
 
   // Workout is durably saved at this point. PR evaluation is best-effort —
@@ -46,10 +50,10 @@ export async function finishWorkoutAction(activeWorkout: any) {
     const prs = await evaluateAndSavePRs(userId, workoutId, startedAt, savedSets)
     revalidateAll()
     return { success: true, workoutId, prs }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('PR evaluation failed for workout', workoutId, error)
     revalidateAll()
-    return { success: true, workoutId, prs: [], prError: error.message }
+    return { success: true, workoutId, prs: [], prError: error instanceof Error ? error.message : 'PR evaluation failed' }
   }
 }
 
