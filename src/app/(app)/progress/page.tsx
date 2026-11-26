@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { requireAuth } from '@/lib/auth'
@@ -14,6 +15,7 @@ import { bodyweightTrend, monthStart, workoutsInMonth } from '@/lib/progress-ove
 import { YourLiftsCard } from '@/components/progress/YourLiftsCard'
 import { ProgressTiles } from '@/components/progress/ProgressTiles'
 import { CoachingSection } from '@/components/progress/CoachingSection'
+import { CoachingSectionSkeleton } from '@/components/progress/CoachingSectionSkeleton'
 import { TrackedLiftsSheet } from '@/components/progress/TrackedLiftsSheet'
 
 export const metadata = {
@@ -86,7 +88,11 @@ export default async function ProgressPage() {
           )}
         />
 
-        <CoachingSection userId={userId} />
+        {/* The coach signals are the slowest part of the page; stream them
+            so the lifts and tiles above show without waiting. */}
+        <Suspense fallback={<CoachingSectionSkeleton />}>
+          <CoachingSection userId={userId} />
+        </Suspense>
 
         <Card padding="none" as="section" aria-label="More progress">
           {LINKS.map((link, index) => (
