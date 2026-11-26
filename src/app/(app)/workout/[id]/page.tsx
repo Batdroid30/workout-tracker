@@ -23,12 +23,14 @@ function startedLabel(startedAt: string): string {
 export default async function WorkoutHistoryDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { session } = await requireAuth()
-  const workout = await getWorkoutById(id, session.user.id)
+  const [workout, prMap] = await Promise.all([
+    getWorkoutById(id, session.user.id),
+    getWorkoutSetPRs(id, session.user.id),
+  ])
 
   if (!workout) notFound()
 
   const allSets = workout.workout_exercises.flatMap((we: any) => we.sets ?? [])
-  const prMap = await getWorkoutSetPRs(allSets.map((set: any) => set.id))
 
   const bodyweightKg = workoutBodyweight(workout.bodyweight_kg)
   const workoutVolume = workout.workout_exercises.reduce((acc: number, we: any) => {
