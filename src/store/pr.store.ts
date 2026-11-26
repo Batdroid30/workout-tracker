@@ -1,7 +1,7 @@
 'use client'
 
 import { create } from 'zustand'
-import { getSupabaseClient } from '@/lib/supabase/client'
+import { getCurrentUserId, getSupabaseClient } from '@/lib/supabase/client'
 import { prCandidates, beatsPR } from '@/lib/load'
 import type { PersonalRecord, PRCheckResult, PRType } from '@/types/database'
 
@@ -28,14 +28,14 @@ export const usePRStore = create<PRStore>((set, get) => ({
     if (uncached.length === 0) return
 
     const supabase = getSupabaseClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const userId = await getCurrentUserId()
+    if (!userId) return
 
     // RLS enforced — user can only read their own personal_records
     const { data } = await supabase
       .from('personal_records')
       .select('id, user_id, exercise_id, pr_type, reps, value, set_id, achieved_at')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .in('exercise_id', uncached)
 
     if (!data) return

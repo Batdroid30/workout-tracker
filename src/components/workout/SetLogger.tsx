@@ -16,7 +16,7 @@ import { useWorkoutStore }      from '@/store/workout.store'
 import { usePRStore }           from '@/store/pr.store'
 import { useLastWorkoutSets }   from '@/hooks/useLastWorkoutSets'
 import { useDialog }            from '@/providers/DialogProvider'
-import { getSupabaseClient }    from '@/lib/supabase/client'
+import { getCurrentUserId, getSupabaseClient }    from '@/lib/supabase/client'
 import { upsertExercisePreference } from '@/lib/data/exercise-preferences'
 import { useTrainingCycle } from '@/hooks/useTrainingCycle'
 
@@ -95,13 +95,13 @@ export function SetLogger({
 
     async function loadFromDb() {
       const supabase = getSupabaseClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user || cancelled) return
+      const userId = await getCurrentUserId()
+      if (!userId || cancelled) return
 
       const { data } = await supabase
         .from('user_exercise_preferences')
         .select('rest_seconds')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('exercise_id', exercise.exercise.id)
         .single()
 

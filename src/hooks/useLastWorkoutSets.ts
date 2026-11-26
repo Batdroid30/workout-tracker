@@ -1,7 +1,7 @@
 'use client'
 
 import useSWR from 'swr'
-import { getSupabaseClient } from '@/lib/supabase/client'
+import { getCurrentUserId, getSupabaseClient } from '@/lib/supabase/client'
 import { suggestNextSet, type OverloadSuggestion } from '@/lib/algorithms'
 import { assistanceFor, workoutBodyweight } from '@/lib/load'
 import { getTrainingCycleAction } from '@/app/(app)/account/training-actions'
@@ -55,13 +55,13 @@ interface UserProfile {
 
 async function fetchProfile(): Promise<UserProfile> {
   const supabase = getSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { training_goal: null, experience_level: null, training_phase: null }
+  const userId = await getCurrentUserId()
+  if (!userId) return { training_goal: null, experience_level: null, training_phase: null }
 
   const { data } = await supabase
     .from('profiles')
     .select('training_goal, experience_level, training_phase')
-    .eq('id', user.id)
+    .eq('id', userId)
     .single()
 
   return {
