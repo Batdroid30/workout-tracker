@@ -3,7 +3,8 @@ import { averageRepLossPerSet, sessionEfforts } from './effort'
 import type { PastSession } from './types'
 
 const MAX_USABLE_REPS_TO_FAILURE = 20
-const MAX_CONVERSION_REPS_TO_FAILURE = 12
+// Conversion: the most set-1 reps that qualify, and the cap on reps to failure.
+const MAX_CONVERSION_REPS = 12
 const OUTLIER_RATIO = 1.15
 const OUTLIER_WINDOW_MS = 8 * 7 * 24 * 60 * 60 * 1000
 const FATIGUE_SESSIONS_CONSIDERED = 4
@@ -35,13 +36,13 @@ function isOutlier(estimate: SessionEstimate, all: SessionEstimate[]): boolean {
   return estimate.e1rm > OUTLIER_RATIO * priorBest
 }
 
-function pickCurrentE1rm(sessions: PastSession[], maxRepsToFailure: number): number | null {
+function pickCurrentE1rm(
+  sessions: PastSession[], estimateE1rm: (session: PastSession) => number | null,
+): number | null {
   const estimates: SessionEstimate[] = []
   for (const session of sessions) {
     if (session.isDeload) continue
-    const repsToFailureValue = setOneRepsToFailure(session)
-    if (repsToFailureValue === null || repsToFailureValue > maxRepsToFailure) continue
-    const e1rm = sessionE1rm(session)
+    const e1rm = estimateE1rm(session)
     if (e1rm === null) continue
     estimates.push({ startedAtMs: Date.parse(session.startedAt), e1rm })
   }
@@ -50,14 +51,27 @@ function pickCurrentE1rm(sessions: PastSession[], maxRepsToFailure: number): num
   return Math.max(...usable.slice(0, 2).map(estimate => estimate.e1rm))
 }
 
-/** Sessions are newest first. Higher of the two most recent usable estimates. */
-export function currentE1rm(sessions: PastSession[]): number | null {
-  return pickCurrentE1rm(sessions, MAX_USABLE_REPS_TO_FAILURE)
+/**
+ * Only sets of up to 12 reps qualify, and reps to failure are capped at 12:
+ * high-rep estimates inflate conversions, and capping keeps a harder set
+ * from ever calibrating heavier than an easier one at the same reps.
+ */
+function conversionSessionE1rm(session: PastSession): number | null {
+  const [firstSet] = session.sets
+  if (!firstSet || firstSet.reps > MAX_CONVERSION_REPS) return null
+  const repsToFailureValue = setOneRepsToFailure(session)
+  if (repsToFailureValue === null) return null
+  return calculate1RM(firstSet.weightKg, Math.min(repsToFailureValue, MAX_CONVERSION_REPS))
 }
 
-/** Like currentE1rm, but high-rep estimates are excluded: they inflate conversions. */
+/** Sessions are newest first. Higher of the two most recent usable estimates. */
+export function currentE1rm(sessions: PastSession[]): number | null {
+  return pickCurrentE1rm(sessions, sessionE1rm)
+}
+
+/** Like currentE1rm, but for converting to a new week type (see conversionSessionE1rm). */
 export function conversionE1rm(sessions: PastSession[]): number | null {
-  return pickCurrentE1rm(sessions, MAX_CONVERSION_REPS_TO_FAILURE)
+  return pickCurrentE1rm(sessions, conversionSessionE1rm)
 }
 
 function median(values: number[]): number {

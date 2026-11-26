@@ -92,9 +92,16 @@ describe('currentE1rm', () => {
 })
 
 describe('conversionE1rm', () => {
-  it('rejects sessions whose set 1 reps-to-failure exceeds 12', () => {
+  it('rejects sessions whose set 1 reps exceed 12', () => {
     const session = makeSession({ sets: [enteredSet(20, 20, 10)] })
     expect(conversionE1rm([session])).toBeNull()
+  })
+  it('caps reps to failure at 12 for a set of 12 or fewer reps', () => {
+    const easy = makeSession({ sets: [enteredSet(100, 12, 6)] })
+    const hard = makeSession({ sets: [enteredSet(100, 12, 10)] })
+    expect(conversionE1rm([easy])).toBe(calculate1RM(100, 12))
+    expect(conversionE1rm([hard])).toBe(calculate1RM(100, 12))
+    expect(calculate1RM(100, 12)).toBeCloseTo(140, 0)
   })
   it('accepts low-rep sessions', () => {
     const session = makeSession({ sets: [enteredSet(100, 5, 8)] })

@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest'
-import { conversionE1rm } from './capacity'
 import { planExercise } from './plan-exercise'
 import { progressionIncrement } from './steps'
 import type {
@@ -161,8 +160,6 @@ function rpeKey(point: GridPoint): string {
   return describePoint({ ...point, rpe: null })
 }
 
-type CasePair = (easier: GridCase, harder: GridCase) => boolean
-
 function groupByAllButRpe(cases: GridCase[]): GridCase[][] {
   const groups = new Map<string, GridCase[]>()
   for (const gridCase of cases) {
@@ -180,33 +177,12 @@ function rpeOrderFailure(easier: GridCase, harder: GridCase): string[] {
   return [failure(harder, `rpe ${harder.point.rpe} set-1 ${harderWeight} > rpe ${easier.point.rpe} set-1 ${easierWeight}`)]
 }
 
-function rpeOrderFailures(cases: GridCase[], isIncluded: CasePair): string[] {
+function rpeOrderFailures(cases: GridCase[]): string[] {
   return groupByAllButRpe(cases).flatMap(group => group.flatMap(easier => group.flatMap(harder => {
     if ((harder.point.rpe ?? 0) <= (easier.point.rpe ?? 0)) return []
     if (harder.plan.explanation.rule !== easier.plan.explanation.rule) return []
-    return isIncluded(easier, harder) ? rpeOrderFailure(easier, harder) : []
+    return rpeOrderFailure(easier, harder)
   })))
-}
-
-/**
- * KNOWN GAP (Task 6 report, awaiting a ruling): a raised top set's back-offs
- * (roundDown(top × 0.9)) can land on the reference weight at top reps + 1,
- * below what the reference did there, e.g. 25×5,5,5 → 30×3, 25×4, 25×4.
- * A raised top set is always heavier than the reference, so only back-offs are affected.
- */
-function isKnownBackoffGap(gridCase: GridCase): boolean {
-  return gridCase.plan.explanation.rule === 'top-set-up'
-}
-
-/**
- * KNOWN GAP (Task 6 report, awaiting a ruling): both are 'calibration', but the
- * easier reference has no e1RM within 12 reps to failure, so it takes the
- * reference + increment fallback, while the harder one is calibrated from its
- * e1RM, e.g. 100×12 @10 → 120 kg but @6 → 102.5 kg in a Strength week.
- */
-function isKnownCalibrationFallbackPair(easier: GridCase, harder: GridCase): boolean {
-  return easier.plan.explanation.rule === 'calibration'
-    && conversionE1rm(easier.history) === null && conversionE1rm(harder.history) !== null
 }
 
 function withPriorDeload(history: PastSession[], step: number): PastSession[] {
@@ -253,11 +229,7 @@ describe('planExercise invariants over the grid', { timeout: 60_000 }, () => {
   })
 
   it('at the same weight, reps never drop below min(reference reps, range max)', () => {
-    expect(CASES.filter(gridCase => !isKnownBackoffGap(gridCase)).flatMap(sameWeightRepsFailures)).toEqual([])
-  })
-
-  it.fails('KNOWN GAP: raised top-set back-offs can drop reps at the reference weight', () => {
-    expect(CASES.filter(isKnownBackoffGap).flatMap(sameWeightRepsFailures)).toEqual([])
+    expect(CASES.flatMap(sameWeightRepsFailures)).toEqual([])
   })
 
   it('straight-set reps never exceed the range max', () => {
@@ -265,12 +237,7 @@ describe('planExercise invariants over the grid', { timeout: 60_000 }, () => {
   })
 
   it('within one rule, a harder reference never yields a heavier set 1', () => {
-    const isIncluded: CasePair = (easier, harder) => !isKnownCalibrationFallbackPair(easier, harder)
-    expect(rpeOrderFailures(CASES, isIncluded)).toEqual([])
-  })
-
-  it.fails('KNOWN GAP: calibration fallback is lighter than an e1RM calibration from a harder reference', () => {
-    expect(rpeOrderFailures(CASES, isKnownCalibrationFallbackPair)).toEqual([])
+    expect(rpeOrderFailures(CASES)).toEqual([])
   })
 
   it('a prior deload session does not change a deload plan', () => {
