@@ -17,6 +17,7 @@ import type {
   TrainingStyle,
   ExperienceLevel,
 } from '@/types/database'
+import type { WeekKind } from '@/lib/suggestions/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -320,6 +321,7 @@ export const STALL_VARIATION_ADVICE: Partial<Record<MovementKey, string[]>> = {
 // The week index advances by training weeks — see src/lib/training-cycle.ts.
 
 export interface WUPScheme {
+  kind:       WeekKind
   label:      string
   repRange:   RepRange
   rpeTarget:  number
@@ -331,18 +333,21 @@ export type DUPScheme = WUPScheme
 
 export const WUP_CYCLE: WUPScheme[] = [
   {
+    kind:      'strength',
     label:     'Strength Week',
     repRange:  { min: 3, max: 5 },
     rpeTarget: 8.5,
     rationale: 'Low reps, heavy load — drives neuromuscular adaptation and 1RM strength.',
   },
   {
+    kind:      'hypertrophy',
     label:     'Hypertrophy Week',
     repRange:  { min: 8, max: 12 },
     rpeTarget: 7.5,
     rationale: 'Moderate reps, moderate load — maximises muscle protein synthesis.',
   },
   {
+    kind:      'volume',
     label:     'Volume Week',
     repRange:  { min: 13, max: 20 },
     rpeTarget: 7.0,
