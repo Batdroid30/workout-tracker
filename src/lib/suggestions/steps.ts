@@ -39,6 +39,10 @@ export function roundDownToStep(kg: number, step: number): number {
   return Math.max(steps, 1) * step
 }
 
+export function clamp(value: number, low: number, high: number): number {
+  return Math.min(high, Math.max(low, value))
+}
+
 export function roundToStep(kg: number, step: number): number {
   const steps = Math.round(kg / step)
   return Math.max(steps, 1) * step

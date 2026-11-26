@@ -2,11 +2,10 @@ import { calculateWeightFrom1RM } from '@/lib/algorithms'
 import { currentE1rm, predictReps, sessionFatigue } from './capacity'
 import { sessionEfforts } from './effort'
 import { isStalled, sameTypeExposures, topOfRangeStreak } from './reference'
-import { progressionIncrement, roundDownToStep } from './steps'
+import * as readiness from './readiness'
+import { clamp, progressionIncrement, roundDownToStep } from './steps'
 import type { PastSession, PlanContext, PlanModifier, PlanRule, SetSuggestion } from './types'
 
-const LOW_READINESS_MAX_AVERAGE = 2
-const LOW_READINESS_RPE_DROP = 0.5
 const DEFAULT_STRAIGHT_SET_FATIGUE = 1.0
 const STALL_EXPOSURES = 3
 const FORCED_UP_EXPOSURES = 2
@@ -36,8 +35,8 @@ type Budget = 'every-set' | 'one-rep' | 'none'
 function buildInputs(history: PastSession[], reference: PastSession, ctx: PlanContext): PlanInputs {
   const [firstSet] = reference.sets
   if (!firstSet) throw new Error(`Reference session ${reference.workoutId} has no working sets`)
-  const isLowReadiness = ctx.readinessAverage !== null && ctx.readinessAverage <= LOW_READINESS_MAX_AVERAGE
-  const effectiveRpe = ctx.rpeTarget - (isLowReadiness ? LOW_READINESS_RPE_DROP : 0)
+  const isLowReadiness = readiness.isLowReadiness(ctx.readinessAverage)
+  const effectiveRpe = readiness.effectiveRpe(ctx)
   return {
     ctx,
     referenceWeightKg: ctx.isBodyweightOnly ? 0 : firstSet.weightKg,
@@ -111,10 +110,6 @@ function chooseWeight(history: PastSession[], inputs: PlanInputs): WeightChange 
   if (stallReset) return stallReset
   if (inputs.referenceSetOneReps >= ctx.repRange.max) return chooseWeightAtTopOfRange(history, inputs)
   return chooseComeDown(inputs)
-}
-
-function clamp(value: number, low: number, high: number): number {
-  return Math.min(high, Math.max(low, value))
 }
 
 function repsForNewWeight(inputs: PlanInputs, weightKg: number): number[] {

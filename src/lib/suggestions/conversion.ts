@@ -1,8 +1,9 @@
 import { calculateWeightFrom1RM } from '@/lib/algorithms'
 import { conversionE1rm } from './capacity'
+import { effectiveRpe } from './readiness'
 import { progressionIncrement, roundDownToStep } from './steps'
 import { planStraightSets } from './straight-sets'
-import { effectiveRpe, withBackoffs } from './strength-sets'
+import { withBackoffs } from './strength-sets'
 import type { PastSession, PlanContext, SetSuggestion } from './types'
 
 // One rep more in reserve than the target: a first exposure starts a touch light.
