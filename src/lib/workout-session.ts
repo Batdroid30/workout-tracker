@@ -131,6 +131,9 @@ const SetSchema = z.object({
   is_warmup: z.boolean().catch(false),
   completed: z.boolean().catch(false),
   saved: z.boolean().catch(false),
+  rpe_source: z.enum(['entered', 'prompt']).nullable().optional().catch(null),
+  suggested_weight_kg: z.number().nullable().optional().catch(null),
+  suggested_reps: z.number().int().nullable().optional().catch(null),
 })
 
 const ExerciseSchema = z.object({
