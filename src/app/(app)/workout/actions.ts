@@ -1,11 +1,25 @@
 'use server'
 
 import { requireAuth } from '@/lib/auth'
-import { saveActiveWorkout, deleteWorkout } from '@/lib/data/workouts'
+import { saveActiveWorkout, deleteWorkout, type WorkoutWeek } from '@/lib/data/workouts'
+import { getTrainingCycle } from '@/lib/data/training-cycle'
 import { evaluateAndSavePRs, evaluateAndSaveAllPRs } from '@/lib/data/stats'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 import { DatabaseError } from '@/lib/errors'
+
+// The week type is derived from when the workout started, not when it was
+// saved. A failed lookup must not block the save: the workout is the user's
+// data, the week label is only context.
+async function resolveWorkoutWeek(userId: string, startedAtIso: string): Promise<WorkoutWeek> {
+  try {
+    const cycle = await getTrainingCycle(userId, startedAtIso)
+    return { weekType: cycle.scheme.kind, isDeload: cycle.isDeloadWeek }
+  } catch (error) {
+    console.error('Failed to resolve training cycle for workout', error)
+    return { weekType: null, isDeload: null }
+  }
+}
 
 export async function finishWorkoutAction(activeWorkout: any) {
   const { userId, session } = await requireAuth()
@@ -15,7 +29,8 @@ export async function finishWorkoutAction(activeWorkout: any) {
   let startedAt: string
 
   try {
-    const result = await saveActiveWorkout(userId, activeWorkout)
+    const week = await resolveWorkoutWeek(userId, new Date(activeWorkout.started_at).toISOString())
+    const result = await saveActiveWorkout(userId, activeWorkout, week)
     workoutId = result.workout.id
     savedSets = result.savedSets
     startedAt = result.workout.started_at
