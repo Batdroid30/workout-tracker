@@ -172,28 +172,111 @@ describe('buildReason', () => {
   const straight = (weightKg: number, reps: number): SetSuggestion => ({
     weightKg, reps, repsMax: null, rpeTarget: 7.5, role: 'straight', optional: false,
   })
+  const reference = (weightKg: number, reps: number[]): LoggedSet[] => reps.map(count => makeSet(weightKg, count))
+  const plannedAt = (weightKg: number, reps: number[]): SetSuggestion[] => reps.map(count => straight(weightKg, count))
 
-  it('names the weight and reps for added reps', () => {
-    const reason = buildReason('hold-add-reps', [], [straight(30, 10), straight(30, 9), straight(30, 8)])
-    expect(reason).toBe('Stay at 30 kg and beat last time: 10, 9, 8 reps.')
+  it('names the one set that gains a rep', () => {
+    const reason = buildReason('hold-add-reps', [], plannedAt(30, [10, 9, 8]), reference(30, [10, 9, 7]))
+    expect(reason).toBe('Same 30 kg — add a rep on set 3 (7 → 8).')
+  })
+
+  it('says when every set gains a rep', () => {
+    const reason = buildReason('hold-add-reps', [], plannedAt(30, [11, 10, 8]), reference(30, [10, 9, 7]))
+    expect(reason).toBe('Same 30 kg — add a rep to every set.')
+  })
+
+  it('lists several changed sets', () => {
+    const reason = buildReason('hold-add-reps', [], plannedAt(30, [11, 9, 8]), reference(30, [10, 9, 7]))
+    expect(reason).toBe('Same 30 kg — add reps on set 1 (10 → 11) and set 3 (7 → 8).')
+  })
+
+  it('says match when the reps are unchanged', () => {
+    const reason = buildReason('hold-match', [], plannedAt(30, [10, 9, 7]), reference(30, [10, 9, 7]))
+    expect(reason).toBe('Same 30 kg — match last time (10, 9, 7).')
+  })
+
+  it('says capped when the reference was above the range max', () => {
+    const reason = buildReason('hold-match', [], plannedAt(30, [12, 12, 12]), reference(30, [20, 18, 16]))
+    expect(reason).toBe('Same 30 kg — capped at the top of the range (12).')
+  })
+
+  it('leads with bodyweight for weight 0', () => {
+    const reason = buildReason('hold-add-reps', [], plannedAt(0, [16, 13, 12]), reference(0, [15, 13, 12]))
+    expect(reason).toBe('Bodyweight — add a rep on set 1 (15 → 16).')
   })
 
   it('names the new weight for a weight increase', () => {
-    expect(buildReason('weight-up', [], [straight(32.5, 8)])).toContain('32.5 kg')
+    expect(buildReason('weight-up', [], [straight(32.5, 8)], reference(30, [12]))).toContain('32.5 kg')
   })
 
-  it('shows calibration reps as a range', () => {
-    const calibration: SetSuggestion = { ...straight(35, 3), repsMax: 5 }
-    expect(buildReason('calibration', [], [calibration])).toContain('35 kg × 3–5')
+  it.each([
+    [8.5, '1–2'],
+    [7.5, '2–3'],
+    [7, 'about 3'],
+  ])('derives calibration reps left from RPE %s', (rpeTarget, repsLeft) => {
+    const calibration: SetSuggestion = { ...straight(35, 3), repsMax: 5, rpeTarget }
+    expect(buildReason('calibration', [], [calibration], reference(30, [10]))).toBe(
+      `First week in this rep range for this lift — start at 35 kg × 3–5 and stop with ${repsLeft} reps left.`,
+    )
   })
 
   it('appends the low readiness note', () => {
-    const reason = buildReason('hold-match', ['low-readiness'], [straight(30, 10)])
-    expect(reason).toMatch(/ Low readiness today — keep one more rep in reserve\.$/)
+    const reason = buildReason('hold-match', ['low-readiness'], plannedAt(30, [10]), reference(30, [10]))
+    expect(reason).toBe('Same 30 kg — match last time (10). Low readiness today — no progression, aim a touch easier.')
   })
 
-  it('calls weight 0 bodyweight', () => {
-    expect(buildReason('hold-add-reps', [], [straight(0, 16)])).toContain('bodyweight')
+  it('adds no readiness note to a deload', () => {
+    const deloadSets = [{ ...straight(25, 10), rpeTarget: 7 }, { ...straight(25, 9), rpeTarget: 7, optional: true }]
+    const reason = buildReason('deload', ['low-readiness'], deloadSets, reference(30, [10, 9]))
+    expect(reason).toBe('Deload week — ease off to 25 kg for 10, 9 reps. The last set is optional.')
+  })
+
+  it('says same weight, fewer sets when a deload keeps the weight', () => {
+    const deloadSets = [{ ...straight(7.5, 10), rpeTarget: 7 }, { ...straight(7.5, 9), rpeTarget: 7, optional: true }]
+    expect(buildReason('deload', [], deloadSets, reference(7.5, [10, 9]))).toBe(
+      'Deload week — same weight, fewer sets. The last set is optional.',
+    )
+  })
+})
+
+describe('planExercise — reason copy', () => {
+  it('names the added rep for the user example', () => {
+    expect(planExercise([USER_EXAMPLE], makeContext(), NOW)?.explanation.reason)
+      .toBe('Same 30 kg — add a rep on set 3 (7 → 8).')
+  })
+
+  it('matches on low readiness without promising extra reserve', () => {
+    expect(planExercise([USER_EXAMPLE], makeContext({ readinessAverage: 2 }), NOW)?.explanation.reason)
+      .toBe('Same 30 kg — match last time (10, 9, 7). Low readiness today — no progression, aim a touch easier.')
+  })
+
+  it('caps a reference above the range max', () => {
+    const reference = sessionAt('hypertrophy', 30, [20, 18, 16])
+    expect(planExercise([reference], makeContext({ readinessAverage: 2 }), NOW)?.explanation.reason)
+      .toBe('Same 30 kg — capped at the top of the range (12). Low readiness today — no progression, aim a touch easier.')
+  })
+
+  it('drops the readiness note on a deload', () => {
+    const plan = planExercise([USER_EXAMPLE], makeContext({ isDeloadWeek: true, readinessAverage: 2 }), NOW)
+    expect(plan?.explanation.modifiers).toEqual(['low-readiness'])
+    expect(plan?.explanation.reason).toBe('Deload week — ease off to 25 kg for 10, 9, 7 reps. The last set is optional.')
+  })
+
+  it('says same weight, fewer sets when a light deload keeps the weight', () => {
+    const reference = sessionAt('hypertrophy', 7.5, [10, 9, 7])
+    expect(planExercise([reference], makeContext({ isDeloadWeek: true }), NOW)?.explanation.reason)
+      .toBe('Deload week — same weight, fewer sets. The last set is optional.')
+  })
+
+  it('uses the Strength week reps left for calibration', () => {
+    const ctx = makeContext({ weekKind: 'strength', repRange: { min: 3, max: 5 }, rpeTarget: 8.5 })
+    expect(planExercise([USER_EXAMPLE], ctx, NOW)?.explanation.reason)
+      .toBe('First week in this rep range for this lift — start at 35 kg × 3–5 and stop with 1–2 reps left.')
+  })
+
+  it('uses the Volume week reps left for calibration', () => {
+    const ctx = makeContext({ weekKind: 'volume', repRange: { min: 13, max: 20 }, rpeTarget: 7 })
+    expect(planExercise([USER_EXAMPLE], ctx, NOW)?.explanation.reason).toMatch(/stop with about 3 reps left\.$/)
   })
 })
 

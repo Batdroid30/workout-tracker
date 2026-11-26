@@ -7,7 +7,7 @@ import { pickReference, type ReferencePick } from './reference'
 import { planStraightSets } from './straight-sets'
 import { planStrengthSets } from './strength-sets'
 import type {
-  ExercisePlan, PastSession, PlanContext, PlanExplanation, PlanModifier, PlanRule, SetSuggestion, WeekKind,
+  ExercisePlan, LoggedSet, PastSession, PlanContext, PlanExplanation, PlanModifier, PlanRule, SetSuggestion, WeekKind,
 } from './types'
 
 const STRENGTH_ISOLATION_SCHEME: Pick<PlanContext, 'repRange' | 'rpeTarget'> = {
@@ -29,23 +29,74 @@ function formatRepList(plan: SetSuggestion[]): string {
   return plan.map(formatReps).join(', ')
 }
 
+function joinWithAnd(parts: string[]): string {
+  if (parts.length <= 1) return parts.join('')
+  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`
+}
+
+/** "1–2" for RPE 8.5, "about 3" for RPE 7: half-point targets span two whole RIR values. */
+function formatRepsLeft(rpeTarget: number): string {
+  const repsInReserve = 10 - rpeTarget
+  const fewest = Math.floor(repsInReserve)
+  const most = Math.ceil(repsInReserve)
+  return fewest === most ? `about ${fewest}` : `${fewest}–${most}`
+}
+
+interface RepChange { setNumber: number; from: number; to: number }
+
+function repChanges(plan: SetSuggestion[], referenceSets: LoggedSet[]): RepChange[] {
+  return plan.flatMap((set, index): RepChange[] => {
+    const referenceSet = referenceSets[index]
+    if (!referenceSet || referenceSet.reps === set.reps) return []
+    return [{ setNumber: index + 1, from: referenceSet.reps, to: set.reps }]
+  })
+}
+
+function describeAddedReps(added: RepChange[], comparedSets: number): string {
+  const isOneRepEverySet = added.length === comparedSets && added.every(change => change.to - change.from === 1)
+  if (isOneRepEverySet && comparedSets > 1) return 'add a rep to every set'
+  const isSingleRep = added.length === 1 && added[0].to - added[0].from === 1
+  const sets = joinWithAnd(added.map(change => `set ${change.setNumber} (${change.from} → ${change.to})`))
+  return isSingleRep ? `add a rep on ${sets}` : `add reps on ${sets}`
+}
+
+/** Held weight: names each rep change against the reference, so the copy always matches the numbers. */
+function describeHold(first: SetSuggestion, plan: SetSuggestion[], referenceSets: LoggedSet[]): string {
+  const changes = repChanges(plan, referenceSets)
+  const added = changes.filter(change => change.to > change.from)
+  const capped = changes.filter(change => change.to < change.from)
+  const parts: string[] = []
+  if (added.length > 0) parts.push(describeAddedReps(added, Math.min(plan.length, referenceSets.length)))
+  // Held reps only fall below the reference when the reference was above the range max.
+  if (capped.length > 0) parts.push(`capped at the top of the range (${capped[0].to})`)
+  if (parts.length === 0) parts.push(`match last time (${formatRepList(plan)})`)
+  const lead = first.weightKg === 0 ? 'Bodyweight' : `Same ${formatLoad(first.weightKg)}`
+  return `${lead} — ${parts.join('; ')}.`
+}
+
 function optionalNote(plan: SetSuggestion[]): string {
   const optionalCount = plan.filter(set => set.optional).length
   if (optionalCount === 0) return ''
   return optionalCount === 1 ? ' The last set is optional.' : ` The last ${optionalCount} sets are optional.`
 }
 
-type ReasonBuilder = (first: SetSuggestion, plan: SetSuggestion[]) => string
+function describeDeload(first: SetSuggestion, plan: SetSuggestion[], referenceSets: LoggedSet[]): string {
+  const isWeightKept = first.weightKg === referenceSets[0]?.weightKg
+  const isAnySetOptional = plan.some(set => set.optional)
+  if (isWeightKept && isAnySetOptional) return `Deload week — same weight, fewer sets.${optionalNote(plan)}`
+  if (isWeightKept) return 'Deload week — same weight, easy effort.'
+  return `Deload week — ease off to ${formatLoad(first.weightKg)} for ${formatRepList(plan)} reps.${optionalNote(plan)}`
+}
+
+type ReasonBuilder = (first: SetSuggestion, plan: SetSuggestion[], referenceSets: LoggedSet[]) => string
 
 const REASONS: Record<PlanRule, ReasonBuilder> = {
   'weight-up': (first, plan) =>
     `You hit the top of the range — move up to ${formatLoad(first.weightKg)} for ${formatRepList(plan)} reps.`,
   'weight-up-forced': (first, plan) =>
     `Top of the range two sessions running — move up to ${formatLoad(first.weightKg)} for ${formatRepList(plan)} reps.`,
-  'hold-add-reps': (first, plan) =>
-    `Stay at ${formatLoad(first.weightKg)} and beat last time: ${formatRepList(plan)} reps.`,
-  'hold-match': (first, plan) =>
-    `Stay at ${formatLoad(first.weightKg)} and match last time: ${formatRepList(plan)} reps.`,
+  'hold-add-reps': describeHold,
+  'hold-match': describeHold,
   'come-down': (first, plan) =>
     `Last time was a grind below the range — drop to ${formatLoad(first.weightKg)} for ${formatRepList(plan)} reps.`,
   'stall-reset': (first, plan) =>
@@ -53,25 +104,32 @@ const REASONS: Record<PlanRule, ReasonBuilder> = {
   'reps-only': (first, plan) =>
     `Top of the range last time — move up to ${formatLoad(first.weightKg)} and aim for ${formatRepList(plan)} reps.`,
   calibration: first =>
-    `First week in this rep range for this lift — start at ${formatLoad(first.weightKg)} × ${formatReps(first)} and stop with 1–2 reps left.`,
+    `First week in this rep range for this lift — start at ${formatLoad(first.weightKg)} × ${formatReps(first)} and stop with ${formatRepsLeft(first.rpeTarget)} reps left.`,
   'top-set-up': first => `Top set moves up to ${formatLoad(first.weightKg)} × ${first.reps}.`,
   'top-set-hold': first => `Hold the top set at ${formatLoad(first.weightKg)} and aim for ${first.reps} reps.`,
-  deload: (first, plan) =>
-    `Deload week — ease off to ${formatLoad(first.weightKg)} for ${formatRepList(plan)} reps.${optionalNote(plan)}`,
+  deload: describeDeload,
 }
 
 const MODIFIER_NOTES: Record<PlanModifier, string> = {
   cut: ' On a cut, matching last time is a win.',
-  'low-readiness': ' Low readiness today — keep one more rep in reserve.',
+  'low-readiness': ' Low readiness today — no progression, aim a touch easier.',
   // The stall-reset rule's own sentence already says why the weight dropped.
   'stall-reset': '',
 }
 
-export function buildReason(rule: PlanRule, modifiers: PlanModifier[], plan: SetSuggestion[]): string {
+function modifierNote(rule: PlanRule, modifier: PlanModifier): string {
+  // A deload's RPE is fixed at 7, so readiness changes nothing there.
+  if (rule === 'deload' && modifier === 'low-readiness') return ''
+  return MODIFIER_NOTES[modifier]
+}
+
+export function buildReason(
+  rule: PlanRule, modifiers: PlanModifier[], plan: SetSuggestion[], referenceSets: LoggedSet[],
+): string {
   const [first] = plan
   if (!first) return 'No working sets planned.'
-  const notes = modifiers.map(modifier => MODIFIER_NOTES[modifier]).join('')
-  return `${REASONS[rule](first, plan)}${notes}`
+  const notes = modifiers.map(modifier => modifierNote(rule, modifier)).join('')
+  return `${REASONS[rule](first, plan, referenceSets)}${notes}`
 }
 
 /** Used when the training cycle can't be loaded (spec 6.13). */
@@ -134,7 +192,7 @@ export function planExercise(history: PastSession[], ctx: PlanContext, now: Date
       effortSources: sessionEfforts(pick.session.sets).map(effort => effort.source),
       modifiers,
       confidence: confidenceFor(routed.rule, pick),
-      reason: buildReason(routed.rule, modifiers, routed.sets),
+      reason: buildReason(routed.rule, modifiers, routed.sets, pick.session.sets),
     },
   }
 }
