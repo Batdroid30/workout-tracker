@@ -18,6 +18,7 @@ export interface StraightSetPlan { sets: SetSuggestion[]; rule: PlanRule; modifi
 interface PlanInputs {
   ctx: PlanContext
   referenceWeightKg: number
+  referenceSetOneReps: number
   referenceReps: number[]
   refRir1: number
   targetRir: number
@@ -40,6 +41,7 @@ function buildInputs(history: PastSession[], reference: PastSession, ctx: PlanCo
   return {
     ctx,
     referenceWeightKg: ctx.isBodyweightOnly ? 0 : firstSet.weightKg,
+    referenceSetOneReps: firstSet.reps,
     referenceReps: reference.sets.slice(0, ctx.plannedSets).map(set => set.reps),
     refRir1: sessionEfforts(reference.sets)[0].rir,
     targetRir: 10 - effectiveRpe,
@@ -82,7 +84,7 @@ function chooseWeightAtTopOfRange(history: PastSession[], inputs: PlanInputs): W
 function chooseComeDown(inputs: PlanInputs): WeightChange | null {
   const { ctx, e1rm } = inputs
   if (e1rm === null) return null
-  if (inputs.referenceReps[0] >= ctx.repRange.min) return null
+  if (inputs.referenceSetOneReps >= ctx.repRange.min) return null
   if (inputs.refRir1 >= inputs.targetRir - COME_DOWN_RIR_MARGIN) return null
   const weightForMinReps = calculateWeightFrom1RM(e1rm, ctx.repRange.min + inputs.targetRir)
   const weightKg = roundDownToStep(weightForMinReps, ctx.weightStepKg)
@@ -91,14 +93,23 @@ function chooseComeDown(inputs: PlanInputs): WeightChange | null {
   return { weightKg, rule: 'come-down' }
 }
 
+function chooseStallReset(history: PastSession[], inputs: PlanInputs): WeightChange | null {
+  const { ctx } = inputs
+  // Reps are capped at the top of the range, so a flat e1RM there is not a stall.
+  if (inputs.referenceSetOneReps >= ctx.repRange.max) return null
+  if (!isStalled(sameTypeExposures(history, ctx.weekKind, STALL_EXPOSURES), ctx.phase)) return null
+  const reset = roundDownToStep(inputs.referenceWeightKg - inputs.increment, ctx.weightStepKg)
+  const weightKg = Math.max(ctx.weightStepKg, reset)
+  if (weightKg >= inputs.referenceWeightKg) return null
+  return { weightKg, rule: 'stall-reset' }
+}
+
 function chooseWeight(history: PastSession[], inputs: PlanInputs): WeightChange | null {
   const { ctx } = inputs
   if (ctx.isBodyweightOnly) return null
-  if (isStalled(sameTypeExposures(history, ctx.weekKind, STALL_EXPOSURES), ctx.phase)) {
-    const reset = roundDownToStep(inputs.referenceWeightKg - inputs.increment, ctx.weightStepKg)
-    return { weightKg: Math.max(ctx.weightStepKg, reset), rule: 'stall-reset' }
-  }
-  if (inputs.referenceReps[0] >= ctx.repRange.max) return chooseWeightAtTopOfRange(history, inputs)
+  const stallReset = chooseStallReset(history, inputs)
+  if (stallReset) return stallReset
+  if (inputs.referenceSetOneReps >= ctx.repRange.max) return chooseWeightAtTopOfRange(history, inputs)
   return chooseComeDown(inputs)
 }
 

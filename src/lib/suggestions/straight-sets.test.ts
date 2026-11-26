@@ -124,6 +124,29 @@ describe('planStraightSets — weight changed', () => {
     expect(plan.modifiers).toContain('stall-reset')
   })
 
+  it('flat e1RM at the top of the range is not a stall', () => {
+    const history = [
+      sessionAt('2026-11-19T10:00:00Z', 30, [12, 11, 10]),
+      sessionAt('2026-11-12T10:00:00Z', 30, [12, 11, 10]),
+      sessionAt('2026-11-05T10:00:00Z', 30, [12, 11, 10]),
+    ]
+    const plan = planStraightSets(history, history[0], makeContext(), NOW)
+    expect(plan.rule).not.toBe('stall-reset')
+    expect(plan.sets.every(set => set.weightKg === 32.5)).toBe(true)
+  })
+
+  it('no stall reset when the weight is already one step', () => {
+    const history = [
+      sessionAt('2026-11-19T10:00:00Z', 2.5, [10, 9, 7]),
+      sessionAt('2026-11-12T10:00:00Z', 2.5, [10, 9, 7]),
+      sessionAt('2026-11-05T10:00:00Z', 2.5, [10, 9, 7]),
+    ]
+    const plan = planStraightSets(history, history[0], makeContext(), NOW)
+    expect(plan.rule).not.toBe('stall-reset')
+    expect(plan.modifiers).not.toContain('stall-reset')
+    expect(plan.sets.every(set => set.weightKg === 2.5)).toBe(true)
+  })
+
   it('volume reps-only', () => {
     const reference = sessionAt('2026-11-19T10:00:00Z', 20, [20, 19, 18], 6)
     reference.weekKind = 'volume'
