@@ -669,6 +669,13 @@ export type Database = {
         Args: { p_exercise_ids: string[] }
         Returns: undefined
       }
+      get_workout_totals: {
+        Args: { p_user_id: string }
+        Returns: {
+          total_workouts: number
+          total_volume: number
+        }[]
+      }
       get_user_exercise_frequency: {
         Args: never
         Returns: {

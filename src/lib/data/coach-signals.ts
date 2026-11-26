@@ -24,6 +24,8 @@ import type { CoachSignalsInput } from '@/lib/home'
 const STALL_WINDOW_WEEKS = 3
 const STALL_GAIN_LIMIT = 0.03
 const MAX_STALLED = 3
+// Home reuses this window so both share one cached PR query per request.
+export const COACH_PR_WINDOW_DAYS = 60
 
 export interface CoachSignals {
   input: CoachSignalsInput
@@ -80,7 +82,7 @@ export const getCoachSignals = cache(async (userId: string): Promise<CoachSignal
   const [profile, snapshot, recentPRs, neglectedMuscles, bwHistory, recentReadiness, trainingCycle, strengthLifts] = await Promise.all([
     getProfile(userId),
     getProgressSnapshot(userId),
-    getRecentPRs(userId, 60),
+    getRecentPRs(userId, COACH_PR_WINDOW_DAYS),
     getNeglectedMuscles(userId),
     getBodyweightHistory(userId, 4),
     getRecentReadinessLogs(userId, 7),

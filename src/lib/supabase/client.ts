@@ -13,3 +13,12 @@ export function getSupabaseClient() {
   }
   return client
 }
+
+// The signed-in user's id from the stored session: no call to the Auth
+// server, and it still works offline mid-workout. Fine in the browser, where
+// it only scopes queries that RLS checks against the JWT anyway. On the
+// server use requireAuth(), which verifies the token.
+export async function getCurrentUserId(): Promise<string | null> {
+  const { data } = await getSupabaseClient().auth.getSession()
+  return data.session?.user.id ?? null
+}

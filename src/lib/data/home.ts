@@ -1,16 +1,15 @@
 import { cache } from 'react'
 import { getProfile } from '@/lib/data/profile'
 import { getRoutines } from '@/lib/data/routines'
-import { getRecentWorkouts } from '@/lib/data/workouts'
+import { getLastCompletedWorkout } from '@/lib/data/workouts'
 import { getTodayReadiness } from '@/lib/data/readiness'
 import { getRecentPRs, type RecentPR } from '@/lib/data/insights'
 import { getProgressSnapshot } from '@/lib/data/progress-snapshot'
 import { getVolumeLandmarksByMuscle, type MuscleVolumeLandmarkPoint } from '@/lib/data/phase-coach'
 import { getSessionSuggestion, type SessionSuggestion } from '@/lib/data/splits'
-import { getCoachSignals } from '@/lib/data/coach-signals'
+import { COACH_PR_WINDOW_DAYS, getCoachSignals } from '@/lib/data/coach-signals'
 import { setVolume, workoutBodyweight } from '@/lib/load'
 import {
-  HIGHLIGHT_PR_DAYS,
   pickCoachNote,
   pickHighlight,
   readinessSummary,
@@ -97,19 +96,20 @@ export interface HomeData {
 }
 
 export const getHomeData = cache(async (userId: string): Promise<HomeData> => {
-  const [profile, routines, suggestion, signals, snapshot, todayReadiness, recentPRs, recentWorkouts] = await Promise.all([
+  const [profile, routines, suggestion, signals, snapshot, todayReadiness, recentPRs, lastWorkout] = await Promise.all([
     getProfile(userId),
     getRoutines(userId),
     getSessionSuggestion(userId),
     getCoachSignals(userId),
     getProgressSnapshot(userId),
     getTodayReadiness(userId),
-    getRecentPRs(userId, HIGHLIGHT_PR_DAYS),
-    getRecentWorkouts(userId),
+    // Same window as the coach signals, so this shares their cached query;
+    // pickHighlight keeps only the last week's PRs.
+    getRecentPRs(userId, COACH_PR_WINDOW_DAYS),
+    getLastCompletedWorkout(userId),
   ])
 
   const cycle = signals.trainingCycle
-  const lastWorkout = recentWorkouts.find(workout => workout.completed_at !== null)
   const model = buildHomeModel({
     // The week chip only means something once a phase is running.
     scheme: profile?.phase_started_at ? cycle.scheme : null,

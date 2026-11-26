@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase/client'
+import { getCurrentUserId, getSupabaseClient } from '@/lib/supabase/client'
 
 interface ExercisePreference {
   exercise_id: string
@@ -12,13 +12,13 @@ interface ExercisePreference {
 export async function getExercisePreferences(): Promise<Record<string, number>> {
   const supabase = getSupabaseClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return {}
+  const userId = await getCurrentUserId()
+  if (!userId) return {}
 
   const { data, error } = await supabase
     .from('user_exercise_preferences')
     .select('exercise_id, rest_seconds')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
 
   if (error || !data) return {}
 
@@ -35,14 +35,14 @@ export async function upsertExercisePreference(
 ): Promise<void> {
   const supabase = getSupabaseClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return
+  const userId = await getCurrentUserId()
+  if (!userId) return
 
   await supabase
     .from('user_exercise_preferences')
     .upsert(
       {
-        user_id:      user.id,
+        user_id:      userId,
         exercise_id:  exerciseId,
         rest_seconds: Math.max(10, Math.min(600, restSeconds)),
         updated_at:   new Date().toISOString(),

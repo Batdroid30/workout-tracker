@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
+import { toWorkoutDates } from '@/lib/data/training-cycle'
 import { calculate1RM, type WeekSummary } from '@/lib/algorithms'
 import { addSetToMuscleCounts, readSecondaryMuscles } from '@/lib/muscle-sets'
 import { setVolume, effectiveLoad, workoutBodyweight } from '@/lib/load'
@@ -335,20 +336,26 @@ export const getStalledMovements = cache(async (userId: string): Promise<Stalled
     .slice(0, 3)
 })
 
-export const getTrainingStreak = cache(async (userId: string): Promise<TrainingStreak> => {
+// The calendar, the streak and the badges only need start dates, so they
+// share this one cached query per request. Oldest first.
+export const getWorkoutStartDates = cache(async (userId: string): Promise<string[]> => {
   const supabase = await getSupabaseServer()
 
   const { data, error } = await supabase
     .from('workouts')
     .select('started_at')
     .eq('user_id', userId)
-    .order('started_at', { ascending: false })
-    .limit(400)
+    .order('started_at', { ascending: true })
 
-  if (error) throw new DatabaseError('Failed to fetch workouts for streak', error)
-  if (!data || data.length === 0) return { currentStreak: 0, longestStreak: 0 }
+  if (error) throw new DatabaseError('Failed to fetch workout dates', error)
+  return toWorkoutDates(data ?? [])
+})
 
-  const weekSet = new Set(data.map(w => getMondayOf(new Date(w.started_at))))
+export const getTrainingStreak = cache(async (userId: string): Promise<TrainingStreak> => {
+  const startDates = await getWorkoutStartDates(userId)
+  if (startDates.length === 0) return { currentStreak: 0, longestStreak: 0 }
+
+  const weekSet = new Set(startDates.map(startedAt => getMondayOf(new Date(startedAt))))
   const weeks = Array.from(weekSet).sort().reverse()
 
   const thisWeek = getMondayOf(new Date())
@@ -675,25 +682,17 @@ export interface WorkoutCalendarData {
 }
 
 export const getWorkoutCalendarData = cache(async (userId: string): Promise<WorkoutCalendarData> => {
-  const supabase = await getSupabaseServer()
-
-  const { data, error } = await supabase
-    .from('workouts')
-    .select('started_at')
-    .eq('user_id', userId)
-    .order('started_at', { ascending: true })
-
-  if (error) throw new DatabaseError('Failed to fetch workout calendar data', error)
-  if (!data || data.length === 0) {
+  const startDates = await getWorkoutStartDates(userId)
+  if (startDates.length === 0) {
     return { calendarEntries: [], trainingAgeWeeks: 0, currentStreak: 0, longestStreak: 0 }
   }
 
   const dayCounts = new Map<string, number>()
   const weekSet   = new Set<string>()
 
-  for (const w of data) {
-    const date    = (w.started_at as string).split('T')[0]
-    const weekKey = getMondayOf(new Date(w.started_at))
+  for (const startedAt of startDates) {
+    const date    = startedAt.split('T')[0]
+    const weekKey = getMondayOf(new Date(startedAt))
     dayCounts.set(date, (dayCounts.get(date) ?? 0) + 1)
     weekSet.add(weekKey)
   }
@@ -702,7 +701,7 @@ export const getWorkoutCalendarData = cache(async (userId: string): Promise<Work
     .map(([date, count]) => ({ date, count }))
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const firstDate        = new Date(data[0].started_at)
+  const firstDate        = new Date(startDates[0])
   const trainingAgeWeeks = Math.floor((Date.now() - firstDate.getTime()) / (7 * 86_400_000))
 
   const weeks = Array.from(weekSet).sort()
