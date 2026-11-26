@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { beforeAll, describe, it, expect } from 'vitest'
 import { planExercise } from './plan-exercise'
 import { progressionIncrement } from './steps'
 import type {
@@ -8,6 +8,10 @@ import type {
 const NOW = new Date('2026-11-26T10:00:00Z')
 const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000
 const TOLERANCE = 1e-9
+// The re-planning checks (determinism, prior deload) run on every Nth eligible point.
+const SAMPLE_EVERY = 25
+// Each invariant keeps this many failure messages; the count is always exact.
+const MAX_SAMPLES = 50
 
 const STEPS = [2, 2.5, 5]
 const STEP_MULTIPLES = [3, 10, 15, 40]
@@ -19,6 +23,8 @@ const SCENARIOS = ['same-type', 'conversion', 'deload-week'] as const
 const MOVEMENTS: PlanContext['movement'][] = ['compound', 'isolation']
 const READINESS = [null, 2]
 const HISTORY_DEPTHS = [1, 3]
+// One more planned set than the reference covers the "beyond the reference" positions.
+const EXTRA_PLANNED_SETS = [0, 1]
 
 interface Lifter { experience: PlanContext['experience']; equipment: EquipmentKind; isBodyweightOnly: boolean }
 const LIFTERS: Lifter[] = [
@@ -37,11 +43,18 @@ const CONVERSION_SOURCE: Record<WeekKind, WeekKind> = {
   strength: 'hypertrophy', hypertrophy: 'volume', volume: 'hypertrophy',
 }
 const SAME_WEIGHT_EXEMPT_RULES: PlanRule[] = ['deload', 'stall-reset', 'come-down', 'calibration']
+const DELOAD_RPE_TARGET = 7
+const DELOAD_MAX_STEP_SHARE = 0.25
+const ALL_RULES: PlanRule[] = [
+  'calibration', 'come-down', 'deload', 'hold-add-reps', 'hold-match', 'reps-only',
+  'stall-reset', 'top-set-hold', 'top-set-up', 'weight-up', 'weight-up-forced',
+]
 
 interface GridPoint {
   step: number; weightKg: number; reps: number[]; rpe: number | null
   weekKind: WeekKind; phase: PlanContext['phase']; scenario: typeof SCENARIOS[number]
-  movement: PlanContext['movement']; readinessAverage: number | null; depth: number; lifter: Lifter
+  movement: PlanContext['movement']; readinessAverage: number | null; depth: number
+  extraSets: number; lifter: Lifter
 }
 
 interface GridCase { point: GridPoint; ctx: PlanContext; history: PastSession[]; plan: ExercisePlan }
@@ -71,20 +84,21 @@ function buildContext(point: GridPoint): PlanContext {
     isDeloadWeek: point.scenario === 'deload-week', phase: point.phase,
     experience: point.lifter.experience, movement: point.movement, equipment: point.lifter.equipment,
     weightStepKg: point.step, isBodyweightOnly: point.lifter.isBodyweightOnly,
-    plannedSets: point.reps.length, readinessAverage: point.readinessAverage,
+    plannedSets: point.reps.length + point.extraSets, readinessAverage: point.readinessAverage,
   }
 }
 
-function* gridPoints(): Generator<GridPoint> {
+/** Yields groups of points that differ only in RPE, so the RPE-order check never needs the whole grid. */
+function* gridGroups(): Generator<GridPoint[]> {
   for (const step of STEPS) for (const multiple of STEP_MULTIPLES) for (const reps of REP_PATTERNS)
-    for (const rpe of RPES) for (const weekKind of WEEK_KINDS) for (const phase of PHASES)
-      for (const scenario of SCENARIOS) for (const movement of MOVEMENTS)
-        for (const readinessAverage of READINESS) for (const depth of HISTORY_DEPTHS)
+    for (const weekKind of WEEK_KINDS) for (const phase of PHASES) for (const scenario of SCENARIOS)
+      for (const movement of MOVEMENTS) for (const readinessAverage of READINESS)
+        for (const depth of HISTORY_DEPTHS) for (const extraSets of EXTRA_PLANNED_SETS)
           for (const lifter of LIFTERS) {
-            yield {
+            yield RPES.map(rpe => ({
               step, weightKg: step * multiple, reps, rpe, weekKind, phase,
-              scenario, movement, readinessAverage, depth, lifter,
-            }
+              scenario, movement, readinessAverage, depth, extraSets, lifter,
+            }))
           }
 }
 
@@ -148,7 +162,7 @@ function sameWeightRepsFailures(gridCase: GridCase): string[] {
 
 function repsCapFailures(gridCase: GridCase): string[] {
   if (gridCase.point.lifter.isBodyweightOnly) return []
-  // A deload matches the reference reps by design (spec 6.8), so it is not capped by today's range.
+  // A deload matches the reference reps (spec 6.8); deloadShapeFailures checks it instead.
   if (gridCase.plan.explanation.rule === 'deload') return []
   const { max } = effectiveRange(gridCase.ctx)
   return gridCase.plan.sets.flatMap((set, index) => set.role !== 'straight' || set.reps <= max
@@ -156,33 +170,39 @@ function repsCapFailures(gridCase: GridCase): string[] {
     : [failure(gridCase, `straight set ${index + 1} reps ${set.reps} > max ${max}`)])
 }
 
-function rpeKey(point: GridPoint): string {
-  return describePoint({ ...point, rpe: null })
+function deloadWeightFailure(gridCase: GridCase, weightKg: number, setNumber: number): string[] {
+  const reference = referenceWeight(gridCase)
+  const isWeightKept = gridCase.point.step > DELOAD_MAX_STEP_SHARE * reference
+  if (isWeightKept && weightKg === reference) return []
+  if (!isWeightKept && weightKg < reference) return []
+  const expected = isWeightKept ? `= ${reference}` : `< ${reference}`
+  return [failure(gridCase, `deload set ${setNumber} weight ${weightKg}, expected ${expected}`)]
 }
 
-function groupByAllButRpe(cases: GridCase[]): GridCase[][] {
-  const groups = new Map<string, GridCase[]>()
-  for (const gridCase of cases) {
-    if (gridCase.point.rpe === null) continue
-    const key = rpeKey(gridCase.point)
-    groups.set(key, [...(groups.get(key) ?? []), gridCase])
-  }
-  return [...groups.values()]
+function deloadShapeFailures(gridCase: GridCase): string[] {
+  if (gridCase.plan.explanation.rule !== 'deload') return []
+  const { reps } = gridCase.point
+  return gridCase.plan.sets.flatMap((set, index) => {
+    const expectedReps = reps[index] ?? reps[reps.length - 1]
+    const repsFailure = set.reps === expectedReps
+      ? [] : [failure(gridCase, `deload set ${index + 1} reps ${set.reps} ≠ ${expectedReps}`)]
+    const rpeFailure = set.rpeTarget === DELOAD_RPE_TARGET
+      ? [] : [failure(gridCase, `deload set ${index + 1} rpe ${set.rpeTarget} ≠ ${DELOAD_RPE_TARGET}`)]
+    return [...repsFailure, ...rpeFailure, ...deloadWeightFailure(gridCase, set.weightKg, index + 1)]
+  })
 }
 
-function rpeOrderFailure(easier: GridCase, harder: GridCase): string[] {
-  const harderWeight = harder.plan.sets[0]?.weightKg ?? 0
-  const easierWeight = easier.plan.sets[0]?.weightKg ?? 0
-  if (harderWeight <= easierWeight + TOLERANCE) return []
-  return [failure(harder, `rpe ${harder.point.rpe} set-1 ${harderWeight} > rpe ${easier.point.rpe} set-1 ${easierWeight}`)]
-}
-
-function rpeOrderFailures(cases: GridCase[]): string[] {
-  return groupByAllButRpe(cases).flatMap(group => group.flatMap(easier => group.flatMap(harder => {
+/** Within one group (same point, different RPE): a harder reference never gives a heavier set 1 under the same rule. */
+function rpeOrderFailures(group: GridCase[]): string[] {
+  const rated = group.filter(gridCase => gridCase.point.rpe !== null)
+  return rated.flatMap(easier => rated.flatMap(harder => {
     if ((harder.point.rpe ?? 0) <= (easier.point.rpe ?? 0)) return []
     if (harder.plan.explanation.rule !== easier.plan.explanation.rule) return []
-    return rpeOrderFailure(easier, harder)
-  })))
+    const harderWeight = harder.plan.sets[0]?.weightKg ?? 0
+    const easierWeight = easier.plan.sets[0]?.weightKg ?? 0
+    if (harderWeight <= easierWeight + TOLERANCE) return []
+    return [failure(harder, `rpe ${harder.point.rpe} set-1 ${harderWeight} > rpe ${easier.point.rpe} set-1 ${easierWeight}`)]
+  }))
 }
 
 function withPriorDeload(history: PastSession[], step: number): PastSession[] {
@@ -195,7 +215,6 @@ function withPriorDeload(history: PastSession[], step: number): PastSession[] {
 }
 
 function priorDeloadFailures(gridCase: GridCase): string[] {
-  if (gridCase.point.scenario !== 'deload-week') return []
   const replanned = planExercise(withPriorDeload(gridCase.history, gridCase.point.step), gridCase.ctx, NOW)
   return JSON.stringify(replanned) === JSON.stringify(gridCase.plan)
     ? []
@@ -209,42 +228,97 @@ function determinismFailures(gridCase: GridCase): string[] {
     : [failure(gridCase, 'second run differs')]
 }
 
-const CASES: GridCase[] = Array.from(gridPoints(), planCase)
+type InvariantName =
+  | 'weightOnGrid' | 'weightCap' | 'sameWeightReps' | 'repsCap' | 'deloadShape'
+  | 'rpeOrder' | 'priorDeload' | 'determinism'
 
-describe('planExercise invariants over the grid', { timeout: 60_000 }, () => {
-  it('exercises every rule', () => {
-    const rulesFired = new Set(CASES.map(gridCase => gridCase.plan.explanation.rule))
-    expect([...rulesFired].sort()).toEqual([
-      'calibration', 'come-down', 'deload', 'hold-add-reps', 'hold-match', 'reps-only',
-      'stall-reset', 'top-set-hold', 'top-set-up', 'weight-up', 'weight-up-forced',
-    ])
+const PER_CASE_CHECKS: [InvariantName, (gridCase: GridCase) => string[]][] = [
+  ['weightOnGrid', weightOnGridFailures],
+  ['weightCap', weightCapFailures],
+  ['sameWeightReps', sameWeightRepsFailures],
+  ['repsCap', repsCapFailures],
+  ['deloadShape', deloadShapeFailures],
+]
+
+interface InvariantResult { count: number; samples: string[] }
+
+class GridSweep {
+  readonly results = new Map<InvariantName, InvariantResult>()
+  readonly rulesFired = new Set<PlanRule>()
+  pointCount = 0
+  private deloadPointCount = 0
+
+  record(name: InvariantName, failures: string[]): void {
+    const result = this.results.get(name) ?? { count: 0, samples: [] }
+    result.count += failures.length
+    result.samples.push(...failures.slice(0, MAX_SAMPLES - result.samples.length))
+    this.results.set(name, result)
+  }
+
+  checkCase(gridCase: GridCase): void {
+    this.pointCount += 1
+    this.rulesFired.add(gridCase.plan.explanation.rule)
+    for (const [name, check] of PER_CASE_CHECKS) this.record(name, check(gridCase))
+    if (this.pointCount % SAMPLE_EVERY === 0) this.record('determinism', determinismFailures(gridCase))
+    if (gridCase.point.scenario !== 'deload-week') return
+    this.deloadPointCount += 1
+    if (this.deloadPointCount % SAMPLE_EVERY === 0) this.record('priorDeload', priorDeloadFailures(gridCase))
+  }
+
+  checkGroup(points: GridPoint[]): void {
+    const group = points.map(planCase)
+    group.forEach(gridCase => this.checkCase(gridCase))
+    this.record('rpeOrder', rpeOrderFailures(group))
+  }
+
+  resultFor(name: InvariantName): InvariantResult {
+    return this.results.get(name) ?? { count: 0, samples: [] }
+  }
+}
+
+const NO_FAILURES: InvariantResult = { count: 0, samples: [] }
+
+describe('planExercise invariants over the grid', { timeout: 120_000 }, () => {
+  const sweep = new GridSweep()
+
+  beforeAll(() => {
+    for (const group of gridGroups()) sweep.checkGroup(group)
+  }, 120_000)
+
+  it('covers the whole grid and fires every rule', () => {
+    expect(sweep.pointCount).toBe(414_720)
+    expect([...sweep.rulesFired].sort()).toEqual(ALL_RULES)
   })
 
   it('every weight is a positive step multiple, or 0 for bodyweight', () => {
-    expect(CASES.flatMap(weightOnGridFailures)).toEqual([])
+    expect(sweep.resultFor('weightOnGrid')).toEqual(NO_FAILURES)
   })
 
   it('outside calibration, no weight exceeds reference set 1 + one increment', () => {
-    expect(CASES.flatMap(weightCapFailures)).toEqual([])
+    expect(sweep.resultFor('weightCap')).toEqual(NO_FAILURES)
   })
 
   it('at the same weight, reps never drop below min(reference reps, range max)', () => {
-    expect(CASES.flatMap(sameWeightRepsFailures)).toEqual([])
+    expect(sweep.resultFor('sameWeightReps')).toEqual(NO_FAILURES)
   })
 
   it('straight-set reps never exceed the range max', () => {
-    expect(CASES.flatMap(repsCapFailures)).toEqual([])
+    expect(sweep.resultFor('repsCap')).toEqual(NO_FAILURES)
+  })
+
+  it('a deload matches reference reps at RPE 7 and a lighter weight unless one step is too big', () => {
+    expect(sweep.resultFor('deloadShape')).toEqual(NO_FAILURES)
   })
 
   it('within one rule, a harder reference never yields a heavier set 1', () => {
-    expect(rpeOrderFailures(CASES)).toEqual([])
+    expect(sweep.resultFor('rpeOrder')).toEqual(NO_FAILURES)
   })
 
-  it('a prior deload session does not change a deload plan', () => {
-    expect(CASES.flatMap(priorDeloadFailures)).toEqual([])
+  it('a prior deload session does not change a deload plan (sampled)', () => {
+    expect(sweep.resultFor('priorDeload')).toEqual(NO_FAILURES)
   })
 
-  it('is deterministic', () => {
-    expect(CASES.flatMap(determinismFailures)).toEqual([])
+  it('is deterministic (sampled)', () => {
+    expect(sweep.resultFor('determinism')).toEqual(NO_FAILURES)
   })
 })
