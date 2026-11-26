@@ -142,7 +142,7 @@ export function noCycleContext(
   return { weekKind, repRange: { ...scheme.repRange }, rpeTarget: scheme.rpeTarget }
 }
 
-function withWeekOverrides(ctx: PlanContext): PlanContext {
+export function withWeekOverrides(ctx: PlanContext): PlanContext {
   const isStrengthIsolation = ctx.weekKind === 'strength' && ctx.movement === 'isolation'
   return isStrengthIsolation ? { ...ctx, ...STRENGTH_ISOLATION_SCHEME } : ctx
 }
