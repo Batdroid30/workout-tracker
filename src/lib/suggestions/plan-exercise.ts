@@ -20,6 +20,9 @@ interface RoutedPlan { sets: SetSuggestion[]; rule: PlanRule; modifiers: PlanMod
 /** Assisted lifts are explained in assistance kg, where less is progress. */
 export type LoadStyle = 'load' | 'assistance'
 
+/** How the reason reads its numbers: the load style, and the range max that held reps are capped at. */
+export interface ReasonOptions { style: LoadStyle; rangeMax: number }
+
 function formatLoad(weightKg: number, style: LoadStyle = 'load'): string {
   if (style === 'assistance') return weightKg === 0 ? 'no assistance' : `${weightKg} kg assistance`
   return weightKg === 0 ? 'bodyweight' : `${weightKg} kg`
@@ -102,16 +105,31 @@ function describeAddedReps(added: RepChange[], comparedSets: number): string {
 }
 
 /** Held weight: names each rep change against the reference, so the copy always matches the numbers. */
+function isCappedAtRangeMax(change: RepChange, rangeMax: number): boolean {
+  return change.from > rangeMax && change.to === rangeMax
+}
+
+/** Held reps fall below the reference when it was above the range max, or when today's sets felt harder. */
+function describeRepDrops(changes: RepChange[], rangeMax: number): string[] {
+  const dropped = changes.filter(change => change.to < change.from)
+  const capped = dropped.filter(change => isCappedAtRangeMax(change, rangeMax))
+  const eased = dropped.filter(change => !isCappedAtRangeMax(change, rangeMax))
+  const parts: string[] = []
+  if (capped.length > 0) parts.push(`capped at the top of the range (${capped[0].to})`)
+  if (eased.length > 0) {
+    parts.push(`fewer reps on ${joinWithAnd(eased.map(change => `set ${change.setNumber} (${change.from} → ${change.to})`))}`)
+  }
+  return parts
+}
+
 function describeHold(
-  first: SetSuggestion, plan: SetSuggestion[], referenceSets: LoggedSet[], style: LoadStyle,
+  first: SetSuggestion, plan: SetSuggestion[], referenceSets: LoggedSet[], { style, rangeMax }: ReasonOptions,
 ): string {
   const changes = repChanges(plan, referenceSets)
   const added = changes.filter(change => change.to > change.from)
-  const capped = changes.filter(change => change.to < change.from)
   const parts: string[] = []
   if (added.length > 0) parts.push(describeAddedReps(added, sameWeightSetCount(plan, referenceSets)))
-  // Held reps only fall below the reference when the reference was above the range max.
-  if (capped.length > 0) parts.push(`capped at the top of the range (${capped[0].to})`)
+  parts.push(...describeRepDrops(changes, rangeMax))
   const moves = weightMoves(plan, referenceSets)
   if (parts.length === 0 && moves.length === 0) parts.push(`match last time (${formatRepList(plan)})`)
   parts.push(...moves.map(move => describeWeightMove(move, style)))
@@ -127,7 +145,7 @@ function optionalNote(plan: SetSuggestion[]): string {
 
 /** Callers pass plan and reference sets in the same weight space, so the kept-weight check is like for like. */
 function describeDeload(
-  first: SetSuggestion, plan: SetSuggestion[], referenceSets: LoggedSet[], style: LoadStyle,
+  first: SetSuggestion, plan: SetSuggestion[], referenceSets: LoggedSet[], { style }: ReasonOptions,
 ): string {
   const isWeightKept = first.weightKg === referenceSets[0]?.weightKg
   const isAnySetOptional = plan.some(set => set.optional)
@@ -137,7 +155,7 @@ function describeDeload(
 }
 
 type ReasonBuilder = (
-  first: SetSuggestion, plan: SetSuggestion[], referenceSets: LoggedSet[], style: LoadStyle,
+  first: SetSuggestion, plan: SetSuggestion[], referenceSets: LoggedSet[], options: ReasonOptions,
 ) => string
 
 const REASONS: Record<PlanRule, ReasonBuilder> = {
@@ -153,10 +171,10 @@ const REASONS: Record<PlanRule, ReasonBuilder> = {
     `Stalled for three sessions — reset to ${formatLoad(first.weightKg)} for ${formatRepList(plan)} reps and build back up.`,
   'reps-only': (first, plan) =>
     `Top of the range last time — move up to ${formatLoad(first.weightKg)} and aim for ${formatRepList(plan)} reps.`,
-  calibration: (first, _plan, _reference, style) =>
+  calibration: (first, _plan, _reference, { style }) =>
     `First week in this rep range for this lift — start at ${formatLoad(first.weightKg, style)} × ${formatReps(first)} and stop with ${formatRepsLeft(first.rpeTarget)} reps left.`,
   'top-set-up': first => `Top set moves up to ${formatLoad(first.weightKg)} × ${first.reps}.`,
-  'top-set-hold': (first, _plan, _reference, style) => `Hold the top set at ${formatLoad(first.weightKg, style)} and aim for ${first.reps} reps.`,
+  'top-set-hold': (first, _plan, _reference, { style }) => `Hold the top set at ${formatLoad(first.weightKg, style)} and aim for ${first.reps} reps.`,
   deload: describeDeload,
 }
 
@@ -192,14 +210,17 @@ function modifierNote(rule: PlanRule, modifier: PlanModifier): string {
   return MODIFIER_NOTES[modifier]
 }
 
+const DEFAULT_REASON_OPTIONS: ReasonOptions = { style: 'load', rangeMax: Infinity }
+
 export function buildReason(
   rule: PlanRule, modifiers: PlanModifier[], plan: SetSuggestion[], referenceSets: LoggedSet[],
-  style: LoadStyle = 'load',
+  options: Partial<ReasonOptions> = {},
 ): string {
   const [first] = plan
   if (!first) return 'No working sets planned.'
+  const resolved: ReasonOptions = { ...DEFAULT_REASON_OPTIONS, ...options }
   const notes = modifiers.map(modifier => modifierNote(rule, modifier)).join('')
-  return `${reasonBuilderFor(rule, style)(first, plan, referenceSets, style)}${notes}`
+  return `${reasonBuilderFor(rule, resolved.style)(first, plan, referenceSets, resolved)}${notes}`
 }
 
 /** Used when the training cycle can't be loaded (spec 6.13). */
@@ -264,7 +285,7 @@ export function planExercise(history: PastSession[], ctx: PlanContext, now: Date
       effortSources: sessionEfforts(pick.session.sets).map(effort => effort.source),
       modifiers,
       confidence: confidenceFor(routed.rule, pick),
-      reason: buildReason(routed.rule, modifiers, routed.sets, pick.session.sets),
+      reason: buildReason(routed.rule, modifiers, routed.sets, pick.session.sets, { rangeMax: plannedCtx.repRange.max }),
     },
   }
 }

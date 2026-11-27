@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { adjustRemainingSets } from './live'
-import type { ExercisePlan, LoggedSet, PlanContext, PlanRule, SetSuggestion } from './types'
+import type { ExercisePlan, LoggedSet, PastSession, PlanContext, PlanRule, SetSuggestion } from './types'
 
 function makeContext(overrides: Partial<PlanContext> = {}): PlanContext {
   return {
@@ -38,11 +38,11 @@ const STRAIGHT_PLAN = makePlan([suggestion(30, 10), suggestion(30, 9), suggestio
 
 describe('adjustRemainingSets', () => {
   it('returns the plan unchanged when nothing is completed', () => {
-    expect(adjustRemainingSets(STRAIGHT_PLAN, [], makeContext())).toEqual(STRAIGHT_PLAN.sets)
+    expect(adjustRemainingSets(STRAIGHT_PLAN, [], makeContext(), [])).toEqual(STRAIGHT_PLAN.sets)
   })
 
   it('keeps completed positions unchanged and lowers reps after an easy set', () => {
-    const result = adjustRemainingSets(STRAIGHT_PLAN, [logged(30, 12, 7)], makeContext())
+    const result = adjustRemainingSets(STRAIGHT_PLAN, [logged(30, 12, 7)], makeContext(), [])
     expect(result[0]).toEqual(STRAIGHT_PLAN.sets[0])
     expect(result[1].reps).toBeGreaterThanOrEqual(9)
     expect(result[1].reps).toBeLessThanOrEqual(10)
@@ -50,7 +50,7 @@ describe('adjustRemainingSets', () => {
   })
 
   it('steps the remaining weight down when a set missed the range by two or more', () => {
-    const result = adjustRemainingSets(STRAIGHT_PLAN, [logged(30, 6)], makeContext())
+    const result = adjustRemainingSets(STRAIGHT_PLAN, [logged(30, 6)], makeContext(), [])
     expect(result.slice(1).map(set => set.weightKg)).toEqual([27.5, 27.5])
     expect(result[0].weightKg).toBe(30)
   })
@@ -63,7 +63,7 @@ describe('adjustRemainingSets', () => {
       'top-set-up',
     )
     const ctx = makeContext({ weekKind: 'strength', repRange: { min: 3, max: 5 }, rpeTarget: 8.5 })
-    const result = adjustRemainingSets(plan, [logged(105, 3)], ctx)
+    const result = adjustRemainingSets(plan, [logged(105, 3)], ctx, [])
     expect(weightsAndReps(result)).toEqual(['100x4', '92.5x4', '92.5x4'])
   })
 
@@ -73,6 +73,29 @@ describe('adjustRemainingSets', () => {
     ['calibration range', makePlan([suggestion(30, 8, { repsMax: 12 }), suggestion(30, 8, { repsMax: 12 })], 'calibration'),
       makeContext()],
   ])('leaves %s sets unchanged', (_label, plan, ctx) => {
-    expect(adjustRemainingSets(plan, [logged(30, 6)], ctx)).toEqual(plan.sets)
+    expect(adjustRemainingSets(plan, [logged(30, 6)], ctx, [])).toEqual(plan.sets)
+  })
+
+  describe('after the lifter did what was asked', () => {
+    const FLAT_PLAN = makePlan([suggestion(30, 10), suggestion(30, 10), suggestion(30, 10)])
+    const STEADY_HISTORY: PastSession[] = [{
+      workoutId: 'w1', startedAt: '2026-11-19T10:00:00Z', weekKind: 'hypertrophy', isDeload: false, bodyweightKg: 75,
+      sets: [logged(30, 9), logged(30, 9), logged(30, 9)],
+    }]
+
+    it('uses the planned fatigue until two sets share a weight today', () => {
+      const result = adjustRemainingSets(FLAT_PLAN, [logged(30, 10, 7.5)], makeContext(), STEADY_HISTORY)
+      expect(weightsAndReps(result)).toEqual(['30x10', '30x10', '30x10'])
+    })
+
+    it('never lowers the remaining reps when the set had no RPE', () => {
+      const result = adjustRemainingSets(FLAT_PLAN, [logged(30, 10)], makeContext(), [])
+      expect(weightsAndReps(result)).toEqual(['30x10', '30x10', '30x10'])
+    })
+
+    it('still lowers them when a trusted RPE says the set was harder than the target', () => {
+      const result = adjustRemainingSets(FLAT_PLAN, [logged(30, 10, 9.5)], makeContext(), STEADY_HISTORY)
+      expect(result[1].reps).toBeLessThan(10)
+    })
   })
 })

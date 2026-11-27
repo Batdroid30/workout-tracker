@@ -7,7 +7,7 @@ import type {
 import { sessionEfforts } from './effort'
 import { hitRate, type HitRate } from './hit-rate'
 import { adjustRemainingSets } from './live'
-import { buildReason, noCycleContext, planExercise } from './plan-exercise'
+import { buildReason, noCycleContext, planExercise, withWeekOverrides } from './plan-exercise'
 import { defaultWeightStep, toEquipmentKind } from './steps'
 import type {
   ExercisePlan, LoggedSet, PastSession, PlanContext, PlanExplanation, SetSuggestion,
@@ -199,7 +199,15 @@ function planInLoadSpace({ history, ctx, exercise, completed, now }: LoadSpaceAr
   }
   const plan = planExercise(history, ctx, now)
   if (!plan) return null
-  return { ...plan, sets: adjustRemainingSets(plan, completed, ctx) }
+  const sets = adjustRemainingSets(plan, completed, ctx, history)
+  const { rule, modifiers, referenceSets } = plan.explanation
+  // Rebuilt from the adjusted sets so the copy always matches the numbers on screen.
+  const reason = buildReason(rule, modifiers, sets, referenceSets, { rangeMax: rangeMaxFor(ctx) })
+  return { sets, explanation: { ...plan.explanation, reason } }
+}
+
+function rangeMaxFor(ctx: PlanContext): number {
+  return withWeekOverrides(ctx).repRange.max
 }
 
 interface AssistedExplanationArgs {
@@ -217,7 +225,7 @@ function assistedExplanation(
   const isRepSumPlan = isRepSum(exercise) && !ctx.isDeloadWeek
   const reason = isRepSumPlan && first
     ? assistedRepSumReason(first, referenceSets, exercise.rep_sum_target ?? 0)
-    : buildReason(explanation.rule, explanation.modifiers, sets, referenceSets, 'assistance')
+    : buildReason(explanation.rule, explanation.modifiers, sets, referenceSets, { style: 'assistance', rangeMax: rangeMaxFor(ctx) })
   return { ...explanation, referenceSets, reason }
 }
 

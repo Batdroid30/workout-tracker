@@ -231,3 +231,36 @@ describe('toHookResult', () => {
     expect(toHookResult(null, 'offline', false).error).toBeInstanceOf(Error)
   })
 })
+
+describe('resolveExercisePlan — live adjustment', () => {
+  function withRpe(set: LoggedSet, rpe: number): LoggedSet {
+    return { ...set, rpe, rpeSource: 'entered' }
+  }
+
+  function planAfterSetOne(history: PastSession[], setOne: Partial<ActiveSet>) {
+    const sets = [makeActiveSet(1, { completed: true, weight_kg: 30, ...setOne }), makeActiveSet(2), makeActiveSet(3)]
+    const exercise = makeActiveExercise(makeExercise(), sets)
+    return resolveExercisePlan({ history, ctx: contextFor(exercise), exercise, todayBodyweightKg: 75, now: NOW })
+  }
+
+  it('keeps sets 2–3 at the plan after set 1 hit it at the target RPE', () => {
+    const roomLeft = makeSession(30, [9, 9, 9])
+    roomLeft.sets[0] = withRpe(roomLeft.sets[0], 6)
+    const plan = planAfterSetOne([roomLeft], { reps: 10, rpe: 7.5, rpe_source: 'entered' })
+    expect(weightsAndReps(plan?.sets ?? [])).toEqual(['30x10', '30x10', '30x10'])
+  })
+
+  it('never lowers the remaining reps after set 1 met its reps with no RPE', () => {
+    const plan = planAfterSetOne([makeSession(30, [9, 9, 9])], { reps: 10 })
+    // Planned 30x10, 30x9, 30x9 before set 1.
+    expect(plan?.sets[1].reps).toBeGreaterThanOrEqual(9)
+    expect(plan?.sets[2].reps).toBeGreaterThanOrEqual(9)
+  })
+
+  it('rebuilds the reason from the adjusted sets', () => {
+    const plan = planAfterSetOne([makeSession(30, [10, 9, 7])], { reps: 10, rpe: 10, rpe_source: 'entered' })
+    expect(plan?.sets[1].reps).toBeLessThan(9)
+    expect(plan?.explanation.reason).toContain(`set 2 (9 → ${plan?.sets[1].reps})`)
+    expect(plan?.explanation.reason).not.toContain('add a rep on set 3')
+  })
+})

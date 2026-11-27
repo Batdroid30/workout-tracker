@@ -176,19 +176,19 @@ describe('buildReason — assistance', () => {
   const referenceAt = (weightKg: number, reps: number): LoggedSet[] => [makeSet(weightKg, reps)]
 
   it('names the held assistance', () => {
-    const reason = buildReason('hold-match', [], [assisted(20, 10)], referenceAt(20, 10), 'assistance')
+    const reason = buildReason('hold-match', [], [assisted(20, 10)], referenceAt(20, 10), { style: 'assistance' })
     expect(reason).toBe('Same 20 kg assistance — match last time (10).')
   })
 
   it('reads a weight-up as dropping assistance and a come-down as adding it', () => {
-    expect(buildReason('weight-up', [], [assisted(17.5, 8)], referenceAt(20, 12), 'assistance'))
+    expect(buildReason('weight-up', [], [assisted(17.5, 8)], referenceAt(20, 12), { style: 'assistance' }))
       .toContain('drop assistance to 17.5 kg')
-    expect(buildReason('come-down', [], [assisted(22.5, 8)], referenceAt(20, 5), 'assistance'))
+    expect(buildReason('come-down', [], [assisted(22.5, 8)], referenceAt(20, 5), { style: 'assistance' }))
       .toContain('add a little assistance (22.5 kg)')
   })
 
   it('keeps the deload weight check like for like in assistance', () => {
-    expect(buildReason('deload', [], [assisted(20, 10)], referenceAt(20, 10), 'assistance'))
+    expect(buildReason('deload', [], [assisted(20, 10)], referenceAt(20, 10), { style: 'assistance' }))
       .toBe('Deload week — same weight, easy effort.')
   })
 })
@@ -221,7 +221,7 @@ describe('buildReason', () => {
   })
 
   it('says capped when the reference was above the range max', () => {
-    const reason = buildReason('hold-match', [], plannedAt(30, [12, 12, 12]), reference(30, [20, 18, 16]))
+    const reason = buildReason('hold-match', [], plannedAt(30, [12, 12, 12]), reference(30, [20, 18, 16]), { rangeMax: 12 })
     expect(reason).toBe('Same 30 kg — capped at the top of the range (12).')
   })
 
@@ -345,5 +345,17 @@ describe('planExercise — mixed-weight reference reason', () => {
     const plan = planExercise([mixed], makeContext(), NOW)
     expect(plan?.explanation.reason).toContain('set 3 moves up to 30 kg')
     expect(plan?.explanation.reason).not.toContain('8 → ')
+  })
+})
+
+describe('buildReason — fewer reps than last time', () => {
+  const straight = (reps: number): SetSuggestion => ({
+    weightKg: 30, reps, repsMax: null, rpeTarget: 7.5, role: 'straight', optional: false,
+  })
+
+  it('names reps lowered within the range instead of calling them capped', () => {
+    const reference = [10, 9, 7].map(count => makeSet(30, count))
+    const reason = buildReason('hold-add-reps', [], [straight(10), straight(7), straight(7)], reference, { rangeMax: 12 })
+    expect(reason).toBe('Same 30 kg — fewer reps on set 2 (9 → 7).')
   })
 })

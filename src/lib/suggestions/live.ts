@@ -1,6 +1,6 @@
 import { calculate1RM } from '@/lib/algorithms'
 import { predictReps, sessionFatigue } from './capacity'
-import { trustedRpe } from './effort'
+import { averageRepLossPerSet, trustedRpe } from './effort'
 import { withWeekOverrides } from './plan-exercise'
 import { clamp, roundDownToStep } from './steps'
 import type { ExercisePlan, LoggedSet, PastSession, PlanContext, SetSuggestion } from './types'
@@ -15,6 +15,7 @@ interface LiveState {
   fatigue: number
   lastCompletedIndex: number
   shouldStepDown: boolean
+  shouldKeepPlannedReps: boolean
 }
 
 function isLeftAlone(suggestion: SetSuggestion): boolean {
@@ -32,17 +33,32 @@ function lastSetRir(lastSet: LoggedSet, planned: SetSuggestion): number {
   return 10 - rpe
 }
 
-function buildLiveState(plan: ExercisePlan, completed: LoggedSet[], minReps: number): LiveState {
+/** One set says nothing about fatigue, so the planner's value stands until two sets share a weight today. */
+function liveFatigue(completed: LoggedSet[], history: PastSession[]): number {
+  const hasMeasuredFatigue = averageRepLossPerSet(completed) !== null
+  return sessionFatigue(hasMeasuredFatigue ? [todaySession(completed)] : history, FATIGUE_FALLBACK)
+}
+
+/** Doing what was asked, with no reported effort, is no evidence the remaining sets should get easier. */
+function hasMetPlanWithoutEffort(lastSet: LoggedSet, planned: SetSuggestion): boolean {
+  return lastSet.reps >= planned.reps && trustedRpe(lastSet) === null
+}
+
+interface LiveInputs { plan: ExercisePlan; completed: LoggedSet[]; history: PastSession[]; minReps: number }
+
+function buildLiveState({ plan, completed, history, minReps }: LiveInputs): LiveState {
   const lastCompletedIndex = completed.length - 1
   const lastSet = completed[lastCompletedIndex]
-  const rir = lastSetRir(lastSet, plan.sets[lastCompletedIndex])
+  const lastPlanned = plan.sets[lastCompletedIndex]
+  const rir = lastSetRir(lastSet, lastPlanned)
   const hasMissedRange = completed.some((set, index) =>
     plan.sets[index]?.role === 'straight' && set.reps <= minReps - STEP_DOWN_REP_SHORTFALL)
   return {
     e1rm: calculate1RM(lastSet.weightKg, lastSet.reps + rir),
-    fatigue: sessionFatigue([todaySession(completed)], FATIGUE_FALLBACK),
+    fatigue: liveFatigue(completed, history),
     lastCompletedIndex,
     shouldStepDown: hasMissedRange,
+    shouldKeepPlannedReps: hasMetPlanWithoutEffort(lastSet, lastPlanned),
   }
 }
 
@@ -56,7 +72,8 @@ function adjustStraightSet(
   const targetRir = 10 - planned.rpeTarget
   const setsAhead = position - state.lastCompletedIndex
   const predicted = predictReps(state.e1rm, weightKg, targetRir, setsAhead, state.fatigue)
-  const reps = clamp(predicted, min - 1, Math.min(max, planned.reps + 1))
+  const adjusted = clamp(predicted, min - 1, Math.min(max, planned.reps + 1))
+  const reps = state.shouldKeepPlannedReps ? Math.max(planned.reps, adjusted) : adjusted
   return { ...planned, weightKg, reps }
 }
 
@@ -73,13 +90,16 @@ function isUntouchable(plan: ExercisePlan, completed: LoggedSet[], ctx: PlanCont
     || plan.explanation.rule === 'deload' || ctx.isBodyweightOnly
 }
 
-/** Re-plans the sets still to do from what today's completed sets showed. Completed positions are returned as planned. */
+/**
+ * Re-plans the sets still to do from what today's completed sets showed. Completed positions are
+ * returned as planned. History (newest first, load space) is what the plan was made from.
+ */
 export function adjustRemainingSets(
-  plan: ExercisePlan, completed: LoggedSet[], ctx: PlanContext,
+  plan: ExercisePlan, completed: LoggedSet[], ctx: PlanContext, history: PastSession[],
 ): SetSuggestion[] {
   if (isUntouchable(plan, completed, ctx)) return plan.sets
   const effectiveCtx = withWeekOverrides(ctx)
-  const state = buildLiveState(plan, completed, effectiveCtx.repRange.min)
+  const state = buildLiveState({ plan, completed, history, minReps: effectiveCtx.repRange.min })
   return plan.sets.map((planned, position) => {
     if (position < completed.length || isLeftAlone(planned)) return planned
     if (planned.role === 'backoff') return adjustBackOff(planned, completed[0], effectiveCtx)
