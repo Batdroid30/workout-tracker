@@ -21,6 +21,29 @@ export function suggestionFields(suggestion: SetSuggestion | undefined): Pick<Ac
   }
 }
 
+interface WeightDisplay {
+  isBodyweight?: boolean
+  isWeightedBodyweight?: boolean
+  userBodyweight: number
+}
+
+/** The number typed in the weight box: added kg for weighted lifts, to 0.1 kg so float noise never shows. */
+export function displayWeight(dbWeight: number, { isWeightedBodyweight, userBodyweight }: WeightDisplay): number {
+  if (isWeightedBodyweight && dbWeight > 0) return Math.max(0, Math.round((dbWeight - userBodyweight) * 10) / 10)
+  return dbWeight
+}
+
+/** What "Use" puts in the inputs. weight_kg is the suggested weight as-is, so it matches suggested_weight_kg. */
+export function suggestionInput(
+  suggestion: SetSuggestion, display: WeightDisplay,
+): { weightText: string | null; updates: Pick<ActiveSet, 'weight_kg' | 'reps'> } {
+  if (display.isBodyweight) return { weightText: null, updates: { weight_kg: 0, reps: suggestion.reps } }
+  return {
+    weightText: String(displayWeight(suggestion.weightKg, display)),
+    updates: { weight_kg: suggestion.weightKg, reps: suggestion.reps },
+  }
+}
+
 interface SetRowProps {
   set: ActiveSet
   prevSetText?: string
@@ -57,12 +80,10 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
   const userBodyweight   = useWorkoutStore(s => s.userBodyweight) ?? 75
   const bodyweightLogged = useWorkoutStore(s => s.bodyweightLogged)
   
-  const getDisplayWeight = useCallback((dbWeight: number) => {
-    if (isWeightedBodyweight && dbWeight > 0) {
-      return Math.max(0, Math.round((dbWeight - userBodyweight) * 10) / 10)
-    }
-    return dbWeight
-  }, [isWeightedBodyweight, userBodyweight])
+  const getDisplayWeight = useCallback(
+    (dbWeight: number) => displayWeight(dbWeight, { isWeightedBodyweight, userBodyweight }),
+    [isWeightedBodyweight, userBodyweight],
+  )
 
   const [weightStr, setWeightStr] = useState(() => set.weight_kg > 0 ? String(getDisplayWeight(set.weight_kg)) : '')
   const [rpeStr,    setRpeStr]    = useState(() => set.rpe !== null ? String(set.rpe) : '')
@@ -125,9 +146,9 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
 
   const handleUseSuggestion = useCallback(() => {
     if (!suggestion) return
-    const clampedWeight = isWeightedBodyweight ? Math.max(userBodyweight, suggestion.weightKg) : suggestion.weightKg
-    if (!isBodyweight) setWeightStr(String(isWeightedBodyweight ? clampedWeight - userBodyweight : clampedWeight))
-    onChange({ weight_kg: isBodyweight ? 0 : clampedWeight, reps: suggestion.reps })
+    const { weightText, updates } = suggestionInput(suggestion, { isBodyweight, isWeightedBodyweight, userBodyweight })
+    if (weightText !== null) setWeightStr(weightText)
+    onChange(updates)
   }, [suggestion, isBodyweight, isWeightedBodyweight, userBodyweight, onChange])
 
   const rpeTarget = suggestion?.rpeTarget ?? defaultRpe

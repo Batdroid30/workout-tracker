@@ -7,7 +7,7 @@ vi.mock('@/store/workout.store', () => ({
     select({ userBodyweight: 80, bodyweightLogged: true }),
 }))
 
-import { SetRow, suggestionFields } from './SetRow'
+import { SetRow, suggestionFields, suggestionInput } from './SetRow'
 import type { ActiveSet } from '@/types/database'
 import type { SetSuggestion } from '@/lib/suggestions/types'
 
@@ -96,5 +96,21 @@ describe('suggestionFields', () => {
 
   it('returns nulls without a suggestion', () => {
     expect(suggestionFields(undefined)).toEqual({ suggested_weight_kg: null, suggested_reps: null })
+  })
+})
+
+describe('suggestionInput', () => {
+  it('fills the added weight without float noise and applies exactly what is stored', () => {
+    const weighted = suggestion({ weightKg: 72.6 })
+    const input = suggestionInput(weighted, { isWeightedBodyweight: true, userBodyweight: 60.1 })
+    expect(input.weightText).toBe('12.5')
+    expect(input.updates.weight_kg).toBe(suggestionFields(weighted).suggested_weight_kg)
+  })
+
+  it('fills plain and bodyweight sets', () => {
+    expect(suggestionInput(suggestion({ weightKg: 35, reps: 8 }), { userBodyweight: 80 }))
+      .toEqual({ weightText: '35', updates: { weight_kg: 35, reps: 8 } })
+    expect(suggestionInput(suggestion({ reps: 12 }), { isBodyweight: true, userBodyweight: 80 }))
+      .toEqual({ weightText: null, updates: { weight_kg: 0, reps: 12 } })
   })
 })
