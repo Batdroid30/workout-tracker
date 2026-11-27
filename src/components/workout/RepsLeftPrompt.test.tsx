@@ -25,5 +25,6 @@ describe('RepsLeftPrompt', () => {
     const markup = renderToStaticMarkup(<RepsLeftPrompt onPick={vi.fn()} onSkip={vi.fn()} />)
     for (const label of ['0', '1', '2', '3+', 'Skip']) expect(markup).toContain(`>${label}</button>`)
     expect(markup.match(/min-h-11/g)).toHaveLength(5)
+    expect(markup).toMatch(/<button[^>]*class="[^"]*min-w-11[^"]*"[^>]*>Skip<\/button>/)
   })
 })

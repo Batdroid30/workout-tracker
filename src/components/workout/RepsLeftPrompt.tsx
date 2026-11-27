@@ -43,7 +43,7 @@ export function RepsLeftPrompt({ onPick, onSkip }: RepsLeftPromptProps) {
       <button
         type="button"
         onClick={onSkip}
-        className="min-h-11 shrink-0 px-2 text-xs text-tertiary"
+        className="min-h-11 min-w-11 shrink-0 px-2 text-xs text-tertiary"
       >Skip</button>
     </div>
   )

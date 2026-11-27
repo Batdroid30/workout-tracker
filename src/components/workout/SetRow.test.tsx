@@ -40,6 +40,7 @@ describe('SetRow', () => {
   it('leaves the RPE empty and shows the target as a placeholder', () => {
     const markup = renderWith({ suggestion: suggestion() })
     expect(markup).toMatch(/<input[^>]*placeholder="7.5" aria-label="RPE"[^>]*value=""/)
+    expect(markup).toMatch(/aria-label="RPE" class="[^"]*placeholder:text-sm placeholder:text-tertiary/)
   })
 
   it('falls back to the week RPE as the placeholder without a suggestion', () => {
@@ -51,7 +52,7 @@ describe('SetRow', () => {
     expect(markup).toContain('35 kg × 3–5')
     expect(markup).toContain('· RPE 8.5 (2 RIR)')
     expect(markup).toContain('Top set')
-    expect(markup).toContain('>Use<')
+    expect(markup).toMatch(/<button[^>]*class="[^"]*min-h-11[^"]*min-w-11[^"]*"[^>]*>Use<\/button>/)
   })
 
   it('labels back-off sets and optional deload sets', () => {

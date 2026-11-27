@@ -250,7 +250,7 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
             value={rpeStr}
             placeholder={rpePlaceholder}
             aria-label="RPE"
-            className="flex-1 min-h-11 rounded-control text-center mono text-base text-secondary placeholder:text-tertiary bg-surface-raised border border-border focus:outline-none focus:border-border-strong transition-colors"
+            className="flex-1 min-h-11 rounded-control text-center mono text-base text-secondary placeholder:text-sm placeholder:text-tertiary bg-surface-raised border border-border focus:outline-none focus:border-border-strong transition-colors"
             onFocus={() => { rpeFocused.current = true }}
             onChange={e => {
               const str = e.target.value
@@ -262,10 +262,13 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
             onBlur={e => {
               rpeFocused.current = false
               const str = e.target.value
-              if (str === '') { onChange(NO_RPE); setRpeStr(''); return }
               const v = parseFloat(str)
-              if (isNaN(v) || v < 1 || v > 10) { onChange(NO_RPE); setRpeStr('') }
-              else { onChange({ rpe: v, rpe_source: 'entered' }); setRpeStr(String(v)) }
+              const isValid = !isNaN(v) && v >= 1 && v <= 10
+              const committed = isValid ? v : null
+              setRpeStr(committed === null ? '' : String(committed))
+              // Focusing and leaving must not relabel an RPE the user did not change.
+              if (committed === set.rpe) return
+              onChange(committed === null ? NO_RPE : { rpe: committed, rpe_source: 'entered' })
             }}
           />
           <button

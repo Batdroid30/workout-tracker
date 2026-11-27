@@ -61,7 +61,7 @@ export function SuggestionChip({ suggestion, reason, onUse, onExplain, ...displa
       <button
         type="button"
         onClick={onUse}
-        className="min-h-11 shrink-0 px-3 text-xs font-semibold text-primary active:scale-95 transition-transform"
+        className="min-h-11 min-w-11 shrink-0 px-3 text-xs font-semibold text-primary active:scale-95 transition-transform"
       >Use</button>
     </div>
   )
