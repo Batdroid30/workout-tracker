@@ -354,3 +354,31 @@ describe('resolveExercisePlan — storage-space values are step multiples', () =
     expect(failures.slice(0, 10)).toEqual([])
   })
 })
+
+describe('resolveExercisePlan — reason names an older reference session', () => {
+  const exercise = makeActiveExercise()
+  const newerVolume = makeSession(22.5, [15, 14, 13], { workoutId: 'v', startedAt: '2026-11-24T10:00:00Z', weekKind: 'volume' })
+
+  it('prefixes the reason when the plan compares against a session other than the Last column', () => {
+    const plan = resolveExercisePlan({
+      history: [newerVolume, makeSession(30, [10, 9, 7])], ctx: contextFor(exercise), exercise, todayBodyweightKg: 75, now: NOW,
+    })
+    expect(plan?.explanation.reason).toBe('vs last Hypertrophy week (19 Nov): Same 30 kg — add a rep on set 3 (7 → 8).')
+  })
+
+  it('names only the date when the reference has no week type', () => {
+    const untyped = makeSession(30, [10, 9, 7], { weekKind: null })
+    const plan = resolveExercisePlan({
+      history: [{ ...untyped, workoutId: 'deload', startedAt: '2026-11-24T10:00:00Z', isDeload: true }, untyped],
+      ctx: contextFor(exercise, makeCycle('volume')), exercise, todayBodyweightKg: 75, now: NOW,
+    })
+    expect(plan?.explanation.reason.startsWith('vs 19 Nov: ')).toBe(true)
+  })
+
+  it('adds no prefix when the reference is the newest session', () => {
+    const plan = resolveExercisePlan({
+      history: [makeSession(30, [10, 9, 7])], ctx: contextFor(exercise), exercise, todayBodyweightKg: 75, now: NOW,
+    })
+    expect(plan?.explanation.reason.startsWith('vs ')).toBe(false)
+  })
+})

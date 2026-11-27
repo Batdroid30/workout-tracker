@@ -33,6 +33,11 @@ function makePlan(overrides: Partial<ExercisePlan['explanation']> = {}): Exercis
 }
 
 describe('explanation labels', () => {
+  it('reads the reference date in UTC so it never shifts a day by time zone', () => {
+    const lateEvening = makePlan({ referenceDate: '2026-11-19T23:30:00Z' }).explanation
+    expect(formatReferenceLine(lateEvening, 'load', 75)).toContain(' · 19 Nov · ')
+  })
+
   it('formats the reference line for each load mode', () => {
     const { explanation } = makePlan()
     expect(formatReferenceLine(explanation, 'load', 75)).toBe('Last Hypertrophy week · 19 Nov · 30×10, 30×9, 30×7')

@@ -45,8 +45,15 @@ export function formatReferenceSet(set: LoggedSet, mode: LoadMode, bodyweightKg:
   return SET_FORMATTERS[mode](set, bodyweightKg)
 }
 
-function formatShortDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+/** "19 Nov". Read in UTC so a late-evening session never shows as the next day. */
+export function formatShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+}
+
+/** "vs last Hypertrophy week (19 Nov): ", or "vs 19 Nov: " when the session has no week type. */
+export function referencePrefix(referenceDate: string, referenceWeekKind: WeekKind | null): string {
+  const date = formatShortDate(referenceDate)
+  return referenceWeekKind ? `vs last ${WEEK_LABELS[referenceWeekKind]} week (${date}): ` : `vs ${date}: `
 }
 
 /** "Last Hypertrophy week · 19 Nov · 30×10, 30×9, 30×7"; null when there was no reference session. */
