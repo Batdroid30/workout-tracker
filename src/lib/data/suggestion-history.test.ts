@@ -100,11 +100,13 @@ describe('toPastSessions', () => {
   it('converts assisted sets to load using that workout bodyweight', () => {
     const sessions = toPastSessions([row({ weight: 20, bodyweight: 80 })], { isAssisted: true, isBodyweightOnly: true })
     expect(sessions[0].sets[0].weightKg).toBe(60)
+    expect(sessions[0].bodyweightKg).toBe(80)
   })
 
   it('uses the fallback bodyweight when the workout has none', () => {
     const sessions = toPastSessions([row({ weight: 20, bodyweight: null })], { isAssisted: true, isBodyweightOnly: true })
     expect(sessions[0].sets[0].weightKg).toBe(55)
+    expect(sessions[0].bodyweightKg).toBe(75)
   })
 
   it('sets weightKg to 0 for bodyweight-only sets', () => {

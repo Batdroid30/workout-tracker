@@ -23,7 +23,7 @@ function isLeftAlone(suggestion: SetSuggestion): boolean {
 
 function todaySession(completed: LoggedSet[]): PastSession {
   // Week kind and deload flag are irrelevant to fatigue; only the sets are read.
-  return { workoutId: 'today', startedAt: '', weekKind: null, isDeload: false, sets: completed }
+  return { workoutId: 'today', startedAt: '', weekKind: null, isDeload: false, bodyweightKg: 75, sets: completed }
 }
 
 /** Reps in reserve on the last set: the logged RPE if trustworthy, else the planned target. */

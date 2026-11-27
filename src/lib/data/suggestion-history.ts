@@ -109,6 +109,7 @@ export function toPastSessions(rows: unknown[], options: HistoryOptions): PastSe
       startedAt: workout.started_at,
       weekKind: workout.week_type,
       isDeload: workout.is_deload ?? false,
+      bodyweightKg: workoutBodyweight(workout.bodyweight_kg),
       sets: ordered.map(row => toLoggedSet(row, options)),
     }
   })

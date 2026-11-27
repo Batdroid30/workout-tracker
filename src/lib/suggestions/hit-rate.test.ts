@@ -9,7 +9,7 @@ function loggedSet(
 }
 
 function session(sets: LoggedSet[]): PastSession {
-  return { workoutId: 'w1', startedAt: '2026-11-19T10:00:00Z', weekKind: 'hypertrophy', isDeload: false, sets }
+  return { workoutId: 'w1', startedAt: '2026-11-19T10:00:00Z', weekKind: 'hypertrophy', isDeload: false, bodyweightKg: 75, sets }
 }
 
 describe('hitRate', () => {

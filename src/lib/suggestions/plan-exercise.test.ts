@@ -25,7 +25,7 @@ function sessionAt(
   weekKind: PastSession['weekKind'], weightKg: number, reps: number[], setOneRpe: number | null = null,
 ): PastSession {
   const sets = reps.map((count, index) => makeSet(weightKg, count, index === 0 ? setOneRpe : null))
-  return { workoutId: `w-${weekKind}`, startedAt: LAST_WEEK, weekKind, isDeload: false, sets }
+  return { workoutId: `w-${weekKind}`, startedAt: LAST_WEEK, weekKind, isDeload: false, bodyweightKg: 75, sets }
 }
 
 function weightsAndReps(sets: SetSuggestion[]): string[] {

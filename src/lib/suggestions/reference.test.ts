@@ -15,7 +15,7 @@ function makeSet(overrides: Partial<LoggedSet> = {}): LoggedSet {
 function makeSession(overrides: Partial<PastSession> = {}): PastSession {
   return {
     workoutId: 'w', startedAt: '2026-11-20T10:00:00Z',
-    weekKind: 'hypertrophy', isDeload: false, sets: [makeSet()],
+    weekKind: 'hypertrophy', isDeload: false, bodyweightKg: 75, sets: [makeSet()],
     ...overrides,
   }
 }

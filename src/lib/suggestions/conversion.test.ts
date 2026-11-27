@@ -23,7 +23,7 @@ function makeSet(weightKg: number, reps: number, rpe: number | null = null): Log
 
 function hypertrophySession(sets: LoggedSet[]): PastSession {
   const startedAt = '2026-11-19T10:00:00Z'
-  return { workoutId: startedAt, startedAt, weekKind: 'hypertrophy', isDeload: false, sets }
+  return { workoutId: startedAt, startedAt, weekKind: 'hypertrophy', isDeload: false, bodyweightKg: 75, sets }
 }
 
 function describeSets(sets: { weightKg: number; reps: number; repsMax: number | null }[]): string[] {

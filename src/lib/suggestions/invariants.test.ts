@@ -73,7 +73,7 @@ function weeksAgo(weeks: number): string {
 function buildHistory(point: GridPoint): PastSession[] {
   const weekKind = point.scenario === 'conversion' ? CONVERSION_SOURCE[point.weekKind] : point.weekKind
   return Array.from({ length: point.depth }, (_, index) => ({
-    workoutId: `w${index}`, startedAt: weeksAgo(index + 1), weekKind, isDeload: false,
+    workoutId: `w${index}`, startedAt: weeksAgo(index + 1), weekKind, isDeload: false, bodyweightKg: 75,
     sets: point.reps.map(reps => loggedSet(point.weightKg, reps, point.rpe)),
   }))
 }

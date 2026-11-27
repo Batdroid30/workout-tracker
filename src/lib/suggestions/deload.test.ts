@@ -17,7 +17,7 @@ function makeSet(weightKg: number, reps: number): LoggedSet {
 
 function sessionWith(sets: LoggedSet[]): PastSession {
   const startedAt = '2026-11-19T10:00:00Z'
-  return { workoutId: startedAt, startedAt, weekKind: 'hypertrophy', isDeload: false, sets }
+  return { workoutId: startedAt, startedAt, weekKind: 'hypertrophy', isDeload: false, bodyweightKg: 75, sets }
 }
 
 function describeSets(sets: { weightKg: number; reps: number; optional: boolean }[]): string[] {

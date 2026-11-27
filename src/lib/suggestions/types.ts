@@ -11,6 +11,7 @@ export interface LoggedSet {
 export interface PastSession {
   workoutId: string; startedAt: string
   weekKind: WeekKind | null; isDeload: boolean
+  bodyweightKg: number         // bodyweight the session was logged against
   sets: LoggedSet[]            // working sets only, ordered by set_number, load space
 }
 export interface RepRange { min: number; max: number }

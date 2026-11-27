@@ -21,7 +21,7 @@ function makeSet(weightKg: number, reps: number, rpe: number | null = null): Log
 }
 
 function makeSession(startedAt: string, sets: LoggedSet[], weekKind: PastSession['weekKind'] = 'hypertrophy'): PastSession {
-  return { workoutId: startedAt, startedAt, weekKind, isDeload: false, sets }
+  return { workoutId: startedAt, startedAt, weekKind, isDeload: false, bodyweightKg: 75, sets }
 }
 
 /** Set 1 carries the entered RPE; later sets have none. */

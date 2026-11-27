@@ -19,7 +19,7 @@ function makeSet(weightKg: number, reps: number, rpe: number | null = null): Log
 }
 
 function strengthSession(startedAt: string, sets: LoggedSet[]): PastSession {
-  return { workoutId: startedAt, startedAt, weekKind: 'strength', isDeload: false, sets }
+  return { workoutId: startedAt, startedAt, weekKind: 'strength', isDeload: false, bodyweightKg: 75, sets }
 }
 
 function weightsAndReps(sets: { weightKg: number; reps: number }[]): string[] {
