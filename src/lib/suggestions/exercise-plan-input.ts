@@ -7,9 +7,11 @@ import type {
 import { sessionEfforts } from './effort'
 import { hitRate, type HitRate } from './hit-rate'
 import { adjustRemainingSets } from './live'
-import { noCycleContext, planExercise } from './plan-exercise'
+import { buildReason, noCycleContext, planExercise } from './plan-exercise'
 import { defaultWeightStep, toEquipmentKind } from './steps'
-import type { ExercisePlan, LoggedSet, PastSession, PlanContext, SetSuggestion } from './types'
+import type {
+  ExercisePlan, LoggedSet, PastSession, PlanContext, PlanExplanation, SetSuggestion,
+} from './types'
 
 /** How an exercise's stored weight_kg maps to load lifted. */
 type LoadKind = 'assisted' | 'bodyweight-only' | 'load'
@@ -92,7 +94,12 @@ export function buildPlanContext(
 function rebaseToToday(history: PastSession[], todayBodyweightKg: number): PastSession[] {
   return history.map(session => {
     const shift = todayBodyweightKg - session.bodyweightKg
-    const sets = session.sets.map(set => ({ ...set, weightKg: Math.max(0, set.weightKg + shift) }))
+    const rebase = (kg: number) => Math.max(0, kg + shift)
+    const sets = session.sets.map(set => ({
+      ...set,
+      weightKg: rebase(set.weightKg),
+      suggestedWeightKg: set.suggestedWeightKg === null ? null : rebase(set.suggestedWeightKg),
+    }))
     return { ...session, sets }
   })
 }
@@ -114,13 +121,35 @@ function completedLoggedSets(exercise: ActiveExercise, kind: LoadKind, bodyweigh
       reps: set.reps,
       rpe: set.rpe,
       rpeSource: set.rpe_source ?? null,
-      suggestedWeightKg: set.suggested_weight_kg ?? null,
+      suggestedWeightKg: set.suggested_weight_kg == null ? null : toLoadKg(set.suggested_weight_kg, kind, bodyweightKg),
       suggestedReps: set.suggested_reps ?? null,
     }))
 }
 
+function loggedSetFromLoad(set: LoggedSet, kind: LoadKind, bodyweightKg: number): LoggedSet {
+  const convert = (kg: number) => fromLoadKg(kg, kind, bodyweightKg)
+  return {
+    ...set,
+    weightKg: convert(set.weightKg),
+    suggestedWeightKg: set.suggestedWeightKg === null ? null : convert(set.suggestedWeightKg),
+  }
+}
+
 function isRepSum(exercise: ActiveExercise): boolean {
   return exercise.progression_model === 'rep_sum' && exercise.rep_sum_target != null
+}
+
+function totalReps(sets: LoggedSet[]): number {
+  return sets.reduce((sum, set) => sum + set.reps, 0)
+}
+
+function assistedRepSumReason(first: SetSuggestion, referenceSets: LoggedSet[], repSumTarget: number): string {
+  const prevTotalReps = totalReps(referenceSets)
+  if (prevTotalReps >= repSumTarget) {
+    return `Hit ${repSumTarget} total reps last session — drop assistance to ${first.weightKg} kg and rebuild.`
+  }
+  const remaining = repSumTarget - prevTotalReps
+  return `Rep bank: ${prevTotalReps}/${repSumTarget} last session — same assistance (${first.weightKg} kg), ${remaining} more reps to earn a drop.`
 }
 
 function planRepSum(history: PastSession[], ctx: PlanContext, repSumTarget: number): ExercisePlan | null {
@@ -128,7 +157,7 @@ function planRepSum(history: PastSession[], ctx: PlanContext, repSumTarget: numb
   const reference = history.find(session => !session.isDeload)
   const lastSet = reference?.sets.at(-1)
   if (!reference || !lastSet) return null
-  const prevTotalReps = reference.sets.reduce((sum, set) => sum + set.reps, 0)
+  const prevTotalReps = totalReps(reference.sets)
   const suggestions = Array.from({ length: ctx.plannedSets }, (_, position) => {
     const last = reference.sets[position] ?? lastSet
     return suggestNextSet({
@@ -172,6 +201,25 @@ function planInLoadSpace({ history, ctx, exercise, completed, now }: LoadSpaceAr
   return { ...plan, sets: adjustRemainingSets(plan, completed, ctx) }
 }
 
+interface AssistedExplanationArgs {
+  exercise: ActiveExercise
+  ctx: PlanContext
+  todayBodyweightKg: number
+}
+
+/** Restates the explanation in assistance kg so its copy matches the assistance shown on each set. */
+function assistedExplanation(
+  explanation: PlanExplanation, sets: SetSuggestion[], { exercise, ctx, todayBodyweightKg }: AssistedExplanationArgs,
+): PlanExplanation {
+  const referenceSets = explanation.referenceSets.map(set => loggedSetFromLoad(set, 'assisted', todayBodyweightKg))
+  const [first] = sets
+  const isRepSumPlan = isRepSum(exercise) && !ctx.isDeloadWeek
+  const reason = isRepSumPlan && first
+    ? assistedRepSumReason(first, referenceSets, exercise.rep_sum_target ?? 0)
+    : buildReason(explanation.rule, explanation.modifiers, sets, referenceSets, 'assistance')
+  return { ...explanation, referenceSets, reason }
+}
+
 /** The plan for today in storage space (assistance for assisted lifts), adjusted for completed sets. */
 export function resolveExercisePlan(
   { history, ctx, exercise, todayBodyweightKg, now }: ResolvePlanArgs,
@@ -182,7 +230,8 @@ export function resolveExercisePlan(
   const plan = planInLoadSpace({ history: plannedHistory, ctx, exercise, completed, now })
   if (!plan) return null
   const sets = plan.sets.map(set => ({ ...set, weightKg: fromLoadKg(set.weightKg, kind, todayBodyweightKg) }))
-  return { ...plan, sets }
+  if (kind !== 'assisted') return { ...plan, sets }
+  return { sets, explanation: assistedExplanation(plan.explanation, sets, { exercise, ctx, todayBodyweightKg }) }
 }
 
 /** Newest session back in storage space with its own bodyweight, so it reads as it was logged. */
@@ -190,8 +239,7 @@ export function toPreviousSession(history: PastSession[], exercise: Exercise): P
   const [newest] = history
   if (!newest) return null
   const kind = loadKindFor(exercise)
-  const sets = newest.sets.map(set => ({ ...set, weightKg: fromLoadKg(set.weightKg, kind, newest.bodyweightKg) }))
-  return { ...newest, sets }
+  return { ...newest, sets: newest.sets.map(set => loggedSetFromLoad(set, kind, newest.bodyweightKg)) }
 }
 
 function toError(error: unknown): Error | null {

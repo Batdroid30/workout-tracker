@@ -56,22 +56,23 @@ const HISTORY_SELECT = `
   )
 `
 
-function toLoadKg(row: HistoryRow, { isAssisted, isBodyweightOnly }: HistoryOptions): number {
+function toLoadKg(weightKg: number, row: HistoryRow, { isAssisted, isBodyweightOnly }: HistoryOptions): number {
   if (isAssisted) {
     const bodyweight = workoutBodyweight(row.workout_exercises.workouts.bodyweight_kg)
-    return effectiveLoad(row.weight_kg, ASSISTED_EXERCISE_NAME, bodyweight)
+    return effectiveLoad(weightKg, ASSISTED_EXERCISE_NAME, bodyweight)
   }
   // Weighted-bodyweight sets already store the total load, so only pure bodyweight is zeroed.
-  return isBodyweightOnly ? 0 : row.weight_kg
+  return isBodyweightOnly ? 0 : weightKg
 }
 
 function toLoggedSet(row: HistoryRow, options: HistoryOptions): LoggedSet {
   return {
-    weightKg: toLoadKg(row, options),
+    weightKg: toLoadKg(row.weight_kg, row, options),
     reps: row.reps,
     rpe: row.rpe,
     rpeSource: row.rpe_source,
-    suggestedWeightKg: row.suggested_weight_kg,
+    // Same space as weightKg, so hit-rate compares like with like.
+    suggestedWeightKg: row.suggested_weight_kg === null ? null : toLoadKg(row.suggested_weight_kg, row, options),
     suggestedReps: row.suggested_reps,
   }
 }

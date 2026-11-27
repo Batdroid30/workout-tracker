@@ -152,6 +152,29 @@ describe('resolveExercisePlan', () => {
     })
     expect(weightsAndReps(plan?.sets ?? [])).toEqual(['20x10', '20x9', '20x8'])
     expect(plan?.explanation.rule).toBe('hold-add-reps')
+    expect(plan?.explanation.referenceSets[0].weightKg).toBe(20)
+    expect(plan?.explanation.reason).toContain('20 kg assistance')
+  })
+
+  it('explains an assisted weight-up as dropping assistance', () => {
+    const exercise = makeActiveExercise(makeExercise({ name: 'Assisted Pull-up', equipment: 'bodyweight' }))
+    const history = [makeSession(60, [12, 12, 12], { bodyweightKg: 80 })]
+    const plan = resolveExercisePlan({ history, ctx: contextFor(exercise), exercise, todayBodyweightKg: 80, now: NOW })
+    expect(plan?.explanation.rule).toBe('weight-up')
+    expect(plan?.sets[0].weightKg).toBeLessThan(20)
+    expect(plan?.explanation.reason).toContain('drop assistance')
+  })
+
+  it('explains an assisted rep_sum weight-up as dropping assistance', () => {
+    const exercise = makeActiveExercise(
+      makeExercise({ name: 'Assisted Dip', equipment: 'bodyweight' }), undefined,
+      { progression_model: 'rep_sum', rep_sum_target: 25 },
+    )
+    const history = [makeSession(60, [10, 9, 7], { bodyweightKg: 80 })]
+    const plan = resolveExercisePlan({ history, ctx: contextFor(exercise), exercise, todayBodyweightKg: 80, now: NOW })
+    expect(plan?.sets[0].weightKg).toBe(17.5)
+    expect(plan?.explanation.reason).toContain('drop assistance to 17.5 kg')
+    expect(plan?.explanation.referenceSets[0].weightKg).toBe(20)
   })
 
   it('rep_sum exercise ignores a deload session', () => {

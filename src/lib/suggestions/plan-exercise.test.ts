@@ -168,6 +168,30 @@ describe('planExercise — explanation', () => {
   })
 })
 
+describe('buildReason — assistance', () => {
+  const assisted = (weightKg: number, reps: number): SetSuggestion => ({
+    weightKg, reps, repsMax: null, rpeTarget: 7.5, role: 'straight', optional: false,
+  })
+  const referenceAt = (weightKg: number, reps: number): LoggedSet[] => [makeSet(weightKg, reps)]
+
+  it('names the held assistance', () => {
+    const reason = buildReason('hold-match', [], [assisted(20, 10)], referenceAt(20, 10), 'assistance')
+    expect(reason).toBe('Same 20 kg assistance — match last time (10).')
+  })
+
+  it('reads a weight-up as dropping assistance and a come-down as adding it', () => {
+    expect(buildReason('weight-up', [], [assisted(17.5, 8)], referenceAt(20, 12), 'assistance'))
+      .toContain('drop assistance to 17.5 kg')
+    expect(buildReason('come-down', [], [assisted(22.5, 8)], referenceAt(20, 5), 'assistance'))
+      .toContain('add a little assistance (22.5 kg)')
+  })
+
+  it('keeps the deload weight check like for like in assistance', () => {
+    expect(buildReason('deload', [], [assisted(20, 10)], referenceAt(20, 10), 'assistance'))
+      .toBe('Deload week — same weight, easy effort.')
+  })
+})
+
 describe('buildReason', () => {
   const straight = (weightKg: number, reps: number): SetSuggestion => ({
     weightKg, reps, repsMax: null, rpeTarget: 7.5, role: 'straight', optional: false,

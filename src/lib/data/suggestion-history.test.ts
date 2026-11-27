@@ -34,6 +34,7 @@ import {
   fetchWeightStep,
   toPastSessions,
 } from './suggestion-history'
+import { hitRate } from '@/lib/suggestions/hit-rate'
 
 const NORMAL = { isAssisted: false, isBodyweightOnly: false }
 
@@ -47,6 +48,7 @@ interface RowOverrides {
   join?: 'object' | 'array'
   weekType?: string | null
   isDeload?: boolean | null
+  suggestedWeight?: number | null
 }
 
 function row(overrides: RowOverrides) {
@@ -64,8 +66,8 @@ function row(overrides: RowOverrides) {
     reps: overrides.reps ?? 5,
     rpe: null,
     rpe_source: null,
-    suggested_weight_kg: null,
-    suggested_reps: null,
+    suggested_weight_kg: overrides.suggestedWeight ?? null,
+    suggested_reps: overrides.suggestedWeight == null ? null : overrides.reps ?? 5,
     workout_exercises: exercise,
   }
 }
@@ -101,6 +103,13 @@ describe('toPastSessions', () => {
     const sessions = toPastSessions([row({ weight: 20, bodyweight: 80 })], { isAssisted: true, isBodyweightOnly: true })
     expect(sessions[0].sets[0].weightKg).toBe(60)
     expect(sessions[0].bodyweightKg).toBe(80)
+  })
+
+  it('converts an assisted suggested weight to load so hit-rate counts the hit', () => {
+    const options = { isAssisted: true, isBodyweightOnly: false }
+    const sessions = toPastSessions([row({ weight: 20, suggestedWeight: 20, bodyweight: 80 })], options)
+    expect(sessions[0].sets[0].suggestedWeightKg).toBe(60)
+    expect(hitRate(sessions)).toEqual({ hits: 1, total: 1 })
   })
 
   it('uses the fallback bodyweight when the workout has none', () => {
