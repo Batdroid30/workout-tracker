@@ -4,6 +4,7 @@ import type { TrainingCycle } from '@/lib/training-cycle'
 import type { ActiveExercise, ActiveSet, Exercise } from '@/types/database'
 import {
   buildPlanContext,
+  buildPlanData,
   resolveExercisePlan,
   toHookResult,
   toPreviousSession,
@@ -226,6 +227,16 @@ describe('toHookResult', () => {
     const previous = makeSession(30, [10])
     const result = toHookResult({ plan: null, previous, hitRate: { hits: 0, total: 0 } }, undefined, true)
     expect(result).toEqual({ plan: null, previous, hitRate: null, isLoading: true, error: null })
+  })
+
+  it('drops a computed plan when the training cycle failed to load', () => {
+    const exercise = makeActiveExercise()
+    const data = buildPlanData({
+      history: [makeSession(30, [10, 9, 7])], ctx: contextFor(exercise, null), exercise, todayBodyweightKg: 75, now: NOW,
+    })
+    const cycleError = new Error('cycle down')
+    expect(data.plan).not.toBeNull()
+    expect(toHookResult(data, cycleError, false)).toMatchObject({ plan: null, error: cycleError })
   })
 
   it('wraps a non-Error failure in an Error', () => {

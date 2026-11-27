@@ -47,7 +47,7 @@ export function useExercisePlan(exercise: ActiveExercise): ExercisePlanResult {
   const exerciseId = exercise.exercise.id
   const options = historyOptions(exercise.exercise)
   const todayBodyweightKg = useWorkoutStore(s => s.userBodyweight) ?? FALLBACK_BODYWEIGHT_KG
-  const { cycle, isLoading: isCycleLoading } = useTrainingCycle()
+  const { cycle, isLoading: isCycleLoading, error: cycleError } = useTrainingCycle()
 
   const profile = useSWR('user-profile-for-suggestions', fetchProfile, SWR_OPTIONS)
   const readiness = useSWR('readiness-today', fetchTodayReadinessAverage, SWR_OPTIONS)
@@ -70,6 +70,7 @@ export function useExercisePlan(exercise: ActiveExercise): ExercisePlanResult {
     return buildPlanData({ history: history.data, ctx, exercise, todayBodyweightKg, now: new Date() })
   }, [isReady, history.data, cycle, profile.data, readiness.data, step.data, exercise, todayBodyweightKg])
 
-  const error = history.error ?? profile.error ?? readiness.error ?? step.error
+  // A failed cycle fetch must not fall back to the no-cycle week; that fallback is for users without a cycle.
+  const error = history.error ?? profile.error ?? readiness.error ?? step.error ?? cycleError
   return toHookResult(data, error, !isReady && !error)
 }
