@@ -1,7 +1,7 @@
 import { cache } from 'react'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { DatabaseError } from '@/lib/errors'
-import { calculate1RM, suggestNextSet } from '@/lib/algorithms'
+import { calculate1RM } from '@/lib/algorithms'
 import type { WUPScheme } from '@/lib/workout-intelligence'
 import type { RecentExerciseLoad } from '@/lib/algorithms'
 import {
@@ -628,28 +628,14 @@ export function buildThisWeekMissions(input: BuildMissionsInput): Mission[] {
     .filter((entry): entry is { lift: KeyLift; load: RecentExerciseLoad } => !!entry.load)
     .slice(0, 2)
 
-  const dupScheme    = input.scheme
-  const deloadActive = input.isDeloadWeek
-
   for (const { lift, load } of overloadPicks) {
-    const suggestion = suggestNextSet({
-      lastWeight:      load.lastWeight,
-      lastReps:        load.lastReps,
-      lastRPE:         load.lastRPE,
-      exerciseType:    'compound',
-      trainingGoal:    input.profile?.training_goal    ?? null,
-      experienceLevel: input.profile?.experience_level ?? null,
-      dupRepRange:     dupScheme.repRange,
-      dupRpeTarget:    dupScheme.rpeTarget,
-      isDeloadWeek:    deloadActive,
-    })
     missions.push({
       id:       `overload-${lift.exerciseId}`,
       type:     'overload',
       priority: 'normal',
       icon:     '🎯',
-      headline: `${lift.exerciseName}: aim ${suggestion.weight_kg}×${suggestion.target_reps}`,
-      detail:   `Last set: ${load.lastWeight}×${load.lastReps}. ${suggestion.reason}`,
+      headline: `${lift.exerciseName}: beat last time`,
+      detail:   `Last set: ${load.lastWeight}×${load.lastReps}. Open your next session — each set shows its exact target.`,
     })
   }
 
