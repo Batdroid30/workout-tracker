@@ -359,3 +359,15 @@ describe('buildReason — fewer reps than last time', () => {
     expect(reason).toBe('Same 30 kg — fewer reps on set 2 (9 → 7).')
   })
 })
+
+describe('planExercise — conversion ignores stale strength', () => {
+  it('calibrates a Strength week from the recent session, not a 15-week-old one', () => {
+    const recentVolume = sessionAt('volume', 60, [15, 14, 13])
+    const oldStrength: PastSession = {
+      ...sessionAt('strength', 100, [5, 5, 5]), workoutId: 'w-old', startedAt: '2026-08-06T10:00:00Z',
+    }
+    const plan = planExercise([recentVolume, oldStrength], makeContext({ weekKind: 'strength', repRange: { min: 3, max: 5 }, rpeTarget: 8.5, equipment: 'barbell' }), NOW)
+    expect(plan?.explanation.rule).toBe('calibration')
+    expect(plan?.sets[0].weightKg).toBe(62.5)
+  })
+})

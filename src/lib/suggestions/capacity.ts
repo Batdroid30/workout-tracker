@@ -7,6 +7,8 @@ const MAX_USABLE_REPS_TO_FAILURE = 20
 const MAX_CONVERSION_REPS = 12
 const OUTLIER_RATIO = 1.15
 const OUTLIER_WINDOW_MS = 8 * 7 * 24 * 60 * 60 * 1000
+// A conversion only trusts sessions this close to the newest one; older strength has likely faded.
+const CONVERSION_WINDOW_MS = 8 * 7 * 24 * 60 * 60 * 1000
 const FATIGUE_SESSIONS_CONSIDERED = 4
 const MAX_FATIGUE = 3
 const BISECTION_TOLERANCE = 0.001
@@ -69,9 +71,16 @@ export function currentE1rm(sessions: PastSession[]): number | null {
   return pickCurrentE1rm(sessions, sessionE1rm)
 }
 
+/** Sessions within the conversion window of the newest session in the list. */
+function recentSessions(sessions: PastSession[]): PastSession[] {
+  if (sessions.length === 0) return []
+  const newestMs = Math.max(...sessions.map(session => Date.parse(session.startedAt)))
+  return sessions.filter(session => Date.parse(session.startedAt) >= newestMs - CONVERSION_WINDOW_MS)
+}
+
 /** Like currentE1rm, but for converting to a new week type (see conversionSessionE1rm). */
 export function conversionE1rm(sessions: PastSession[]): number | null {
-  return pickCurrentE1rm(sessions, conversionSessionE1rm)
+  return pickCurrentE1rm(recentSessions(sessions), conversionSessionE1rm)
 }
 
 function median(values: number[]): number {

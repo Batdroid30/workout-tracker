@@ -103,6 +103,11 @@ describe('conversionE1rm', () => {
     expect(conversionE1rm([hard])).toBe(calculate1RM(100, 12))
     expect(calculate1RM(100, 12)).toBeCloseTo(140, 0)
   })
+  it('ignores sessions more than 8 weeks older than the newest one', () => {
+    const recent = sessionWithReps('2026-11-19T10:00:00Z', 60, 15, 14, 13)
+    const fifteenWeeksOlder = makeSession({ startedAt: '2026-08-06T10:00:00Z', sets: [enteredSet(100, 5, 8)] })
+    expect(conversionE1rm([recent, fifteenWeeksOlder])).toBeNull()
+  })
   it('accepts low-rep sessions', () => {
     const session = makeSession({ sets: [enteredSet(100, 5, 8)] })
     expect(conversionE1rm([session])).toBeCloseTo(calculate1RM(100, 7), 1)
