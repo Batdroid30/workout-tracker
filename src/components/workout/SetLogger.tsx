@@ -1,6 +1,7 @@
 'use client'
 
-import { SetRow }               from './SetRow'
+import { SetRow, suggestionFields } from './SetRow'
+import { isKeySet }             from './RepsLeftPrompt'
 import { WarmupRamp }           from './WarmupRamp'
 import { PRBanner }             from './PRBanner'
 import type { ActiveExercise, PRCheckResult } from '@/types/database'
@@ -14,13 +15,14 @@ import type { ReactNode } from 'react'
 import { useState, useEffect, useCallback } from 'react'
 import { useWorkoutStore }      from '@/store/workout.store'
 import { usePRStore }           from '@/store/pr.store'
-import { useLastWorkoutSets }   from '@/hooks/useLastWorkoutSets'
+import { useExercisePlan }      from '@/hooks/useExercisePlan'
+import type { PastSession }     from '@/lib/suggestions/types'
 import { useDialog }            from '@/providers/DialogProvider'
 import { getCurrentUserId, getSupabaseClient }    from '@/lib/supabase/client'
 import { upsertExercisePreference } from '@/lib/data/exercise-preferences'
 import { useTrainingCycle } from '@/hooks/useTrainingCycle'
 
-// RPE pre-fill before the training cycle has loaded.
+// RPE placeholder before the training cycle has loaded.
 const DEFAULT_RPE_TARGET = 8
 import { cn } from '@/lib/utils'
 import { formatVolume, setVolume, isAssisted, formatAddedWeight } from '@/lib/load'
@@ -74,14 +76,11 @@ export function SetLogger({
   const [activePRs,          setActivePRs]          = useState<PRCheckResult[]>([])
   const dialog = useDialog()
 
-  const exerciseType = exercise.exercise.movement_pattern === 'isolation' ? 'isolation' : 'compound'
-  const { sets: lastWorkoutSets } = useLastWorkoutSets(
-    exercise.exercise.id,
-    exerciseType,
-    exercise.progression_model ?? null,
-    exercise.rep_sum_target ?? null,
-    isAssisted(exercise.exercise.name),
-  )
+  const { plan, previous, error: planError } = useExercisePlan(exercise)
+  const workingCount  = exercise.sets.filter(s => !s.is_warmup).length
+  const planHasTopSet = plan?.sets.some(s => s.role === 'top') ?? false
+  const reasonSetIndex = exercise.sets.findIndex(s => !s.is_warmup && !s.completed)
+  const loadMode: PrevLoadMode = isBodyweight ? 'bodyweight' : isWeightedBodyweight ? 'weighted' : 'load'
 
   useEffect(() => {
     loadPRsForExercises([exercise.exercise.id])
@@ -169,6 +168,7 @@ export function SetLogger({
         <div className="min-w-0 flex-1">
           <h3 className="t-title-3 break-words">{exercise.exercise.name}</h3>
           <p className="t-caption capitalize">{exercise.exercise.muscle_group}</p>
+          {planError && <p className="t-caption text-tertiary">Couldn&apos;t load suggestions</p>}
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
@@ -252,19 +252,9 @@ export function SetLogger({
       <div className="px-4 pb-3">
         <SetTableHeader />
         {exercise.sets.map((set, setIndex) => {
-          const workingSetsBefore = exercise.sets.slice(0, setIndex).filter(s => !s.is_warmup).length
-          const lastSetAtPosition = !set.is_warmup ? lastWorkoutSets[workingSetsBefore] : undefined
-          
-          let prevText = '-'
-          if (lastSetAtPosition) {
-            if (isBodyweight) {
-              prevText = `BW×${lastSetAtPosition.reps}`
-            } else if (isWeightedBodyweight) {
-              prevText = `${formatAddedWeight(lastSetAtPosition.weight_kg, lastSetAtPosition.bodyweight_kg)}×${lastSetAtPosition.reps}`
-            } else {
-              prevText = `${lastSetAtPosition.weight_kg}×${lastSetAtPosition.reps}`
-            }
-          }
+          const workingIndex = exercise.sets.slice(0, setIndex).filter(s => !s.is_warmup).length
+          const suggestion = !set.is_warmup ? plan?.sets[workingIndex] : undefined
+          const prevText = set.is_warmup ? '-' : formatPrevSetText(previous, workingIndex, loadMode)
 
           return (
             <SetRow
@@ -275,12 +265,15 @@ export function SetLogger({
               isWeightedBodyweight={isWeightedBodyweight}
               isAssisted={isAssisted(exercise.exercise.name)}
               prevSetText={prevText}
-              suggestion={lastSetAtPosition?.suggestion}
+              suggestion={suggestion}
+              reason={setIndex === reasonSetIndex ? plan?.explanation.reason : undefined}
+              promptRepsLeft={!set.is_warmup && isKeySet(suggestion?.role ?? 'straight', workingIndex, workingCount, planHasTopSet)}
               defaultRpe={dupRpeTarget}
               onChange={updates => updateSet(exerciseIndex, setIndex, updates)}
               onDone={() => {
                 const currentSet = exercise.sets[setIndex]
                 const wasCompleted = currentSet.completed
+                if (!wasCompleted) updateSet(exerciseIndex, setIndex, suggestionFields(suggestion))
                 markSetDone(exerciseIndex, setIndex)
                 if (!wasCompleted) {
                   handleSetCompleted()
@@ -382,6 +375,18 @@ export function SetLogger({
       )}
     </div>
   )
+}
+
+// ─── Last time column ─────────────────────────────────────────────────────────
+
+type PrevLoadMode = 'bodyweight' | 'weighted' | 'load'
+
+function formatPrevSetText(previous: PastSession | null, workingIndex: number, mode: PrevLoadMode): string {
+  const lastSet = previous?.sets[workingIndex]
+  if (!previous || !lastSet) return '-'
+  if (mode === 'bodyweight') return `BW×${lastSet.reps}`
+  if (mode === 'weighted') return `${formatAddedWeight(lastSet.weightKg, previous.bodyweightKg)}×${lastSet.reps}`
+  return `${lastSet.weightKg}×${lastSet.reps}`
 }
 
 // ─── Rest Duration Picker ─────────────────────────────────────────────────────

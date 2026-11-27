@@ -1,21 +1,37 @@
 'use client'
 
 import { useRef, useState, useCallback, useEffect, memo } from 'react'
-import { Check, Trash2, X, Zap } from 'lucide-react'
+import { Check, Trash2, X } from 'lucide-react'
 import type { ActiveSet } from '@/types/database'
 import { rpeToRIR, calculate1RM } from '@/lib/algorithms'
-import type { OverloadSuggestion } from '@/lib/algorithms'
+import type { SetSuggestion } from '@/lib/suggestions/types'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/providers/ToastProvider'
 import { useWorkoutStore } from '@/store/workout.store'
-import { formatAddedWeight, formatWeightedSet } from '@/lib/load'
+import { formatWeightedSet } from '@/lib/load'
 import { SET_GRID } from './SetTableHeader'
+import { SuggestionChip } from './SuggestionChip'
+import { RepsLeftPrompt } from './RepsLeftPrompt'
+
+/** The plan's numbers for this set, saved with it so later sessions can measure how often plans were hit. */
+export function suggestionFields(suggestion: SetSuggestion | undefined): Pick<ActiveSet, 'suggested_weight_kg' | 'suggested_reps'> {
+  return {
+    suggested_weight_kg: suggestion?.weightKg ?? null,
+    suggested_reps: suggestion?.reps ?? null,
+  }
+}
 
 interface SetRowProps {
   set: ActiveSet
   prevSetText?: string
-  suggestion?: OverloadSuggestion
-  /** DUP week RPE target — used as fallback when there is no suggestion (first-time exercises). */
+  suggestion?: SetSuggestion
+  /** Why the plan looks the way it does — passed to one set per exercise. */
+  reason?: string
+  /** Opens the plan explanation; the chip is not tappable without it. */
+  onExplain?: () => void
+  /** True for the exercise's key set — once completed without an RPE, it asks for reps left. */
+  promptRepsLeft?: boolean
+  /** DUP week RPE target — the RPE placeholder when there is no suggestion (first-time exercises). */
   defaultRpe?: number
   /** True for pure bodyweight exercises (pull-ups, dips, push-ups). Hides the weight input. */
   isBodyweight?: boolean
@@ -32,10 +48,12 @@ interface SetRowProps {
   setIndex?: number
 }
 
+const NO_RPE: Partial<ActiveSet> = { rpe: null, rpe_source: null }
+
 // ─── Active set ───────────────────────────────────────────────────────────────
 // memo: every keystroke in any set's weight/reps input replaces the Zustand
 // exercises array reference — memo prevents sibling rows re-rendering on each char.
-const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, defaultRpe, isBodyweight, isWeightedBodyweight, isAssisted, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
+const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, reason, onExplain, defaultRpe, isBodyweight, isWeightedBodyweight, isAssisted, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
   const userBodyweight   = useWorkoutStore(s => s.userBodyweight) ?? 75
   const bodyweightLogged = useWorkoutStore(s => s.bodyweightLogged)
   
@@ -65,18 +83,6 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
   useEffect(() => {
     if (!rpeFocused.current) setRpeStr(set.rpe !== null ? String(set.rpe) : '')
   }, [set.rpe])
-
-  // Pre-fill RPE from the suggestion target (returning exercises) or the DUP
-  // week target (first-time exercises). Commits to state so it's saved even if
-  // the user never touches the input.
-  useEffect(() => {
-    if (set.rpe !== null || rpeFocused.current) return
-    const target = suggestion?.rpe_target ?? defaultRpe
-    if (!target) return
-    setRpeStr(String(target))
-    onChange({ rpe: target })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [suggestion?.rpe_target, defaultRpe])
 
   // Undo-delete: animate out for 300ms, then remove from store.
   // The 300ms window means finish-validation almost never sees a pending set.
@@ -116,6 +122,16 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
     setTicked(true)
     setTimeout(() => { setTicked(false); onDone() }, 180)
   }, [onDone])
+
+  const handleUseSuggestion = useCallback(() => {
+    if (!suggestion) return
+    const clampedWeight = isWeightedBodyweight ? Math.max(userBodyweight, suggestion.weightKg) : suggestion.weightKg
+    if (!isBodyweight) setWeightStr(String(isWeightedBodyweight ? clampedWeight - userBodyweight : clampedWeight))
+    onChange({ weight_kg: isBodyweight ? 0 : clampedWeight, reps: suggestion.reps })
+  }, [suggestion, isBodyweight, isWeightedBodyweight, userBodyweight, onChange])
+
+  const rpeTarget = suggestion?.rpeTarget ?? defaultRpe
+  const rpePlaceholder = rpeTarget !== undefined ? String(rpeTarget) : 'RPE'
 
   const inputBase = cn(
     'flex-1 min-w-0 min-h-11 rounded-control text-center t-value bg-surface-raised border border-border',
@@ -213,34 +229,16 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
         </p>
       )}
 
-      {/* Suggestion chip */}
       {suggestion && !set.is_warmup && (
-        <button
-          onClick={() => {
-            const clampedWeight = isWeightedBodyweight ? Math.max(userBodyweight, suggestion.weight_kg) : suggestion.weight_kg
-            if (!isBodyweight) setWeightStr(isWeightedBodyweight ? String(clampedWeight >= userBodyweight ? clampedWeight - userBodyweight : 0) : String(clampedWeight))
-            onChange({
-              weight_kg: isBodyweight ? 0 : clampedWeight,
-              reps: suggestion.target_reps,
-            })
-          }}
-          className="w-full flex items-center gap-1.5 px-2 py-1 mb-1 rounded-control bg-surface-raised border border-border transition-all active:scale-[0.98] group"
-        >
-          <Zap className="w-3 h-3 shrink-0 text-secondary" />
-          <span className="mono text-xs tabular-nums text-primary">
-            {isBodyweight 
-              ? `BW × ${suggestion.target_reps}` 
-              : isWeightedBodyweight 
-                ? `${formatAddedWeight(Math.max(suggestion.weight_kg, userBodyweight), userBodyweight)} × ${suggestion.target_reps}`
-                : `${suggestion.weight_kg}kg × ${suggestion.target_reps}`}
-          </span>
-          <span className="mono text-xs tabular-nums text-secondary">
-            · RPE {suggestion.rpe_target} ({rpeToRIR(suggestion.rpe_target)} RIR)
-          </span>
-          <span className="text-xs text-tertiary truncate flex-1 text-left">
-            {suggestion.reason}
-          </span>
-        </button>
+        <SuggestionChip
+          suggestion={suggestion}
+          reason={reason}
+          isBodyweight={isBodyweight}
+          isWeightedBodyweight={isWeightedBodyweight}
+          userBodyweight={userBodyweight}
+          onUse={handleUseSuggestion}
+          onExplain={onExplain}
+        />
       )}
 
       {/* Row 2: RPE + delete */}
@@ -250,23 +248,24 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
             type="text"
             inputMode="decimal"
             value={rpeStr}
-            placeholder="RPE · 1–10"
-            className="flex-1 min-h-11 rounded-control text-center mono text-base text-secondary placeholder:text-tertiary placeholder:text-xs bg-surface-raised border border-border focus:outline-none focus:border-border-strong transition-colors"
+            placeholder={rpePlaceholder}
+            aria-label="RPE"
+            className="flex-1 min-h-11 rounded-control text-center mono text-base text-secondary placeholder:text-tertiary bg-surface-raised border border-border focus:outline-none focus:border-border-strong transition-colors"
             onFocus={() => { rpeFocused.current = true }}
             onChange={e => {
               const str = e.target.value
               setRpeStr(str)
-              if (str === '') { onChange({ rpe: null }); return }
+              if (str === '') { onChange(NO_RPE); return }
               const v = parseFloat(str)
-              if (!isNaN(v) && !str.endsWith('.') && v >= 1 && v <= 10) onChange({ rpe: v })
+              if (!isNaN(v) && !str.endsWith('.') && v >= 1 && v <= 10) onChange({ rpe: v, rpe_source: 'entered' })
             }}
             onBlur={e => {
               rpeFocused.current = false
               const str = e.target.value
-              if (str === '') { onChange({ rpe: null }); setRpeStr(''); return }
+              if (str === '') { onChange(NO_RPE); setRpeStr(''); return }
               const v = parseFloat(str)
-              if (isNaN(v) || v < 1 || v > 10) { onChange({ rpe: null }); setRpeStr('') }
-              else { onChange({ rpe: v }); setRpeStr(String(v)) }
+              if (isNaN(v) || v < 1 || v > 10) { onChange(NO_RPE); setRpeStr('') }
+              else { onChange({ rpe: v, rpe_source: 'entered' }); setRpeStr(String(v)) }
             }}
           />
           <button
@@ -302,19 +301,23 @@ interface CompletedSetRowProps {
   isBodyweight?: boolean
   isWeightedBodyweight?: boolean
   isAssisted?: boolean
+  promptRepsLeft?: boolean
+  onChange: (updates: Partial<ActiveSet>) => void
   onDone: () => void
   onRemove: () => void
   onRestore?: (set: ActiveSet, position: number) => void
   setIndex?: number
 }
 
-const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWeightedBodyweight, isAssisted, onDone, onRemove, onRestore, setIndex }: CompletedSetRowProps) {
+const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWeightedBodyweight, isAssisted, promptRepsLeft, onChange, onDone, onRemove, onRestore, setIndex }: CompletedSetRowProps) {
   const userBodyweight = useWorkoutStore(s => s.userBodyweight) ?? 75
   const e1rm = !set.is_warmup && !isAssisted && set.weight_kg > 0 && set.reps > 1
     ? Math.round(calculate1RM(set.weight_kg, set.reps))
     : null
 
   const [pendingDelete, setPendingDelete] = useState(false)
+  const [isRepsLeftSkipped, setIsRepsLeftSkipped] = useState(false)
+  const isAskingRepsLeft = promptRepsLeft && !set.is_warmup && set.rpe === null && !isRepsLeftSkipped
   const removeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const removedFromStoreRef = useRef(false)
   const toast = useToast()
@@ -363,7 +366,7 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWei
   return (
     <div className={cn(
       'overflow-hidden transition-all duration-300',
-      pendingDelete ? 'max-h-0 opacity-0' : 'max-h-32 opacity-100',
+      pendingDelete ? 'max-h-0 opacity-0' : 'max-h-48 opacity-100',
     )}>
       <div className="relative group overflow-hidden rounded-control mb-1">
         {/* Swipe delete bg */}
@@ -417,15 +420,21 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWei
           </button>
         </div>
       </div>
+      {isAskingRepsLeft && (
+        <RepsLeftPrompt
+          onPick={rpe => onChange({ rpe, rpe_source: 'prompt' })}
+          onSkip={() => setIsRepsLeftSkipped(true)}
+        />
+      )}
     </div>
   )
 })
 
 // ─── Public export ────────────────────────────────────────────────────────────
 
-export const SetRow = memo(function SetRow({ set, prevSetText = '-', suggestion, defaultRpe, isBodyweight, isWeightedBodyweight, isAssisted, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
+export const SetRow = memo(function SetRow({ set, prevSetText = '-', suggestion, reason, onExplain, promptRepsLeft, defaultRpe, isBodyweight, isWeightedBodyweight, isAssisted, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
   if (set.completed) {
-    return <CompletedSetRow set={set} isBodyweight={isBodyweight} isWeightedBodyweight={isWeightedBodyweight} isAssisted={isAssisted} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
+    return <CompletedSetRow set={set} isBodyweight={isBodyweight} isWeightedBodyweight={isWeightedBodyweight} isAssisted={isAssisted} promptRepsLeft={promptRepsLeft} onChange={onChange} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
   }
-  return <ActiveSetRow set={set} prevSetText={prevSetText} suggestion={suggestion} defaultRpe={defaultRpe} isBodyweight={isBodyweight} isWeightedBodyweight={isWeightedBodyweight} isAssisted={isAssisted} onChange={onChange} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
+  return <ActiveSetRow set={set} prevSetText={prevSetText} suggestion={suggestion} reason={reason} onExplain={onExplain} defaultRpe={defaultRpe} isBodyweight={isBodyweight} isWeightedBodyweight={isWeightedBodyweight} isAssisted={isAssisted} onChange={onChange} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
 })
