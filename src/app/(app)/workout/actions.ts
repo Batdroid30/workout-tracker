@@ -7,7 +7,7 @@ import { evaluateAndSavePRs, evaluateAndSaveAllPRs } from '@/lib/data/stats'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import { revalidateAll } from '@/lib/cache'
 import { DatabaseError } from '@/lib/errors'
-import { parseFinishPayload } from '@/lib/workout-session'
+import { finishPayloadIssues, parseFinishPayload } from '@/lib/workout-session'
 
 // The week type is derived from when the workout started, not when it was
 // saved. A failed lookup must not block the save: the workout is the user's
@@ -26,7 +26,10 @@ export async function finishWorkoutAction(input: unknown) {
   const { userId, session } = await requireAuth()
 
   const activeWorkout = parseFinishPayload(input)
-  if (!activeWorkout) return { success: false, error: 'Invalid workout data' }
+  if (!activeWorkout) {
+    console.error('Invalid finish workout payload:', finishPayloadIssues(input))
+    return { success: false, error: 'Invalid workout data' }
+  }
 
   let workoutId: string
   let savedSets: Awaited<ReturnType<typeof saveActiveWorkout>>['savedSets']

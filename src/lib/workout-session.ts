@@ -180,6 +180,14 @@ export function parseFinishPayload(input: unknown): FinishPayload | null {
   return { ...workout.data, exercises }
 }
 
+/** Why parseFinishPayload rejected the input, for the server log. */
+export function finishPayloadIssues(input: unknown): z.ZodIssue[] {
+  const workout = ActiveWorkoutSchema.safeParse(input)
+  if (!workout.success) return workout.error.issues
+  if (!Number.isNaN(workout.data.started_at.getTime())) return []
+  return [{ code: z.ZodIssueCode.custom, path: ['started_at'], message: 'Invalid date' }]
+}
+
 const PersistedSchema = z.object({
   activeWorkout: z.unknown(),
   userBodyweight: z.number().nullable().catch(null),

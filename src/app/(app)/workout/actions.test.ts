@@ -109,10 +109,16 @@ describe('finishWorkoutAction', () => {
   })
 
   it('rejects input that is not a workout without saving anything', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     const result = await finishWorkoutAction({ title: 'Push' })
 
     expect(result).toEqual({ success: false, error: 'Invalid workout data' })
     expect(mocks.saveActiveWorkout).not.toHaveBeenCalled()
+    expect(consoleError).toHaveBeenCalledWith(
+      'Invalid finish workout payload:',
+      expect.arrayContaining([expect.objectContaining({ path: ['started_at'] })]),
+    )
+    consoleError.mockRestore()
   })
 
   it('throws when there is no authenticated user', async () => {
