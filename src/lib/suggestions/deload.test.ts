@@ -39,11 +39,23 @@ describe('planDeload', () => {
     expect(plan.sets.map(set => set.weightKg)).toEqual([5, 5, 5])
   })
 
-  it('is at least one step below the reference', () => {
+  it('is at least one step below an on-grid reference', () => {
+    const reference = sessionWith([makeSet(15, 10)])
+    const plan = planDeload(reference, makeContext({ plannedSets: 1 }))
+    // 15 × 0.87 = 13.05 → 12.5, which is one step down.
+    expect(plan.sets[0].weightKg).toBe(12.5)
+  })
+
+  it('takes the largest step multiple below an off-grid reference', () => {
     const reference = sessionWith([makeSet(12, 10)])
     const plan = planDeload(reference, makeContext({ plannedSets: 1 }))
-    // 12 × 0.87 = 10.44 → 10 is only 2 kg lighter; one full step down is 9.5 → 7.5.
-    expect(plan.sets[0].weightKg).toBe(7.5)
+    // 12 × 0.87 = 10.44 → 10, already below 12 on the 2.5 kg grid.
+    expect(plan.sets[0].weightKg).toBe(10)
+  })
+
+  it('keeps an off-grid reference when one step is over a quarter of it', () => {
+    const reference = sessionWith([makeSet(12, 10)])
+    expect(planDeload(reference, makeContext({ plannedSets: 1, weightStepKg: 5 })).sets[0].weightKg).toBe(12)
   })
 
   it('repeats the last reference set beyond its count', () => {
