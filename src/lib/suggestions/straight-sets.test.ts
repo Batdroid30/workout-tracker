@@ -182,3 +182,21 @@ describe('planStraightSets — bodyweight only', () => {
     expect(plan.modifiers).toContain('cut')
   })
 })
+
+describe('planStraightSets — set count changes mid-session', () => {
+  const TOP_WITH_ROOM = makeSession('2026-11-19T10:00:00Z', [makeSet(30, 12, 7), makeSet(30, 11), makeSet(30, 10)])
+
+  it('keeps the weight-up when a 4th set is added', () => {
+    const plan = planStraightSets([TOP_WITH_ROOM], TOP_WITH_ROOM, makeContext({ plannedSets: 4 }), NOW)
+    expect(plan.rule).toBe('weight-up')
+    expect(plan.sets.map(set => set.weightKg)).toEqual([32.5, 32.5, 32.5, 32.5])
+    expect(plan.sets[3].reps).toBeLessThanOrEqual(plan.sets[2].reps)
+  })
+
+  it('keeps the weight-up when a set is removed', () => {
+    const threeSets = planStraightSets([TOP_WITH_ROOM], TOP_WITH_ROOM, makeContext(), NOW)
+    const twoSets = planStraightSets([TOP_WITH_ROOM], TOP_WITH_ROOM, makeContext({ plannedSets: 2 }), NOW)
+    expect(twoSets.rule).toBe('weight-up')
+    expect(weightsAndReps(twoSets.sets)).toEqual(weightsAndReps(threeSets.sets.slice(0, 2)))
+  })
+})

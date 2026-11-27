@@ -129,12 +129,7 @@ function repsCap(ctx: PlanContext): number {
 
 function heldStartingReps(inputs: PlanInputs): number[] {
   const { ctx } = inputs
-  const reps = inputs.referenceReps.map(count => Math.min(count, repsCap(ctx)))
-  while (reps.length < ctx.plannedSets) {
-    const previous = reps[reps.length - 1]
-    reps.push(Math.max(1, Math.floor(previous - inputs.fatigue)))
-  }
-  return reps
+  return inputs.referenceReps.map(count => Math.min(count, repsCap(ctx)))
 }
 
 function chooseBudget(inputs: PlanInputs): Budget {
@@ -187,16 +182,30 @@ function planReps(history: PastSession[], inputs: PlanInputs): RepsPlan & { weig
   return { ...change, reps: repsForNewWeight(inputs, change.weightKg), modifiers }
 }
 
-/** History is newest first. */
+/** Extra sets lose the session's usual reps per set from the one before; removed sets are dropped. */
+function fitToSetCount(sets: SetSuggestion[], count: number, fatigue: number): SetSuggestion[] {
+  const fitted = sets.slice(0, count)
+  while (fitted.length < count) {
+    const previous = fitted[fitted.length - 1]
+    fitted.push({ ...previous, reps: Math.max(1, Math.floor(previous.reps - fatigue)) })
+  }
+  return fitted
+}
+
+/**
+ * History is newest first. The weight and rule are decided for the reference session's set
+ * count, so adding or removing a set mid-session never re-plans the weight of sets already done.
+ */
 export function planStraightSets(
   history: PastSession[], reference: PastSession, ctx: PlanContext, now: Date,
 ): StraightSetPlan {
-  const inputs = buildInputs(history, reference, ctx)
+  const decisionCtx: PlanContext = { ...ctx, plannedSets: Math.max(reference.sets.length, 1) }
+  const inputs = buildInputs(history, reference, decisionCtx)
   const plan = planReps(history, inputs)
   const modifiers: PlanModifier[] = inputs.isLowReadiness ? [...plan.modifiers, 'low-readiness'] : plan.modifiers
   const sets = plan.reps.map((reps): SetSuggestion => ({
     weightKg: plan.weightKg, reps, repsMax: null,
     rpeTarget: inputs.effectiveRpe, role: 'straight', optional: false,
   }))
-  return { sets, rule: plan.rule, modifiers }
+  return { sets: fitToSetCount(sets, ctx.plannedSets, inputs.fatigue), rule: plan.rule, modifiers }
 }
