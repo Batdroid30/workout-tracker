@@ -1,4 +1,4 @@
-import { suggestNextSet } from '@/lib/algorithms'
+import { suggestRepSum } from '@/lib/algorithms'
 import { assistanceFor, isAssisted, isWeightedBodyweight } from '@/lib/load'
 import type { TrainingCycle } from '@/lib/training-cycle'
 import type {
@@ -160,10 +160,10 @@ function planRepSum(history: PastSession[], ctx: PlanContext, repSumTarget: numb
   const prevTotalReps = totalReps(reference.sets)
   const suggestions = Array.from({ length: ctx.plannedSets }, (_, position) => {
     const last = reference.sets[position] ?? lastSet
-    return suggestNextSet({
+    return suggestRepSum({
       lastWeight: last.weightKg, lastReps: last.reps, exerciseType: ctx.movement,
       experienceLevel: ctx.experience, dupRpeTarget: ctx.rpeTarget,
-      progressionModel: 'rep_sum', repSumTarget, prevTotalReps,
+      repSumTarget, prevTotalReps,
     })
   })
   return {

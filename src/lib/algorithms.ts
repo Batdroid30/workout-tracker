@@ -1,5 +1,5 @@
-import type { WeeklyVolume, TrainingGoal, ExperienceLevel, TrainingPhase } from '@/types/database'
-import { REP_RANGES, WEIGHT_INCREMENTS, DELOAD_THRESHOLDS, STALL_THRESHOLD_PCT, TARGET_RPE, type RepRange } from '@/lib/workout-intelligence'
+import type { WeeklyVolume, ExperienceLevel, TrainingPhase } from '@/types/database'
+import { WEIGHT_INCREMENTS, DELOAD_THRESHOLDS, STALL_THRESHOLD_PCT, TARGET_RPE } from '@/lib/workout-intelligence'
 
 /**
  * Weekly training summary — one entry per calendar week.
@@ -316,233 +316,65 @@ export function calculateNutritionTargets({
   return { tdee, targetCalories, proteinGrams, surplusDeficit }
 }
 
-export interface OverloadSuggestion {
+interface RepSumSuggestion {
   weight_kg:   number
   target_reps: number
   rpe_target:  number
   reason:      string
 }
 
-interface SuggestNextSetParams {
+interface SuggestRepSumParams {
   lastWeight:       number
   lastReps:         number
-  /**
-   * RPE logged on this set last session.
-   * When provided, the suggestion is calibrated against TARGET_RPE for the
-   * user's goal — too hard means hold the weight, too easy means push harder.
-   */
-  lastRPE?:         number
-  /** Compound lifts (squat, bench, row) use larger jumps than isolation. */
   exerciseType?:    'compound' | 'isolation'
-  trainingGoal?:    TrainingGoal    | null
   experienceLevel?: ExperienceLevel | null
-  /**
-   * When provided, overrides the goal-based rep range with today's DUP scheme
-   * target. This keeps suggestions coherent with the range shown in the
-   * workout header — they must always agree.
-   */
-  dupRepRange?:    RepRange | null
-  /**
-   * When provided, overrides the goal-based RPE target with the DUP scheme's
-   * rpeTarget for the current week. Prevents Volume Week (RPE 7.0) from being
-   * calibrated against a goal target (muscle=7.5, both=8.0) that doesn't match.
-   */
-  dupRpeTarget?:   number | null
-  /**
-   * When true, overrides normal progression with deload-appropriate loads:
-   * ~60% of last weight, 5–8 reps, RPE 6.0.
-   */
-  isDeloadWeek?: boolean
-  /**
-   * Progression model from the routine exercise. 'rep_sum' uses total reps
-   * across all sets as the progression trigger instead of per-set rep ranges.
-   */
-  progressionModel?: 'double' | 'rep_sum' | null
-  /**
-   * Target total reps across all working sets for this exercise (rep_sum mode).
-   */
-  repSumTarget?: number | null
-  /**
-   * Total working reps completed for this exercise in the previous session.
-   * undefined = no history yet (first session). Used in rep_sum mode only.
-   */
-  prevTotalReps?: number
-  /**
-   * When true, explicitly forces a cross-phase recalculation of weight for the
-   * current WUP rep range, bypassing standard progression.
-   */
-  isPhaseTransition?: boolean
+  dupRpeTarget?:    number | null
+  /** Target total reps across all working sets for this exercise. */
+  repSumTarget:     number
+  /** Total working reps in the previous session; undefined = no history yet. */
+  prevTotalReps?:   number
 }
 
 /**
- * Progressive overload suggestion, personalised to the user's goal,
- * experience level, and — when RPE data is available — last session's effort.
- *
- * Goal drives the rep range target:
- *   strength  → 3–6 reps, heavier weight jumps
- *   muscle    → 8–15 reps, moderate jumps
- *   both      → 5–10 reps
- *
- * Experience drives the weight increment:
- *   beginner     → +5kg compounds / +2.5kg isolation
- *   intermediate → +2.5kg / +1.25kg
- *   advanced     → +1.25kg / +1.25kg
- *
- * RPE calibration (when lastRPE is provided):
- *   Each RPE unit ≈ 2.5% of 1RM (Tuchscherer 2008).
- *   deviation = lastRPE − targetRPE
- *   deviation > +1.5 → too hard: back off weight before progressing
- *   deviation < −1.5 → too easy: progress more aggressively
- *   otherwise        → standard double-progression
+ * Rep-sum progression: the trigger to add weight is total reps across all
+ * sets crossing repSumTarget, not per-set rep ranges.
+ * Science: accumulating reps is more relevant for hypertrophy than per-set
+ * rep ranges (Schoenfeld, 2017). This suits exercises where per-set rep
+ * variance is high (e.g. bodyweight rows, dips).
  */
-export function suggestNextSet({
+export function suggestRepSum({
   lastWeight,
   lastReps,
-  lastRPE,
-  exerciseType      = 'compound',
-  trainingGoal      = null,
-  experienceLevel   = null,
-  dupRepRange       = null,
-  dupRpeTarget      = null,
-  isDeloadWeek      = false,
-  progressionModel  = null,
-  repSumTarget      = null,
+  exerciseType    = 'compound',
+  experienceLevel = null,
+  dupRpeTarget    = null,
+  repSumTarget,
   prevTotalReps,
-  isPhaseTransition = false,
-}: SuggestNextSetParams): OverloadSuggestion {
-  // ── Deload week override ─────────────────────────────────────────────────────
-  // Science: reduce VOLUME (sets), maintain INTENSITY (weight).
-  // Dropping both causes neuromuscular detraining — slow return next block.
-  // Weight stays at ~87% of recent load; sets are cut at the session level.
-  if (isDeloadWeek) {
-    const deloadWeight = roundToPlate(lastWeight * 0.87)
-    return {
-      weight_kg:   Math.max(deloadWeight, 2.5),
-      target_reps: lastReps,
-      rpe_target:  7.0,
-      reason:      'Deload week — maintain load at ~87%, cut total sets. Preserve strength, let fatigue clear.',
-    }
-  }
-
-  // ── Rep-sum progression ───────────────────────────────────────────────────────
-  // Progression trigger: total reps across all sets crosses repSumTarget.
-  // Science: accumulating reps is more relevant for hypertrophy than per-set
-  // rep ranges (Schoenfeld, 2017). This mode suits exercises where per-set
-  // rep variance is high (e.g. bodyweight rows, dips).
-  if (progressionModel === 'rep_sum' && repSumTarget != null) {
-    const increment = WEIGHT_INCREMENTS[experienceLevel ?? 'intermediate'][exerciseType]
-    const targetRPE = dupRpeTarget ?? TARGET_RPE[trainingGoal ?? 'both']
-    if (prevTotalReps === undefined) {
-      return {
-        weight_kg:   lastWeight,
-        target_reps: lastReps,
-        rpe_target:  targetRPE,
-        reason:      `Rep bank target: ${repSumTarget} total reps. First session — build your baseline.`,
-      }
-    }
-    if (prevTotalReps >= repSumTarget) {
-      return {
-        weight_kg:   lastWeight + increment,
-        target_reps: lastReps,
-        rpe_target:  targetRPE,
-        reason:      `Hit ${repSumTarget} total reps last session — add ${increment}kg and rebuild.`,
-      }
-    }
-    const remaining = repSumTarget - prevTotalReps
+}: SuggestRepSumParams): RepSumSuggestion {
+  const increment = WEIGHT_INCREMENTS[experienceLevel ?? 'intermediate'][exerciseType]
+  const targetRPE = dupRpeTarget ?? TARGET_RPE.both
+  if (prevTotalReps === undefined) {
     return {
       weight_kg:   lastWeight,
       target_reps: lastReps,
       rpe_target:  targetRPE,
-      reason:      `Rep bank: ${prevTotalReps}/${repSumTarget} last session — ${remaining} more reps to earn a weight bump.`,
+      reason:      `Rep bank target: ${repSumTarget} total reps. First session — build your baseline.`,
     }
   }
-
-  // DUP scheme range takes precedence — keeps suggestions coherent with the
-  // week label and rep range shown in the workout header.
-  const range     = dupRepRange ?? REP_RANGES[trainingGoal ?? 'muscle']
-  const increment = WEIGHT_INCREMENTS[experienceLevel ?? 'intermediate'][exerciseType]
-  // Resolved RPE target — shared across all return paths so it can be included
-  // in the suggestion and used to pre-fill the RPE input in the UI.
-  const targetRPE = dupRpeTarget ?? TARGET_RPE[trainingGoal ?? 'both']
-
-  // ── Cross-phase WUP transition & Range Completion ──────────────────────────
-  // If the WUP week changed (e.g. Strength → Hypertrophy), or if lastReps was outside the range,
-  // or if they hit the top of the rep range, fixed-increment adjustments are unreliable.
-  // We mathematically calculate the correct weight for the minimum rep target based on e1RM.
-  if (isPhaseTransition || lastReps < range.min || lastReps >= range.max) {
-    const repsToFailure = lastRPE != null ? lastReps + (10 - lastRPE) : lastReps + 2
-    const e1rm = calculate1RM(lastWeight, repsToFailure)
-    // At targetRPE the lifter has (10 - targetRPE) reps in reserve on the final rep.
-    const targetRepsToFailure = range.min + (10 - targetRPE)
-    const targetWeight = roundToPlate(calculateWeightFrom1RM(e1rm, targetRepsToFailure))
-
-    let finalWeight = targetWeight
-    
-    // Ensure progressive overload when hitting the top of the range
-    if (lastReps >= range.max && finalWeight <= lastWeight) {
-      finalWeight = lastWeight + increment
-    }
-    // If they undershot the range, make sure the weight actually drops
-    if (lastReps < range.min && finalWeight >= lastWeight) {
-      finalWeight = Math.max(2.5, lastWeight - increment)
-    }
-
-    return {
-      weight_kg:   finalWeight,
-      target_reps: range.min,
-      rpe_target:  targetRPE,
-      reason:      isPhaseTransition
-        ? `Phase changed to ${range.min}–${range.max} reps — mathematically matched weight to your recent performance.`
-        : lastReps >= range.max
-          ? `Hit the top of the rep range! Mathematically calculated the load for ${range.min} reps.`
-          : `Adjusting to ${range.min}–${range.max} reps — weight calculated from your recent performance.`,
-    }
-  }
-
-  // ── RPE calibration ───────────────────────────────────────────────────────
-  if (lastRPE != null) {
-    const deviation = lastRPE - targetRPE
-
-    if (deviation > 1.5) {
-      // Last session was too hard — back off before adding load.
-      // Each unit over target ≈ 2.5% reduction, capped at 2 standard increments.
-      const backoffPct     = Math.min(deviation * 0.025, (increment * 2) / lastWeight)
-      const adjustedWeight = roundToPlate(lastWeight * (1 - backoffPct))
-      return {
-        weight_kg:   Math.max(adjustedWeight, lastWeight - increment * 2),
-        target_reps: range.min,
-        rpe_target:  targetRPE,
-        reason:      `RPE ${lastRPE} last session was above target — consolidate at reduced load before progressing.`,
-      }
-    }
-
-    if (deviation < -1.5) {
-      // Last session was too easy — progress more aggressively.
-      return {
-        weight_kg:   lastWeight,
-        target_reps: Math.min(lastReps + 2, range.max), // add 2 reps instead of 1
-        rpe_target:  targetRPE,
-        reason:      `RPE ${lastRPE} was below target — push for ${Math.min(lastReps + 2, range.max)} reps.`,
-      }
-    }
-    // deviation within ±1.5 → on target, fall through to standard double-progression
-  }
-
-  // ── Standard double-progression ──────────────────────────────────────────
-  if (lastReps >= range.max) {
+  if (prevTotalReps >= repSumTarget) {
     return {
       weight_kg:   lastWeight + increment,
-      target_reps: range.min,
+      target_reps: lastReps,
       rpe_target:  targetRPE,
-      reason: `Hit ${range.max} reps — add ${increment}kg and reset to ${range.min} reps.`,
+      reason:      `Hit ${repSumTarget} total reps last session — add ${increment}kg and rebuild.`,
     }
   }
-
+  const remaining = repSumTarget - prevTotalReps
   return {
     weight_kg:   lastWeight,
-    target_reps: lastReps + 1,
+    target_reps: lastReps,
     rpe_target:  targetRPE,
-    reason: `Keep weight steady. Push for ${lastReps + 1} reps this set.`,
+    reason:      `Rep bank: ${prevTotalReps}/${repSumTarget} last session — ${remaining} more reps to earn a weight bump.`,
   }
 }
 

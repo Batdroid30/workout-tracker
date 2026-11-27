@@ -46,14 +46,6 @@ export interface WeeklySetTarget {
   max: number
 }
 
-// ── Rep ranges by training goal ───────────────────────────────────────────────
-
-export const REP_RANGES: Record<TrainingGoal, RepRange> = {
-  strength: { min: 3,  max: 6  },
-  muscle:   { min: 8,  max: 15 },
-  both:     { min: 5,  max: 10 },
-}
-
 // ── Weight jump increments by experience ─────────────────────────────────────
 //
 // Beginners progress faster so larger jumps are appropriate.
@@ -108,10 +100,8 @@ export const DELOAD_THRESHOLDS: Record<ExperienceLevel, Record<TrainingPhase, nu
 
 // ── Target RPE by training goal ───────────────────────────────────────────────
 //
-// Used by suggestNextSet() to calibrate whether last session's RPE was on
-// target, too hard, or too easy.
+// Fallback RPE target for suggestRepSum() when no week scheme supplies one.
 //
-// Each RPE unit ≈ 2.5% of 1RM (Tuchscherer 2008).
 // Strength work tolerates higher RPE (closer to maximal effort).
 // Hypertrophy is most effective at RPE 7–8 — high effort but not failure.
 

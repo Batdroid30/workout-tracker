@@ -3,7 +3,7 @@ import { DELOAD_THRESHOLDS } from '@/lib/workout-intelligence'
 import {
   calculateEpley1RM,
   calculateWeightFrom1RM,
-  suggestNextSet,
+  suggestRepSum,
   generateDeloadRoutine,
   assessFatigueLevel,
   type WeekSummary,
@@ -54,146 +54,36 @@ describe('calculateWeightFrom1RM', () => {
   })
 })
 
-describe('suggestNextSet', () => {
-  it('adds a compound increment and resets reps when at the top of the range', () => {
-    const out = suggestNextSet({
-      lastWeight: 100,
-      lastReps: 15,
-      exerciseType: 'compound',
-      trainingGoal: 'muscle',
-      experienceLevel: 'intermediate',
-    })
-    expect(out.weight_kg).toBeGreaterThan(100)
-    expect(out.target_reps).toBeLessThan(15)
-  })
+describe('suggestRepSum', () => {
+  const base = { lastWeight: 40, lastReps: 8, repSumTarget: 30, experienceLevel: 'intermediate' as const }
 
-  it('keeps weight steady and adds one rep when inside the rep range', () => {
-    const out = suggestNextSet({
-      lastWeight: 80,
-      lastReps: 10,
-      trainingGoal: 'muscle',
-      experienceLevel: 'intermediate',
-    })
-    expect(out.weight_kg).toBe(80)
-    expect(out.target_reps).toBe(11)
-  })
-
-  it('drops weight when reps fall below the minimum', () => {
-    const out = suggestNextSet({
-      lastWeight: 80,
-      lastReps: 4,
-      trainingGoal: 'muscle',
-      experienceLevel: 'intermediate',
-    })
-    expect(out.weight_kg).toBeLessThan(80)
-  })
-
-  it('never returns a negative weight', () => {
-    const out = suggestNextSet({
-      lastWeight: 1,
-      lastReps: 0,
-      trainingGoal: 'muscle',
-      experienceLevel: 'intermediate',
-    })
-    expect(out.weight_kg).toBeGreaterThanOrEqual(0)
-  })
-
-  it('always includes rpe_target matching the goal-based target', () => {
-    // muscle goal → TARGET_RPE['muscle'] = 7.5
-    const out = suggestNextSet({
-      lastWeight: 80,
-      lastReps: 10,
-      trainingGoal: 'muscle',
-      experienceLevel: 'intermediate',
-    })
-    expect(out.rpe_target).toBe(7.5)
-  })
-
-  it('uses dupRpeTarget when provided, overriding the goal-based value', () => {
-    const out = suggestNextSet({
-      lastWeight: 80,
-      lastReps: 10,
-      trainingGoal: 'muscle',
-      experienceLevel: 'intermediate',
-      dupRpeTarget: 7.0,
-    })
-    expect(out.rpe_target).toBe(7.0)
-  })
-
-  it('backs off weight when last RPE was well above target', () => {
-    // deviation = 9.5 - 7.5 = +2.0 > 1.5 → reduce load
-    const out = suggestNextSet({
-      lastWeight: 100,
-      lastReps: 8,
-      lastRPE: 9.5,
-      trainingGoal: 'muscle',
-      experienceLevel: 'intermediate',
-    })
-    expect(out.weight_kg).toBeLessThan(100)
-    expect(out.rpe_target).toBe(7.5)
-  })
-
-  it('progresses more aggressively when last RPE was well below target', () => {
-    // deviation = 5.5 - 7.5 = -2.0 < -1.5 → push harder
-    const out = suggestNextSet({
-      lastWeight: 100,
-      lastReps: 12,
-      lastRPE: 5.5,
-      trainingGoal: 'muscle',
-      experienceLevel: 'intermediate',
-    })
-    // Either more reps or more weight — either counts as "pushed harder"
-    const progressedWeight = out.weight_kg > 100
-    const progressedReps   = out.target_reps > 12
-    expect(progressedWeight || progressedReps).toBe(true)
-  })
-
-  it('uses e1RM to suggest weight when WUP phase changes to a higher rep range', () => {
-    // Hyp week: 27.5kg × 10 reps. Now Volume Week (13–20 reps, RPE 7.0).
-    // Old behaviour would suggest 25kg × 20 — physically impossible.
-    const out = suggestNextSet({
-      lastWeight: 27.5,
-      lastReps: 10,
-      dupRepRange: { min: 13, max: 20 },
-      dupRpeTarget: 7.0,
-    })
-    expect(out.target_reps).toBe(13)
-    expect(out.weight_kg).toBeLessThan(27.5)
-    expect(out.weight_kg).toBeGreaterThanOrEqual(20)
-  })
-
-  it('uses e1RM to suggest weight when WUP phase changes to a lower rep range', () => {
-    // Volume week: 25kg × 18 reps. Now Strength Week (3–5 reps, RPE 8.5).
-    // e1RM ≈ 40kg → target ~35kg, well above the old +2.5kg suggestion.
-    const out = suggestNextSet({
-      lastWeight: 25,
-      lastReps: 18,
-      dupRepRange: { min: 3, max: 5 },
-      dupRpeTarget: 8.5,
-    })
-    expect(out.target_reps).toBe(3)
-    expect(out.weight_kg).toBeGreaterThan(25)
-  })
-
-  it('uses e1RM recalculation when isPhaseTransition is explicitly true, regardless of last reps', () => {
-    // Strength week (3-5), user did 30kg x 8 reps (ignored the target).
-    // Now Hypertrophy week (8-12), so lastReps (8) is technically inside the new range!
-    // But since it is a phase transition, it MUST recalculate, not just do lastReps + 1.
-    const out = suggestNextSet({
-      lastWeight: 30,
-      lastReps: 8,
-      lastRPE: 8, // 2 RIR -> equivalent to 10 reps to failure
-      dupRepRange: { min: 8, max: 12 },
-      dupRpeTarget: 7.5,
-      isPhaseTransition: true,
-    })
-    
-    // e1RM = calculate1RM(30, 10) = 40kg
-    // new target reps to failure = 8 + (10 - 7.5) = 10.5
-    // target weight = calculateWeightFrom1RM(40, 10.5) = 29.6kg -> 30kg
+  it('holds weight and asks for a baseline on the first session', () => {
+    const out = suggestRepSum(base)
+    expect(out.weight_kg).toBe(40)
     expect(out.target_reps).toBe(8)
-    expect(out.weight_kg).toBe(30)
-    expect(out.reason).toContain('Phase changed')
+    expect(out.reason).toContain('First session')
+  })
+
+  it('adds one compound increment once the rep-sum target was reached', () => {
+    const out = suggestRepSum({ ...base, prevTotalReps: 30 })
+    expect(out.weight_kg).toBe(42.5)
+    expect(out.reason).toContain('add 2.5kg')
+  })
+
+  it('holds weight and reports the remaining reps below the target', () => {
+    const out = suggestRepSum({ ...base, prevTotalReps: 26 })
+    expect(out.weight_kg).toBe(40)
+    expect(out.reason).toContain('4 more reps')
+  })
+
+  it('uses the isolation increment for isolation exercises', () => {
+    const out = suggestRepSum({ ...base, exerciseType: 'isolation', prevTotalReps: 30 })
+    expect(out.weight_kg).toBe(41.25)
+  })
+
+  it('defaults the RPE target to 8 and lets dupRpeTarget override it', () => {
+    expect(suggestRepSum({ ...base, prevTotalReps: 20 }).rpe_target).toBe(8)
+    expect(suggestRepSum({ ...base, prevTotalReps: 20, dupRpeTarget: 7 }).rpe_target).toBe(7)
   })
 })
 
