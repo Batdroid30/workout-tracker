@@ -318,3 +318,22 @@ describe('noCycleContext', () => {
     })
   })
 })
+
+describe('planExercise — a trusted RPE on a later set', () => {
+  function tenTenTen(lastSetRpe: number | null): PastSession {
+    const lastSet: LoggedSet = { ...makeSet(30, 10), rpe: lastSetRpe, rpeSource: lastSetRpe === null ? null : 'prompt' }
+    const sets = [makeSet(30, 10), makeSet(30, 10), lastSet]
+    return { workoutId: 'w-prompt', startedAt: LAST_WEEK, weekKind: 'hypertrophy', isDeload: false, bodyweightKg: 75, sets }
+  }
+
+  it('plans differently for 0 reps left and 3 reps left on the last set', () => {
+    const hard = planExercise([tenTenTen(10)], makeContext(), NOW)
+    const easy = planExercise([tenTenTen(7)], makeContext(), NOW)
+    expect(weightsAndReps(hard?.sets ?? [])).not.toEqual(weightsAndReps(easy?.sets ?? []))
+  })
+
+  it('claims high confidence only when the set-1 effort is entered', () => {
+    expect(planExercise([tenTenTen(7)], makeContext(), NOW)?.explanation.confidence).toBe('high')
+    expect(planExercise([tenTenTen(null)], makeContext(), NOW)?.explanation.confidence).toBe('medium')
+  })
+})

@@ -51,33 +51,35 @@ export function inferSetOneRir(sets: LoggedSet[]): number | null {
   return REP_LOSS_TO_RIR_BANDS.find(band => loss >= band.minLoss)?.rir ?? null
 }
 
-function stepDownFromEnteredSet(efforts: SetEffort[], index: number): number | null {
-  for (let earlier = index - 1; earlier >= 0; earlier--) {
-    if (efforts[earlier].source !== 'entered') continue
-    return Math.max(0, efforts[earlier].rir - 0.5 * (index - earlier))
+/**
+ * Set-1 reps in reserve from a trusted RPE anywhere in the session: set 1's own, else the
+ * latest rated set's, stepped back up by half a rep per set. Null when no set has one.
+ */
+function enteredSetOneRir(sets: LoggedSet[]): number | null {
+  const setOneRpe = sets[0] ? trustedRpe(sets[0]) : null
+  if (setOneRpe !== null) return 10 - setOneRpe
+  for (let index = sets.length - 1; index > 0; index--) {
+    const rpe = trustedRpe(sets[index])
+    if (rpe !== null) return 10 - rpe + 0.5 * index
   }
   return null
 }
 
-export function sessionEfforts(sets: LoggedSet[]): SetEffort[] {
-  const inferredSetOneRir = inferSetOneRir(sets)
-  const efforts: SetEffort[] = []
-
-  sets.forEach((set, index) => {
+function stepDownFromSetOne(sets: LoggedSet[], setOneRir: number): SetEffort[] {
+  return sets.map((set, index): SetEffort => {
     const rpe = trustedRpe(set)
-    if (rpe !== null) {
-      efforts.push({ rir: 10 - rpe, source: 'entered' })
-      return
-    }
-    if (inferredSetOneRir !== null) {
-      efforts.push({ rir: Math.max(0, inferredSetOneRir - 0.5 * index), source: 'inferred' })
-      return
-    }
-    const steppedDown = stepDownFromEnteredSet(efforts, index)
-    efforts.push(steppedDown === null
-      ? { rir: ASSUMED_RIR, source: 'assumed' }
-      : { rir: steppedDown, source: 'inferred' })
+    if (rpe !== null) return { rir: 10 - rpe, source: 'entered' }
+    if (index === 0) return { rir: setOneRir, source: 'entered' }
+    return { rir: Math.max(0, setOneRir - 0.5 * index), source: 'inferred' }
   })
+}
 
-  return efforts
+/** A trusted RPE on any set beats rep-loss inference; without one, inference, else an assumed effort. */
+export function sessionEfforts(sets: LoggedSet[]): SetEffort[] {
+  const setOneRir = enteredSetOneRir(sets)
+  if (setOneRir !== null) return stepDownFromSetOne(sets, setOneRir)
+  const inferredSetOneRir = inferSetOneRir(sets)
+  return sets.map((_set, index): SetEffort => inferredSetOneRir === null
+    ? { rir: ASSUMED_RIR, source: 'assumed' }
+    : { rir: Math.max(0, inferredSetOneRir - 0.5 * index), source: 'inferred' })
 }

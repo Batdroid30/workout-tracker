@@ -69,4 +69,21 @@ describe('sessionEfforts', () => {
       { rir: 1.5, source: 'inferred' },
     ])
   })
+
+  it('lets a later trusted RPE set the set-1 effort over rep-loss inference', () => {
+    const efforts = sessionEfforts([makeSet(), makeSet(), makeSet({ rpe: 10, rpeSource: 'prompt' })])
+    expect(efforts).toEqual([
+      { rir: 1, source: 'entered' },
+      { rir: 0.5, source: 'inferred' },
+      { rir: 0, source: 'entered' },
+    ])
+  })
+
+  it('keeps set 1 on its own trusted RPE when a later set has one too', () => {
+    const efforts = sessionEfforts([
+      makeSet({ rpe: 8, rpeSource: 'entered' }), makeSet(), makeSet({ rpe: 10, rpeSource: 'prompt' }),
+    ])
+    expect(efforts.map(effort => effort.rir)).toEqual([2, 1.5, 0])
+    expect(efforts[0].source).toBe('entered')
+  })
 })

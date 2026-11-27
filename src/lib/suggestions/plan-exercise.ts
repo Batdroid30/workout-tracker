@@ -1,7 +1,7 @@
 import { WUP_CYCLE } from '@/lib/workout-intelligence'
 import { planConversion } from './conversion'
 import { planDeload } from './deload'
-import { sessionEfforts, trustedRpe } from './effort'
+import { sessionEfforts } from './effort'
 import { isLowReadiness } from './readiness'
 import { pickReference, type ReferencePick } from './reference'
 import { planStraightSets } from './straight-sets'
@@ -203,7 +203,8 @@ function withReadinessModifier(modifiers: PlanModifier[], ctx: PlanContext): Pla
 function confidenceFor(rule: PlanRule, pick: ReferencePick): PlanExplanation['confidence'] {
   if (rule === 'deload') return 'medium'
   if (LOW_CONFIDENCE_RULES.includes(rule) || !pick.sameType) return 'low'
-  return pick.session.sets.some(set => trustedRpe(set) !== null) ? 'high' : 'medium'
+  const [setOneEffort] = sessionEfforts(pick.session.sets)
+  return setOneEffort?.source === 'entered' ? 'high' : 'medium'
 }
 
 /** History is newest first. Null when there is no non-deload session to plan from. */
