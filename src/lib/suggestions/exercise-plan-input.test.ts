@@ -8,6 +8,7 @@ import {
   toHookResult,
   toPreviousSession,
 } from './exercise-plan-input'
+import { formatAddedWeight } from '@/lib/load'
 import { noCycleContext } from './plan-exercise'
 import type { LoggedSet, PastSession, PlanContext } from './types'
 
@@ -262,5 +263,94 @@ describe('resolveExercisePlan — live adjustment', () => {
     expect(plan?.sets[1].reps).toBeLessThan(9)
     expect(plan?.explanation.reason).toContain(`set 2 (9 → ${plan?.sets[1].reps})`)
     expect(plan?.explanation.reason).not.toContain('add a rep on set 3')
+  })
+})
+
+describe('resolveExercisePlan — assisted and weighted numbers stay on the equipment grid', () => {
+  const ASSISTED_MACHINE = makeExercise({ name: 'Assisted Pull-up', equipment: 'machine', movement_pattern: 'pull' })
+  const WEIGHTED_DIP = makeExercise({ name: 'Weighted Dip', equipment: 'bodyweight' })
+
+  function assistedSession(bodyweightKg: number, assistanceKg: number, reps: number[]): PastSession {
+    return makeSession(bodyweightKg - assistanceKg, reps, { bodyweightKg })
+  }
+
+  function planFor(exercise: Exercise, history: PastSession[], todayBodyweightKg: number, cycle = makeCycle('hypertrophy')) {
+    const active = makeActiveExercise(exercise)
+    return resolveExercisePlan({ history, ctx: contextFor(active, cycle), exercise: active, todayBodyweightKg, now: NOW })
+  }
+
+  it('drops assistance to a machine step on a weight-up', () => {
+    const plan = planFor(ASSISTED_MACHINE, [assistedSession(80.3, 20, [12, 12, 11])], 80.3)
+    expect(plan?.explanation.rule).toBe('weight-up')
+    expect(plan?.sets.map(set => set.weightKg)).toEqual([15, 15, 15])
+    expect(plan?.explanation.reason).toContain('drop assistance to 15 kg')
+  })
+
+  it('deloads to more assistance on the grid', () => {
+    const plan = planFor(ASSISTED_MACHINE, [assistedSession(80.3, 20, [10, 9, 7])], 80.3, makeCycle('hypertrophy', true))
+    expect(plan?.sets.every(set => [25, 30].includes(set.weightKg))).toBe(true)
+  })
+
+  it('never gives a back-off less assistance than the top set', () => {
+    const plan = planFor(ASSISTED_MACHINE, [assistedSession(80.3, 20, [10, 9, 7])], 80.3, makeCycle('strength'))
+    const [top, ...backoffs] = plan?.sets ?? []
+    expect(plan?.explanation.rule).toBe('calibration')
+    expect(backoffs.every(set => set.weightKg >= top.weightKg && set.weightKg % 5 === 0)).toBe(true)
+  })
+
+  it('moves weighted dips up by a whole step of added weight', () => {
+    const history = [makeSession(90.3, [12, 12, 11], { bodyweightKg: 80.3 })]
+    const plan = planFor(WEIGHTED_DIP, history, 80.3)
+    expect(plan?.explanation.rule).toBe('weight-up')
+    expect(formatAddedWeight(plan?.sets[0].weightKg ?? 0, 80.3)).toBe('+12.5kg')
+  })
+
+  it('holds the added weight when bodyweight changed since', () => {
+    const history = [makeSession(90, [10, 9, 7], { bodyweightKg: 80 })]
+    const plan = planFor(WEIGHTED_DIP, history, 81)
+    expect(plan?.explanation.rule).toBe('hold-add-reps')
+    expect(formatAddedWeight(plan?.sets[0].weightKg ?? 0, 81)).toBe('+10kg')
+    expect(formatAddedWeight(plan?.explanation.referenceSets[0].weightKg ?? 0, 81)).toBe('+10kg')
+  })
+})
+
+describe('resolveExercisePlan — storage-space values are step multiples', () => {
+  const TOLERANCE = 1e-9
+  const LIFTS = [
+    { exercise: makeExercise({ name: 'Assisted Pull-up', equipment: 'machine' }), step: 5, logged: [10, 20, 30] },
+    { exercise: makeExercise({ name: 'Assisted Dip', equipment: 'bodyweight' }), step: 2.5, logged: [7.5, 15] },
+    { exercise: makeExercise({ name: 'Weighted Dip', equipment: 'bodyweight' }), step: 2.5, logged: [0, 10, 22.5] },
+    { exercise: makeExercise({ name: 'Dumbbell Press', equipment: 'dumbbell' }), step: 2.5, logged: [12.5, 30] },
+  ]
+  const BODYWEIGHTS = [{ session: 75, today: 75 }, { session: 80.3, today: 80.3 }, { session: 80, today: 81.4 }]
+  const REP_PATTERNS = [[12, 12, 11], [10, 9, 7], [5, 5, 5], [20, 18, 16]]
+  const CYCLES = [makeCycle('hypertrophy'), makeCycle('strength'), makeCycle('volume'), makeCycle('hypertrophy', true)]
+
+  function storageValue(name: string, weightKg: number, todayBodyweightKg: number): number {
+    return /weighted/i.test(name) ? weightKg - todayBodyweightKg : weightKg
+  }
+
+  function loggedWeight(name: string, logged: number, bodyweightKg: number): number {
+    if (/assisted/i.test(name)) return bodyweightKg - logged
+    return /weighted/i.test(name) ? bodyweightKg + logged : logged
+  }
+
+  it('assistance, added weight and plain weight all land on the grid', () => {
+    const failures: string[] = []
+    for (const { exercise, step, logged } of LIFTS) for (const value of logged) for (const bodyweight of BODYWEIGHTS)
+      for (const reps of REP_PATTERNS) for (const cycle of CYCLES) {
+        const history = [makeSession(loggedWeight(exercise.name, value, bodyweight.session), reps, { bodyweightKg: bodyweight.session })]
+        const active = makeActiveExercise(exercise)
+        const plan = resolveExercisePlan({
+          history, ctx: contextFor(active, cycle), exercise: active, todayBodyweightKg: bodyweight.today, now: NOW,
+        })
+        for (const set of plan?.sets ?? []) {
+          const stored = storageValue(exercise.name, set.weightKg, bodyweight.today)
+          if (Math.abs(stored / step - Math.round(stored / step)) > TOLERANCE) {
+            failures.push(`${exercise.name} ${value} bw ${JSON.stringify(bodyweight)} ${reps} ${cycle.scheme.kind}: ${stored}`)
+          }
+        }
+      }
+    expect(failures.slice(0, 10)).toEqual([])
   })
 })

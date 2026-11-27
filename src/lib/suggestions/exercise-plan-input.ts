@@ -9,12 +9,10 @@ import { hitRate, type HitRate } from './hit-rate'
 import { adjustRemainingSets } from './live'
 import { buildReason, noCycleContext, planExercise, withWeekOverrides } from './plan-exercise'
 import { defaultWeightStep, toEquipmentKind } from './steps'
+import { toStorageSets, type LoadKind } from './storage-space'
 import type {
   ExercisePlan, LoggedSet, PastSession, PlanContext, PlanExplanation, SetSuggestion,
 } from './types'
-
-/** How an exercise's stored weight_kg maps to load lifted. */
-type LoadKind = 'assisted' | 'bodyweight-only' | 'load'
 
 export interface SuggestionProfile {
   training_goal: TrainingGoal | null
@@ -51,9 +49,8 @@ interface ResolvePlanArgs {
 
 function loadKindFor(exercise: Exercise): LoadKind {
   if (isAssisted(exercise.name)) return 'assisted'
-  const isBodyweight = exercise.equipment?.toLowerCase() === 'bodyweight'
-  if (isBodyweight && !isWeightedBodyweight(exercise.name, exercise.equipment)) return 'bodyweight-only'
-  return 'load'
+  if (isWeightedBodyweight(exercise.name, exercise.equipment)) return 'weighted'
+  return exercise.equipment?.toLowerCase() === 'bodyweight' ? 'bodyweight-only' : 'load'
 }
 
 export function historyOptions(exercise: Exercise): { isAssisted: boolean; isBodyweightOnly: boolean } {
@@ -89,8 +86,8 @@ export function buildPlanContext(
   }
 }
 
-// Holding assistance constant across a bodyweight change means the load moves with bodyweight,
-// so past assisted loads are restated at today's bodyweight before planning.
+// Holding assistance (or added weight) constant across a bodyweight change means the load moves
+// with bodyweight, so past loads are restated at today's bodyweight before planning.
 function rebaseToToday(history: PastSession[], todayBodyweightKg: number): PastSession[] {
   return history.map(session => {
     const shift = todayBodyweightKg - session.bodyweightKg
@@ -199,48 +196,60 @@ function planInLoadSpace({ history, ctx, exercise, completed, now }: LoadSpaceAr
   }
   const plan = planExercise(history, ctx, now)
   if (!plan) return null
-  const sets = adjustRemainingSets(plan, completed, ctx, history)
-  const { rule, modifiers, referenceSets } = plan.explanation
-  // Rebuilt from the adjusted sets so the copy always matches the numbers on screen.
-  const reason = buildReason(rule, modifiers, sets, referenceSets, { rangeMax: rangeMaxFor(ctx) })
-  return { sets, explanation: { ...plan.explanation, reason } }
+  return { ...plan, sets: adjustRemainingSets(plan, completed, ctx, history) }
 }
 
-function rangeMaxFor(ctx: PlanContext): number {
-  return withWeekOverrides(ctx).repRange.max
-}
-
-interface AssistedExplanationArgs {
+interface StorageExplanationArgs {
   exercise: ActiveExercise
   ctx: PlanContext
+  kind: LoadKind
   todayBodyweightKg: number
 }
 
-/** Restates the explanation in assistance kg so its copy matches the assistance shown on each set. */
-function assistedExplanation(
-  explanation: PlanExplanation, sets: SetSuggestion[], { exercise, ctx, todayBodyweightKg }: AssistedExplanationArgs,
-): PlanExplanation {
-  const referenceSets = explanation.referenceSets.map(set => loggedSetFromLoad(set, 'assisted', todayBodyweightKg))
+function storageReason(
+  explanation: PlanExplanation, sets: SetSuggestion[], referenceSets: LoggedSet[], args: StorageExplanationArgs,
+): string {
+  const { exercise, ctx, kind } = args
   const [first] = sets
-  const isRepSumPlan = isRepSum(exercise) && !ctx.isDeloadWeek
-  const reason = isRepSumPlan && first
-    ? assistedRepSumReason(first, referenceSets, exercise.rep_sum_target ?? 0)
-    : buildReason(explanation.rule, explanation.modifiers, sets, referenceSets, { style: 'assistance', rangeMax: rangeMaxFor(ctx) })
-  return { ...explanation, referenceSets, reason }
+  if (isRepSum(exercise) && !ctx.isDeloadWeek) {
+    return kind === 'assisted' && first
+      ? assistedRepSumReason(first, referenceSets, exercise.rep_sum_target ?? 0)
+      : explanation.reason
+  }
+  // Rebuilt from the final sets so the copy always matches the numbers on screen.
+  return buildReason(explanation.rule, explanation.modifiers, sets, referenceSets, {
+    style: kind === 'assisted' ? 'assistance' : 'load',
+    rangeMax: withWeekOverrides(ctx).repRange.max,
+  })
 }
 
-/** The plan for today in storage space (assistance for assisted lifts), adjusted for completed sets. */
+/** Restates the explanation in storage space so its copy matches what is shown on each set. */
+function storageExplanation(
+  explanation: PlanExplanation, sets: SetSuggestion[], args: StorageExplanationArgs,
+): PlanExplanation {
+  const referenceSets = args.kind === 'assisted'
+    ? explanation.referenceSets.map(set => loggedSetFromLoad(set, 'assisted', args.todayBodyweightKg))
+    : explanation.referenceSets
+  return { ...explanation, referenceSets, reason: storageReason(explanation, sets, referenceSets, args) }
+}
+
+function isRebasedToToday(kind: LoadKind): boolean {
+  return kind === 'assisted' || kind === 'weighted'
+}
+
+/** The plan for today in storage space (assistance, bodyweight + added, or kg), adjusted for completed sets. */
 export function resolveExercisePlan(
   { history, ctx, exercise, todayBodyweightKg, now }: ResolvePlanArgs,
 ): ExercisePlan | null {
   const kind = loadKindFor(exercise.exercise)
-  const plannedHistory = kind === 'assisted' ? rebaseToToday(history, todayBodyweightKg) : history
+  const plannedHistory = isRebasedToToday(kind) ? rebaseToToday(history, todayBodyweightKg) : history
   const completed = completedLoggedSets(exercise, kind, todayBodyweightKg)
   const plan = planInLoadSpace({ history: plannedHistory, ctx, exercise, completed, now })
   if (!plan) return null
-  const sets = plan.sets.map(set => ({ ...set, weightKg: fromLoadKg(set.weightKg, kind, todayBodyweightKg) }))
-  if (kind !== 'assisted') return { ...plan, sets }
-  return { sets, explanation: assistedExplanation(plan.explanation, sets, { exercise, ctx, todayBodyweightKg }) }
+  const sets = toStorageSets(plan.sets, {
+    kind, todayBodyweightKg, stepKg: ctx.weightStepKg, referenceSets: plan.explanation.referenceSets,
+  })
+  return { sets, explanation: storageExplanation(plan.explanation, sets, { exercise, ctx, kind, todayBodyweightKg }) }
 }
 
 /** Newest session back in storage space with its own bodyweight, so it reads as it was logged. */
