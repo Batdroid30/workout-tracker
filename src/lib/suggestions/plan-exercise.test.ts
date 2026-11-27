@@ -136,6 +136,7 @@ describe('planExercise — explanation', () => {
 
   it('describes the reference session', () => {
     const explanation = planExercise([USER_EXAMPLE], makeContext(), NOW)?.explanation
+    expect(explanation?.referenceWeekKind).toBe(USER_EXAMPLE.weekKind)
     expect(explanation?.referenceDate).toBe(LAST_WEEK)
     expect(explanation?.referenceSets).toEqual(USER_EXAMPLE.sets)
     expect(explanation?.effortSources).toEqual(['inferred', 'inferred', 'inferred'])

@@ -174,6 +174,7 @@ function planRepSum(history: PastSession[], ctx: PlanContext, repSumTarget: numb
     explanation: {
       rule: prevTotalReps >= repSumTarget ? 'weight-up' : 'hold-match',
       referenceDate: reference.startedAt,
+      referenceWeekKind: reference.weekKind,
       referenceSets: reference.sets,
       effortSources: sessionEfforts(reference.sets).map(effort => effort.source),
       modifiers: [],

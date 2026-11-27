@@ -21,6 +21,11 @@ import { useDialog }            from '@/providers/DialogProvider'
 import { getCurrentUserId, getSupabaseClient }    from '@/lib/supabase/client'
 import { upsertExercisePreference } from '@/lib/data/exercise-preferences'
 import { useTrainingCycle } from '@/hooks/useTrainingCycle'
+import { useSaveWeightStep, useWeightStep } from '@/hooks/useWeightStep'
+import { WhyThisWeightSheet } from './WhyThisWeightSheet'
+import { WeightStepSheet } from './WeightStepSheet'
+import { defaultWeightStep, toEquipmentKind } from '@/lib/suggestions/steps'
+import type { LoadMode } from '@/lib/suggestions/explanation-labels'
 
 // RPE placeholder before the training cycle has loaded.
 const DEFAULT_RPE_TARGET = 8
@@ -73,14 +78,19 @@ export function SetLogger({
   const [menuOpen,            setMenuOpen]            = useState(false)
   const [showDurationPicker,  setShowDurationPicker]  = useState(false)
   const [showSupersetPicker,  setShowSupersetPicker]  = useState(false)
+  const [showWhy,             setShowWhy]             = useState(false)
+  const [showStepPicker,      setShowStepPicker]      = useState(false)
   const [activePRs,          setActivePRs]          = useState<PRCheckResult[]>([])
   const dialog = useDialog()
 
-  const { plan, previous, error: planError } = useExercisePlan(exercise)
+  const { plan, previous, hitRate, error: planError } = useExercisePlan(exercise)
+  const savedWeightStep = useWeightStep(exercise.exercise.id).data
+  const saveWeightStep = useSaveWeightStep(exercise.exercise.id)
   const workingCount  = exercise.sets.filter(s => !s.is_warmup).length
   const planHasTopSet = plan?.sets.some(s => s.role === 'top') ?? false
   const reasonSetIndex = exercise.sets.findIndex(s => !s.is_warmup && !s.completed)
   const loadMode: PrevLoadMode = isBodyweight ? 'bodyweight' : isWeightedBodyweight ? 'weighted' : 'load'
+  const explainMode: LoadMode = isAssisted(exercise.exercise.name) ? 'assisted' : loadMode
 
   useEffect(() => {
     loadPRsForExercises([exercise.exercise.id])
@@ -190,6 +200,7 @@ export function SetLogger({
                     ...(onSupersetWith && supersetCandidates && supersetCandidates.length > 0
                       ? [{ label: 'Superset with…', action: () => { setMenuOpen(false); setShowSupersetPicker(true) } }]
                       : []),
+                    ...(isBodyweight ? [] : [{ label: 'Weight step', action: () => { setMenuOpen(false); setShowStepPicker(true) } }]),
                     ...(onUnpairSuperset ? [{ label: 'Remove from superset', action: () => { onUnpairSuperset(); setMenuOpen(false) } }] : []),
                   ].map(item => (
                     <button
@@ -267,6 +278,7 @@ export function SetLogger({
               prevSetText={prevText}
               suggestion={suggestion}
               reason={setIndex === reasonSetIndex ? plan?.explanation.reason : undefined}
+              onExplain={plan ? () => setShowWhy(true) : undefined}
               promptRepsLeft={!set.is_warmup && isKeySet(suggestion?.role ?? 'straight', workingIndex, workingCount, planHasTopSet)}
               defaultRpe={dupRpeTarget}
               onChange={updates => updateSet(exerciseIndex, setIndex, updates)}
@@ -343,6 +355,26 @@ export function SetLogger({
         onChange={handleRestSecondsChange}
         onClose={() => setShowDurationPicker(false)}
       />
+
+      {/* ── Why this weight ──────────────────────────────────────────────── */}
+      {showWhy && plan && (
+        <WhyThisWeightSheet
+          plan={plan}
+          hitRate={hitRate}
+          loadMode={explainMode}
+          bodyweightKg={userBodyweight}
+          onClose={() => setShowWhy(false)}
+        />
+      )}
+
+      {/* ── Weight step ──────────────────────────────────────────────────── */}
+      {showStepPicker && (
+        <WeightStepSheet
+          current={savedWeightStep ?? defaultWeightStep(toEquipmentKind(exercise.exercise.equipment))}
+          onPick={async step => { if (await saveWeightStep(step)) setShowStepPicker(false) }}
+          onClose={() => setShowStepPicker(false)}
+        />
+      )}
 
       {/* ── Superset picker ──────────────────────────────────────────────── */}
       <BottomSheet

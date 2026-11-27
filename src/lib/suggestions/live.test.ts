@@ -19,7 +19,7 @@ function makePlan(sets: SetSuggestion[], rule: PlanRule = 'hold-match'): Exercis
   return {
     sets,
     explanation: {
-      rule, referenceDate: null, referenceSets: [], effortSources: [], modifiers: [], confidence: 'high', reason: '',
+      rule, referenceDate: null, referenceWeekKind: null, referenceSets: [], effortSources: [], modifiers: [], confidence: 'high', reason: '',
     },
   }
 }

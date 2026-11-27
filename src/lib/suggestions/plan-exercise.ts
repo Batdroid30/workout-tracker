@@ -219,6 +219,7 @@ export function planExercise(history: PastSession[], ctx: PlanContext, now: Date
     explanation: {
       rule: routed.rule,
       referenceDate: pick.session.startedAt,
+      referenceWeekKind: pick.session.weekKind,
       referenceSets: pick.session.sets,
       effortSources: sessionEfforts(pick.session.sets).map(effort => effort.source),
       modifiers,

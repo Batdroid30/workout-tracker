@@ -32,7 +32,7 @@ export type PlanRule =
   | 'stall-reset' | 'reps-only' | 'calibration' | 'top-set-up' | 'top-set-hold' | 'deload'
 export type PlanModifier = 'cut' | 'low-readiness' | 'stall-reset'
 export interface PlanExplanation {
-  rule: PlanRule; referenceDate: string | null; referenceSets: LoggedSet[]
+  rule: PlanRule; referenceDate: string | null; referenceWeekKind: WeekKind | null; referenceSets: LoggedSet[]
   effortSources: EffortSource[]; modifiers: PlanModifier[]
   confidence: 'high' | 'medium' | 'low'; reason: string
 }

@@ -4,11 +4,12 @@ import { useMemo } from 'react'
 import useSWR from 'swr'
 import { z } from 'zod'
 import { useTrainingCycle } from '@/hooks/useTrainingCycle'
+import { useWeightStep } from '@/hooks/useWeightStep'
 import { DatabaseError } from '@/lib/errors'
 import { FALLBACK_BODYWEIGHT_KG } from '@/lib/load'
 import { getCurrentUserId, getSupabaseClient } from '@/lib/supabase/client'
 import {
-  fetchSuggestionHistory, fetchTodayReadinessAverage, fetchWeightStep,
+  fetchSuggestionHistory, fetchTodayReadinessAverage,
 } from '@/lib/data/suggestion-history'
 import {
   buildPlanContext, buildPlanData, historyOptions, toHookResult,
@@ -50,7 +51,7 @@ export function useExercisePlan(exercise: ActiveExercise): ExercisePlanResult {
 
   const profile = useSWR('user-profile-for-suggestions', fetchProfile, SWR_OPTIONS)
   const readiness = useSWR('readiness-today', fetchTodayReadinessAverage, SWR_OPTIONS)
-  const step = useSWR(`weight-step-${exerciseId}`, () => fetchWeightStep(exerciseId), SWR_OPTIONS)
+  const step = useWeightStep(exerciseId)
   const history = useSWR(
     `suggestion-history-${exerciseId}-${options.isAssisted ? 'assisted' : 'load'}-${options.isBodyweightOnly ? 'bw' : 'kg'}`,
     () => fetchSuggestionHistory(exerciseId, options),
