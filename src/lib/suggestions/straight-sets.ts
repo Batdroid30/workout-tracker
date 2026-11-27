@@ -4,7 +4,7 @@ import { sessionEfforts } from './effort'
 import { isStalled, sameTypeExposures, topOfRangeStreak } from './reference'
 import * as readiness from './readiness'
 import { clamp, progressionIncrement, roundDownToStep } from './steps'
-import type { PastSession, PlanContext, PlanModifier, PlanRule, SetSuggestion } from './types'
+import type { PastSession, PlanContext, PlanModifier, PlanRule, RepRange, SetSuggestion } from './types'
 
 const DEFAULT_STRAIGHT_SET_FATIGUE = 1.0
 const STALL_EXPOSURES = 3
@@ -19,6 +19,7 @@ interface PlanInputs {
   referenceWeightKg: number
   referenceSetOneReps: number
   referenceReps: number[]
+  referenceWeights: number[]
   refRir1: number
   targetRir: number
   effectiveRpe: number
@@ -42,6 +43,7 @@ function buildInputs(history: PastSession[], reference: PastSession, ctx: PlanCo
     referenceWeightKg: ctx.isBodyweightOnly ? 0 : firstSet.weightKg,
     referenceSetOneReps: firstSet.reps,
     referenceReps: reference.sets.slice(0, ctx.plannedSets).map(set => set.reps),
+    referenceWeights: reference.sets.slice(0, ctx.plannedSets).map(set => (ctx.isBodyweightOnly ? 0 : set.weightKg)),
     refRir1: sessionEfforts(reference.sets)[0].rir,
     targetRir: 10 - effectiveRpe,
     effectiveRpe,
@@ -127,9 +129,22 @@ function repsCap(ctx: PlanContext): number {
   return ctx.isBodyweightOnly ? Infinity : ctx.repRange.max
 }
 
-function heldStartingReps(inputs: PlanInputs): number[] {
-  const { ctx } = inputs
-  return inputs.referenceReps.map(count => Math.min(count, repsCap(ctx)))
+/** Reference sets lighter than the held weight (an older engine's drop sets) move up to it. */
+function movedUpSets(inputs: PlanInputs, weightKg: number): boolean[] {
+  return inputs.referenceWeights.map(referenceWeight => referenceWeight < weightKg)
+}
+
+/** A set moving up to a heavier weight gets no more reps than were done lighter, and no more than capacity allows. */
+function movedUpReps(inputs: PlanInputs, referenceReps: number, setIndex: number, weightKg: number): number {
+  if (inputs.e1rm === null) return Math.max(1, referenceReps - 1)
+  const capacity = predictReps(inputs.e1rm, weightKg, inputs.targetRir, setIndex, inputs.fatigue)
+  return Math.max(1, Math.min(referenceReps, capacity, repsCap(inputs.ctx)))
+}
+
+function heldStartingReps(inputs: PlanInputs, weightKg: number, movedUp: boolean[]): number[] {
+  return inputs.referenceReps.map((count, setIndex) => movedUp[setIndex]
+    ? movedUpReps(inputs, count, setIndex, weightKg)
+    : Math.min(count, repsCap(inputs.ctx)))
 }
 
 function chooseBudget(inputs: PlanInputs): Budget {
@@ -142,16 +157,17 @@ function chooseBudget(inputs: PlanInputs): Budget {
 }
 
 /** +1 total: the lowest set below min, else set 1, else the next set below max; else dropped. */
-function placeOneRep(reps: number[], min: number, max: number): number[] {
-  const belowMin = reps.findIndex(count => count < min)
-  const target = belowMin !== -1 ? belowMin : reps.findIndex(count => count < max)
+function placeOneRep(reps: number[], movedUp: boolean[], { min, max }: RepRange): number[] {
+  const belowMin = reps.findIndex((count, index) => !movedUp[index] && count < min)
+  const target = belowMin !== -1 ? belowMin : reps.findIndex((count, index) => !movedUp[index] && count < max)
   if (target === -1) return reps
   return reps.map((count, index) => (index === target ? count + 1 : count))
 }
 
-function addRepToEverySet(inputs: PlanInputs, reps: number[], weightKg: number): number[] {
+function addRepToEverySet(inputs: PlanInputs, reps: number[], weightKg: number, movedUp: boolean[]): number[] {
   const { e1rm, ctx } = inputs
   return reps.map((count, setIndex) => {
+    if (movedUp[setIndex]) return count
     // The ceiling keeps reps beyond the minimum push within one rep of the target effort.
     const ceiling = e1rm === null
       ? Infinity
@@ -162,13 +178,14 @@ function addRepToEverySet(inputs: PlanInputs, reps: number[], weightKg: number):
 }
 
 function repsWithBudget(inputs: PlanInputs, weightKg: number): RepsPlan {
-  const startingReps = heldStartingReps(inputs)
+  const movedUp = movedUpSets(inputs, weightKg)
+  const startingReps = heldStartingReps(inputs, weightKg, movedUp)
   if (inputs.isLowReadiness) return { reps: startingReps, rule: 'hold-match', modifiers: [] }
   const budget = chooseBudget(inputs)
   if (budget === 'none') return { reps: startingReps, rule: 'hold-match', modifiers: ['cut'] }
   const reps = budget === 'every-set'
-    ? addRepToEverySet(inputs, startingReps, weightKg)
-    : placeOneRep(startingReps, inputs.ctx.repRange.min, repsCap(inputs.ctx))
+    ? addRepToEverySet(inputs, startingReps, weightKg, movedUp)
+    : placeOneRep(startingReps, movedUp, { min: inputs.ctx.repRange.min, max: repsCap(inputs.ctx) })
   const isAnyRepAdded = reps.some((count, index) => count > startingReps[index])
   return { reps, rule: isAnyRepAdded ? 'hold-add-reps' : 'hold-match', modifiers: [] }
 }

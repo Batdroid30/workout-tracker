@@ -337,3 +337,13 @@ describe('planExercise — a trusted RPE on a later set', () => {
     expect(planExercise([tenTenTen(null)], makeContext(), NOW)?.explanation.confidence).toBe('medium')
   })
 })
+
+describe('planExercise — mixed-weight reference reason', () => {
+  it('names the set that moves up to the held weight', () => {
+    const sets = [makeSet(30, 10), makeSet(30, 9), makeSet(27.5, 8)]
+    const mixed: PastSession = { workoutId: 'w-mixed', startedAt: LAST_WEEK, weekKind: 'hypertrophy', isDeload: false, bodyweightKg: 75, sets }
+    const plan = planExercise([mixed], makeContext(), NOW)
+    expect(plan?.explanation.reason).toContain('set 3 moves up to 30 kg')
+    expect(plan?.explanation.reason).not.toContain('8 → ')
+  })
+})

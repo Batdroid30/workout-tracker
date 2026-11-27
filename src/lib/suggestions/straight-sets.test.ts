@@ -200,3 +200,21 @@ describe('planStraightSets — set count changes mid-session', () => {
     expect(weightsAndReps(twoSets.sets)).toEqual(weightsAndReps(threeSets.sets.slice(0, 2)))
   })
 })
+
+describe('planStraightSets — mixed-weight reference', () => {
+  const MIXED = makeSession('2026-11-19T10:00:00Z', [makeSet(30, 10), makeSet(30, 9), makeSet(27.5, 8)])
+
+  it('caps a lighter reference set at what capacity allows at the held weight', () => {
+    const plan = planStraightSets([MIXED], MIXED, makeContext(), NOW)
+    expect(plan.sets.map(set => set.weightKg)).toEqual([30, 30, 30])
+    expect(plan.sets[2].reps).toBeLessThanOrEqual(7)
+  })
+
+  it('drops a rep on a lighter reference set when there is no capacity model', () => {
+    // 19 reps plus 1.5 in reserve is past the e1RM model's 20-rep limit.
+    const highReps = makeSession('2026-11-19T10:00:00Z', [makeSet(30, 19), makeSet(30, 18), makeSet(27.5, 17)])
+    const ctx = makeContext({ weekKind: 'volume', repRange: { min: 13, max: 20 }, rpeTarget: 7 })
+    const plan = planStraightSets([highReps], highReps, ctx, NOW)
+    expect(weightsAndReps(plan.sets).at(-1)).toBe('30x16')
+  })
+})

@@ -48,12 +48,49 @@ function formatRepsLeft(rpeTarget: number): string {
 
 interface RepChange { setNumber: number; from: number; to: number }
 
+function isSameWeightAsReference(set: SetSuggestion, referenceSet: LoggedSet | undefined): referenceSet is LoggedSet {
+  return referenceSet !== undefined && referenceSet.weightKg === set.weightKg
+}
+
+/** Rep changes at the reference's own weight; sets whose weight moved are described by weightMoves. */
 function repChanges(plan: SetSuggestion[], referenceSets: LoggedSet[]): RepChange[] {
   return plan.flatMap((set, index): RepChange[] => {
     const referenceSet = referenceSets[index]
-    if (!referenceSet || referenceSet.reps === set.reps) return []
+    if (!isSameWeightAsReference(set, referenceSet) || referenceSet.reps === set.reps) return []
     return [{ setNumber: index + 1, from: referenceSet.reps, to: set.reps }]
   })
+}
+
+function sameWeightSetCount(plan: SetSuggestion[], referenceSets: LoggedSet[]): number {
+  return plan.filter((set, index) => isSameWeightAsReference(set, referenceSets[index])).length
+}
+
+interface WeightMove { setNumbers: number[]; reps: number[]; weightKg: number; isUp: boolean }
+
+/** Sets planned at a different weight than the reference used there, grouped by direction and weight. */
+function weightMoves(plan: SetSuggestion[], referenceSets: LoggedSet[]): WeightMove[] {
+  const moves: WeightMove[] = []
+  plan.forEach((set, index) => {
+    const referenceSet = referenceSets[index]
+    if (!referenceSet || referenceSet.weightKg === set.weightKg) return
+    const isUp = set.weightKg > referenceSet.weightKg
+    const group = moves.find(move => move.isUp === isUp && move.weightKg === set.weightKg)
+    if (group) { group.setNumbers.push(index + 1); group.reps.push(set.reps); return }
+    moves.push({ setNumbers: [index + 1], reps: [set.reps], weightKg: set.weightKg, isUp })
+  })
+  return moves
+}
+
+const MOVE_VERBS = {
+  up: { one: 'moves up to', many: 'move up to' },
+  down: { one: 'drops to', many: 'drop to' },
+} as const
+
+function describeWeightMove(move: WeightMove, style: LoadStyle): string {
+  const isOneSet = move.setNumbers.length === 1
+  const sets = isOneSet ? `set ${move.setNumbers[0]}` : `sets ${joinWithAnd(move.setNumbers.map(String))}`
+  const verb = MOVE_VERBS[move.isUp ? 'up' : 'down'][isOneSet ? 'one' : 'many']
+  return `${sets} ${verb} ${formatLoad(move.weightKg, style)} (${move.reps.join(', ')} reps)`
 }
 
 function describeAddedReps(added: RepChange[], comparedSets: number): string {
@@ -72,10 +109,12 @@ function describeHold(
   const added = changes.filter(change => change.to > change.from)
   const capped = changes.filter(change => change.to < change.from)
   const parts: string[] = []
-  if (added.length > 0) parts.push(describeAddedReps(added, Math.min(plan.length, referenceSets.length)))
+  if (added.length > 0) parts.push(describeAddedReps(added, sameWeightSetCount(plan, referenceSets)))
   // Held reps only fall below the reference when the reference was above the range max.
   if (capped.length > 0) parts.push(`capped at the top of the range (${capped[0].to})`)
-  if (parts.length === 0) parts.push(`match last time (${formatRepList(plan)})`)
+  const moves = weightMoves(plan, referenceSets)
+  if (parts.length === 0 && moves.length === 0) parts.push(`match last time (${formatRepList(plan)})`)
+  parts.push(...moves.map(move => describeWeightMove(move, style)))
   const lead = first.weightKg === 0 ? 'Bodyweight' : `Same ${formatLoad(first.weightKg, style)}`
   return `${lead} — ${parts.join('; ')}.`
 }
