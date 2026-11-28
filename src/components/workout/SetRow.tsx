@@ -3,12 +3,11 @@
 import { useRef, useState, useCallback, useEffect, memo } from 'react'
 import { Check, Trash2, X } from 'lucide-react'
 import type { ActiveSet } from '@/types/database'
-import { rpeToRIR, calculate1RM } from '@/lib/algorithms'
 import type { SetSuggestion } from '@/lib/suggestions/types'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/providers/ToastProvider'
 import { useWorkoutStore } from '@/store/workout.store'
-import { formatWeightedSet } from '@/lib/load'
+import { formatAddedWeight } from '@/lib/load'
 import { SET_GRID } from './SetTableHeader'
 import { SuggestionChip } from './SuggestionChip'
 import { RepsLeftPrompt } from './RepsLeftPrompt'
@@ -322,9 +321,9 @@ const ActiveSetRow = memo(function ActiveSetRow({ set, prevSetText, suggestion, 
 
 interface CompletedSetRowProps {
   set: ActiveSet
+  prevSetText: string
   isBodyweight?: boolean
   isWeightedBodyweight?: boolean
-  isAssisted?: boolean
   promptRepsLeft?: boolean
   onChange: (updates: Partial<ActiveSet>) => void
   onDone: () => void
@@ -333,11 +332,18 @@ interface CompletedSetRowProps {
   setIndex?: number
 }
 
-const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWeightedBodyweight, isAssisted, promptRepsLeft, onChange, onDone, onRemove, onRestore, setIndex }: CompletedSetRowProps) {
+/** The kg column for a logged set: BW, added weight for weighted lifts, else the number (the header says kg). */
+function formatCompletedWeight(set: ActiveSet, { isBodyweight, isWeightedBodyweight, userBodyweight }: {
+  isBodyweight?: boolean; isWeightedBodyweight?: boolean; userBodyweight: number
+}): string {
+  if (isBodyweight) return 'BW'
+  if (isWeightedBodyweight && set.weight_kg > 0) return formatAddedWeight(Math.max(set.weight_kg, userBodyweight), userBodyweight)
+  return set.weight_kg > 0 ? String(set.weight_kg) : '—'
+}
+
+const CompletedSetRow = memo(function CompletedSetRow({ set, prevSetText, isBodyweight, isWeightedBodyweight, promptRepsLeft, onChange, onDone, onRemove, onRestore, setIndex }: CompletedSetRowProps) {
   const userBodyweight = useWorkoutStore(s => s.userBodyweight) ?? 75
-  const e1rm = !set.is_warmup && !isAssisted && set.weight_kg > 0 && set.reps > 1
-    ? Math.round(calculate1RM(set.weight_kg, set.reps))
-    : null
+  const completedWeightText = formatCompletedWeight(set, { isBodyweight, isWeightedBodyweight, userBodyweight })
 
   const [pendingDelete, setPendingDelete] = useState(false)
   const [isRepsLeftSkipped, setIsRepsLeftSkipped] = useState(false)
@@ -416,26 +422,23 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWei
             {set.is_warmup ? 'W' : set.set_number}
           </span>
 
-          {/* Summary (spans last time, kg and reps) */}
-          <span className="col-span-3 flex min-w-0 items-center gap-1">
-          <span className="min-w-0 flex-1 truncate t-value">
-            {isBodyweight ? 'BW' : isWeightedBodyweight && set.weight_kg > 0 ? formatWeightedSet(Math.max(set.weight_kg, userBodyweight), userBodyweight) : set.weight_kg > 0 ? `${set.weight_kg}kg` : '—'}
-            {' × '}
-            {set.reps > 0 ? set.reps : '—'}
-            {e1rm && <span className="text-xs text-tertiary ml-1.5">· ~{e1rm}kg</span>}
+          {/* Same columns as SetTableHeader: last time · kg · reps */}
+          <span data-col="last" className="mono truncate text-sm text-tertiary">{prevSetText}</span>
+          <span data-col="kg" className="t-value text-center tabular-nums truncate">{completedWeightText}</span>
+          <span className="relative flex flex-col items-center">
+            <span data-col="reps" className="t-value tabular-nums">{set.reps > 0 ? set.reps : '—'}</span>
             {!set.is_warmup && set.rpe !== null && (
-              <span className="text-xs text-tertiary ml-1.5">· RPE {set.rpe} ({rpeToRIR(set.rpe)} RIR)</span>
+              <span className="text-xs leading-none text-tertiary">RPE {set.rpe}</span>
             )}
-          </span>
 
-          {/* Desktop delete */}
-          <button
-            onClick={handleRemove}
-            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-tertiary opacity-0 group-hover:opacity-100 hover:bg-negative-soft transition-all"
-            aria-label="Remove set"
-          >
-            <X className="w-3 h-3" />
-          </button>
+            {/* Desktop delete */}
+            <button
+              onClick={handleRemove}
+              className="absolute right-0 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg text-tertiary opacity-0 group-hover:opacity-100 hover:bg-negative-soft transition-all"
+              aria-label="Remove set"
+            >
+              <X className="w-3 h-3" />
+            </button>
           </span>
 
           {/* Untick — the lime tick stays full size where it was tapped */}
@@ -458,7 +461,7 @@ const CompletedSetRow = memo(function CompletedSetRow({ set, isBodyweight, isWei
 
 export const SetRow = memo(function SetRow({ set, prevSetText = '-', suggestion, reason, onExplain, promptRepsLeft, defaultRpe, isBodyweight, isWeightedBodyweight, isAssisted, onChange, onDone, onRemove, onRestore, setIndex }: SetRowProps) {
   if (set.completed) {
-    return <CompletedSetRow set={set} isBodyweight={isBodyweight} isWeightedBodyweight={isWeightedBodyweight} isAssisted={isAssisted} promptRepsLeft={promptRepsLeft} onChange={onChange} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
+    return <CompletedSetRow set={set} prevSetText={prevSetText} isBodyweight={isBodyweight} isWeightedBodyweight={isWeightedBodyweight} promptRepsLeft={promptRepsLeft} onChange={onChange} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
   }
   return <ActiveSetRow set={set} prevSetText={prevSetText} suggestion={suggestion} reason={reason} onExplain={onExplain} defaultRpe={defaultRpe} isBodyweight={isBodyweight} isWeightedBodyweight={isWeightedBodyweight} isAssisted={isAssisted} onChange={onChange} onDone={onDone} onRemove={onRemove} onRestore={onRestore} setIndex={setIndex} />
 })

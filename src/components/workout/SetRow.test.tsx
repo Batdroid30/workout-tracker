@@ -37,6 +37,36 @@ describe('SetRow', () => {
     expect(markup).toMatch(/<button class="[^"]*w-11 h-11[^"]*bg-accent[^"]*" aria-label="Untick set"/)
   })
 
+  it('lines a completed set up under the Last time, kg and Reps columns', () => {
+    const markup = render(set({ completed: true, weight_kg: 25, reps: 13, rpe: null }))
+    expect(markup).toContain('grid-cols-[28px_60px_1fr_1fr_44px]')
+    expect(markup).not.toContain('col-span-3')
+    expect(markup).toMatch(/data-col="last"[^>]*>26×9</)
+    expect(markup).toMatch(/data-col="kg"[^>]*>25</)
+    expect(markup).toMatch(/data-col="reps"[^>]*>13</)
+  })
+
+  it('shows no estimated one-rep max on a completed set', () => {
+    const markup = render(set({ completed: true, weight_kg: 25, reps: 13 }))
+    expect(markup).not.toContain('~')
+  })
+
+  it('keeps the logged effort as a small note under the reps', () => {
+    const markup = render(set({ completed: true, weight_kg: 25, reps: 13, rpe: 8 }))
+    expect(markup).toMatch(/data-col="reps"[\s\S]*RPE 8/)
+  })
+
+  it('formats bodyweight and weighted completed sets in the kg column', () => {
+    const bodyweight = renderToStaticMarkup(
+      <SetRow set={set({ completed: true, weight_kg: 80, reps: 15 })} isBodyweight prevSetText="BW×14" onChange={vi.fn()} onDone={vi.fn()} onRemove={vi.fn()} />,
+    )
+    expect(bodyweight).toMatch(/data-col="kg"[^>]*>BW</)
+    const weighted = renderToStaticMarkup(
+      <SetRow set={set({ completed: true, weight_kg: 90, reps: 8 })} isWeightedBodyweight prevSetText="+10kg×8" onChange={vi.fn()} onDone={vi.fn()} onRemove={vi.fn()} />,
+    )
+    expect(weighted).toMatch(/data-col="kg"[^>]*>\+10kg</)
+  })
+
   it('leaves the RPE empty and shows the target as a placeholder', () => {
     const markup = renderWith({ suggestion: suggestion() })
     expect(markup).toMatch(/<input[^>]*placeholder="7.5" aria-label="RPE"[^>]*value=""/)
