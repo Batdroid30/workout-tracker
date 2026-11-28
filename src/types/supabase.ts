@@ -417,6 +417,9 @@ export type Database = {
           set_number: number
           weight_kg: number
           workout_exercise_id: string
+          rpe_source: string | null
+          suggested_reps: number | null
+          suggested_weight_kg: number | null
         }
         Insert: {
           completed_at?: string | null
@@ -428,6 +431,9 @@ export type Database = {
           set_number: number
           weight_kg: number
           workout_exercise_id: string
+          rpe_source?: string | null
+          suggested_reps?: number | null
+          suggested_weight_kg?: number | null
         }
         Update: {
           completed_at?: string | null
@@ -439,6 +445,9 @@ export type Database = {
           set_number?: number
           weight_kg?: number
           workout_exercise_id?: string
+          rpe_source?: string | null
+          suggested_reps?: number | null
+          suggested_weight_kg?: number | null
         }
         Relationships: [
           {
@@ -456,18 +465,21 @@ export type Database = {
           rest_seconds: number
           updated_at: string
           user_id: string
+          weight_step_kg: number | null
         }
         Insert: {
           exercise_id: string
           rest_seconds?: number
           updated_at?: string
           user_id: string
+          weight_step_kg?: number | null
         }
         Update: {
           exercise_id?: string
           rest_seconds?: number
           updated_at?: string
           user_id?: string
+          weight_step_kg?: number | null
         }
         Relationships: [
           {
@@ -625,6 +637,8 @@ export type Database = {
           started_at: string
           title: string | null
           user_id: string
+          is_deload: boolean | null
+          week_type: string | null
         }
         Insert: {
           bodyweight_kg?: number | null
@@ -637,6 +651,8 @@ export type Database = {
           started_at: string
           title?: string | null
           user_id: string
+          is_deload?: boolean | null
+          week_type?: string | null
         }
         Update: {
           bodyweight_kg?: number | null
@@ -649,6 +665,8 @@ export type Database = {
           started_at?: string
           title?: string | null
           user_id?: string
+          is_deload?: boolean | null
+          week_type?: string | null
         }
         Relationships: [
           {

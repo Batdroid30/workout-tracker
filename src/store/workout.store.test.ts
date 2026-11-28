@@ -144,3 +144,18 @@ describe('removing the open exercise', () => {
     expect(useWorkoutStore.getState().activeWorkout?.openExerciseId).toBe(second.clientId)
   })
 })
+
+describe('copying a past workout', () => {
+  it('does not copy RPEs from a past workout, so no effort is recorded without the user', () => {
+    useWorkoutStore.getState().copyWorkout({
+      title: 'Push A',
+      workout_exercises: [{
+        exercise: { id: 'ex-1', name: 'Bench Press', muscle_group: 'chest', equipment: 'barbell' },
+        sets: [{ set_number: 1, weight_kg: 80, reps: 5, rpe: 9, is_warmup: false }],
+      }],
+    })
+    const copiedSet = useWorkoutStore.getState().activeWorkout?.exercises[0].sets[0]
+    expect(copiedSet?.rpe).toBeNull()
+    expect(copiedSet?.rpe_source ?? null).toBeNull()
+  })
+})

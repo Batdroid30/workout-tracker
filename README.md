@@ -16,7 +16,7 @@ This project follows strict SOLID principles. Every decision — from the reposi
 ### ✅ Shipped
 - **Zero-friction logging** — Zustand-backed active workout store, persisted to localStorage. Survives page refreshes and app kills mid-session.
 - **DUP (Daily Undulating Periodization)** — 3-week cycling between Strength / Hypertrophy / Volume weeks that advances only after a training week (at least half the weekly goal), so time off pauses it. Rep ranges, RPE targets, and weight suggestions all update coherently with the current week. Cycle and phase can be restarted from Account → Training.
-- **Progressive overload suggestions** — Per-set suggestions driven by last session's weight/reps/RPE. RPE input pre-fills with the DUP week's target so it's always logged even if the user doesn't touch it.
+- **Progressive overload suggestions** — A whole-exercise plan (weight, reps and RPE target per set) built from the last same-type week, with a "Why this weight" explanation, re-planned live as sets are completed. The RPE input shows the week's target as a placeholder only; an RPE is recorded only when the lifter types one or answers the reps-left prompt.
 - **Superset support** — Pair any two exercises via the ⋮ menu. Grouped under a `SupersetWrapper` with a visual accent rail. Rest timer fires only after the last exercise in the pair. Persisted to DB with a shared `superset_group` UUID.
 - **Focus sheet on session start** — "What are you targeting?" sheet on blank workout start. Selects exercises by muscle group and auto-generates a template with phase-appropriate sets and reps.
 - **PR detection** — Local Zustand cache checked optimistically on set completion. Server-side `check_and_update_prs` RPC confirms asynchronously. PR banner fires in-session.
@@ -54,7 +54,7 @@ The in-progress workout lives entirely in Zustand, persisted to localStorage und
 | `finishWorkout` | clears store (called after server save succeeds) |
 
 ### 2.3 Training cycle (`src/lib/training-cycle.ts`)
-`getTrainingCycle(userId)` (server, `src/lib/data/training-cycle.ts`) and `useTrainingCycle()` (client) return the current scheme (`WUP_CYCLE[completedTrainingWeeks % 3]`), phase week, deload flag and long-break prompt, counted in training weeks from `profiles.cycle_started_at` / `phase_started_at`. Every surface that shows rep targets, RPE, phase week or deload — the workout header pill, `suggestNextSet`, the template generator, phase-coach missions, the mesocycle timeline, the coach — reads this so they always agree.
+`getTrainingCycle(userId)` (server, `src/lib/data/training-cycle.ts`) and `useTrainingCycle()` (client) return the current scheme (`WUP_CYCLE[completedTrainingWeeks % 3]`), phase week, deload flag and long-break prompt, counted in training weeks from `profiles.cycle_started_at` / `phase_started_at`. Every surface that shows rep targets, RPE, phase week or deload — the workout header pill, the set planner (`useExercisePlan`), the template generator, phase-coach missions, the mesocycle timeline, the coach — reads this so they always agree.
 
 ### 2.4 Algorithm layer (`src/lib/algorithms.ts`)
 Pure functions. No DB, no async. Fully unit-tested in `algorithms.test.ts`.
@@ -62,9 +62,11 @@ Pure functions. No DB, no async. Fully unit-tested in `algorithms.test.ts`.
 | Function | Purpose |
 |---|---|
 | `calculateEpley1RM` | Epley formula for estimated 1RM |
-| `suggestNextSet` | Double-progression suggestion with RPE calibration. Returns `{ weight_kg, target_reps, rpe_target, reason }` |
 | `assessFatigueLevel` | Signal-based fatigue assessment from weekly summaries |
 | `generateDeloadRoutine` | One-week deload prescription (intensity: 75% / 65% / 55% by confidence) |
+
+### 2.4a Set planner (`src/lib/suggestions/`)
+Pure planner, no React or Supabase; time comes in as an argument. `planExercise(history, ctx, now)` picks a reference session (the last same-type week within 8 weeks), then routes to a deload, a first-exposure calibration, Strength-week top set + back-offs, or straight sets (hold and add reps, weight up at the top of the range, come down, stall reset). Weights are load space (kg lifted); `resolveExercisePlan` in `exercise-plan-input.ts` converts history in and the plan back out to storage space (assistance, bodyweight + added, or kg) on the equipment's weight step, and `adjustRemainingSets` re-plans the sets still to do from the completed ones. `useExercisePlan` wires it to the data. `invariants.test.ts` sweeps a large grid of inputs for the planner's guarantees.
 
 ### 2.5 Superset rendering (`src/app/(app)/workout/page.tsx`)
 The `renderExercises` helper pre-scans all exercises into a `groupMembers` map before rendering, so a shared `superset_group` always produces exactly one `SupersetWrapper` regardless of whether the paired exercises are adjacent in the array. Exercises are moved adjacent in the store on pairing, but the renderer is defensive against legacy localStorage state.
@@ -129,6 +131,6 @@ AUTH_SECRET=...                  # NextAuth session signing
 1. **Zustand hydration** — The active workout store rehydrates from localStorage after the first render. Components that branch on `activeWorkout` are already client components; no extra `mounted` flag needed since the persist middleware handles it.
 2. **DUP scheme must be consistent** — If you add a new surface that displays rep targets, read the scheme from `getTrainingCycle` / `useTrainingCycle` rather than hardcoding. The week label, suggestion text, and template reps must always match.
 3. **Superset group UUID** — Assigned on the client with `crypto.randomUUID()` and written to `workout_exercises.superset_group` on save. The column is `uuid DEFAULT NULL` — standalone exercises store `NULL`.
-4. **`rpe_target` in suggestions** — `suggestNextSet` now returns `rpe_target` in every code path. `SetRow` uses this to pre-fill the RPE input on mount and commit it to the store, so RPE is always logged even if the user doesn't touch the field.
+4. **RPE is never pre-filled** — The planner's `rpeTarget` is only the RPE input's placeholder. Old rows logged before `sets.rpe_source` existed may hold pre-filled values (7, 7.5, 8, 8.5), so the planner treats those as unknown effort; anything typed or answered in the reps-left prompt is marked in `rpe_source` and trusted.
 
 ---

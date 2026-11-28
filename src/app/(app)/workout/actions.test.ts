@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   deleteWorkout: vi.fn(),
   revalidateAll: vi.fn(),
   getSupabaseServer: vi.fn(),
+  getTrainingCycle: vi.fn(),
 }))
 
 vi.mock('@/lib/auth', () => ({ auth: mocks.auth, requireAuth: mocks.requireAuth }))
@@ -21,6 +22,7 @@ vi.mock('@/lib/data/stats', () => ({
   evaluateAndSavePRs: mocks.evaluateAndSavePRs,
   evaluateAndSaveAllPRs: mocks.evaluateAndSaveAllPRs,
 }))
+vi.mock('@/lib/data/training-cycle', () => ({ getTrainingCycle: mocks.getTrainingCycle }))
 vi.mock('@/lib/cache', () => ({ revalidateAll: mocks.revalidateAll }))
 vi.mock('@/lib/supabase/server', () => ({
   getSupabaseServer: mocks.getSupabaseServer,
@@ -32,18 +34,44 @@ describe('finishWorkoutAction', () => {
   const userId = 'user-1'
   const savedWorkout = { id: 'w-1', started_at: '2026-05-03T10:00:00Z' }
   const savedSets: any[] = []
+  const validWorkout = { id: null, title: 'Push', started_at: new Date('2026-05-03T10:00:00Z'), exercises: [] }
 
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.auth.mockResolvedValue({ user: { id: userId } })
     mocks.requireAuth.mockResolvedValue({ userId, session: {} })
+    mocks.getTrainingCycle.mockResolvedValue({ scheme: { kind: 'strength' }, isDeloadWeek: false })
+  })
+
+  it('saves the workout with the week type from its start date', async () => {
+    mocks.saveActiveWorkout.mockResolvedValue({ workout: savedWorkout, savedSets })
+    mocks.evaluateAndSavePRs.mockResolvedValue([])
+    const workout = validWorkout
+    mocks.getTrainingCycle.mockResolvedValue({ scheme: { kind: 'hypertrophy' }, isDeloadWeek: true })
+
+    await finishWorkoutAction(workout)
+
+    expect(mocks.getTrainingCycle).toHaveBeenCalledWith(userId, '2026-05-03T10:00:00.000Z')
+    expect(mocks.saveActiveWorkout).toHaveBeenCalledWith(userId, expect.objectContaining({ title: validWorkout.title }), { weekType: 'hypertrophy', isDeload: true })
+  })
+
+  it('still saves with null week data when the cycle lookup fails', async () => {
+    mocks.saveActiveWorkout.mockResolvedValue({ workout: savedWorkout, savedSets })
+    mocks.evaluateAndSavePRs.mockResolvedValue([])
+    mocks.getTrainingCycle.mockRejectedValue(new Error('profile down'))
+    const workout = validWorkout
+
+    const result = await finishWorkoutAction(workout)
+
+    expect(result.success).toBe(true)
+    expect(mocks.saveActiveWorkout).toHaveBeenCalledWith(userId, expect.objectContaining({ title: validWorkout.title }), { weekType: null, isDeload: null })
   })
 
   it('returns success with PRs when both save and PR evaluation succeed', async () => {
     mocks.saveActiveWorkout.mockResolvedValue({ workout: savedWorkout, savedSets })
     mocks.evaluateAndSavePRs.mockResolvedValue([{ pr_type: 'best_weight' }])
 
-    const result = await finishWorkoutAction({} as any)
+    const result = await finishWorkoutAction(validWorkout)
 
     expect(result).toEqual({
       success: true,
@@ -56,7 +84,7 @@ describe('finishWorkoutAction', () => {
   it('returns failure when the workout save itself throws', async () => {
     mocks.saveActiveWorkout.mockRejectedValue(new Error('db down'))
 
-    const result = await finishWorkoutAction({} as any)
+    const result = await finishWorkoutAction(validWorkout)
 
     expect(result.success).toBe(false)
     expect((result as { error: string }).error).toBe('db down')
@@ -69,7 +97,7 @@ describe('finishWorkoutAction', () => {
     mocks.saveActiveWorkout.mockResolvedValue({ workout: savedWorkout, savedSets })
     mocks.evaluateAndSavePRs.mockRejectedValue(new Error('rpc timeout'))
 
-    const result = await finishWorkoutAction({} as any)
+    const result = await finishWorkoutAction(validWorkout)
 
     // Workout is reported as saved — UI must not lose it from localStorage
     expect(result.success).toBe(true)
@@ -80,9 +108,22 @@ describe('finishWorkoutAction', () => {
     expect(mocks.revalidateAll).toHaveBeenCalledOnce()
   })
 
+  it('rejects input that is not a workout without saving anything', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const result = await finishWorkoutAction({ title: 'Push' })
+
+    expect(result).toEqual({ success: false, error: 'Invalid workout data' })
+    expect(mocks.saveActiveWorkout).not.toHaveBeenCalled()
+    expect(consoleError).toHaveBeenCalledWith(
+      'Invalid finish workout payload:',
+      expect.arrayContaining([expect.objectContaining({ path: ['started_at'] })]),
+    )
+    consoleError.mockRestore()
+  })
+
   it('throws when there is no authenticated user', async () => {
     mocks.requireAuth.mockRejectedValue(new Error('User not authenticated'))
-    await expect(finishWorkoutAction({} as any)).rejects.toThrow('User not authenticated')
+    await expect(finishWorkoutAction(validWorkout)).rejects.toThrow('User not authenticated')
   })
 })
 

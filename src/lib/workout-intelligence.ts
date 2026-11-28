@@ -17,6 +17,7 @@ import type {
   TrainingStyle,
   ExperienceLevel,
 } from '@/types/database'
+import type { WeekKind } from '@/lib/suggestions/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -43,14 +44,6 @@ export interface WeeklySetTarget {
   /** Inclusive range shown as "aim for X–Y sets" */
   min: number
   max: number
-}
-
-// ── Rep ranges by training goal ───────────────────────────────────────────────
-
-export const REP_RANGES: Record<TrainingGoal, RepRange> = {
-  strength: { min: 3,  max: 6  },
-  muscle:   { min: 8,  max: 15 },
-  both:     { min: 5,  max: 10 },
 }
 
 // ── Weight jump increments by experience ─────────────────────────────────────
@@ -107,10 +100,8 @@ export const DELOAD_THRESHOLDS: Record<ExperienceLevel, Record<TrainingPhase, nu
 
 // ── Target RPE by training goal ───────────────────────────────────────────────
 //
-// Used by suggestNextSet() to calibrate whether last session's RPE was on
-// target, too hard, or too easy.
+// Fallback RPE target for suggestRepSum() when no week scheme supplies one.
 //
-// Each RPE unit ≈ 2.5% of 1RM (Tuchscherer 2008).
 // Strength work tolerates higher RPE (closer to maximal effort).
 // Hypertrophy is most effective at RPE 7–8 — high effort but not failure.
 
@@ -320,6 +311,7 @@ export const STALL_VARIATION_ADVICE: Partial<Record<MovementKey, string[]>> = {
 // The week index advances by training weeks — see src/lib/training-cycle.ts.
 
 export interface WUPScheme {
+  kind:       WeekKind
   label:      string
   repRange:   RepRange
   rpeTarget:  number
@@ -331,18 +323,21 @@ export type DUPScheme = WUPScheme
 
 export const WUP_CYCLE: WUPScheme[] = [
   {
+    kind:      'strength',
     label:     'Strength Week',
     repRange:  { min: 3, max: 5 },
     rpeTarget: 8.5,
     rationale: 'Low reps, heavy load — drives neuromuscular adaptation and 1RM strength.',
   },
   {
+    kind:      'hypertrophy',
     label:     'Hypertrophy Week',
     repRange:  { min: 8, max: 12 },
     rpeTarget: 7.5,
     rationale: 'Moderate reps, moderate load — maximises muscle protein synthesis.',
   },
   {
+    kind:      'volume',
     label:     'Volume Week',
     repRange:  { min: 13, max: 20 },
     rpeTarget: 7.0,

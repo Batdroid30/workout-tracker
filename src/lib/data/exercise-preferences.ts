@@ -1,4 +1,5 @@
 import { getCurrentUserId, getSupabaseClient } from '@/lib/supabase/client'
+import { DatabaseError } from '@/lib/errors'
 
 interface ExercisePreference {
   exercise_id: string
@@ -49,4 +50,19 @@ export async function upsertExercisePreference(
       },
       { onConflict: 'user_id,exercise_id' },
     )
+}
+
+/** Saves the smallest weight jump suggestions use for one exercise. */
+export async function upsertWeightStep(exerciseId: string, stepKg: number): Promise<void> {
+  const userId = await getCurrentUserId()
+  if (!userId) throw new DatabaseError('Failed to save weight step: not signed in')
+
+  const { error } = await getSupabaseClient()
+    .from('user_exercise_preferences')
+    .upsert(
+      { user_id: userId, exercise_id: exerciseId, weight_step_kg: stepKg },
+      { onConflict: 'user_id,exercise_id' },
+    )
+
+  if (error) throw new DatabaseError(`Failed to save weight step: ${error.message}`, error)
 }

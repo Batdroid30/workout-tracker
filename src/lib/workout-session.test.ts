@@ -132,6 +132,13 @@ describe('migrateActiveWorkout', () => {
     expect(migrated).toMatchObject({ userBodyweight: 80, bodyweightLogged: true })
   })
 
+  it('keeps the suggestion fields on a persisted set', () => {
+    const withFields = structuredClone(v0)
+    Object.assign(withFields.activeWorkout.exercises[0].sets[0], { rpe_source: 'prompt', suggested_weight_kg: 30, suggested_reps: 8 })
+    const migratedSet = migrateActiveWorkout(withFields, 0).activeWorkout?.exercises[0].sets[0]
+    expect(migratedSet).toMatchObject({ rpe_source: 'prompt', suggested_weight_kg: 30, suggested_reps: 8 })
+  })
+
   it('keeps no workout as no workout', () => {
     expect(migrateActiveWorkout({ activeWorkout: null, userBodyweight: null, bodyweightLogged: null }, 0).activeWorkout).toBeNull()
   })

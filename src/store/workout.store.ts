@@ -106,7 +106,8 @@ export const useWorkoutStore = create<WorkoutStore>()(
               set_number: s.set_number,
               weight_kg: s.weight_kg,
               reps: s.reps,
-              rpe: s.rpe,
+              // Effort is never carried over — an untouched copied RPE would read as entered today.
+              rpe: null,
               is_warmup: s.is_warmup,
               completed: false, // Must do it again!
               saved: false,

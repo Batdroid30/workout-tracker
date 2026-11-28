@@ -131,6 +131,9 @@ const SetSchema = z.object({
   is_warmup: z.boolean().catch(false),
   completed: z.boolean().catch(false),
   saved: z.boolean().catch(false),
+  rpe_source: z.enum(['entered', 'prompt']).nullable().optional().catch(null),
+  suggested_weight_kg: z.number().nullable().optional().catch(null),
+  suggested_reps: z.number().int().nullable().optional().catch(null),
 })
 
 const ExerciseSchema = z.object({
@@ -167,6 +170,23 @@ const ActiveWorkoutSchema = z.object({
   has_routine_been_modified: z.boolean().optional(),
   bodyweight_kg: z.number().nullable().optional(),
 })
+
+// The server action receives this over the wire, so it is checked like any
+// other external input. Fields only the phone tracks (clientId) are dropped.
+export function parseFinishPayload(input: unknown): FinishPayload | null {
+  const workout = ActiveWorkoutSchema.safeParse(input)
+  if (!workout.success || Number.isNaN(workout.data.started_at.getTime())) return null
+  const exercises = workout.data.exercises.map(({ clientId: _id, ...entry }) => entry)
+  return { ...workout.data, exercises }
+}
+
+/** Why parseFinishPayload rejected the input, for the server log. */
+export function finishPayloadIssues(input: unknown): z.ZodIssue[] {
+  const workout = ActiveWorkoutSchema.safeParse(input)
+  if (!workout.success) return workout.error.issues
+  if (!Number.isNaN(workout.data.started_at.getTime())) return []
+  return [{ code: z.ZodIssueCode.custom, path: ['started_at'], message: 'Invalid date' }]
+}
 
 const PersistedSchema = z.object({
   activeWorkout: z.unknown(),

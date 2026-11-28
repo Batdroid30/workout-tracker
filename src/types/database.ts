@@ -65,6 +65,8 @@ export interface Workout {
   completed_at: string | null
   created_at: string
   bodyweight_kg: number | null
+  week_type: 'strength' | 'hypertrophy' | 'volume' | null
+  is_deload: boolean | null
 }
 
 export interface WorkoutExercise {
@@ -143,6 +145,9 @@ export interface ActiveSet {
   is_warmup: boolean
   completed: boolean
   saved: boolean                // false until confirmed by server
+  rpe_source?: 'entered' | 'prompt' | null
+  suggested_weight_kg?: number | null
+  suggested_reps?: number | null
 }
 
 export interface ActiveExercise {
