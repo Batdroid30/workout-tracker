@@ -3,6 +3,7 @@ import { getCurrentUserId, getSupabaseClient } from '@/lib/supabase/client'
 import { DatabaseError } from '@/lib/errors'
 import { effectiveLoad, workoutBodyweight } from '@/lib/load'
 import type { LoggedSet, PastSession } from '@/lib/suggestions/types'
+import type { SuggestionProfile } from '@/lib/suggestions/exercise-plan-input'
 
 const MAX_SESSIONS = 8
 const HISTORY_WEEKS = 16
@@ -184,4 +185,29 @@ export async function fetchWeightStep(exerciseId: string): Promise<number | null
   if (error) throw new DatabaseError(`Failed to fetch weight step: ${error.message}`, error)
   if (!data) return null
   return WeightStepRowSchema.parse(data).weight_step_kg
+}
+
+const ProfileRowSchema = z.object({
+  training_goal: z.enum(['strength', 'muscle', 'both']).nullable(),
+  experience_level: z.enum(['beginner', 'intermediate', 'advanced']).nullable(),
+  training_phase: z.enum(['bulking', 'cutting', 'maingaining']).nullable(),
+})
+
+const EMPTY_PROFILE: SuggestionProfile = { training_goal: null, experience_level: null, training_phase: null }
+
+// No profile row exists until the lifter saves the Profile form, so a missing
+// row means "no preferences yet" — suggestions still work on defaults.
+export async function fetchSuggestionProfile(): Promise<SuggestionProfile> {
+  const userId = await getCurrentUserId()
+  if (!userId) return EMPTY_PROFILE
+
+  const { data, error } = await getSupabaseClient()
+    .from('profiles')
+    .select('training_goal, experience_level, training_phase')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error) throw new DatabaseError(`Failed to fetch profile: ${error.message}`, error)
+  if (!data) return EMPTY_PROFILE
+  return ProfileRowSchema.parse(data)
 }
