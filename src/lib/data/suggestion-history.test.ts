@@ -30,6 +30,7 @@ vi.mock('@/lib/supabase/client', () => {
 
 import {
   fetchSuggestionHistory,
+  fetchSuggestionProfile,
   fetchTodayReadinessAverage,
   fetchWeightStep,
   toPastSessions,
@@ -187,6 +188,38 @@ describe('fetchTodayReadinessAverage', () => {
   it('throws DatabaseError on query error', async () => {
     mocks.result = { data: null, error: { message: 'boom' } }
     await expect(fetchTodayReadinessAverage()).rejects.toBeInstanceOf(DatabaseError)
+  })
+})
+
+describe('fetchSuggestionProfile', () => {
+  const EMPTY = { training_goal: null, experience_level: null, training_phase: null }
+
+  it('returns an empty profile when signed out', async () => {
+    mocks.userId = null
+    expect(await fetchSuggestionProfile()).toEqual(EMPTY)
+    mocks.userId = 'user-1'
+  })
+
+  it('returns an empty profile when the lifter has never saved one', async () => {
+    mocks.result = { data: null, error: null }
+    expect(await fetchSuggestionProfile()).toEqual(EMPTY)
+    expect(mocks.calls).toContainEqual(['maybeSingle', []])
+  })
+
+  it('returns the saved profile scoped to the user', async () => {
+    mocks.result = {
+      data: { training_goal: 'muscle', experience_level: 'intermediate', training_phase: 'cutting' },
+      error: null,
+    }
+    expect(await fetchSuggestionProfile()).toEqual({
+      training_goal: 'muscle', experience_level: 'intermediate', training_phase: 'cutting',
+    })
+    expect(mocks.calls).toContainEqual(['eq', ['id', 'user-1']])
+  })
+
+  it('throws DatabaseError on query error', async () => {
+    mocks.result = { data: null, error: { message: 'boom' } }
+    await expect(fetchSuggestionProfile()).rejects.toBeInstanceOf(DatabaseError)
   })
 })
 
