@@ -20,6 +20,7 @@ function makePlan(sets: SetSuggestion[], rule: PlanRule = 'hold-match'): Exercis
     sets,
     explanation: {
       rule, referenceDate: null, referenceWeekKind: null, referenceSets: [], effortSources: [], modifiers: [], confidence: 'high', reason: '',
+      weekKind: 'hypertrophy', repRange: { min: 8, max: 12 }, isDeloadWeek: false, isReferenceNewest: true,
     },
   }
 }

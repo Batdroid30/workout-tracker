@@ -23,6 +23,7 @@ import { upsertExercisePreference } from '@/lib/data/exercise-preferences'
 import { useTrainingCycle } from '@/hooks/useTrainingCycle'
 import { useSaveWeightStep, useWeightStep } from '@/hooks/useWeightStep'
 import { WhyThisWeightSheet } from './WhyThisWeightSheet'
+import { chipTeaser } from '@/lib/suggestions/why-story'
 import { WeightStepSheet } from './WeightStepSheet'
 import { defaultWeightStep, toEquipmentKind } from '@/lib/suggestions/steps'
 import type { LoadMode } from '@/lib/suggestions/explanation-labels'
@@ -277,7 +278,7 @@ export function SetLogger({
               isAssisted={isAssisted(exercise.exercise.name)}
               prevSetText={prevText}
               suggestion={suggestion}
-              reason={setIndex === reasonSetIndex ? plan?.explanation.reason : undefined}
+              reason={setIndex === reasonSetIndex && plan ? chipTeaser(plan.explanation, explainMode) : undefined}
               onExplain={plan ? () => setShowWhy(true) : undefined}
               promptRepsLeft={!set.is_warmup && isKeySet(suggestion?.role ?? 'straight', workingIndex, workingCount, planHasTopSet)}
               defaultRpe={dupRpeTarget}

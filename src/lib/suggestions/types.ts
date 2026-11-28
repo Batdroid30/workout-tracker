@@ -35,5 +35,9 @@ export interface PlanExplanation {
   rule: PlanRule; referenceDate: string | null; referenceWeekKind: WeekKind | null; referenceSets: LoggedSet[]
   effortSources: EffortSource[]; modifiers: PlanModifier[]
   confidence: 'high' | 'medium' | 'low'; reason: string
+  /** Today's week and rep range, as planned (isolation lifts get their own Strength range). */
+  weekKind: WeekKind; repRange: RepRange; isDeloadWeek: boolean
+  /** False when the plan compares against an older session than the one in the Last column. */
+  isReferenceNewest: boolean
 }
 export interface ExercisePlan { sets: SetSuggestion[]; explanation: PlanExplanation }
