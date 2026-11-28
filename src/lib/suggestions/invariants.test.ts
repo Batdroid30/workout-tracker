@@ -214,9 +214,19 @@ function withPriorDeload(history: PastSession[], step: number): PastSession[] {
   return [deload, ...history]
 }
 
+// The newest-session flag follows the Last column, which a newer deload session does change.
+function withoutNewestFlag(plan: ExercisePlan | null): unknown {
+  if (!plan) return plan
+  const { isReferenceNewest: _isReferenceNewest, ...explanation } = plan.explanation
+  return { ...plan, explanation }
+}
+
 function priorDeloadFailures(gridCase: GridCase): string[] {
   const replanned = planExercise(withPriorDeload(gridCase.history, gridCase.point.step), gridCase.ctx, NOW)
-  return JSON.stringify(replanned) === JSON.stringify(gridCase.plan)
+  if (replanned && replanned.explanation.isReferenceNewest) {
+    return [failure(gridCase, 'a newer deload session should not be the reference')]
+  }
+  return JSON.stringify(withoutNewestFlag(replanned)) === JSON.stringify(withoutNewestFlag(gridCase.plan))
     ? []
     : [failure(gridCase, 'plan changed after a prior deload session')]
 }

@@ -5,7 +5,6 @@ import type {
   ActiveExercise, ActiveSet, Exercise, ExperienceLevel, TrainingGoal, TrainingPhase,
 } from '@/types/database'
 import { sessionEfforts } from './effort'
-import { referencePrefix } from './explanation-labels'
 import { hitRate, type HitRate } from './hit-rate'
 import { adjustRemainingSets } from './live'
 import { buildReason, noCycleContext, planExercise, withWeekOverrides } from './plan-exercise'
@@ -178,6 +177,10 @@ function planRepSum(history: PastSession[], ctx: PlanContext, repSumTarget: numb
       modifiers: [],
       confidence: 'medium',
       reason: suggestions[0].reason,
+      weekKind: ctx.weekKind,
+      repRange: ctx.repRange,
+      isDeloadWeek: ctx.isDeloadWeek,
+      isReferenceNewest: reference.startedAt === history[0]?.startedAt,
     },
   }
 }
@@ -251,14 +254,7 @@ export function resolveExercisePlan(
     kind, todayBodyweightKg, stepKg: ctx.weightStepKg, referenceSets: plan.explanation.referenceSets,
   })
   const explanation = storageExplanation(plan.explanation, sets, { exercise, ctx, kind, todayBodyweightKg })
-  return { sets, explanation: withReferencePrefix(explanation, history) }
-}
-
-/** The Last column shows the newest session; a plan built on an older one says which. */
-function withReferencePrefix(explanation: PlanExplanation, history: PastSession[]): PlanExplanation {
-  const { referenceDate, referenceWeekKind } = explanation
-  if (referenceDate === null || referenceDate === history[0]?.startedAt) return explanation
-  return { ...explanation, reason: `${referencePrefix(referenceDate, referenceWeekKind)}${explanation.reason}` }
+  return { sets, explanation }
 }
 
 /** Newest session back in storage space with its own bodyweight, so it reads as it was logged. */

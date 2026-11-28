@@ -42,7 +42,7 @@ function joinWithAnd(parts: string[]): string {
 }
 
 /** "1–2" for RPE 8.5, "about 3" for RPE 7: half-point targets span two whole RIR values. */
-function formatRepsLeft(rpeTarget: number): string {
+export function formatRepsLeft(rpeTarget: number): string {
   const repsInReserve = 10 - rpeTarget
   const fewest = Math.floor(repsInReserve)
   const most = Math.ceil(repsInReserve)
@@ -166,7 +166,7 @@ const REASONS: Record<PlanRule, ReasonBuilder> = {
   'hold-add-reps': describeHold,
   'hold-match': describeHold,
   'come-down': (first, plan) =>
-    `Last time was a grind below the range — drop to ${formatLoad(first.weightKg)} for ${formatRepList(plan)} reps.`,
+    `Last time was too heavy to reach this rep range — drop to ${formatLoad(first.weightKg)} for ${formatRepList(plan)} reps.`,
   'stall-reset': (first, plan) =>
     `Stalled for three sessions — reset to ${formatLoad(first.weightKg)} for ${formatRepList(plan)} reps and build back up.`,
   'reps-only': (first, plan) =>
@@ -185,7 +185,7 @@ const ASSISTED_REASONS: Partial<Record<PlanRule, ReasonBuilder>> = {
   'weight-up-forced': (first, plan) =>
     `Top of the range two sessions running — drop assistance to ${first.weightKg} kg for ${formatRepList(plan)} reps.`,
   'come-down': (first, plan) =>
-    `Last time was a grind below the range — add a little assistance (${first.weightKg} kg) for ${formatRepList(plan)} reps.`,
+    `Last time was too hard to reach this rep range — add a little assistance (${first.weightKg} kg) for ${formatRepList(plan)} reps.`,
   'stall-reset': (first, plan) =>
     `Stalled for three sessions — add a little assistance (${first.weightKg} kg) for ${formatRepList(plan)} reps and build back up.`,
   'reps-only': (first, plan) =>
@@ -286,6 +286,10 @@ export function planExercise(history: PastSession[], ctx: PlanContext, now: Date
       modifiers,
       confidence: confidenceFor(routed.rule, pick),
       reason: buildReason(routed.rule, modifiers, routed.sets, pick.session.sets, { rangeMax: plannedCtx.repRange.max }),
+      weekKind: plannedCtx.weekKind,
+      repRange: plannedCtx.repRange,
+      isDeloadWeek: plannedCtx.isDeloadWeek,
+      isReferenceNewest: pick.session.startedAt === history[0]?.startedAt,
     },
   }
 }

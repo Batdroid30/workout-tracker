@@ -1,6 +1,6 @@
 'use client'
 
-import { Zap } from 'lucide-react'
+import { ChevronRight, Zap } from 'lucide-react'
 import { rpeToRIR } from '@/lib/algorithms'
 import { formatAddedWeight } from '@/lib/load'
 import type { SetRole, SetSuggestion } from '@/lib/suggestions/types'
@@ -29,14 +29,36 @@ function formatSuggestedLoad(suggestion: SetSuggestion, display: LoadDisplay): s
 
 interface SuggestionChipProps extends LoadDisplay {
   suggestion: SetSuggestion
-  /** Shown once per exercise, so most chips get none. */
+  /** A few words on what changed since last time. Shown once per exercise, so most chips get none. */
   reason?: string
   onUse: () => void
   onExplain?: () => void
 }
 
+interface ChipTeaserProps {
+  teaser?: string
+  canExplain: boolean
+}
+
+function ChipTeaser({ teaser, canExplain }: ChipTeaserProps) {
+  if (!teaser && !canExplain) return null
+  return (
+    <span className="flex min-w-0 items-center gap-1 text-xs">
+      {teaser && <span className="truncate text-tertiary">{teaser}</span>}
+      {canExplain && (
+        <span className="shrink-0 font-medium text-accent">
+          {teaser ? '· See why' : 'See why'}
+          <ChevronRight className="inline w-3 h-3 -mt-px" aria-hidden="true" />
+        </span>
+      )}
+    </span>
+  )
+}
+
 export function SuggestionChip({ suggestion, reason, onUse, onExplain, ...display }: SuggestionChipProps) {
   const roleLabel = ROLE_LABELS[suggestion.role]
+  // Only the exercise's first open set links to the explanation, so the rest stay one line.
+  const canExplain = onExplain !== undefined && reason !== undefined
   const summary = (
     <>
       <span className="flex flex-wrap items-center gap-x-1.5">
@@ -47,7 +69,7 @@ export function SuggestionChip({ suggestion, reason, onUse, onExplain, ...displa
         </span>
         {roleLabel && <span className="text-xs font-medium text-secondary">{roleLabel}</span>}
       </span>
-      {reason && <span className="block truncate text-xs text-tertiary">{reason}</span>}
+      <ChipTeaser teaser={reason} canExplain={canExplain} />
       {suggestion.optional && <span className="block text-xs text-caution">Optional — skip this set this deload week</span>}
     </>
   )
@@ -56,7 +78,7 @@ export function SuggestionChip({ suggestion, reason, onUse, onExplain, ...displa
   return (
     <div className="mb-1 flex items-center rounded-control border border-border bg-surface-raised">
       {onExplain
-        ? <button type="button" onClick={onExplain} className={summaryClass}>{summary}</button>
+        ? <button type="button" onClick={onExplain} aria-label={`Suggested ${formatSuggestedLoad(suggestion, display)}. Why this weight`} className={summaryClass}>{summary}</button>
         : <div className={summaryClass}>{summary}</div>}
       <button
         type="button"
